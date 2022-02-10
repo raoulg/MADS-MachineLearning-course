@@ -1,7 +1,14 @@
 deep_learning
 ==============================
 
-A short description of the project.
+For this project you will need some dependencies.
+The project uses python 3.8, and all dependencies can be installed with `poetry` if you are using that with `poetry install`.
+
+If you prefer to use `pip` you can run `pip install -r requirements.txt`.
+
+The lessons can be found inside the `notebooks`folder.
+The source code for the lessons can be found in the `src`folder.
+
 
 Project Organization
 ------------
@@ -31,7 +38,6 @@ Project Organization
     ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
     │                         generated with `pip freeze > requirements.txt`
     │
-    ├── setup.py           <- makes project pip installable (pip install -e .) so src can be imported
     ├── src                <- Source code for use in this project.
     │   ├── __init__.py    <- Makes src a Python module
     │   │
@@ -49,8 +55,6 @@ Project Organization
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │       └── visualize.py
     │
-    └── tox.ini            <- tox file with settings for running tox; see tox.readthedocs.io
-
 
 --------
 
