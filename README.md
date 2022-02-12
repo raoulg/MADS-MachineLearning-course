@@ -14,8 +14,14 @@ Project Organization
 ------------
 
     ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make data` or `make train`
+    ├── Makefile           <- Makefile with commands like `make format` or `make lint`
     ├── README.md          <- The top-level README for developers using this project.
+    ├── .gitignore         <- Stuff not to add to git
+    ├── poetry.lock        <- Computer readable file that manages the dependencies of the libraries
+    ├── pyproject.toml     <- Human readable file. This specifies the libraries I installed to
+    |                         let the code run, and their versions.
+    ├── requirements.txt   <- Export from poetry.lock to requirements.txt, to be used with pip
+    ├── setug.cfg          <- Config file for linters etc.
     ├── data
     │   ├── external       <- Data from third party sources.
     │   ├── interim        <- Intermediate data that has been transformed.
@@ -54,7 +60,6 @@ Project Organization
     │   │
     │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
     │       └── visualize.py
-    │
 
 --------
 
