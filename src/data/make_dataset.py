@@ -1,6 +1,9 @@
+from typing import Tuple
+
 import numpy as np
 
-def build_grid(k: int) -> np.ndarray:
+
+def build_grid(k: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """creates a grid on [0,1] domain
     with a granularity k
 
