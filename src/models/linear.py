@@ -1,28 +1,32 @@
-import jax.numpy as jnp
-from loguru import logger
+from typing import List, Tuple
 
-def predict(params, activations):
+import numpy as np
+from loguru import logger
+import torch
+
+Params = List[Tuple[torch.Tensor, torch.Tensor]]
+
+
+def predict(params: Params, activations: torch.Tensor) -> torch.Tensor:
     for w, b in params:
-        outputs = jnp.dot(activations, w.T) + b
+        outputs = torch.matmul(activations, w) + b
         logger.info(f"Shape: {outputs.shape}")
         activations = outputs
-    
+
     return outputs
 
 
-def relu(x: jnp.ndarray) -> jnp.ndarray:
-    return jnp.maximum(0, x)
+def relu(x: torch.Tensor) -> torch.Tensor:
+    return torch.maximum(torch.tensor([0.]), x)
 
 
-def nn_predict(params, activations):
+def nn_predict(params: Params, activations: torch.Tensor) -> torch.Tensor:
     for w, b in params[:-1]:
-        outputs = jnp.dot(activations, w.T) + b
+        outputs = torch.matmul(activations, w) + b
         logger.info(f"Shape: {outputs.shape}")
         activations = relu(outputs)
-    
+
     final_w, final_b = params[-1]
-    logits = jnp.dot(activations, final_w.T) + final_b
+    logits = torch.matmul(activations, final_w) + final_b
     logger.info(f"Shape: {logits.shape}")
     return logits
-    
-
