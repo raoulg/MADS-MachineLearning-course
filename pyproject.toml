@@ -16,6 +16,8 @@ seaborn = "^0.11.2"
 torch = "^1.10.2"
 torchvision = "^0.11.3"
 trax = "^1.4.1"
+pyvips = "^2.1.16"
+transformers = "^4.16.2"
 
 [tool.poetry.dev-dependencies]
 ipykernel = "^6.9.0"
@@ -27,6 +29,7 @@ pytest = "^7.0.0"
 pep8-naming = "^0.12.1"
 flake8-annotations = "^2.7.0"
 hypothesis = "^6.36.1"
+jupyter = "^1.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
