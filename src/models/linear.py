@@ -1,8 +1,7 @@
 from typing import List, Tuple
 
-import numpy as np
-from loguru import logger
 import torch
+from loguru import logger
 
 Params = List[Tuple[torch.Tensor, torch.Tensor]]
 
