@@ -1,7 +1,8 @@
-import copy
 import math
+from pathlib import Path
 from typing import Callable, List, Tuple, Union
 
+import gin
 import numpy as np
 import torch
 from loguru import logger
@@ -10,11 +11,9 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-import gin
-from pathlib import Path
 
-from src.typehinting import GenericModel
 from src.data import data_tools
+from src.typehinting import GenericModel
 
 
 def write_gin(dir: Path) -> None:
@@ -22,18 +21,21 @@ def write_gin(dir: Path) -> None:
     with open(path, "w") as file:
         file.write(gin.operative_config_str())
 
+
 @gin.configurable
 def trainloop(
     epochs: int,
     model: GenericModel,
     optimizer: torch.optim.Optimizer,
-    learning_rate: float, 
+    learning_rate: float,
     loss_fn: Callable,
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
-    log_dir: Union[Path, str]
+    log_dir: Union[Path, str],
 ) -> GenericModel:
-    optimizer = optimizer(model.parameters(), lr=learning_rate)
+    optimizer_: torch.optim.Optimizer = optimizer(
+        model.parameters(), lr=learning_rate
+    )  # type: ignore
     log_dir = Path(log_dir)
     data_tools.clean_dir(log_dir)
     writer = SummaryWriter(log_dir=log_dir)
@@ -42,12 +44,12 @@ def trainloop(
         train_loss = 0.0
         model.train()
         for batch in train_dataloader:
-            optimizer.zero_grad()
+            optimizer_.zero_grad()
             input, target = batch
             output = model(input)
             loss = loss_fn(output, target)
             loss.backward()
-            optimizer.step()
+            optimizer_.step()
             train_loss += loss.data.item()
         train_loss /= len(train_dataloader.dataset)
         writer.add_scalar("Loss/train", train_loss, epoch)
@@ -78,19 +80,20 @@ def find_lr(
     smooth_window: int = 10,
     init_value: float = 1e-8,
     final_value: float = 10.0,
-) -> Tuple[List[float], List[float]]:
+) -> Tuple[List[float], List[float], List[Tuple], List[float]]:
     num_epochs = len(data_loader) - 1
     update_step = (final_value / init_value) ** (1 / num_epochs)
     lr = init_value
+    best_lr = 0.0
     best_loss = Inf
     best_diff = Inf
     batch_num = 0
     losses = []
-    smooth_losses = []
+    smooth_losses: List[float] = []
     momentum = 0.0
-    momentum_list = []
-    log_lrs = []
-    diff_coords = []
+    momentum_list: List[float] = []
+    log_lrs: List[float] = []
+    diff_coords: List[Tuple] = []
     for x, y in tqdm(data_loader):
         optimizer.zero_grad()
         output = model(x)

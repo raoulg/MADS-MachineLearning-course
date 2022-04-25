@@ -3,6 +3,8 @@ from typing import Tuple
 
 import gin
 import numpy as np
+import tensorflow as tf
+from loguru import logger
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
@@ -48,3 +50,14 @@ def get_MNIST(  # noqa: N802
     test_dataloader = DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
     return train_dataloader, test_dataloader
+
+
+def get_flowers(data_dir: Path) -> Path:
+    dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"  # noqa: E501
+    image_folder = tf.keras.utils.get_file(
+        "flower_photos", origin=dataset_url, untar=True, cache_dir=data_dir
+    )
+
+    image_folder = Path(image_folder)
+    logger.info(f"Data is downloaded to {image_folder}.")
+    return image_folder

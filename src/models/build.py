@@ -22,7 +22,7 @@ def init_network(
 
 
 def init_weights(
-    m: int, n: int, scale: float = 1e-1, seed=42
+    m: int, n: int, scale: float = 1e-1, seed: int = 42
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     torch.manual_seed(seed)
     return scale * torch.normal(0.0, scale, (m, n)), scale * torch.normal(
@@ -33,6 +33,6 @@ def init_weights(
 def torch_network(
     sizes: List[int],
     scale: float = 1e-1,
-    seed=42,
+    seed: int = 42,
 ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
     return [init_weights(m, n, scale, seed) for m, n in zip(sizes[:-1], sizes[1:])]
