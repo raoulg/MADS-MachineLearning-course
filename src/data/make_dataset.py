@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Tuple
 
+import gin
 import numpy as np
 from torch.utils.data import DataLoader
 from torchvision import datasets
@@ -24,6 +25,7 @@ def build_grid(k: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     return grid, x, y
 
 
+@gin.configurable
 def get_MNIST(  # noqa: N802
     data_dir: Path, batch_size: int
 ) -> Tuple[DataLoader, DataLoader]:
