@@ -10,4 +10,4 @@ trainloop.epochs = 20
 trainloop.learning_rate = 1e-3
 trainloop.optimizer = @SGD
 trainloop.loss_fn = @CrossEntropyLoss()
-trainloop.log_dir = "../../models/adam/"
+trainloop.log_dir = "../../models/sgd/"
