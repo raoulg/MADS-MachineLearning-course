@@ -8,6 +8,6 @@ NeuralNetwork.units2 = 512
 
 trainloop.epochs = 10
 trainloop.learning_rate = 1e-3
-trainloop.optimizer = @SGD
+trainloop.optimizer = @Adam
 trainloop.loss_fn = @CrossEntropyLoss()
-trainloop.log_dir = "../../models/sgd/"
+trainloop.log_dir = "../../models/adam/"
