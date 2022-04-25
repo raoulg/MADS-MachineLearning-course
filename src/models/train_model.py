@@ -4,6 +4,8 @@ from typing import Callable, List, Tuple, Union
 
 import gin
 import numpy as np
+import tensorflow as tf  # noqa: F401
+# needed to make summarywriter load without error
 import torch
 from loguru import logger
 from numpy import Inf
@@ -32,6 +34,7 @@ def trainloop(
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
     log_dir: Union[Path, str],
+    eval_steps: int,
 ) -> GenericModel:
     optimizer_: torch.optim.Optimizer = optimizer(
         model.parameters(), lr=learning_rate
@@ -56,12 +59,12 @@ def trainloop(
 
         model.eval()
         test_loss = 0.0
-        for batch in test_dataloader:
-            input, target = batch
+        for _ in range(eval_steps):
+            input, target = next(iter(test_dataloader))
             output = model(input)
             loss = loss_fn(output, target)
             test_loss += loss.data.item()
-        test_loss /= len(test_dataloader.dataset)
+        test_loss /= eval_steps * test_dataloader.batch_size
         writer.add_scalar("Loss/test", test_loss, epoch)
         logger.info(f"Epoch {epoch} train {train_loss:.4f} | test {test_loss:.4f}")
     write_gin(log_dir)
