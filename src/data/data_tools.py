@@ -1,9 +1,12 @@
+from asyncio import shield
 import random
 from pathlib import Path
 from typing import Dict, Generator, List, Tuple
 
 import numpy as np
 import tensorflow as tf
+import shutil
+from loguru import logger
 
 
 def walk_dir(path: Path) -> Generator:
@@ -93,3 +96,10 @@ def load_image(path: Path, image_size: Tuple[int, int], channels: int) -> np.nda
     img_resize.set_shape((image_size[0], image_size[1], channels))
     # cast to numpy
     return img_resize.numpy()
+
+def clean_dir(dir: str) -> None:
+    dir = Path(dir)
+    if dir.exists():
+        logger.info("Clean out {dir}")
+        shutil.rmtree(dir)
+
