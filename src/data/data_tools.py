@@ -129,9 +129,8 @@ class Dataloader:
                 index += 1
             
             if channel_first:
-                pass
+                X = np.moveaxis(X, 3, 1)
 
-            
             yield ((X, Y))
 
     def load_image(
