@@ -31,6 +31,8 @@ def init_weights(
 
 
 def torch_network(
-    sizes: List[int], scale: float = 1e-1, seed=42,
+    sizes: List[int],
+    scale: float = 1e-1,
+    seed=42,
 ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
     return [init_weights(m, n, scale, seed) for m, n in zip(sizes[:-1], sizes[1:])]
