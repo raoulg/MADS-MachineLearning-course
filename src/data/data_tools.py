@@ -17,6 +17,7 @@ class Dataloader:
     def __init__(
         self,
         path: Path,
+        split: float,
         formats: List[str] = [".png", ".jpg"],
     ) -> None:
         """
@@ -33,6 +34,16 @@ class Dataloader:
         self.class_dict: Dict[str, int] = {
             k: v for k, v in zip(self.class_names, range(len(self.class_names)))
         }
+        # unpack generator
+        self.valid_files = [*self.paths]
+        self.data_size = len(self.valid_files)
+        self.index_list = [*range(self.data_size)]
+
+        random.shuffle(self.index_list)
+
+        n_train = int(self.data_size * split)
+        self.train = self.index_list[:n_train]
+        self.test = self.index_list[n_train:]
 
     def walk_dir(self, path: Path) -> Iterator:
         """loops recursively through a folder
@@ -83,6 +94,7 @@ class Dataloader:
         image_size: Tuple[int, int],
         channels: int,
         channel_first: bool,
+        mode: str,
         shuffle: bool = True,
     ) -> Iterator:
         """
@@ -97,15 +109,12 @@ class Dataloader:
         Yields:
             Iterator: _description_
         """
-
-        # unpack generator
-        valid_files = [*self.paths]
-
-        data_size = len(valid_files)
-        index_list = [*range(data_size)]
-
-        if shuffle:
-            random.shuffle(index_list)
+        if mode == "train":
+            data_size = len(self.train)
+            index_list = self.train
+        else:
+            data_size = len(self.test)
+            index_list = self.test
 
         index = 0
         while True:
@@ -121,7 +130,7 @@ class Dataloader:
                     if shuffle:
                         random.shuffle(index_list)
                 # get path
-                file = valid_files[index_list[index]]
+                file = self.valid_files[index_list[index]]
                 # get image from disk
                 X[i] = self.load_image(file, image_size, channels)
                 # map parent directory name to integer
