@@ -6,7 +6,7 @@ NeuralNetwork.num_classes=10
 NeuralNetwork.units1 = 512
 NeuralNetwork.units2 = 512
 
-trainloop.epochs = 10
+trainloop.epochs = 20
 trainloop.learning_rate = 1e-3
 trainloop.optimizer = @SGD
 trainloop.loss_fn = @CrossEntropyLoss()
