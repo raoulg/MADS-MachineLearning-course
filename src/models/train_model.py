@@ -1,26 +1,43 @@
 import copy
-from typing import Callable, List, Tuple
-from numpy import Inf
-import numpy as np
 import math
+from typing import Callable, List, Tuple, Union
 
+import numpy as np
 import torch
-from torch.optim import Optimizer
 from loguru import logger
+from numpy import Inf
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+import gin
+from pathlib import Path
 
 from src.typehinting import GenericModel
-from tqdm import tqdm
+from src.data import data_tools
 
 
+def write_gin(dir: Path) -> None:
+    path = dir / "saved_config.gin"
+    with open(path, "w") as file:
+        file.write(gin.operative_config_str())
+
+@gin.configurable
 def trainloop(
     epochs: int,
     model: GenericModel,
     optimizer: torch.optim.Optimizer,
+    learning_rate: float, 
     loss_fn: Callable,
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
+    log_dir: Union[Path, str]
 ) -> GenericModel:
+    optimizer = optimizer(model.parameters(), lr=learning_rate)
+    log_dir = Path(log_dir)
+    data_tools.clean_dir(log_dir)
+    writer = SummaryWriter(log_dir=log_dir)
+
     for epoch in range(epochs):
         train_loss = 0.0
         model.train()
@@ -33,6 +50,7 @@ def trainloop(
             optimizer.step()
             train_loss += loss.data.item()
         train_loss /= len(train_dataloader.dataset)
+        writer.add_scalar("Loss/train", train_loss, epoch)
 
         model.eval()
         test_loss = 0.0
@@ -42,7 +60,9 @@ def trainloop(
             loss = loss_fn(output, target)
             test_loss += loss.data.item()
         test_loss /= len(test_dataloader.dataset)
+        writer.add_scalar("Loss/test", test_loss, epoch)
         logger.info(f"Epoch {epoch} train {train_loss:.4f} | test {test_loss:.4f}")
+    write_gin(log_dir)
     return model
 
 
@@ -63,7 +83,7 @@ def find_lr(
     update_step = (final_value / init_value) ** (1 / num_epochs)
     lr = init_value
     best_loss = Inf
-    best_diff = Inf 
+    best_diff = Inf
     batch_num = 0
     losses = []
     smooth_losses = []
@@ -85,7 +105,7 @@ def find_lr(
 
         losses.append(loss.item())
         batch_num += 1
-        start = max(0, batch_num-smooth_window)
+        start = max(0, batch_num - smooth_window)
         smooth = np.mean(losses[start:batch_num])
         smooth_losses.append(smooth)
         log_lrs.append(math.log10(lr))
