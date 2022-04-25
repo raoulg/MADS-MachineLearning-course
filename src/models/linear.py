@@ -16,7 +16,7 @@ def predict(params: Params, activations: torch.Tensor) -> torch.Tensor:
 
 
 def relu(x: torch.Tensor) -> torch.Tensor:
-    return torch.maximum(torch.tensor([0.]), x)
+    return torch.maximum(torch.tensor([0.0]), x)
 
 
 def nn_predict(params: Params, activations: torch.Tensor) -> torch.Tensor:
