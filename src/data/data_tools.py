@@ -9,12 +9,23 @@ from loguru import logger
 
 
 class Dataloader:
+    """Point the dataloader to a directory. 
+    It will load all files, taking the subfolders as classes.
+    Only files in the formatslist are kept.
+    The .datagenerator returns an Iterator of batched images and labels
+    """
     def __init__(
         self,
         path: Path,
-        split: float,
         formats: List[str] = [".png", ".jpg"],
     ) -> None:
+        """
+        Initializes the class
+
+        Args:
+            path (Path): location of the images
+            formats (List[str], optional): Formats to keep. Defaults to [".png", ".jpg"].
+        """
 
         # get all paths
         self.paths, self.class_names = self.iter_valid_paths(path, formats)
@@ -22,16 +33,6 @@ class Dataloader:
         self.class_dict: Dict[str, int] = {
             k: v for k, v in zip(self.class_names, range(len(self.class_names)))
         }
-        # unpack generator
-        self.valid_files = [*self.paths]
-        self.data_size = len(self.valid_files)
-        self.index_list = [*range(self.data_size)]
-
-        random.shuffle(self.index_list)
-
-        n_train = int(self.data_size * split)
-        self.train = self.index_list[:n_train]
-        self.test = self.index_list[n_train:]
 
     def walk_dir(self, path: Path) -> Iterator:
         """loops recursively through a folder
@@ -55,6 +56,19 @@ class Dataloader:
     def iter_valid_paths(
         self, path: Path, formats: List[str]
     ) -> Tuple[Iterator, List[str]]:
+        """
+        Gets all paths in folders and subfolders
+        strips the classnames assuming that the subfolders are the classnames
+        Keeps only paths with the right suffix
+
+
+        Args:
+            path (Path): image folder
+            formats (List[str]): suffices to keep.
+
+        Returns:
+            Tuple[Iterator, List[str]]: _description_
+        """
         # gets all files in folder and subfolders
         walk = self.walk_dir(path)
         # retrieves foldernames as classnames
@@ -68,15 +82,30 @@ class Dataloader:
         batch_size: int,
         image_size: Tuple[int, int],
         channels: int,
-        mode: str,
+        channel_first: bool,
         shuffle: bool = True,
     ) -> Iterator:
-        if mode == "train":
-            data_size = len(self.train)
-            index_list = self.train
-        else:
-            data_size = len(self.test)
-            index_list = self.test
+        """
+        Builds batches of images
+
+        Args:
+            batch_size (int): _description_
+            image_size (Tuple[int, int]): _description_
+            channels (int): _description_
+            shuffle (bool, optional): _description_. Defaults to True.
+
+        Yields:
+            Iterator: _description_
+        """
+
+        # unpack generator
+        valid_files = [*self.paths]
+
+        data_size = len(valid_files)
+        index_list = [*range(data_size)]
+
+        if shuffle:
+            random.shuffle(index_list)
 
         index = 0
         while True:
@@ -92,12 +121,17 @@ class Dataloader:
                     if shuffle:
                         random.shuffle(index_list)
                 # get path
-                file = self.valid_files[index_list[index]]
+                file = valid_files[index_list[index]]
                 # get image from disk
                 X[i] = self.load_image(file, image_size, channels)
                 # map parent directory name to integer
                 Y[i] = self.class_dict[file.parent.name]
                 index += 1
+            
+            if channel_first:
+                pass
+
+            
             yield ((X, Y))
 
     def load_image(
