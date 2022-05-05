@@ -5,6 +5,7 @@ from typing import Callable, List, Tuple, Union
 import gin
 import numpy as np
 import tensorflow as tf  # noqa: F401
+
 # needed to make summarywriter load without error
 import torch
 from loguru import logger
@@ -59,14 +60,21 @@ def trainloop(
 
         model.eval()
         test_loss = 0.0
+        test_accuracy = 0.0
         for _ in range(eval_steps):
             input, target = next(iter(test_dataloader))
             output = model(input)
             loss = loss_fn(output, target)
             test_loss += loss.data.item()
-        test_loss /= eval_steps * test_dataloader.batch_size
+            test_accuracy += (output.argmax(dim=1) == target).sum()
+        datasize = eval_steps * test_dataloader.batch_size
+        test_loss /= datasize
+        test_accuracy /= datasize
         writer.add_scalar("Loss/test", test_loss, epoch)
-        logger.info(f"Epoch {epoch} train {train_loss:.4f} | test {test_loss:.4f}")
+        writer.add_scalar("Loss/accuracy", test_accuracy, epoch)
+        logger.info(
+            f"Epoch {epoch} train {train_loss:.4f} | test {test_loss:.4f} acc {test_accuracy:.4f}"
+        )
     write_gin(log_dir)
     return model
 
