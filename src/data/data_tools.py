@@ -26,7 +26,7 @@ class Dataloader:
 
         Args:
             path (Path): location of the images
-            formats (List[str], optional): Formats to keep. Defaults to [".png", ".jpg"].
+            formats (List[str], optional): Formats to keep. Defaults to [".png", ".jpg"]
         """
 
         # get all paths
@@ -139,7 +139,7 @@ class Dataloader:
                 index += 1
 
             if channel_first:
-                X = np.moveaxis(X, 3, 1)
+                X = np.moveaxis(X, 3, 1)  # noqa: N806
 
             yield ((X, Y))
 

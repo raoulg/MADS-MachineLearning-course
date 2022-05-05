@@ -73,7 +73,8 @@ def trainloop(
         writer.add_scalar("Loss/test", test_loss, epoch)
         writer.add_scalar("Loss/accuracy", test_accuracy, epoch)
         logger.info(
-            f"Epoch {epoch} train {train_loss:.4f} | test {test_loss:.4f} acc {test_accuracy:.4f}"
+            f"Epoch {epoch} train {train_loss:.4f}",
+            f"test {test_loss:.4f} acc {test_accuracy:.4f}"
         )
     write_gin(log_dir)
     return model
@@ -91,12 +92,11 @@ def find_lr(
     smooth_window: int = 10,
     init_value: float = 1e-8,
     final_value: float = 10.0,
-) -> Tuple[List[float], List[float], List[Tuple]]:
+) -> Tuple[List[float], List[float]]:
     num_epochs = len(data_loader) - 1
     update_step = (final_value / init_value) ** (1 / num_epochs)
     lr = init_value
     optimizer.param_groups[0]["lr"] = init_value
-    best_lr = 0.0
     best_loss = Inf
     batch_num = 0
     losses = []
@@ -111,7 +111,7 @@ def find_lr(
             best_loss = loss
 
         if loss > 4 * best_loss:
-            return log_lrs[10:-5], smooth_losses[10:-5] 
+            return log_lrs[10:-5], smooth_losses[10:-5]
 
         losses.append(loss.item())
         batch_num += 1
@@ -125,4 +125,4 @@ def find_lr(
 
         lr *= update_step
         optimizer.param_groups[0]["lr"] = lr
-    return log_lrs[10:-5], smooth_losses[10:-5] 
+    return log_lrs[10:-5], smooth_losses[10:-5]
