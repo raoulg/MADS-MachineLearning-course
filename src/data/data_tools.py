@@ -9,11 +9,12 @@ from loguru import logger
 
 
 class Dataloader:
-    """Point the dataloader to a directory. 
+    """Point the dataloader to a directory.
     It will load all files, taking the subfolders as classes.
     Only files in the formatslist are kept.
     The .datagenerator returns an Iterator of batched images and labels
     """
+
     def __init__(
         self,
         path: Path,
@@ -136,7 +137,7 @@ class Dataloader:
                 # map parent directory name to integer
                 Y[i] = self.class_dict[file.parent.name]
                 index += 1
-            
+
             if channel_first:
                 X = np.moveaxis(X, 3, 1)
 
@@ -160,5 +161,5 @@ class Dataloader:
 def clean_dir(dir: Union[str, Path]) -> None:
     dir = Path(dir)
     if dir.exists():
-        logger.info("Clean out {dir}")
+        logger.info(f"Clean out {dir}")
         shutil.rmtree(dir)
