@@ -91,20 +91,17 @@ def find_lr(
     smooth_window: int = 10,
     init_value: float = 1e-8,
     final_value: float = 10.0,
-) -> Tuple[List[float], List[float], List[Tuple], List[float]]:
+) -> Tuple[List[float], List[float], List[Tuple]]:
     num_epochs = len(data_loader) - 1
     update_step = (final_value / init_value) ** (1 / num_epochs)
     lr = init_value
+    optimizer.param_groups[0]["lr"] = init_value
     best_lr = 0.0
     best_loss = Inf
-    best_diff = Inf
     batch_num = 0
     losses = []
     smooth_losses: List[float] = []
-    momentum = 0.0
-    momentum_list: List[float] = []
     log_lrs: List[float] = []
-    diff_coords: List[Tuple] = []
     for x, y in tqdm(data_loader):
         optimizer.zero_grad()
         output = model(x)
@@ -114,8 +111,7 @@ def find_lr(
             best_loss = loss
 
         if loss > 4 * best_loss:
-            logger.info(f"Best diff {best_diff:.2f} at {best_lr:.2f}")
-            return log_lrs[10:-5], smooth_losses[10:-5], diff_coords, momentum_list
+            return log_lrs[10:-5], smooth_losses[10:-5] 
 
         losses.append(loss.item())
         batch_num += 1
@@ -124,19 +120,9 @@ def find_lr(
         smooth_losses.append(smooth)
         log_lrs.append(math.log10(lr))
 
-        if batch_num > 2:
-            diff = smooth_losses[-1] - smooth_losses[-2]
-            momentum += 0.7 * diff
-            momentum_list.append(momentum)
-            if diff < best_diff:
-                best_diff = diff
-                best_lr = log_lrs[-1]
-                diff_coords.append((best_lr, smooth))
-
         loss.backward()
         optimizer.step()
 
         lr *= update_step
         optimizer.param_groups[0]["lr"] = lr
-    logger.info(f"Best diff {best_diff:.4f} at {best_lr:.4f}")
-    return log_lrs[10:-5], smooth_losses[10:-5], diff_coords, momentum_list
+    return log_lrs[10:-5], smooth_losses[10:-5] 
