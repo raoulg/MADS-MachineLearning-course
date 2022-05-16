@@ -22,18 +22,21 @@ class NeuralNetwork(nn.Module):
         return logits
 
 
+@gin.configurable
 class CNN(nn.Module):
-    def __init__(self, num_classes: int) -> None:
+    def __init__(
+        self, num_classes: int, kernel_size: int, filter1: int, filter2: int
+    ) -> None:
         super().__init__()
 
         self.convolutions = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(1, filter1, kernel_size=kernel_size, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=0),
+            nn.Conv2d(filter1, filter2, kernel_size=kernel_size, stride=1, padding=0),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=0),
+            nn.Conv2d(filter2, 32, kernel_size=kernel_size, stride=1, padding=0),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
         )
