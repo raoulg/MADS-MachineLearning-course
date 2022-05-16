@@ -41,10 +41,10 @@ if __name__ == "__main__":
         "input_size" : 3,
         "hidden_size" : tune.randint(16, 128), 
         "dropout" : tune.uniform(0.0, 0.3),
-        "num_layers": tune.randint(2, 4),
+        "num_layers": tune.randint(2, 5),
         "output_size" : 20,
         "tune_dir" : None,
-        "data_dir" : Path("~/code/deep_learning/data/external/gestures-dataset").expanduser()
+        "data_dir" : Path("~/code/ML22/data/external/gestures-dataset").expanduser()
     }
 
     reporter = CLIReporter()
@@ -53,7 +53,7 @@ if __name__ == "__main__":
                                     reduction_factor=3,
                                     max_t=50)
 
-    local_dir = Path("~/code/deep_learning/models/").expanduser()
+    local_dir = Path("~/code/ML22/models/").expanduser()
 
     analysis = tune.run(train,
          config = config,
@@ -61,8 +61,8 @@ if __name__ == "__main__":
          mode="min",
          progress_reporter=reporter,
          local_dir=local_dir,
-         num_samples=10,
-         stop={"training_iteration": 10},
+         num_samples=20,
+         stop={"training_iteration": 50},
          sync_config=tune.SyncConfig(syncer=None),
          verbose=1)
 
