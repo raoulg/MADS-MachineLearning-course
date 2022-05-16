@@ -1,8 +1,10 @@
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Tuple, Union
+from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import gin
 import torch
+from loguru import logger
+from ray import tune
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -124,14 +126,17 @@ def trainloop(
     loss_fn: Callable,
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
-    log_dir: Union[Path, str],
+    log_dir: Optional[Path] = None,
+    tunewriter: bool = False,
 ) -> GenericModel:
     optimizer_: torch.optim.Optimizer = optimizer(
         model.parameters(), lr=learning_rate
     )  # type: ignore
-    log_dir = Path(log_dir)
-    data_tools.clean_dir(log_dir)
-    writer = SummaryWriter(log_dir=log_dir)
+
+    if not tunewriter:
+        log_dir = Path(log_dir)
+        data_tools.clean_dir(log_dir)
+        writer = SummaryWriter(log_dir=log_dir)
 
     for epoch in tqdm(range(epochs)):
         train_loss = trainbatches(
@@ -140,7 +145,6 @@ def trainloop(
             optimizer=optimizer_,
             loss_fn=loss_fn,
         )
-        writer.add_scalar("Loss/train", train_loss, epoch)
 
         test_loss, metric_dict = evalbatches(
             model=model,
@@ -148,9 +152,15 @@ def trainloop(
             loss_fn=loss_fn,
             metrics=metrics,
         )
+        if epoch % 5 == 0:
+            torch.save(model.state_dict(), "./model.pt")
 
-        writer.add_scalar("Loss/test", test_loss, epoch)
-        for m in metric_dict:
-            writer.add_scalar(f"metric/{m}", metric_dict[m], epoch)
-    write_gin(log_dir)
+        if tunewriter:
+            tune.report(iterations=epoch, train_loss=train_loss, test_loss=test_loss)
+        else:
+            writer.add_scalar("Loss/train", train_loss, epoch)
+            writer.add_scalar("Loss/test", test_loss, epoch)
+            for m in metric_dict:
+                writer.add_scalar(f"metric/{m}", metric_dict[m], epoch)
+            write_gin(log_dir)
     return model

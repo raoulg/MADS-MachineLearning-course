@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 from pathlib import Path
 from typing import List, Tuple
 
@@ -14,6 +15,9 @@ from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
+from tqdm import tqdm
+
+from src.data import data_tools
 
 Tensor = torch.Tensor
 
@@ -88,18 +92,24 @@ def get_sunspots(datadir: Path) -> pd.DataFrame:
 
 class Datagenerator:
     def __init__(self, paths: List[Path], batchsize: int) -> None:
-        self.dataset = paths
-        self.size = len(self.dataset)
+        self.paths = paths
+        random.shuffle(self.paths)
         self.batchsize = batchsize
+
+        self.dataset = []
+        for file in tqdm(self.paths):
+            x = np.genfromtxt(file)[:, 3:]
+            x = torch.tensor(x).type(torch.float32)
+            y = int(file.parent.name) - 1
+            self.dataset.append((x, y))
+
+        self.size = len(self.dataset)
 
     def __len__(self) -> int:
         return int(len(self.dataset) / self.batchsize)
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
-        x_ = np.genfromtxt(self.dataset[idx])[:, 3:]
-        x = torch.tensor(x_).type(torch.float32)
-        y = self.dataset[idx].parent.name
-        return x, int(y) - 1
+        return self.dataset[idx]
 
     def __iter__(self) -> Datagenerator:
         self.index = 0
@@ -108,18 +118,30 @@ class Datagenerator:
 
     def __next__(self) -> Tuple[Tensor, Tensor]:
         if self.index <= (len(self.dataset) - self.batchsize):
-            X = []  # noqa N806
-            Y = []  # noqa N806
+            X = []
+            Y = []
             for _ in range(self.batchsize):
-                x, y = self[int(self.index_list[self.index])]
+                x, y = self[self.index_list[self.index]]
                 X.append(x)
                 Y.append(y)
                 self.index += 1
-            X_ = pad_sequence(X, batch_first=True, padding_value=0)  # noqa N806
+            # this makes all sequence of equal length by adding zeros
+            X_ = pad_sequence(X, batch_first=True, padding_value=0)
             return X_, torch.tensor(Y)
         else:
             raise StopIteration
 
 
-def get_gestures(datadir: Path) -> None:
-    pass
+def get_gestures(
+    data_dir: Path, split: float, batchsize: int
+) -> Tuple[Datagenerator, Datagenerator]:
+    formats = [".txt"]
+    paths = [path for path in data_tools.walk_dir(data_dir) if path.suffix in formats]
+
+    # make a train-test split
+    idx = int(len(paths) * split)
+    trainpaths = paths[:idx]
+    testpaths = paths[idx:]
+    trainloader = Datagenerator(trainpaths, batchsize=batchsize)
+    testloader = Datagenerator(testpaths, batchsize=batchsize)
+    return trainloader, testloader
