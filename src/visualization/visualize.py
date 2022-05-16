@@ -1,5 +1,7 @@
-import seaborn as sns
 from typing import Dict
+
+import seaborn as sns
+
 
 def plot_timers(timer: Dict[str, float]) -> None:
     x = list(timer.keys())

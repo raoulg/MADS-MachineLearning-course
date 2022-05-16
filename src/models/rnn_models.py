@@ -1,9 +1,8 @@
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Union
+from typing import Callable, Dict, Iterator, List, Tuple, Union
 
 import gin
 import torch
-from grpc import Call
 from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -19,7 +18,7 @@ Tensor = torch.Tensor
 class BaseModel(nn.Module):
     def __init__(self, observations: int, horizon: int) -> None:
         super().__init__()
-        self.flatten = nn.Flatten() # we have 3d data, the linear model wants 2D
+        self.flatten = nn.Flatten()  # we have 3d data, the linear model wants 2D
         self.linear = nn.Linear(observations, horizon)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -52,7 +51,8 @@ class BaseRNN(nn.Module):
 
 class GRUmodel(nn.Module):
     def __init__(
-        self, config: Dict, 
+        self,
+        config: Dict,
     ) -> None:
         super().__init__()
         self.rnn = nn.GRU(
@@ -71,13 +71,12 @@ class GRUmodel(nn.Module):
         return yhat
 
 
-
 def trainbatches(
     model: GenericModel,
     dataloader: Iterator,
     optimizer: torch.optim.Optimizer,
     loss_fn: Callable,
-):
+) -> float:
     model.train()
     epochloss = 0.0
     for x, y in dataloader:
@@ -88,30 +87,30 @@ def trainbatches(
         optimizer.step()
         epochloss += loss.data.item()
 
-    epochloss /= len(dataloader)
+    epochloss /= len(dataloader)  # type: ignore
     return epochloss
 
 
 def evalbatches(
     model: GenericModel,
     dataloader: Iterator,
-    loss_fn: torch.optim.Optimizer,
+    loss_fn: Callable,
     metrics: List[Callable],
-):
+) -> Tuple[float, Dict[str, float]]:
     model.eval()
     test_loss = 0.0
     metric_dict: Dict[str, float] = {}
     for x, y in dataloader:
         yhat = model(x)
-        loss = loss_fn(yhat, y)
+        loss = loss_fn(yhat, y)  # type: ignore
         test_loss += loss.data.item()
         for m in metrics:
             metric_dict[str(m)] = metric_dict.get(str(m), 0.0) + m(y, yhat)
 
-    datasize = len(dataloader)
+    datasize = len(dataloader)  # type: ignore
     test_loss /= datasize
-    for m in metric_dict:
-        metric_dict[str(m)] = metric_dict[str(m)] / datasize
+    for key in metric_dict:
+        metric_dict[str(key)] = metric_dict[str(key)] / datasize
     return test_loss, metric_dict
 
 
