@@ -3,6 +3,8 @@ from typing import Tuple
 
 import gin
 import numpy as np
+import pandas as pd
+import requests
 import tensorflow as tf
 from loguru import logger
 from torch.utils.data import DataLoader
@@ -61,3 +63,18 @@ def get_flowers(data_dir: Path) -> Path:
     image_folder = Path(image_folder)
     logger.info(f"Data is downloaded to {image_folder}.")
     return image_folder
+
+
+def get_sunspots(datadir: Path) -> pd.DataFrame:
+    """loads sunspot data since 1749, selects year and monthly mean"""
+    file = datadir / "sunspots.csv"
+    if file.exists():
+        logger.info(f"Found {file}, load from disk")
+        data = pd.read_csv(file)
+    else:
+        logger.info(f"{file} does not exist, retrieving")
+        spots = requests.get("http://www.sidc.be/silso/INFO/snmtotcsv.php", stream=True)
+        spots = np.genfromtxt(spots.raw, delimiter=";")
+        data = pd.DataFrame(spots[:, 2:4], columns=["year", "MonthlyMean"])  # type: ignore # noqa: E501
+        data.to_csv(file, index=False)
+    return data
