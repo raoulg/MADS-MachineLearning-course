@@ -5,7 +5,53 @@ from typing import Dict, Iterator, List, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
+import torch
 from loguru import logger
+
+Tensor = torch.Tensor
+
+
+def walk_dir(path: Path) -> Iterator:
+    """loops recursively through a folder
+
+    Args:
+        path (Path): folder to loop trough. If a directory
+            is encountered, loop through that recursively.
+
+    Yields:
+        Generator: all paths in a folder and subdirs.
+    """
+
+    for p in Path(path).iterdir():
+        if p.is_dir():
+            yield from walk_dir(p)
+            continue
+        # resolve works like .absolute(), but it removes the "../.." parts
+        # of the location, so it is cleaner
+        yield p.resolve()
+
+
+def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str]]:
+    """
+    Gets all paths in folders and subfolders
+    strips the classnames assuming that the subfolders are the classnames
+    Keeps only paths with the right suffix
+
+
+    Args:
+        path (Path): image folder
+        formats (List[str]): suffices to keep.
+
+    Returns:
+        Tuple[Iterator, List[str]]: _description_
+    """
+    # gets all files in folder and subfolders
+    walk = walk_dir(path)
+    # retrieves foldernames as classnames
+    class_names = [subdir.name for subdir in path.iterdir() if subdir.is_dir()]
+    # keeps only specified formats
+    paths = (path for path in walk if path.suffix in formats)
+    return paths, class_names
 
 
 class Dataloader:
@@ -30,7 +76,7 @@ class Dataloader:
         """
 
         # get all paths
-        self.paths, self.class_names = self.iter_valid_paths(path, formats)
+        self.paths, self.class_names = iter_valid_paths(path, formats)
         # make a dictionary mapping class names to an integer
         self.class_dict: Dict[str, int] = {
             k: v for k, v in zip(self.class_names, range(len(self.class_names)))
@@ -45,49 +91,6 @@ class Dataloader:
         n_train = int(self.data_size * split)
         self.train = self.index_list[:n_train]
         self.test = self.index_list[n_train:]
-
-    def walk_dir(self, path: Path) -> Iterator:
-        """loops recursively through a folder
-
-        Args:
-            path (Path): folder to loop trough. If a directory
-                is encountered, loop through that recursively.
-
-        Yields:
-            Generator: all paths in a folder and subdirs.
-        """
-
-        for p in Path(path).iterdir():
-            if p.is_dir():
-                yield from self.walk_dir(p)
-                continue
-            # resolve works like .absolute(), but it removes the "../.." parts
-            # of the location, so it is cleaner
-            yield p.resolve()
-
-    def iter_valid_paths(
-        self, path: Path, formats: List[str]
-    ) -> Tuple[Iterator, List[str]]:
-        """
-        Gets all paths in folders and subfolders
-        strips the classnames assuming that the subfolders are the classnames
-        Keeps only paths with the right suffix
-
-
-        Args:
-            path (Path): image folder
-            formats (List[str]): suffices to keep.
-
-        Returns:
-            Tuple[Iterator, List[str]]: _description_
-        """
-        # gets all files in folder and subfolders
-        walk = self.walk_dir(path)
-        # retrieves foldernames as classnames
-        class_names = [subdir.name for subdir in path.iterdir() if subdir.is_dir()]
-        # keeps only specified formats
-        paths = (path for path in walk if path.suffix in formats)
-        return paths, class_names
 
     def data_generator(
         self,
@@ -163,3 +166,26 @@ def clean_dir(dir: Union[str, Path]) -> None:
     if dir.exists():
         logger.info(f"Clean out {dir}")
         shutil.rmtree(dir)
+    else:
+        dir.mkdir(parents=True)
+
+
+def window(x: Tensor, n_time: int) -> Tensor:
+    """
+    Generates and index that can be used to window a timeseries.
+    E.g. the single series [0, 1, 2, 3, 4, 5] can be windowed into 4 timeseries with
+    length 3 like this:
+
+    [0, 1, 2]
+    [1, 2, 3]
+    [2, 3, 4]
+    [3, 4, 5]
+
+    We now can feed 4 different timeseries into the model, instead of 1, all
+    with the same length.
+    """
+    n_window = len(x) - n_time + 1
+    time = torch.arange(0, n_time).reshape(1, -1)
+    window = torch.arange(0, n_window).reshape(-1, 1)
+    idx = time + window
+    return idx
