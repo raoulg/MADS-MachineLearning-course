@@ -74,7 +74,7 @@ def trainloop(
         writer.add_scalar("Loss/accuracy", test_accuracy, epoch)
         logger.info(
             f"Epoch {epoch} train {train_loss:.4f}",
-            f"test {test_loss:.4f} acc {test_accuracy:.4f}"
+            f"test {test_loss:.4f} acc {test_accuracy:.4f}",
         )
     write_gin(log_dir)
     return model
