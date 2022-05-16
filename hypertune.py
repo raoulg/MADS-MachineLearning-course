@@ -8,16 +8,17 @@ import ray
 from ray.tune import CLIReporter
 from ray.tune.schedulers import AsyncHyperBandScheduler
 from loguru import logger
-# from filelock import FileLock
+from filelock import FileLock
 
 def train(config, checkpoint_dir=None):
     data_dir = config["data_dir"]
-    if not data_dir.exist():
+    if not data_dir.exists():
         logger.error(f"Datadir {data_dir} not found")
         raise FileNotFoundError
 
     accuracy = metrics.Accuracy()
-    trainloader, testloader = make_dataset.get_gestures(data_dir=data_dir, split=0.8, batchsize=32)
+    with FileLock(data_dir / ".lock"):
+        trainloader, testloader = make_dataset.get_gestures(data_dir=data_dir, split=0.8, batchsize=32)
     model = rnn_models.GRUmodel(config)
 
     model = rnn_models.trainloop(
@@ -61,7 +62,7 @@ if __name__ == "__main__":
          progress_reporter=reporter,
          local_dir=local_dir,
          num_samples=10,
-         stop={"training_iteration": 50},
+         stop={"training_iteration": 10},
          sync_config=tune.SyncConfig(syncer=None),
          verbose=1)
 
