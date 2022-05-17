@@ -152,15 +152,16 @@ def trainloop(
             loss_fn=loss_fn,
             metrics=metrics,
         )
-        if epoch % 5 == 0:
-            torch.save(model.state_dict(), "./model.pt")
 
         if tunewriter:
             tune.report(iterations=epoch, train_loss=train_loss, test_loss=test_loss)
         else:
+            if log_dir == None:
+                log_dir = Path(".")
             writer.add_scalar("Loss/train", train_loss, epoch)
             writer.add_scalar("Loss/test", test_loss, epoch)
             for m in metric_dict:
                 writer.add_scalar(f"metric/{m}", metric_dict[m], epoch)
             write_gin(log_dir)
+
     return model
