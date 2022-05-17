@@ -44,16 +44,17 @@ if __name__ == "__main__":
         "num_layers": tune.randint(2, 5),
         "output_size" : 20,
         "tune_dir" : None,
-        "data_dir" : Path("~/code/ML22/data/external/gestures-dataset").expanduser()
+        "data_dir" : Path("data/external/gestures-dataset").absolute()
     }
 
     reporter = CLIReporter()
+    reporter.add_metric_column("Accuracy")
     scheduler = AsyncHyperBandScheduler(time_attr="training_iteration", 
-                                    grace_period=5,
+                                    grace_period=3,
                                     reduction_factor=3,
                                     max_t=50)
 
-    local_dir = Path("~/code/ML22/models/").expanduser()
+    local_dir = Path("models/").absolute()
 
     analysis = tune.run(train,
          config = config,
@@ -61,8 +62,8 @@ if __name__ == "__main__":
          mode="min",
          progress_reporter=reporter,
          local_dir=local_dir,
-         num_samples=20,
-         stop={"training_iteration": 50},
+         num_samples=2,
+         stop={"training_iteration": 2},
          sync_config=tune.SyncConfig(syncer=None),
          verbose=1)
 
