@@ -9,6 +9,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+from datetime import datetime
 
 from src.data import data_tools
 from src.models.train_model import write_gin
@@ -51,6 +52,7 @@ class BaseRNN(nn.Module):
         return yhat
 
 
+@gin.configurable
 class GRUmodel(nn.Module):
     def __init__(
         self,
@@ -132,10 +134,34 @@ def trainloop(
     optimizer_: torch.optim.Optimizer = optimizer(
         model.parameters(), lr=learning_rate
     )  # type: ignore
+    """
+    Runs trainloops on a model
+
+    Args:
+        epochs (int) : Amount of runs through the dataset
+        model: A generic model with a .train() and .eval() method
+        metrics (List[Callable]) : A list of callable metrics. 
+            Assumed to have a __repr__ method implemented
+        tunewriter (bool) : when running experiments manually, this should
+            be False (default). If false, a subdir is created
+            with a timestamp, and a SummaryWriter is invoked to write in
+            that subdir for Tensorboard use.
+            If True, the logging is left to the ray.tune.report
+
+
+    Returns:
+        _type_: _description_
+    """
 
     if not tunewriter:
+        if log_dir == None:
+            log_dir = Path(".")
         log_dir = Path(log_dir)
-        data_tools.clean_dir(log_dir)
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+        log_dir = log_dir / timestamp 
+        logger.info(f"Logging to {log_dir}")
+        if not log_dir.exists():
+            log_dir.mkdir(parents=True)
         writer = SummaryWriter(log_dir=log_dir)
 
     for epoch in tqdm(range(epochs)):
@@ -156,8 +182,6 @@ def trainloop(
         if tunewriter:
             tune.report(iterations=epoch, train_loss=train_loss, test_loss=test_loss)
         else:
-            if log_dir == None:
-                log_dir = Path(".")
             writer.add_scalar("Loss/train", train_loss, epoch)
             writer.add_scalar("Loss/test", test_loss, epoch)
             for m in metric_dict:
