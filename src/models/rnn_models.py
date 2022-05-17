@@ -1,5 +1,6 @@
+from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterator, List, Optional, Tuple
 
 import gin
 import torch
@@ -9,9 +10,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from datetime import datetime
 
-from src.data import data_tools
 from src.models.train_model import write_gin
 from src.typehinting import GenericModel
 
@@ -50,9 +49,6 @@ class BaseRNN(nn.Module):
         last_step = x[:, -1, :]
         yhat = self.linear(last_step)
         return yhat
-
-
-
 
 
 def trainbatches(
@@ -120,7 +116,7 @@ def trainloop(
     Args:
         epochs (int) : Amount of runs through the dataset
         model: A generic model with a .train() and .eval() method
-        metrics (List[Callable]) : A list of callable metrics. 
+        metrics (List[Callable]) : A list of callable metrics.
             Assumed to have a __repr__ method implemented
         tunewriter (bool) : when running experiments manually, this should
             be False (default). If false, a subdir is created
@@ -134,11 +130,11 @@ def trainloop(
     """
 
     if not tunewriter:
-        if log_dir == None:
+        if log_dir is None:
             log_dir = Path(".")
         log_dir = Path(log_dir)
         timestamp = datetime.now().strftime("%Y%m%d-%H%M")
-        log_dir = log_dir / timestamp 
+        log_dir = log_dir / timestamp
         logger.info(f"Logging to {log_dir}")
         if not log_dir.exists():
             log_dir.mkdir(parents=True)

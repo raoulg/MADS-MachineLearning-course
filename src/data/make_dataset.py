@@ -98,8 +98,8 @@ class Datagenerator:
 
         self.dataset = []
         for file in tqdm(self.paths):
-            x = np.genfromtxt(file)[:, 3:]
-            x = torch.tensor(x).type(torch.float32)
+            x_ = np.genfromtxt(file)[:, 3:]
+            x = torch.tensor(x_).type(torch.float32)
             y = int(file.parent.name) - 1
             self.dataset.append((x, y))
 
@@ -118,15 +118,15 @@ class Datagenerator:
 
     def __next__(self) -> Tuple[Tensor, Tensor]:
         if self.index <= (len(self.dataset) - self.batchsize):
-            X = []
-            Y = []
+            X = []  # noqa N806
+            Y = []  # noqa N806
             for _ in range(self.batchsize):
-                x, y = self[self.index_list[self.index]]
+                x, y = self[int(self.index_list[self.index])]
                 X.append(x)
                 Y.append(y)
                 self.index += 1
             # this makes all sequence of equal length by adding zeros
-            X_ = pad_sequence(X, batch_first=True, padding_value=0)
+            X_ = pad_sequence(X, batch_first=True, padding_value=0)  # noqa N806
             return X_, torch.tensor(Y)
         else:
             raise StopIteration
