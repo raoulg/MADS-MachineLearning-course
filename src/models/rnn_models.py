@@ -50,6 +50,7 @@ class BaseRNN(nn.Module):
         yhat = self.linear(last_step)
         return yhat
 
+
 @gin.configurable
 class GRUmodel(nn.Module):
     def __init__(
@@ -71,6 +72,7 @@ class GRUmodel(nn.Module):
         last_step = x[:, -1, :]
         yhat = self.linear(last_step)
         return yhat
+
 
 def trainbatches(
     model: GenericModel,
@@ -177,7 +179,12 @@ def trainloop(
         )
 
         if tunewriter:
-            tune.report(iterations=epoch, train_loss=train_loss, test_loss=test_loss)
+            tune.report(
+                iterations=epoch,
+                train_loss=train_loss,
+                test_loss=test_loss,
+                **metric_dict,
+            )
         else:
             writer.add_scalar("Loss/train", train_loss, epoch)
             writer.add_scalar("Loss/test", test_loss, epoch)
