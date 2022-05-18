@@ -1,5 +1,6 @@
 from src.data import make_dataset
 from src.models import rnn_models, metrics
+from src.settings import SearchSpace
 from pathlib import Path
 from ray.tune import JupyterNotebookReporter
 from ray import tune
@@ -10,7 +11,7 @@ from ray.tune.schedulers import AsyncHyperBandScheduler
 from loguru import logger
 from filelock import FileLock
 
-def train(config, checkpoint_dir=None):
+def train(config: SearchSpace, checkpoint_dir=None):
     data_dir = config["data_dir"]
     if not data_dir.exists():
         logger.error(f"Datadir {data_dir} not found")
@@ -36,16 +37,13 @@ def train(config, checkpoint_dir=None):
 
 if __name__ == "__main__":
     ray.init()
+    config = SearchSpace(
+        input_size=3,
+        output_size=20,
+        tune_dir=Path("models/").absolute(),
+        data_dir=Path("data/external/gestures-dataset").absolute()
+    )
 
-    config = {
-        "input_size" : 3,
-        "hidden_size" : tune.randint(16, 128), 
-        "dropout" : tune.uniform(0.0, 0.3),
-        "num_layers": tune.randint(2, 5),
-        "output_size" : 20,
-        "tune_dir" : None,
-        "data_dir" : Path("data/external/gestures-dataset").absolute()
-    }
 
     reporter = CLIReporter()
     reporter.add_metric_column("Accuracy")
@@ -54,14 +52,13 @@ if __name__ == "__main__":
                                     reduction_factor=3,
                                     max_t=50)
 
-    local_dir = Path("models/").absolute()
 
     analysis = tune.run(train,
-         config = config,
+         config = config.dict(),
          metric="test_loss",
          mode="min",
          progress_reporter=reporter,
-         local_dir=local_dir,
+         local_dir=config.tune_dir,
          num_samples=2,
          stop={"training_iteration": 2},
          sync_config=tune.SyncConfig(syncer=None),
