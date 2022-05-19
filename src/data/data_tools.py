@@ -91,6 +91,9 @@ class Dataloader:
         n_train = int(self.data_size * split)
         self.train = self.index_list[:n_train]
         self.test = self.index_list[n_train:]
+    
+    def __len__(self) -> int:
+        return len(self.valid_files)
 
     def data_generator(
         self,
@@ -127,7 +130,7 @@ class Dataloader:
             X = torch.zeros(  # noqa: N806
                 (batch_size, channels, image_size[0], image_size[1])
             )  # noqa: N806
-            Y = torch.zeros(batch_size)  # noqa: N806
+            Y = torch.zeros(batch_size, dtype=torch.long)  # noqa: N806
 
             for i in range(batch_size):
                 if index >= data_size:
