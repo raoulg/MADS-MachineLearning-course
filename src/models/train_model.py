@@ -13,6 +13,7 @@ from numpy import Inf
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from torchvision.utils import make_grid
 from tqdm import tqdm
 
 from src.data import data_tools
@@ -24,6 +25,24 @@ def write_gin(dir: Path) -> None:
     with open(path, "w") as file:
         file.write(gin.operative_config_str())
 
+def trainbatches(traindatastreamer, model, loss_fn, optimizer):
+    model.train()
+    x, y = next(iter(traindatastreamer))
+    optimizer.zero_grad()
+    yhat = model(x)
+    loss = loss_fn(yhat, y)
+    loss.backward()
+    optimizer.step()
+    trainloss = loss.data.item()     
+    return trainloss
+
+def evalbatches(testdatastreamer, model, loss_fn):
+    model.eval()
+    x, y = next(iter(testdatastreamer))
+    yhat = model(x)
+    loss = loss_fn(yhat, y)
+    accuracy = (yhat.argmax(dim=1) == y).type(torch.float).mean()
+    return accuracy, loss
 
 @gin.configurable
 def trainloop(
@@ -36,46 +55,51 @@ def trainloop(
     test_dataloader: DataLoader,
     log_dir: Union[Path, str],
     eval_steps: int,
+    train_steps: int,
+    patience: int,
+    factor: float,
 ) -> GenericModel:
     optimizer_: torch.optim.Optimizer = optimizer(
         model.parameters(), lr=learning_rate
     )  # type: ignore
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer_, factor=factor, patience=patience, 
+    )
     log_dir = Path(log_dir)
     data_tools.clean_dir(log_dir)
     writer = SummaryWriter(log_dir=log_dir)
+    images, _ = next(iter(train_dataloader))
+    grid = make_grid(images)
+    writer.add_image('images', grid)
+    writer.add_graph(model, images)
 
     for epoch in range(epochs):
         train_loss = 0.0
-        model.train()
-        for batch in train_dataloader:
-            optimizer_.zero_grad()
-            input, target = batch
-            output = model(input)
-            loss = loss_fn(output, target)
-            loss.backward()
-            optimizer_.step()
-            train_loss += loss.data.item()
-        train_loss /= len(train_dataloader.dataset)
+        for _ in tqdm(range(train_steps)):
+            train_loss += trainbatches(
+                train_dataloader, model, loss_fn, optimizer_ 
+            )
+        train_loss /= train_steps
         writer.add_scalar("Loss/train", train_loss, epoch)
 
-        model.eval()
         test_loss = 0.0
         test_accuracy = 0.0
         for _ in range(eval_steps):
-            input, target = next(iter(test_dataloader))
-            output = model(input)
-            loss = loss_fn(output, target)
-            test_loss += loss.data.item()
-            test_accuracy += (output.argmax(dim=1) == target).sum()
-        datasize = eval_steps * test_dataloader.batch_size
-        test_loss /= datasize
-        test_accuracy /= datasize
+            acc, l = evalbatches(test_dataloader, model, loss_fn)
+            test_accuracy += acc
+            test_loss += l
+
+        test_loss /= eval_steps
+        scheduler.step(test_loss)
+        test_accuracy /= eval_steps
         writer.add_scalar("Loss/test", test_loss, epoch)
-        writer.add_scalar("Loss/accuracy", test_accuracy, epoch)
+        writer.add_scalar("metric/accuracy", test_accuracy, epoch)
+        lr = [group['lr'] for group in optimizer_.param_groups][0]
+        writer.add_scalar("learning_rate", lr, epoch)
         logger.info(
-            f"Epoch {epoch} train {train_loss:.4f}",
-            f"test {test_loss:.4f} acc {test_accuracy:.4f}",
+            f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} acc {test_accuracy:.4f}"
         )
+
     write_gin(log_dir)
     return model
 
