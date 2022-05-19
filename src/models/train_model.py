@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Tuple, Union, Iterator, Dict
 
 import gin
 import numpy as np
@@ -12,6 +12,7 @@ from loguru import logger
 from numpy import Inf
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
+from ray import tune
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 from tqdm import tqdm
@@ -25,24 +26,50 @@ def write_gin(dir: Path) -> None:
     with open(path, "w") as file:
         file.write(gin.operative_config_str())
 
-def trainbatches(traindatastreamer, model, loss_fn, optimizer):
+
+def trainbatches(
+    model: GenericModel,
+    traindatastreamer: Iterator,
+    loss_fn: Callable,
+    optimizer: torch.optim.Optimizer,
+    train_steps: int,
+) -> float:
     model.train()
-    x, y = next(iter(traindatastreamer))
-    optimizer.zero_grad()
-    yhat = model(x)
-    loss = loss_fn(yhat, y)
-    loss.backward()
-    optimizer.step()
-    trainloss = loss.data.item()     
+    train_loss = 0.0
+    for _ in tqdm(range(train_steps)):
+        x, y = next(iter(traindatastreamer))
+        optimizer.zero_grad()
+        yhat = model(x)
+        loss = loss_fn(yhat, y)
+        loss.backward()
+        optimizer.step()
+        trainloss = loss.data.item()
+    train_loss /= train_steps
     return trainloss
 
-def evalbatches(testdatastreamer, model, loss_fn):
+
+def evalbatches(
+    model: GenericModel,
+    testdatastreamer: Iterator,
+    loss_fn: Callable,
+    metrics: List[Callable],
+    eval_steps: int,
+):
     model.eval()
-    x, y = next(iter(testdatastreamer))
-    yhat = model(x)
-    loss = loss_fn(yhat, y)
-    accuracy = (yhat.argmax(dim=1) == y).type(torch.float).mean()
-    return accuracy, loss
+    loss = 0.0
+    metric_dict: Dict[str, float] = {}
+    for _ in range(eval_steps):
+        x, y = next(iter(testdatastreamer))
+        yhat = model(x)
+        loss = loss_fn(yhat, y)
+        for m in metrics:
+            metric_dict[str(m)] = metric_dict.get(str(m), 0.0) + m(y, yhat)
+
+    loss /= eval_steps
+    for key in metric_dict:
+        metric_dict[str(key)] = metric_dict[str(key)] / eval_steps
+    return metric_dict, loss
+
 
 @gin.configurable
 def trainloop(
@@ -51,56 +78,85 @@ def trainloop(
     optimizer: torch.optim.Optimizer,
     learning_rate: float,
     loss_fn: Callable,
+    metrics: List[Callable],
     train_dataloader: DataLoader,
     test_dataloader: DataLoader,
     log_dir: Union[Path, str],
-    eval_steps: int,
     train_steps: int,
-    patience: int,
-    factor: float,
+    eval_steps: int,
+    patience: int = 10,
+    factor: float = 0.9,
+    tunewriter: bool = False,
 ) -> GenericModel:
+    """
+
+    Args:
+        epochs (int) : Amount of runs through the dataset
+        model: A generic model with a .train() and .eval() method
+        metrics (List[Callable]) : A list of callable metrics.
+            Assumed to have a __repr__ method implemented
+        tunewriter (bool) : when running experiments manually, this should
+            be False (default). If false, a subdir is created
+            with a timestamp, and a SummaryWriter is invoked to write in
+            that subdir for Tensorboard use.
+            If True, the logging is left to the ray.tune.report
+
+
+    Returns:
+        _type_: _description_
+    """
+
     optimizer_: torch.optim.Optimizer = optimizer(
         model.parameters(), lr=learning_rate
     )  # type: ignore
+
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer_, factor=factor, patience=patience, 
+        optimizer_,
+        factor=factor,
+        patience=patience,
     )
-    log_dir = Path(log_dir)
-    log_dir = data_tools.dir_add_timestamp(log_dir)
-    writer = SummaryWriter(log_dir=log_dir)
+
+    if not tunewriter:
+        log_dir = data_tools.dir_add_timestamp(log_dir)
+        writer = SummaryWriter(log_dir=log_dir)
+        write_gin(log_dir)
+
     images, _ = next(iter(train_dataloader))
-    grid = make_grid(images)
-    writer.add_image('images', grid)
+    if len(images.shape) == 4:
+        grid = make_grid(images)
+        writer.add_image("images", grid)
     writer.add_graph(model, images)
 
-    for epoch in range(epochs):
-        train_loss = 0.0
-        for _ in tqdm(range(train_steps)):
-            train_loss += trainbatches(
-                train_dataloader, model, loss_fn, optimizer_ 
-            )
-        train_loss /= train_steps
-        writer.add_scalar("Loss/train", train_loss, epoch)
-
-        test_loss = 0.0
-        test_accuracy = 0.0
-        for _ in range(eval_steps):
-            acc, l = evalbatches(test_dataloader, model, loss_fn)
-            test_accuracy += acc
-            test_loss += l
-
-        test_loss /= eval_steps
-        scheduler.step(test_loss)
-        test_accuracy /= eval_steps
-        writer.add_scalar("Loss/test", test_loss, epoch)
-        writer.add_scalar("metric/accuracy", test_accuracy, epoch)
-        lr = [group['lr'] for group in optimizer_.param_groups][0]
-        writer.add_scalar("learning_rate", lr, epoch)
-        logger.info(
-            f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} acc {test_accuracy:.4f}"
+    for epoch in tqdm(range(epochs)):
+        train_loss = trainbatches(
+            model, train_dataloader, loss_fn, optimizer_, train_steps
         )
 
-    write_gin(log_dir)
+        metric_dict, test_loss = evalbatches(
+            model, test_dataloader, loss_fn, metrics, eval_steps
+        )
+
+        scheduler.step(test_loss)
+
+        if tunewriter:
+            tune.report(
+                iterations=epoch,
+                train_loss=train_loss,
+                test_loss=test_loss,
+                **metric_dict,
+            )
+        else:
+            writer.add_scalar("Loss/train", train_loss, epoch)
+            writer.add_scalar("Loss/test", test_loss, epoch)
+            for m in metric_dict:
+                writer.add_scalar(f"metric/{m}", metric_dict[m], epoch)
+            lr = [group["lr"] for group in optimizer_.param_groups][0]
+            writer.add_scalar("learning_rate", lr, epoch)
+            metric_scores = [f"{v:.4f}" for v in metric_dict.values()]
+            logger.info(
+                f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"
+            )
+
     return model
 
 
