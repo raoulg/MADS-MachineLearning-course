@@ -1,7 +1,7 @@
 import random
 import shutil
 from pathlib import Path
-from typing import Dict, Iterator, List, Tuple, Union
+from typing import Callable, Dict, Iterator, List, Tuple, Union, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -100,6 +100,7 @@ class Dataloader:
         channel_first: bool,
         mode: str,
         shuffle: bool = True,
+        transforms: Optional[Callable] = None
     ) -> Iterator:
         """
         Builds batches of images
@@ -123,10 +124,10 @@ class Dataloader:
         index = 0
         while True:
             # prepare empty matrices
-            X = np.zeros(  # noqa: N806
-                (batch_size, image_size[0], image_size[1], channels)
+            X = torch.zeros(  # noqa: N806
+                (batch_size, channels, image_size[0], image_size[1])
             )  # noqa: N806
-            Y = np.zeros(batch_size)  # noqa: N806
+            Y = torch.zeros(batch_size)  # noqa: N806
 
             for i in range(batch_size):
                 if index >= data_size:
@@ -136,14 +137,21 @@ class Dataloader:
                 # get path
                 file = self.valid_files[index_list[index]]
                 # get image from disk
-                X[i] = self.load_image(file, image_size, channels)
+                if transforms is not None:
+                    img = self.load_image(file, image_size, channels)
+                    logger.debug(img.shape)
+                    x = transforms(img)
+                    logger.debug(x.shape)
+                    X[i] = x
+                else:
+                    X[i] = torch.tensor(self.load_image(file, image_size, channels))
                 # map parent directory name to integer
                 Y[i] = self.class_dict[file.parent.name]
                 index += 1
-
-            if channel_first:
-                X = np.moveaxis(X, 3, 1)  # noqa: N806
-
+            
+            if not channel_first:
+                X = torch.permute(X, (0, 2, 3, 1))
+            
             yield ((X, Y))
 
     def load_image(
@@ -158,7 +166,7 @@ class Dataloader:
         # add correct shape with channels-last convention
         img_resize.set_shape((image_size[0], image_size[1], channels))
         # cast to numpy
-        return img_resize.numpy()
+        return img_resize.numpy().astype(np.uint8)
 
 
 def clean_dir(dir: Union[str, Path]) -> None:
