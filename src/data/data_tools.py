@@ -1,4 +1,5 @@
 import random
+from datetime import datetime
 import shutil
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Tuple, Union, Optional
@@ -142,10 +143,7 @@ class Dataloader:
                 # get image from disk
                 if transforms is not None:
                     img = self.load_image(file, image_size, channels)
-                    logger.debug(img.shape)
-                    x = transforms(img)
-                    logger.debug(x.shape)
-                    X[i] = x
+                    X[i] = transforms(img)
                 else:
                     X[i] = torch.tensor(self.load_image(file, image_size, channels))
                 # map parent directory name to integer
@@ -200,3 +198,14 @@ def window(x: Tensor, n_time: int) -> Tensor:
     window = torch.arange(0, n_window).reshape(-1, 1)
     idx = time + window
     return idx
+
+def dir_add_timestamp(log_dir: Optional[Path] = None) -> Path:
+    if log_dir is None:
+        log_dir = Path(".")
+    log_dir = Path(log_dir)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M")
+    log_dir = log_dir / timestamp
+    logger.info(f"Logging to {log_dir}")
+    if not log_dir.exists():
+        log_dir.mkdir(parents=True)
+    return log_dir

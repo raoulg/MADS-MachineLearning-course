@@ -66,7 +66,7 @@ def trainloop(
         optimizer_, factor=factor, patience=patience, 
     )
     log_dir = Path(log_dir)
-    data_tools.clean_dir(log_dir)
+    log_dir = data_tools.dir_add_timestamp(log_dir)
     writer = SummaryWriter(log_dir=log_dir)
     images, _ = next(iter(train_dataloader))
     grid = make_grid(images)

@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+from src.data import data_tools
 from src.models.train_model import write_gin
 from src.typehinting import GenericModel
 
@@ -153,14 +154,7 @@ def trainloop(
     """
 
     if not tunewriter:
-        if log_dir is None:
-            log_dir = Path(".")
-        log_dir = Path(log_dir)
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M")
-        log_dir = log_dir / timestamp
-        logger.info(f"Logging to {log_dir}")
-        if not log_dir.exists():
-            log_dir.mkdir(parents=True)
+        data_tools.dir_add_timestamp(log_dir)
         writer = SummaryWriter(log_dir=log_dir)
 
     for epoch in tqdm(range(epochs)):
