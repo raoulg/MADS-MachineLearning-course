@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Tuple, Union
+from typing import Callable, Dict, Iterator, List, Tuple
 
 import gin
 import numpy as np
@@ -54,7 +54,7 @@ def evalbatches(
     loss_fn: Callable,
     metrics: List[Callable],
     eval_steps: int,
-):
+) -> Tuple[Dict[str, float], float]:
     model.eval()
     loss = 0.0
     metric_dict: Dict[str, float] = {}
@@ -79,9 +79,9 @@ def trainloop(
     learning_rate: float,
     loss_fn: Callable,
     metrics: List[Callable],
-    train_dataloader: DataLoader,
-    test_dataloader: DataLoader,
-    log_dir: Union[Path, str],
+    train_dataloader: Iterator,
+    test_dataloader: Iterator,
+    log_dir: Path,
     train_steps: int,
     eval_steps: int,
     patience: int = 10,
@@ -154,7 +154,7 @@ def trainloop(
             writer.add_scalar("learning_rate", lr, epoch)
             metric_scores = [f"{v:.4f}" for v in metric_dict.values()]
             logger.info(
-                f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"
+                f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"  # noqa E501
             )
 
     return model

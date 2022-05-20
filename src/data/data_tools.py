@@ -151,7 +151,7 @@ class Dataloader:
                 index += 1
 
             if not channel_first:
-                X = torch.permute(X, (0, 2, 3, 1))
+                X = torch.permute(X, (0, 2, 3, 1))  # noqa N806
 
             yield ((X, Y))
 
