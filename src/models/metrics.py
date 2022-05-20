@@ -4,7 +4,15 @@ from torch.utils.data import DataLoader
 Tensor = torch.Tensor
 
 
-class MASE:
+class Metric:
+    def __repr__(self) -> str:
+        raise NotImplementedError
+
+    def __call__(self, y: Tensor, yhat: Tensor) -> Tensor:
+        raise NotImplementedError
+
+
+class MASE(Metric):
     def __init__(self, dataloader: DataLoader, horizon: int) -> None:
         self.scale = self.naivenorm(dataloader, horizon)
 
@@ -31,7 +39,7 @@ class MASE:
         return self.mae(y, yhat) / self.scale
 
 
-class MAE:
+class MAE(Metric):
     def __repr__(self) -> str:
         return "MAE"
 
@@ -39,7 +47,7 @@ class MAE:
         return torch.mean(torch.abs(y - yhat))
 
 
-class Accuracy:
+class Accuracy(Metric):
     def __repr__(self) -> str:
         return "Accuracy"
 

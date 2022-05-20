@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Callable, List, Tuple, Union, Iterator, Dict
+from typing import Callable, Dict, Iterator, List, Tuple, Union
 
 import gin
 import numpy as np
@@ -10,9 +10,9 @@ import tensorflow as tf  # noqa: F401
 import torch
 from loguru import logger
 from numpy import Inf
+from ray import tune
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
-from ray import tune
 from torch.utils.tensorboard import SummaryWriter
 from torchvision.utils import make_grid
 from tqdm import tqdm

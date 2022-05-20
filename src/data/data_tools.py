@@ -1,8 +1,8 @@
 import random
-from datetime import datetime
 import shutil
+from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Tuple, Union, Optional
+from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -92,7 +92,7 @@ class Dataloader:
         n_train = int(self.data_size * split)
         self.train = self.index_list[:n_train]
         self.test = self.index_list[n_train:]
-    
+
     def __len__(self) -> int:
         return len(self.valid_files)
 
@@ -104,7 +104,7 @@ class Dataloader:
         channel_first: bool,
         mode: str,
         shuffle: bool = True,
-        transforms: Optional[Callable] = None
+        transforms: Optional[Callable] = None,
     ) -> Iterator:
         """
         Builds batches of images
@@ -149,10 +149,10 @@ class Dataloader:
                 # map parent directory name to integer
                 Y[i] = self.class_dict[file.parent.name]
                 index += 1
-            
+
             if not channel_first:
                 X = torch.permute(X, (0, 2, 3, 1))
-            
+
             yield ((X, Y))
 
     def load_image(
@@ -198,6 +198,7 @@ def window(x: Tensor, n_time: int) -> Tensor:
     window = torch.arange(0, n_window).reshape(-1, 1)
     idx = time + window
     return idx
+
 
 def dir_add_timestamp(log_dir: Optional[Path] = None) -> Path:
     if log_dir is None:

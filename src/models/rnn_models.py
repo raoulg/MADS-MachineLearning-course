@@ -73,4 +73,3 @@ class GRUmodel(nn.Module):
         last_step = x[:, -1, :]
         yhat = self.linear(last_step)
         return yhat
-
