@@ -19,6 +19,7 @@ from tqdm import tqdm
 
 from src.data import data_tools
 from src.typehinting import GenericModel
+from src.models.metrics import Metric
 
 
 def write_gin(dir: Path) -> None:
@@ -43,16 +44,16 @@ def trainbatches(
         loss = loss_fn(yhat, y)
         loss.backward()
         optimizer.step()
-        trainloss += loss.detach().numpy()
+        train_loss += loss.detach().numpy()
     train_loss /= train_steps
-    return trainloss
+    return train_loss
 
 
 def evalbatches(
     model: GenericModel,
     testdatastreamer: Iterator,
     loss_fn: Callable,
-    metrics: List[Callable],
+    metrics: List[Metric],
     eval_steps: int,
 ) -> Tuple[Dict[str, float], float]:
     model.eval()
@@ -79,7 +80,7 @@ def trainloop(
     optimizer: torch.optim.Optimizer,
     learning_rate: float,
     loss_fn: Callable,
-    metrics: List[Callable],
+    metrics: List[Metric],
     train_dataloader: Iterator,
     test_dataloader: Iterator,
     log_dir: Path,
@@ -94,8 +95,17 @@ def trainloop(
     Args:
         epochs (int) : Amount of runs through the dataset
         model: A generic model with a .train() and .eval() method
-        metrics (List[Callable]) : A list of callable metrics.
-            Assumed to have a __repr__ method implemented
+        optimizer : an uninitialized optimizer class. Eg optimizer=torch.optim.Adam
+        learning_rate (float) : floating point start value for the optimizer
+        loss_fn : A loss function
+        metrics (List[Metric]) : A list of callable metrics.
+            Assumed to have a __repr__ method implemented, see src.models.metrics 
+            for Metric details
+        train_dataloader, test_dataloader (Iterator): data iterators
+        log_dir (Path) : where to log stuff when not using the tunewriter
+        train_steps, eval_steps (int) : amount of times the Iterators are called for a
+            new batch of data.
+        patience (int): used for the scheduler.
         tunewriter (bool) : when running experiments manually, this should
             be False (default). If false, a subdir is created
             with a timestamp, and a SummaryWriter is invoked to write in
