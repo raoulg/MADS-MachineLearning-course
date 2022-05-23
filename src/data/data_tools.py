@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 import shutil
 from datetime import datetime
@@ -8,6 +10,8 @@ import numpy as np
 import tensorflow as tf
 import torch
 from loguru import logger
+from torch.nn.utils.rnn import pad_sequence
+from tqdm import tqdm
 
 Tensor = torch.Tensor
 
@@ -210,3 +214,45 @@ def dir_add_timestamp(log_dir: Optional[Path] = None) -> Path:
     if not log_dir.exists():
         log_dir.mkdir(parents=True)
     return log_dir
+
+
+class Datagenerator:
+    def __init__(self, paths: List[Path], batchsize: int) -> None:
+        self.paths = paths
+        random.shuffle(self.paths)
+        self.batchsize = batchsize
+
+        self.dataset = []
+        for file in tqdm(self.paths):
+            x_ = np.genfromtxt(file)[:, 3:]
+            x = torch.tensor(x_).type(torch.float32)
+            y = int(file.parent.name) - 1
+            self.dataset.append((x, y))
+
+        self.size = len(self.dataset)
+
+    def __len__(self) -> int:
+        return int(len(self.dataset) / self.batchsize)
+
+    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
+        return self.dataset[idx]
+
+    def __iter__(self) -> Datagenerator:
+        self.index = 0
+        self.index_list = torch.randperm(self.size)
+        return self
+
+    def __next__(self) -> Tuple[Tensor, Tensor]:
+        if self.index <= (len(self.dataset) - self.batchsize):
+            X = []  # noqa N806
+            Y = []  # noqa N806
+            for _ in range(self.batchsize):
+                x, y = self[int(self.index_list[self.index])]
+                X.append(x)
+                Y.append(y)
+                self.index += 1
+            # this makes all sequence of equal length by adding zeros
+            X_ = pad_sequence(X, batch_first=True, padding_value=0)  # noqa N806
+            return X_, torch.tensor(Y)
+        else:
+            raise StopIteration
