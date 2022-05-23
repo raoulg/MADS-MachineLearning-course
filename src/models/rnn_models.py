@@ -63,6 +63,7 @@ class GRUmodel(nn.Module):
         yhat = self.linear(last_step)
         return yhat
 
+
 class AttentionGRU(nn.Module):
     def __init__(
         self,
@@ -80,7 +81,7 @@ class AttentionGRU(nn.Module):
             embed_dim=config["hidden_size"],
             num_heads=4,
             dropout=config["dropout"],
-            batch_first=True
+            batch_first=True,
         )
         self.linear = nn.Linear(config["hidden_size"], config["output_size"])
 
