@@ -1,15 +1,18 @@
-
 from collections import Counter, OrderedDict
 from typing import List
-from torchtext.vocab import vocab, Vocab
+
 import torch
 from torch.nn.utils.rnn import pad_sequence
+from torchtext.vocab import Vocab, vocab
+
+Tensor = torch.Tensor
 
 
 def split_and_flat(corpus: List[str]) -> List[str]:
-    corpus = [x.split() for x in corpus]
-    corpus = [x for y in corpus for x in y]
+    corpus_ = [x.split() for x in corpus]
+    corpus = [x for y in corpus_ for x in y]
     return corpus
+
 
 def build_vocab(corpus: List[str], oov: str = "<OOV>", pad: str = "<PAD>") -> Vocab:
     data = split_and_flat(corpus)
@@ -19,7 +22,8 @@ def build_vocab(corpus: List[str], oov: str = "<OOV>", pad: str = "<PAD>") -> Vo
     v1.set_default_index(v1[oov])
     return v1
 
-def tokenize(corpus, v: Vocab):
+
+def tokenize(corpus: List[str], v: Vocab) -> Tensor:
     batch = []
     for sent in corpus:
         batch.append(torch.tensor([v[word] for word in sent.split()]))
