@@ -2234,6 +2234,19 @@ gs = ["google-cloud-storage"]
 s3 = ["boto3"]
 
 [[package]]
+name = "torchdata"
+version = "0.3.0"
+description = "Composable data loading modules for PyTorch"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+requests = "*"
+torch = "1.11.0"
+urllib3 = ">=1.25"
+
+[[package]]
 name = "torchtext"
 version = "0.12.0"
 description = "Text utilities and datasets for PyTorch"
@@ -2442,7 +2455,7 @@ testing = ["pytest (>=6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytest-
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.9,<3.11"
-content-hash = "054f149940af76459c4d1174ebfa5b9a1143f2856ed2c23f36b051fafa9067ae"
+content-hash = "6962217162be965b737125020e65bf756653398fb6b2ed9ed71ebaa7e2b3d37a"
 
 [metadata.files]
 absl-py = [
@@ -4003,6 +4016,9 @@ torch = [
 torch-tb-profiler = [
     {file = "torch_tb_profiler-0.4.0-py3-none-any.whl", hash = "sha256:8740dedf6a33184fcb7ab04cb50a7c4330d2134d15549101e4b8e62d78280995"},
     {file = "torch_tb_profiler-0.4.0.tar.gz", hash = "sha256:5f24c97963fa934aea3a0867a0883933909e20e7321efd8388a97e3ed4a8fc3c"},
+]
+torchdata = [
+    {file = "torchdata-0.3.0-py3-none-any.whl", hash = "sha256:bd16fe37cd9a3dc1960503557b5d556251e1f32b9078ed91a27dce518eb328d6"},
 ]
 torchtext = [
     {file = "torchtext-0.12.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:66792b1e6d3929944a8d47ad371c71de07a4023f5692385ba7e50c61e111f2f2"},
