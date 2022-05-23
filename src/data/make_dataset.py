@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import random
 from pathlib import Path
-from typing import List, Tuple
+from typing import Tuple
+import shutil
 
 import gin
 import numpy as np
@@ -11,13 +11,12 @@ import requests
 import tensorflow as tf
 import torch
 from loguru import logger
-from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
-from tqdm import tqdm
 
 from src.data import data_tools
+from src.data.data_tools import Datagenerator
 
 Tensor = torch.Tensor
 
@@ -89,7 +88,8 @@ def get_sunspots(datadir: Path) -> pd.DataFrame:
         data.to_csv(file, index=False)
     return data
 
-def get_imdb_data(cache_dir: str = ".") -> Path:
+
+def get_imdb_data(cache_dir: str = ".") -> Tuple[Path, Path]:
     datapath = Path(cache_dir) / "aclImdb"
     if datapath.exists():
         logger.info(f"{datapath} already exists, skipping download")
@@ -98,52 +98,20 @@ def get_imdb_data(cache_dir: str = ".") -> Path:
 
         url = "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"
 
-        _ = tf.keras.utils.get_file("aclImdb_v1.tar.gz", url,
-                                      untar=True,
-                                      cache_dir=cache_dir,
-                                      cache_subdir='')
-    return datapath
-
-class Datagenerator:
-    def __init__(self, paths: List[Path], batchsize: int) -> None:
-        self.paths = paths
-        random.shuffle(self.paths)
-        self.batchsize = batchsize
-
-        self.dataset = []
-        for file in tqdm(self.paths):
-            x_ = np.genfromtxt(file)[:, 3:]
-            x = torch.tensor(x_).type(torch.float32)
-            y = int(file.parent.name) - 1
-            self.dataset.append((x, y))
-
-        self.size = len(self.dataset)
-
-    def __len__(self) -> int:
-        return int(len(self.dataset) / self.batchsize)
-
-    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
-        return self.dataset[idx]
-
-    def __iter__(self) -> Datagenerator:
-        self.index = 0
-        self.index_list = torch.randperm(self.size)
-        return self
-
-    def __next__(self) -> Tuple[Tensor, Tensor]:
-        if self.index <= (len(self.dataset) - self.batchsize):
-            X = []  # noqa N806
-            Y = []  # noqa N806
-            for _ in range(self.batchsize):
-                x, y = self[int(self.index_list[self.index])]
-                X.append(x)
-                Y.append(y)
-                self.index += 1
-            # this makes all sequence of equal length by adding zeros
-            X_ = pad_sequence(X, batch_first=True, padding_value=0)  # noqa N806
-            return X_, torch.tensor(Y)
-        else:
-            raise StopIteration
+        _ = tf.keras.utils.get_file(
+            "aclImdb_v1.tar.gz", url, untar=True, cache_dir=cache_dir, cache_subdir=""
+        )
+    testdir = datapath / "test"
+    traindir = datapath / "train"
+    keep_subdirs_only(testdir)
+    keep_subdirs_only(traindir)
+    unsup = traindir / "unsup"
+    if unsup.exists():
+        shutil.rmtree(traindir / "unsup")
+    formats = [".txt"]
+    testpaths = [path for path in data_tools.walk_dir(testdir) if path.suffix in formats]
+    trainpaths = [path for path in data_tools.walk_dir(traindir) if path.suffix in formats]
+    return trainpaths, testpaths
 
 
 def get_gestures(
@@ -159,3 +127,8 @@ def get_gestures(
     trainloader = Datagenerator(trainpaths, batchsize=batchsize)
     testloader = Datagenerator(testpaths, batchsize=batchsize)
     return trainloader, testloader
+
+def keep_subdirs_only(path: Path) -> None:
+    files = [file for file in path.iterdir() if file.is_file()]
+    for file in files:
+        file.unlink()
