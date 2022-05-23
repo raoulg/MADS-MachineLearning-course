@@ -105,7 +105,10 @@ def trainloop(
         log_dir (Path) : where to log stuff when not using the tunewriter
         train_steps, eval_steps (int) : amount of times the Iterators are called for a
             new batch of data.
-        patience (int): used for the scheduler.
+        patience (int): used for the ReduceLROnPlatues scheduler. How many epochs to 
+            wait before dropping the learning rate.
+        factor (float) : fraction to drop the learning rate with, after patience epochs
+            without improvement in the loss.
         tunewriter (bool) : when running experiments manually, this should
             be False (default). If false, a subdir is created
             with a timestamp, and a SummaryWriter is invoked to write in
