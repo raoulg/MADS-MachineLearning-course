@@ -121,11 +121,12 @@ def trainloop(
         writer = SummaryWriter(log_dir=log_dir)
         write_gin(log_dir)
 
-    images, _ = next(iter(train_dataloader))
-    if len(images.shape) == 4:
-        grid = make_grid(images)
-        writer.add_image("images", grid)
-    writer.add_graph(model, images)
+
+        images, _ = next(iter(train_dataloader))
+        if len(images.shape) == 4:
+            grid = make_grid(images)
+            writer.add_image("images", grid)
+        writer.add_graph(model, images)
 
     for epoch in tqdm(range(epochs)):
         train_loss = trainbatches(
