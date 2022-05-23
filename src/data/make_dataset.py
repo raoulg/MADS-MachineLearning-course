@@ -89,6 +89,20 @@ def get_sunspots(datadir: Path) -> pd.DataFrame:
         data.to_csv(file, index=False)
     return data
 
+def get_imdb_data(cache_dir: str = ".") -> Path:
+    datapath = Path(cache_dir) / "aclImdb"
+    if datapath.exists():
+        logger.info(f"{datapath} already exists, skipping download")
+    else:
+        logger.info(f"{datapath} not found on disk, downloading")
+
+        url = "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"
+
+        _ = tf.keras.utils.get_file("aclImdb_v1.tar.gz", url,
+                                      untar=True,
+                                      cache_dir=cache_dir,
+                                      cache_subdir='')
+    return datapath
 
 class Datagenerator:
     def __init__(self, paths: List[Path], batchsize: int) -> None:
