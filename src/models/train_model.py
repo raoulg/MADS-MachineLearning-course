@@ -35,7 +35,7 @@ def trainbatches(
     train_steps: int,
 ) -> float:
     model.train()
-    train_loss = 0.0
+    train_loss: float = 0.0
     for _ in tqdm(range(train_steps)):
         x, y = next(iter(traindatastreamer))
         optimizer.zero_grad()
@@ -43,7 +43,7 @@ def trainbatches(
         loss = loss_fn(yhat, y)
         loss.backward()
         optimizer.step()
-        trainloss = loss.data.item()
+        trainloss += loss.detach().numpy()
     train_loss /= train_steps
     return trainloss
 
@@ -56,19 +56,20 @@ def evalbatches(
     eval_steps: int,
 ) -> Tuple[Dict[str, float], float]:
     model.eval()
-    loss = 0.0
+    test_loss: float = 0.0
     metric_dict: Dict[str, float] = {}
     for _ in range(eval_steps):
         x, y = next(iter(testdatastreamer))
         yhat = model(x)
-        loss = loss_fn(yhat, y)
+        test_loss += loss_fn(yhat, y).detach().numpy()
         for m in metrics:
-            metric_dict[str(m)] = metric_dict.get(str(m), 0.0) + m(y, yhat)
+            metric_dict[str(m)] = metric_dict.get(str(m), 0.0) + m(y, yhat).detach().numpy()
+        
 
-    loss /= eval_steps
+    test_loss /= eval_steps
     for key in metric_dict:
         metric_dict[str(key)] = metric_dict[str(key)] / eval_steps
-    return metric_dict, loss
+    return metric_dict, test_loss
 
 
 @gin.configurable
