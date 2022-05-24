@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Tuple
 import shutil
+from pathlib import Path
+from typing import Tuple, List
 
 import gin
 import numpy as np
@@ -16,7 +16,7 @@ from torchvision import datasets
 from torchvision.transforms import ToTensor
 
 from src.data import data_tools
-from src.data.data_tools import Datagenerator
+from src.data.data_tools import PaddedDatagenerator, TSDataset
 
 Tensor = torch.Tensor
 
@@ -89,7 +89,7 @@ def get_sunspots(datadir: Path) -> pd.DataFrame:
     return data
 
 
-def get_imdb_data(cache_dir: str = ".") -> Tuple[Path, Path]:
+def get_imdb_data(cache_dir: str = ".") -> Tuple[List[Path], List[Path]]:
     datapath = Path(cache_dir) / "aclImdb"
     if datapath.exists():
         logger.info(f"{datapath} already exists, skipping download")
@@ -109,14 +109,18 @@ def get_imdb_data(cache_dir: str = ".") -> Tuple[Path, Path]:
     if unsup.exists():
         shutil.rmtree(traindir / "unsup")
     formats = [".txt"]
-    testpaths = [path for path in data_tools.walk_dir(testdir) if path.suffix in formats]
-    trainpaths = [path for path in data_tools.walk_dir(traindir) if path.suffix in formats]
+    testpaths = [
+        path for path in data_tools.walk_dir(testdir) if path.suffix in formats
+    ]
+    trainpaths = [
+        path for path in data_tools.walk_dir(traindir) if path.suffix in formats
+    ]
     return trainpaths, testpaths
 
 
 def get_gestures(
     data_dir: Path, split: float, batchsize: int
-) -> Tuple[Datagenerator, Datagenerator]:
+) -> Tuple[PaddedDatagenerator, PaddedDatagenerator]:
     formats = [".txt"]
     paths = [path for path in data_tools.walk_dir(data_dir) if path.suffix in formats]
 
@@ -124,9 +128,12 @@ def get_gestures(
     idx = int(len(paths) * split)
     trainpaths = paths[:idx]
     testpaths = paths[idx:]
-    trainloader = Datagenerator(trainpaths, batchsize=batchsize)
-    testloader = Datagenerator(testpaths, batchsize=batchsize)
+    traindataset = TSDataset(trainpaths)
+    testdataset = TSDataset(testpaths)
+    trainloader = PaddedDatagenerator(traindataset, batchsize=32)
+    testloader = PaddedDatagenerator(testdataset, batchsize=32)
     return trainloader, testloader
+
 
 def keep_subdirs_only(path: Path) -> None:
     files = [file for file in path.iterdir() if file.is_file()]
