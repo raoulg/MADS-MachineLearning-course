@@ -217,6 +217,10 @@ def dir_add_timestamp(log_dir: Optional[Path] = None) -> Path:
 
 
 class BaseDataset:
+    """The main responsibility of the Dataset class is to load the data from disk
+    and to offer a __len__ method and a __getitem__ method
+    """
+
     def __init__(self, paths: List[Path]) -> None:
         self.paths = paths
         random.shuffle(self.paths)
@@ -234,6 +238,14 @@ class BaseDataset:
 
 
 class TSDataset(BaseDataset):
+    """This assume a txt file with numeric data
+    Dropping the first columns is hardcoded
+    y label is name-1, because the names start with 1
+
+    Args:
+        BaseDataset (_type_): _description_
+    """
+
     def process_data(self) -> None:
         for file in tqdm(self.paths):
             x_ = np.genfromtxt(file)[:, 3:]
@@ -243,6 +255,12 @@ class TSDataset(BaseDataset):
 
 
 class TextDataset(BaseDataset):
+    """This assumes textual data, one line per file
+
+    Args:
+        BaseDataset (_type_): _description_
+    """
+
     def process_data(self) -> None:
         for file in tqdm(self.paths):
             with open(file) as f:
@@ -252,6 +270,13 @@ class TextDataset(BaseDataset):
 
 
 class BaseDataIterator:
+    """This iterator will consume all data and stop automatically.
+    The dataset should have a:
+        __len__ method
+        __getitem__ method
+
+    """
+
     def __init__(self, dataset: BaseDataset, batchsize: int) -> None:
         self.dataset = dataset
         self.batchsize = batchsize
@@ -283,6 +308,12 @@ class BaseDataIterator:
 
 
 class PaddedDatagenerator(BaseDataIterator):
+    """Iterator with additional padding of X
+
+    Args:
+        BaseDataIterator (_type_): _description_
+    """
+
     def __init__(self, dataset: BaseDataset, batchsize: int) -> None:
         super().__init__(dataset, batchsize)
 
