@@ -18,8 +18,8 @@ from torchvision.utils import make_grid
 from tqdm import tqdm
 
 from src.data import data_tools
-from src.typehinting import GenericModel
 from src.models.metrics import Metric
+from src.typehinting import GenericModel
 
 
 def write_gin(dir: Path) -> None:
@@ -64,8 +64,9 @@ def evalbatches(
         yhat = model(x)
         test_loss += loss_fn(yhat, y).detach().numpy()
         for m in metrics:
-            metric_dict[str(m)] = metric_dict.get(str(m), 0.0) + m(y, yhat).detach().numpy()
-        
+            metric_dict[str(m)] = (
+                metric_dict.get(str(m), 0.0) + m(y, yhat).detach().numpy()
+            )
 
     test_loss /= eval_steps
     for key in metric_dict:
@@ -99,13 +100,13 @@ def trainloop(
         learning_rate (float) : floating point start value for the optimizer
         loss_fn : A loss function
         metrics (List[Metric]) : A list of callable metrics.
-            Assumed to have a __repr__ method implemented, see src.models.metrics 
+            Assumed to have a __repr__ method implemented, see src.models.metrics
             for Metric details
         train_dataloader, test_dataloader (Iterator): data iterators
         log_dir (Path) : where to log stuff when not using the tunewriter
         train_steps, eval_steps (int) : amount of times the Iterators are called for a
             new batch of data.
-        patience (int): used for the ReduceLROnPlatues scheduler. How many epochs to 
+        patience (int): used for the ReduceLROnPlatues scheduler. How many epochs to
             wait before dropping the learning rate.
         factor (float) : fraction to drop the learning rate with, after patience epochs
             without improvement in the loss.
@@ -134,7 +135,6 @@ def trainloop(
         log_dir = data_tools.dir_add_timestamp(log_dir)
         writer = SummaryWriter(log_dir=log_dir)
         write_gin(log_dir)
-
 
         images, _ = next(iter(train_dataloader))
         if len(images.shape) == 4:
