@@ -216,42 +216,79 @@ def dir_add_timestamp(log_dir: Optional[Path] = None) -> Path:
     return log_dir
 
 
-class Datagenerator:
-    def __init__(self, paths: List[Path], batchsize: int) -> None:
+class BaseDataset:
+    def __init__(self, paths: List[Path]) -> None:
         self.paths = paths
         random.shuffle(self.paths)
-        self.batchsize = batchsize
+        self.dataset: List = []
+        self.process_data()
 
-        self.dataset = []
-        for file in tqdm(self.paths):
-            x_ = np.genfromtxt(file)[:, 3:]
-            x = torch.tensor(x_).type(torch.float32)
-            y = int(file.parent.name) - 1
-            self.dataset.append((x, y))
-
-        self.size = len(self.dataset)
+    def process_data(self) -> None:
+        raise NotImplementedError
 
     def __len__(self) -> int:
-        return int(len(self.dataset) / self.batchsize)
+        return len(self.dataset)
 
     def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
         return self.dataset[idx]
 
-    def __iter__(self) -> Datagenerator:
+
+class TSDataset(BaseDataset):
+    def process_data(self) -> None:
+        for file in tqdm(self.paths):
+            x_ = np.genfromtxt(file)[:, 3:]
+            x = torch.tensor(x_).type(torch.float32)
+            y = torch.tensor(int(file.parent.name) - 1)
+            self.dataset.append((x, y))
+
+
+class TextDataset(BaseDataset):
+    def process_data(self) -> None:
+        for file in tqdm(self.paths):
+            with open(file) as f:
+                x = f.readline()
+            y = file.parent.name
+            self.dataset.append((x, y))
+
+
+class BaseDataIterator:
+    def __init__(self, dataset: BaseDataset, batchsize: int) -> None:
+        self.dataset = dataset
+        self.batchsize = batchsize
+
+    def __len__(self) -> int:
+        return int(len(self.dataset) / self.batchsize)
+
+    def __iter__(self) -> BaseDataIterator:
         self.index = 0
-        self.index_list = torch.randperm(self.size)
+        self.index_list = torch.randperm(len(self.dataset))
         return self
+
+    def batchloop(self) -> Tuple[List, List]:
+        X = []  # noqa N806
+        Y = []  # noqa N806
+        for _ in range(self.batchsize):
+            x, y = self.dataset[int(self.index_list[self.index])]
+            X.append(x)
+            Y.append(y)
+            self.index += 1
+        return X, Y
 
     def __next__(self) -> Tuple[Tensor, Tensor]:
         if self.index <= (len(self.dataset) - self.batchsize):
-            X = []  # noqa N806
-            Y = []  # noqa N806
-            for _ in range(self.batchsize):
-                x, y = self[int(self.index_list[self.index])]
-                X.append(x)
-                Y.append(y)
-                self.index += 1
-            # this makes all sequence of equal length by adding zeros
+            X, Y = self.batchloop()  # noqa N806
+            return torch.tensor(X), torch.tensor(Y)
+        else:
+            raise StopIteration
+
+
+class PaddedDatagenerator(BaseDataIterator):
+    def __init__(self, dataset: BaseDataset, batchsize: int) -> None:
+        super().__init__(dataset, batchsize)
+
+    def __next__(self) -> Tuple[Tensor, Tensor]:
+        if self.index <= (len(self.dataset) - self.batchsize):
+            X, Y = self.batchloop()  # noqa N806
             X_ = pad_sequence(X, batch_first=True, padding_value=0)  # noqa N806
             return X_, torch.tensor(Y)
         else:
