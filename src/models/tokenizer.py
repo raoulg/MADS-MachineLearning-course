@@ -1,11 +1,12 @@
 import re
 import string
 from collections import Counter, OrderedDict
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab, vocab
+from loguru import logger
 
 Tensor = torch.Tensor
 
@@ -16,9 +17,11 @@ def split_and_flat(corpus: List[str]) -> List[str]:
     return corpus
 
 
-def build_vocab(corpus: List[str], oov: str = "<OOV>", pad: str = "<PAD>") -> Vocab:
+def build_vocab(corpus: List[str], max: int, oov: str = "<OOV>", pad: str = "<PAD>") -> Vocab:
     data = split_and_flat(corpus)
-    counter = Counter(data)
+    counter = Counter(data).most_common()
+    logger.info(f'Found {len(counter)} tokens')
+    counter = counter[:max]
     ordered_dict = OrderedDict(counter)
     v1 = vocab(ordered_dict, specials=[pad, oov])
     v1.set_default_index(v1[oov])
@@ -32,24 +35,28 @@ def tokenize(corpus: List[str], v: Vocab) -> Tensor:
     return pad_sequence(batch, batch_first=True)
 
 
+def clean(text: str) -> str:
+    punctuation = f"[{string.punctuation}]"
+    # remove CaPiTaLs
+    lowercase = text.lower()
+    # change don't and isn't into dont and isnt
+    neg = re.sub("\\'", "", lowercase)
+    # swap html tags for spaces
+    html = re.sub("<br />", " ", neg)
+    # swap punctuation for spaces
+    stripped = re.sub(punctuation, " ", html)
+    # remove extra spaces
+    spaces = re.sub("  +", " ", stripped)
+    return spaces
+
+
 class Preprocessor:
-    def __init__(self, max: int, vocab: Vocab) -> None:
+    def __init__(
+        self, max: int, vocab: Vocab, clean: Optional[Callable] = None
+    ) -> None:
         self.max = max
         self.vocab = vocab
-
-    def clean(self, text: str) -> str:
-        punctuation = f"[{string.punctuation}]"
-        # remove CaPiTaLs
-        lowercase = text.lower()
-        # change don't and isn't into dont and isnt
-        neg = re.sub("\\'", "", lowercase)
-        # swap html tags for spaces
-        html = re.sub("<br />", " ", neg)
-        # swap punctuation for spaces
-        stripped = re.sub(punctuation, " ", html)
-        # remove extra spaces
-        spaces = re.sub("  +", " ", stripped)
-        return spaces
+        self.clean = clean
 
     def cast_label(self, label: str) -> int:
         if label == "neg":
@@ -60,7 +67,9 @@ class Preprocessor:
     def __call__(self, batch: List) -> Tuple[Tensor, Tensor]:
         labels, text = [], []
         for x, y in batch:
-            x = self.clean(x).split()[: self.max]
+            if clean is not None:
+                x = self.clean(x)
+            x = x.split()[: self.max]
             tokens = torch.tensor([self.vocab[word] for word in x])
             text.append(tokens)
             labels.append(self.cast_label(y))
