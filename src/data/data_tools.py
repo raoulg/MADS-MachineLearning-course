@@ -4,7 +4,7 @@ import random
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow as tf
@@ -233,7 +233,7 @@ class BaseDataset:
     def __len__(self) -> int:
         return len(self.dataset)
 
-    def __getitem__(self, idx: int) -> Tuple[Tensor, int]:
+    def __getitem__(self, idx: int) -> Tuple:
         return self.dataset[idx]
 
 
@@ -324,3 +324,50 @@ class PaddedDatagenerator(BaseDataIterator):
             return X_, torch.tensor(Y)
         else:
             raise StopIteration
+
+
+class BaseDatastreamer:
+    """This datastreamer wil never stop
+    The dataset should have a:
+        __len__ method
+        __getitem__ method
+
+    """
+
+    def __init__(
+        self,
+        dataset: BaseDataset,
+        batchsize: int,
+        preprocessor: Optional[Callable] = None,
+    ) -> None:
+        self.dataset = dataset
+        self.batchsize = batchsize
+        self.preprocessor = preprocessor
+        self.size = len(self.dataset)
+        self.reset_index()
+
+    def __len__(self) -> int:
+        return int(len(self.dataset) / self.batchsize)
+
+    def reset_index(self) -> None:
+        self.index_list = np.random.permutation(self.size)
+        self.index = 0
+
+    def batchloop(self) -> Sequence[Tuple]:
+        batch = []
+        for _ in range(self.batchsize):
+            x, y = self.dataset[int(self.index_list[self.index])]
+            batch.append((x, y))
+            self.index += 1
+        return batch
+
+    def stream(self) -> Iterator:
+        while True:
+            if self.index > (self.size - self.batchsize):
+                self.reset_index()
+            batch = self.batchloop()
+            if self.preprocessor is not None:
+                X, Y = self.preprocessor(batch)  # noqa N806
+            else:
+                X, Y = zip(*batch)  # noqa N806
+            yield X, Y
