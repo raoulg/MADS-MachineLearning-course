@@ -116,6 +116,7 @@ class NLPmodel(nn.Module):
         yhat = self.linear(last_step)
         return yhat
 
+
 class AttentionNLP(nn.Module):
     def __init__(
         self,

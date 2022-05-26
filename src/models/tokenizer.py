@@ -3,10 +3,11 @@ import string
 from collections import Counter, OrderedDict
 from typing import Callable, List, Optional, Tuple
 
+import gin
 import torch
+from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 from torchtext.vocab import Vocab, vocab
-from loguru import logger
 
 Tensor = torch.Tensor
 
@@ -17,10 +18,13 @@ def split_and_flat(corpus: List[str]) -> List[str]:
     return corpus
 
 
-def build_vocab(corpus: List[str], max: int, oov: str = "<OOV>", pad: str = "<PAD>") -> Vocab:
+@gin.configurable
+def build_vocab(
+    corpus: List[str], max: int, oov: str = "<OOV>", pad: str = "<PAD>"
+) -> Vocab:
     data = split_and_flat(corpus)
     counter = Counter(data).most_common()
-    logger.info(f'Found {len(counter)} tokens')
+    logger.info(f"Found {len(counter)} tokens")
     counter = counter[:max]
     ordered_dict = OrderedDict(counter)
     v1 = vocab(ordered_dict, specials=[pad, oov])
@@ -50,6 +54,7 @@ def clean(text: str) -> str:
     return spaces
 
 
+@gin.configurable
 class Preprocessor:
     def __init__(
         self, max: int, vocab: Vocab, clean: Optional[Callable] = None
@@ -70,7 +75,7 @@ class Preprocessor:
             if clean is not None:
                 x = self.clean(x)
             x = x.split()[: self.max]
-            tokens = torch.tensor([self.vocab[word] for word in x])
+            tokens = torch.tensor([self.vocab[word] for word in x], dtype=torch.int32)
             text.append(tokens)
             labels.append(self.cast_label(y))
 
