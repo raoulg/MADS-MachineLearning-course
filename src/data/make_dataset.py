@@ -42,6 +42,7 @@ def build_grid(k: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 def get_MNIST(  # noqa: N802
     data_dir: Path, batch_size: int
 ) -> Tuple[DataLoader, DataLoader]:
+
     training_data = datasets.FashionMNIST(
         root=data_dir,
         train=True,

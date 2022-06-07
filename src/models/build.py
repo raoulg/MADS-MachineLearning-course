@@ -1,7 +1,7 @@
 from typing import List, Tuple, Union
 
 import jax.numpy as jnp
-import numpy.ndarray as ndarray
+from numpy import ndarray
 import torch
 from trax.layers.combinators import Serial as Traxmodel
 from trax.shapes import signature
