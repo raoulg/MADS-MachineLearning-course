@@ -9,6 +9,8 @@ from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Un
 import numpy as np
 import tensorflow as tf
 import torch
+import requests
+import zipfile
 from loguru import logger
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
@@ -58,6 +60,19 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
     paths = (path for path in walk if path.suffix in formats)
     return paths, class_names
 
+def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True) -> None:
+    response = requests.get(url, stream=True)
+    total_size_in_bytes = int(response.headers.get("content-length", 0))
+    block_size = 2**10
+    progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+    path = data_dir / filename
+    with open(path, "wb") as file:
+        for data in response.iter_content(block_size):
+            progress_bar.update(len(data))
+            file.write(data)
+    progress_bar.close()
+    with zipfile.ZipFile(path, "r") as zip_ref:
+        zip_ref.extractall(data_dir)
 
 class Dataloader:
     """Point the dataloader to a directory.
