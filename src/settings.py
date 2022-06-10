@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel, root_validator, HttpUrl
 from ray import tune
 
 SAMPLE_INT = tune.sample.Integer
@@ -36,6 +36,13 @@ class SearchSpace(BaseSearchSpace):
 class BaseSettings(BaseModel):
     data_dir: Path
 
+class GeneralSettings(BaseSettings):
+    data_dir = Path("../../data/raw")
+
+class SiameseSettings(GeneralSettings):
+    url: HttpUrl = "https://github.com/maticvl/dataHacker/raw/master/DATA/at%26t.zip"
+    file: Path = Path("faces.zip")
+    training: Path = Path("data/faces/training/")
 
 class EurosatSettings(BaseSettings):
     data_dir = Path("../data/raw")
