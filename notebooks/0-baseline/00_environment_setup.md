@@ -22,7 +22,8 @@ They are almost the same, except for the first step. Configure your shell,
 depending on the shell you use.
 
 ## 1.3 Windows
-And for windows, use [this](https://github.com/pyenv-win/pyenv-win)
+Don't use windows for coding.
+If you must, you can install [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) which works very nice, and you can connect [VScode](https://code.visualstudio.com/blogs/2019/09/03/wsl2) to it.
 
 ## 1.4 Install and switch version
 
