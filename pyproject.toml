@@ -5,29 +5,33 @@ description = ""
 authors = ["Raoul Grouls <raoul.grouls@businessdecision.nl>"]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<3.11"
-jax = {extras = ["cpu"], version = "^0.2.28"}
+python = ">=3.8,<3.11"
 loguru = "^0.6.0"
-plotly = "^5.5.0"
 pandas = "^1.4.0"
-scikit-learn = "^1.0.2"
-seaborn = "^0.11.2"
-torch = "^1.11"
-torchvision = "^0.12"
-trax = "^1.4.1"
 matplotlib = "^3.5.1"
+seaborn = "^0.11.2"
+plotly = "^5.5.0"
+scikit-learn = "^1.0.2"
+
+torch = {url = "https://files.pythonhosted.org/packages/28/ac/286c2b0639b838c27b8a13ba660d0141b055d9e5694a18c685692e9acd6e/torch-1.13.0-cp39-none-macosx_11_0_arm64.whl"}
+
+#torch = "^1.12"
+#torchvision = "^0.12"
+#torchtext = "^0.12.0"
+#torch-tb-profiler = "^0.4.0"
+
 gin-config = "^0.5.0"
-torch-tb-profiler = "^0.4.0"
-ray = {extras = ["tune"], version = "^1.12.0"}
-bayesian-optimization = "^1.2.0"
-hpbandster = "^0.7.4"
-ConfigSpace = "^0.5.0"
-torchtext = "^0.12.0"
 pydantic = "^1.9.0"
-torchdata = "^0.3.0"
+#bayesian-optimization = "^1.2.0"
+#hpbandster = "^0.7.4"
+#ConfigSpace = "^0.5.0"
+#torchdata = "^0.3.0"
+tensorflow-macos = "^2.10.0"
+tqdm = "^4.64.1"
+torchvision = "^0.14.0"
+ray = {extras = ["tune"], version = "^2.1.0"}
 
 [tool.poetry.dev-dependencies]
-ipykernel = "^6.9.0"
 black = "^22.1.0"
 flake8 = "^4.0.1"
 isort = "^5.10.1"
@@ -35,7 +39,6 @@ mypy = "^0.931"
 pytest = "^7.0.0"
 pep8-naming = "^0.12.1"
 flake8-annotations = "^2.7.0"
-hypothesis = "^6.36.1"
 jupyter = "^1.0.0"
 nbformat = "^5.3.0"
 importlib-resources = "^5.7.1"
