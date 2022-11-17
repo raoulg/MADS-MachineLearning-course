@@ -1,12 +1,12 @@
 from typing import List, Tuple, Union
 
-import jax.numpy as jnp
+# import jax.numpy as jnp
 from numpy import ndarray
 import torch
-from trax.layers.combinators import Serial as Traxmodel
-from trax.shapes import signature
+# from trax.layers.combinators import Serial as Traxmodel
+# from trax.shapes import signature
 
-Array = Union[jnp.ndarray, ndarray]
+Array = ndarray
 
 
 def init_weights(
@@ -27,10 +27,10 @@ def torch_network(
 
 
 def summary(
-    model: Traxmodel, X: Array, init: int = 1, counter: int = 0  # noqa N803
+    model, X: Array, init: int = 1, counter: int = 0  # noqa N803
 ) -> Array:
     output = X  # noqa N803
-    input = signature(output)
+    input = None #signature(output)
     if init == 1:
         print(
             f'{"layer":<23} {"input":<19} {"dtype":^7}    {"output":<19} {"dtype":^7}'
