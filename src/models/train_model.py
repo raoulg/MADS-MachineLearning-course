@@ -22,10 +22,10 @@ from src.models.metrics import Metric
 from src.typehinting import GenericModel
 
 
-def write_gin(dir: Path) -> None:
+def write_gin(dir: Path, txt) -> None:
     path = dir / "saved_config.gin"
     with open(path, "w") as file:
-        file.write(gin.operative_config_str())
+        file.write(txt)
 
 
 def trainbatches(
@@ -134,7 +134,7 @@ def trainloop(
     if not tunewriter:
         log_dir = data_tools.dir_add_timestamp(log_dir)
         writer = SummaryWriter(log_dir=log_dir)
-        write_gin(log_dir)
+        write_gin(log_dir, gin.config_str())
 
         images, _ = next(iter(train_dataloader))
         if len(images.shape) == 4:
