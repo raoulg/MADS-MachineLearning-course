@@ -2,6 +2,10 @@
 __pycache__/
 *.py[cod]
 
+# logging
+models/
+
+
 # C extensions
 *.so
 
