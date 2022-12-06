@@ -2252,6 +2252,14 @@ gs = ["google-cloud-storage"]
 s3 = ["boto3"]
 
 [[package]]
+name = "torchinfo"
+version = "1.7.1"
+description = "Model summary in PyTorch, based off of the original torchsummary."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[[package]]
 name = "torchtext"
 version = "0.14.0"
 description = "Text utilities and datasets for PyTorch"
@@ -2454,7 +2462,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.8,<3.11"
-content-hash = "dbd5fa0610d213f6179ad541bd757a13486398b48b0e68a40ab41fe96eec87ee"
+content-hash = "0f5ee480797e43d4cb156cf87a842348e80de43edd8478145225045a3456daff"
 
 [metadata.files]
 absl-py = [
@@ -4268,6 +4276,10 @@ torch = [
 torch-tb-profiler = [
     {file = "torch_tb_profiler-0.4.0-py3-none-any.whl", hash = "sha256:8740dedf6a33184fcb7ab04cb50a7c4330d2134d15549101e4b8e62d78280995"},
     {file = "torch_tb_profiler-0.4.0.tar.gz", hash = "sha256:5f24c97963fa934aea3a0867a0883933909e20e7321efd8388a97e3ed4a8fc3c"},
+]
+torchinfo = [
+    {file = "torchinfo-1.7.1-py3-none-any.whl", hash = "sha256:792d429d87814aa9ddfb0f1b9d8c75861edc6099c5d753148064d3217128ff42"},
+    {file = "torchinfo-1.7.1.tar.gz", hash = "sha256:7eb76ef0ca2d75aa7bf973451ba3693333ba97e197f8fa69d671b7f636384db4"},
 ]
 torchtext = [
     {file = "torchtext-0.14.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:34da232d2180ac7366ddc64468eb1f0e98f38cbda5afb2570f99061a276af6cf"},
