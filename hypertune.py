@@ -10,7 +10,7 @@ from typing import Dict
 from ray.tune import CLIReporter
 from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
-from ray.tune.suggest.bohb import TuneBOHB
+from ray.tune.search.bohb import TuneBOHB
 from loguru import logger
 from filelock import FileLock
 
@@ -50,8 +50,8 @@ if __name__ == "__main__":
     config = SearchSpace(
         input_size=3,
         output_size=20,
-        tune_dir=Path("models/ray").absolute(),
-        data_dir=Path("data/external/gestures-dataset").absolute(),
+        tune_dir=Path("models/ray").resolve(),
+        data_dir=Path("data/external/gestures-dataset").resolve(),
     )
 
     reporter = CLIReporter()

@@ -4,8 +4,8 @@ from typing import Dict, Optional, Union
 from pydantic import BaseModel, root_validator, HttpUrl
 from ray import tune
 
-SAMPLE_INT = tune.sample.Integer
-SAMPLE_FLOAT = tune.sample.Float
+SAMPLE_INT = tune.search.sample.Integer
+SAMPLE_FLOAT = tune.search.sample.Float
 
 
 class BaseSearchSpace(BaseModel):
