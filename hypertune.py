@@ -16,16 +16,31 @@ from filelock import FileLock
 
 
 def train(config: Dict, checkpoint_dir=None):
+    """
+    The train function should receive a config file, which is a Dict
+    ray will modify the values inside the config before it is passed to the train 
+    function.
+    """
 
+    # we lock the datadir to avoid parallel instances trying to
+    # access the datadir
     data_dir = config["data_dir"]
     with FileLock(data_dir / ".lock"):
         trainloader, testloader = make_dataset.get_gestures(
             data_dir=data_dir, split=0.8, batchsize=32
         )
 
+    # we set up the metric
     accuracy = metrics.Accuracy()
+    # and create the model with the config
     model = rnn_models.GRUmodel(config)
 
+    # and we start training.
+    # because we set tunewriter=True
+    # the trainloop wont try to report back to tensorboard,
+    # but will report back with tune.report
+    # this way, ray will know whats going on,
+    # and can start/pause/stop a loop
     model = train_model.trainloop(
         epochs=50,
         model=model,
@@ -47,6 +62,8 @@ def train(config: Dict, checkpoint_dir=None):
 if __name__ == "__main__":
     ray.init()
 
+    # have a look in src.settings to see how SearchSpace is created.
+    # If you want to search other ranges, you change this in the settings file.
     config = SearchSpace(
         input_size=3,
         output_size=20,
@@ -56,12 +73,14 @@ if __name__ == "__main__":
 
     reporter = CLIReporter()
     reporter.add_metric_column("Accuracy")
+
     bohb_hyperband = HyperBandForBOHB(
         time_attr="training_iteration",
         max_t=50,
-        reduction_factor=4,
+        reduction_factor=3,
         stop_last_trials=False,
     )
+
     bohb_search = TuneBOHB()
 
     analysis = tune.run(
