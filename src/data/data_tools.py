@@ -299,3 +299,17 @@ class BaseDatastreamer:
             else:
                 X, Y = zip(*batch)  # noqa N806
             yield X, Y
+
+class VAEstreamer(BaseDatastreamer):
+    def stream(self) -> Iterator:
+        while True:
+            if self.index > (self.size - self.batchsize):
+                self.reset_index()
+            batch = self.batchloop()
+            # we throw away the Y
+            X_, _ = zip(*batch) 
+            X = np.stack(X_)
+            # change the channel to channel-last
+            X = X.transpose(0, 2, 3, 1)
+            # and yield X, X
+            yield X, X
