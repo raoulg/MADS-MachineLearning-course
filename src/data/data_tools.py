@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-import tensorflow as tf
 import torch
+import tensorflow as tf
 import requests
 import zipfile
 from loguru import logger
@@ -59,6 +59,7 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
     # keeps only specified formats
     paths = (path for path in walk if path.suffix in formats)
     return paths, class_names
+
 
 def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True) -> None:
     response = requests.get(url, stream=True)
@@ -137,6 +138,7 @@ class BaseDataset:
     def __getitem__(self, idx: int) -> Tuple:
         return self.dataset[idx]
 
+
 class ImgDataset(BaseDataset):
     def __init__(self, paths, class_names, img_size, channels):
         self.img_size = img_size
@@ -154,6 +156,7 @@ class ImgDataset(BaseDataset):
     def load_image(
         self, path: Path, image_size: Tuple[int, int], channels: int
     ) -> np.ndarray:
+        # TODO replace tf with other library for io and resize
         # load file
         img_ = tf.io.read_file(str(path))
         # decode as image
@@ -164,6 +167,7 @@ class ImgDataset(BaseDataset):
         img_resize.set_shape((image_size[0], image_size[1], channels))
         # cast to numpy
         return img_resize.numpy()
+
 
 class TSDataset(BaseDataset):
     """This assume a txt file with numeric data
@@ -300,6 +304,7 @@ class BaseDatastreamer:
                 X, Y = zip(*batch)  # noqa N806
             yield X, Y
 
+
 class VAEstreamer(BaseDatastreamer):
     def stream(self) -> Iterator:
         while True:
@@ -307,9 +312,10 @@ class VAEstreamer(BaseDatastreamer):
                 self.reset_index()
             batch = self.batchloop()
             # we throw away the Y
-            X_, _ = zip(*batch) 
-            X = np.stack(X_)
+            X_, _ = zip(*batch)
+            X = torch.stack(X_)
             # change the channel to channel-last
-            X = X.transpose(0, 2, 3, 1)
+            X = torch.moveaxis(X, 1, 3)
+            # X = X.transpose(0, 2, 3, 1)
             # and yield X, X
             yield X, X

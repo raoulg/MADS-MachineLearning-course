@@ -68,6 +68,7 @@ def get_flowers(data_dir: Path) -> Path:
     dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"  # noqa: E501
     image_folder = Path(data_dir) / "datasets/flower_photos"
     if not image_folder.exists():
+        # TODO remove tf dependency for untar
         image_folder = tf.keras.utils.get_file(
             "flower_photos", origin=dataset_url, untar=True, cache_dir=data_dir
         )
