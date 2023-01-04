@@ -37,7 +37,7 @@ def trainbatches(
 ) -> float:
     model.train()
     train_loss: float = 0.0
-    for _ in tqdm(range(train_steps)):
+    for _ in tqdm(range(train_steps), colour="#1e4706"):
         x, y = next(iter(traindatastreamer))
         optimizer.zero_grad()
         yhat = model(x)
@@ -142,7 +142,7 @@ def trainloop(
         #     writer.add_image("images", grid)
         writer.add_graph(model, images)
 
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(epochs), colour="#1e4706"):
         train_loss = trainbatches(
             model, train_dataloader, loss_fn, optimizer_, train_steps
         )
