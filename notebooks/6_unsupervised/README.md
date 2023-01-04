@@ -15,7 +15,7 @@ So, as you can see, a lot of different approaches.
 
 The architecture should also look familiar; it uses a bottleneck, just like we have seen before in the SENet implementation. An autoencoder looks like this:
 
-![autoencoder]("https://uvadlc-notebooks.readthedocs.io/en/latest/_images/autoencoder_visualization.svg")
+<img src="https://uvadlc-notebooks.readthedocs.io/en/latest/_images/autoencoder_visualization.svg">
 
 The novelty here is: you feed the model *the same* image that went in, as a label!
 
