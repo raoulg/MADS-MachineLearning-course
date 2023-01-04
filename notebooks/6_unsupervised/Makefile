@@ -1,4 +1,4 @@
-.PHONY: help run encode viz embed tb
+.PHONY: help run encode viz embed query tb
 
 .DEFAULT: help
 
@@ -9,6 +9,7 @@ run:
 	make encode
 	make viz
 	make embed
+	make query
 	make tb
 
 encode:
@@ -20,6 +21,12 @@ viz:
 embed:
 	export PYTHONPATH="$(shell realpath ../..)" ; poetry run python 03_vae_embeddings.py
 
+query:
+	export PYTHONPATH="$(shell realpath ../..)" ; poetry run python 04_query_embeddings.py
+
 tb:
 	tensorboard --logdir=../../models/embeddings
+
+siamese:
+	export PYTHONPATH="$(shell realpath ../..)" ; poetry run python 04_siamese.py
 
