@@ -7,7 +7,7 @@ from torchvision.transforms import ToTensor
 if __name__ == "__main__":
     logger.info("starting autoencode.py")
     from src.data import data_tools
-    from src.models import vae, train_model
+    from src.models import train_model, vae
     from src.settings import VAESettings
 
     presets = VAESettings()
@@ -28,11 +28,13 @@ if __name__ == "__main__":
     )
 
     logger.info(
-        f"Length trainset: {len(training_data)}, length testset: {len(test_data)}")
+        f"Length trainset: {len(training_data)}, length testset: {len(test_data)}"
+    )
 
     logger.info("creating datastreamers")
     trainstreamer = data_tools.VAEstreamer(
-        training_data, batchsize=presets.batchsize).stream()
+        training_data, batchsize=presets.batchsize
+    ).stream()
     teststreamer = data_tools.VAEstreamer(test_data, batchsize=32).stream()
 
     X1, X2 = next(trainstreamer)
@@ -64,7 +66,7 @@ if __name__ == "__main__":
         loss_fn=lossfn,
         train_dataloader=trainstreamer,
         test_dataloader=teststreamer,
-        log_dir="vaelogs",
+        log_dir="vaemodels",
         train_steps=200,
         eval_steps=200,
         patience=10,

@@ -1,8 +1,9 @@
-import torch
-from torchvision import datasets
 from pathlib import Path
-from torchvision.transforms import ToTensor
+
+import torch
 from loguru import logger
+from torchvision import datasets
+from torchvision.transforms import ToTensor
 
 logger.add("vae.log")
 
@@ -10,9 +11,9 @@ logger.add("vae.log")
 if __name__ == "__main__":
     logger.info("Starting show_vae.py")
     from src.data import data_tools
-    from src.visualization.visualize import plot_grid
+    from src.models.vae import build_latent_grid, sample_range
     from src.settings import VAESettings
-    from src.models.vae import sample_range, build_latent_grid
+    from src.visualization.visualize import plot_grid
 
     presets = VAESettings()
 
@@ -29,6 +30,7 @@ if __name__ == "__main__":
     model = torch.load(presets.modelname)
 
     X, Y = next(teststreamer)
+
     img = model(X)
     if not presets.imgpath.exists():
         presets.imgpath.mkdir(parents=True)

@@ -1,21 +1,23 @@
 from pathlib import Path
-from torchvision import datasets
-from torchvision.transforms import ToTensor
-from torch.utils.tensorboard import SummaryWriter
+
 import tensorboard as tb
 import tensorflow as tf
+import torch
 from loguru import logger
-tf.io.gfile = tb.compat.tensorflow_stub.io.gfile
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import datasets
+from torchvision.transforms import ToTensor
 
+from src.data import data_tools
+from src.settings import VAESettings
+
+tf.io.gfile = tb.compat.tensorflow_stub.io.gfile
 logdir = Path("../../models/embeddings/").resolve()
 writer = SummaryWriter(log_dir=logdir)
 
 
 if __name__ == "__main__":
     logger.info("starting vae_embeddings.py")
-
-    from src.settings import VAESettings
-    from src.models.vae import select_n_random
 
     presets = VAESettings()
 
@@ -25,17 +27,27 @@ if __name__ == "__main__":
         download=True,
         transform=ToTensor(),
     )
+    teststreamer = data_tools.VAEstreamer(
+        test_data, batchsize=presets.samplesize
+    ).stream()
 
-    logger.info(f"Loaded {len(test_data)} items")
-    images, labels = select_n_random(test_data.data, test_data.targets)
-    logger.info(f"selected {len(images)} images")
+    logger.info(f"loading pretrained model {presets.modelname}")
+    model = torch.load(presets.modelname)
+    X, _ = next(teststreamer)
 
-    # log embeddings
-    features = images.view(-1, 28 * 28)
-    writer.add_embedding(features,
-                         metadata=labels,
-                         label_img=images.unsqueeze(1))
+    img = model(X)
+
+    embs = model.encoder(X)
+    logger.info(f"Embeddings shape {embs.shape}")
+
+    embedfile = "embeds.pt"
+    torch.save((X, embs.detach().numpy()), embedfile)
+    logger.info(f"Saved embeddings and images to {embedfile}")
+
+    # tensorflow has channnel first (dim 1), not channel (dim 3) last
+    label_img = torch.moveaxis(X, 3, 1)
+    writer.add_embedding(embs, label_img=label_img)
     logger.info(f"added embeddings to {logdir}")
 
     writer.close()
-    logger.success("Embeddings")
+    logger.success("vae_embeddings.py")
