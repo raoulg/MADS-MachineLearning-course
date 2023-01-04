@@ -5,6 +5,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from PIL import Image
 
 import numpy as np
 import torch
@@ -62,16 +63,21 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
 
 
 def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True) -> None:
+    path = data_dir / filename
+    if path.exists():
+        logger.info(f"File {path} already exists, skip download")
+        return path
     response = requests.get(url, stream=True)
     total_size_in_bytes = int(response.headers.get("content-length", 0))
     block_size = 2**10
     progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-    path = data_dir / filename
+    logger.info(f"Loading {path}")
     with open(path, "wb") as file:
         for data in response.iter_content(block_size):
             progress_bar.update(len(data))
             file.write(data)
     progress_bar.close()
+    logger.info(f"Unzipping {path}")
     with zipfile.ZipFile(path, "r") as zip_ref:
         zip_ref.extractall(data_dir)
 
@@ -137,6 +143,20 @@ class BaseDataset:
 
     def __getitem__(self, idx: int) -> Tuple:
         return self.dataset[idx]
+
+
+class FacesDataset(BaseDataset):
+    def __init__(self, paths):
+        super().__init__(paths)
+
+    def process_data(self):
+        for path in self.paths:
+            img = self.load_image(path)
+            self.dataset.append((img, path.name))
+
+    def load_image(self, path: Path):
+        img = Image.open(path)
+        return img
 
 
 class ImgDataset(BaseDataset):

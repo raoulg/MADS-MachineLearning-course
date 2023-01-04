@@ -48,16 +48,17 @@ class VAESettings(GeneralSettings):
     h1: int = 250
     h2: int = 100
     insize: int = 784
-    latent: int = 2
+    latent: int = 10
     batchsize: int = 32
     epochs: int = 100
     modelname: Path = Path("vaemodel.pt")
     imgpath: Path = Path("img")
+    samplesize: int = 512
 
 
 class SiameseSettings(GeneralSettings):
     url: HttpUrl = "https://github.com/maticvl/dataHacker/raw/master/DATA/at%26t.zip"
-    file: Path = Path("faces.zip")
+    filename: Path = Path("faces.zip")
     training: Path = Path("data/faces/training/")
 
 
