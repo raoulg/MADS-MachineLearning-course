@@ -19,8 +19,8 @@ tqdm = "^4.64.1"
 torchvision = "^0.14.0"
 ray = {extras = ["tune"], version = "^2.1.0"}
 torch = [
-	{url = "https://files.pythonhosted.org/packages/28/ac/286c2b0639b838c27b8a13ba660d0141b055d9e5694a18c685692e9acd6e/torch-1.13.0-cp39-none-macosx_11_0_arm64.whl", platform = "darwin" },
-	{version = "1.13", platform = "linux" },
+	{version = "*", platform = "linux" },
+	{url = "https://files.pythonhosted.org/packages/2d/ab/8210e877debc6e16c5f64345b08abfd667ade733329ef8b38dd06a362513/torch-1.13.1-cp39-none-macosx_11_0_arm64.whl", platform = "darwin"},
 	]
 #tensorflow = "^2.11.0"
 
