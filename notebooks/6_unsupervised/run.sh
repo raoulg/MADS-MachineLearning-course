@@ -1,14 +1,14 @@
 #!/bin/bash
-env > /tmp/env1.txt
+env > /tmp/env.txt
 export PATH="/home/azureuser/.cache/pypoetry/virtualenvs/deep-learning-ho7aY0_Y-py3.9/bin:/home/azureuser/.julia/juliaup/bin:/home/azureuser/.local/bin:/home/azureuser/.julia/juliaup/bin:/home/azureuser/.local/bin:/home/azureuser/.pyenv/shims:/home/azureuser/.pyenv/bin:/home/azureuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:$PATH"
 
 cd /home/azureuser/code/ML22/notebooks/6_unsupervised/
-env > /tmp/env2.txt
 
 make encode
 make viz
 make embed
 make query
-env > /tmp/env3.txt
+
+env > /tmp/done.txt
 
 
