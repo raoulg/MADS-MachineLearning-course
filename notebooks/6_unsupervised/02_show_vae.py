@@ -6,6 +6,7 @@ from torchvision import datasets
 from torchvision.transforms import ToTensor
 
 logger.add("vae.log")
+logger.add("/tmp/autoencoder.log")
 
 
 if __name__ == "__main__":

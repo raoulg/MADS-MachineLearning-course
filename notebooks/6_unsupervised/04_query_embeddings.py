@@ -10,6 +10,9 @@ from src.data import data_tools
 from src.settings import VAESettings
 from src.visualization.visualize import plot_grid
 
+logger.add("/tmp/autoencoder.log")
+logger.add("vae.log")
+
 if __name__ == "__main__":
     presets = VAESettings()
     embedfile = "embeds.pt"

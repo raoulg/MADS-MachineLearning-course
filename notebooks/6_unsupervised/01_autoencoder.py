@@ -4,6 +4,9 @@ from loguru import logger
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
+logger.add("/tmp/autoencoder.log")
+logger.add("vae.log")
+
 if __name__ == "__main__":
     logger.info("starting autoencode.py")
     from src.data import data_tools
