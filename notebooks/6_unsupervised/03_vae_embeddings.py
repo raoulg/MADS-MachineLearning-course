@@ -12,9 +12,14 @@ from src.data import data_tools
 from src.settings import VAESettings
 
 tf.io.gfile = tb.compat.tensorflow_stub.io.gfile
-logdir = Path("../../models/embeddings/").resolve()
+
+cwd = Path(__file__).parent
+root = (cwd / "../..").resolve()
+logdir = root / Path("models/embeddings/")
 writer = SummaryWriter(log_dir=logdir)
 
+logger.add("/tmp/autoencoder.log")
+logger.add("vae.log")
 
 if __name__ == "__main__":
     logger.info("starting vae_embeddings.py")
