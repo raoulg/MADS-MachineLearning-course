@@ -43,3 +43,7 @@ This will run:
 - `make embed` to add some embeddings to tensorboard so you can easily visualize them
 - `make query` for an example to find the 9 neighbors of a random image.
 - `make tb` to fire up tensorboard
+
+# Crontab
+touch run.sh
+chmod +x run.sh
