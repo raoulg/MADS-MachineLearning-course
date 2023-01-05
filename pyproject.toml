@@ -5,7 +5,7 @@ description = ""
 authors = ["Raoul Grouls <raoul.grouls@businessdecision.nl>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<=3.11.1"
+python = ">=3.9,<3.10"
 loguru = "^0.6.0"
 pandas = "^1.4.0"
 matplotlib = "^3.5.1"
@@ -29,6 +29,9 @@ torchinfo = "^1.7.1"
 tensorflow-macos = {version = "^2.11.0", platform="darwin"}
 tensorflow = {version = "*", platform = "linux" }
 scipy = "^1.10.0"
+shap = "^0.41.0"
+xgboost = "^1.7.2"
+numba = "0.56.4"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"
