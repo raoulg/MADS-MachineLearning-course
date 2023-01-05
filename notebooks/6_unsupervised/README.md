@@ -35,7 +35,10 @@ If you want to add color, you dont want to remove so much information from the i
 The low latent dimensionality means the model is forced the throw way anything that is not relevant, and it has to learn how to reconstruct a complete new image, just from a small vector.
 
 # Running experiments
-You should be able to run all experiments with `make run`.
+You should be able to run all experiments with `make run`:
+- go to your shell
+- use `cd` or `z` to go into the directory where you can find the `Makefile`
+- run the `make run` command from the shell
 
 This will run:
 - `make encode` : this learns the embeddings. Settings for the model can be changed in [src/settings.py](../../src/settings.py) for VAESettings
@@ -44,6 +47,8 @@ This will run:
 - `make query` for an example to find the 9 neighbors of a random image.
 - `make tb` to fire up tensorboard
 
+The `Makefile` consists just of commands you would otherwise run from the commandline. You can read more
+about them [here](https://opensource.com/article/18/8/what-how-makefile)
 
 # Barebones Automation
 
