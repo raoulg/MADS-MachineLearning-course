@@ -44,6 +44,40 @@ This will run:
 - `make query` for an example to find the 9 neighbors of a random image.
 - `make tb` to fire up tensorboard
 
-# Crontab
+
+# Barebones Automation
+
+## shell script
 touch run.sh
 chmod +x run.sh
+poetry shell
+echo $PATH
+
+```bash
+export PATH="<output from echo>:$PATH"
+```
+
+```bash
+#!/bin/bash
+env > /tmp/env1.txt
+export PATH="/home/azureuser/.cache/pypoetry/virtualenvs/deep-learning-ho7aY0_Y-py3.9/bin:/home/azureuser/.julia/juliaup/bin:/home/azureuser/.local/bin:/home/azureuser/.julia/juliaup/bin:/home/azureuser/.local/bin:/home/azureuser/.pyenv/shims:/home/azureuser/.pyenv/bin:/home/azureuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:$PATH"
+
+cd /home/azureuser/code/ML22/notebooks/6_unsupervised/
+make encode
+make viz
+make embed
+make query
+env > /tmp/done.txt
+```
+
+## crontab
+sudo crontab -e
+How to work with [crontab](https://www.adminschoice.com/crontab-quick-reference)
+
+```
+*/10 * * * * /home/azureuser/run.sh
+```
+
+
+
+
