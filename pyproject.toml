@@ -5,7 +5,7 @@ description = ""
 authors = ["Raoul Grouls <raoul.grouls@businessdecision.nl>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.8,<=3.11.1"
 loguru = "^0.6.0"
 pandas = "^1.4.0"
 matplotlib = "^3.5.1"
@@ -18,11 +18,7 @@ pydantic = "^1.9.0"
 tqdm = "^4.64.1"
 torchvision = "^0.14.0"
 ray = {extras = ["tune"], version = "^2.1.0"}
-torch = [
-	{version = "*", platform = "linux" },
-	{url = "https://files.pythonhosted.org/packages/2d/ab/8210e877debc6e16c5f64345b08abfd667ade733329ef8b38dd06a362513/torch-1.13.1-cp39-none-macosx_11_0_arm64.whl", platform = "darwin"},
-	]
-#tensorflow = "^2.11.0"
+torch = {version = "*" } 
 
 torchtext = "^0.14.0"
 bayesian-optimization = "^1.4.2"
