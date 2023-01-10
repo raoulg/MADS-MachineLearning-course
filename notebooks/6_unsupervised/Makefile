@@ -25,5 +25,5 @@ query:
 	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 04_query_embeddings.py
 
 tb:
-	tensorboard --logdir=../../models/embeddings
+	poetry run tensorboard --logdir=../../models/embeddings
 
