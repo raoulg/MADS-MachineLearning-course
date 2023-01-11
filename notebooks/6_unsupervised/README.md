@@ -131,7 +131,7 @@ this would kick off the script every 10 minutes
 I added this line to crontab:
 
 ```
-* 14 * * 2 /home/azureuser/run.sh
+0 14 * * 2 /home/azureuser/run.sh
 ```
 Which means: every second day of the week (tuesday) kick off the `run.sh` script at 14:00h.
 
