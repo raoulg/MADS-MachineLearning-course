@@ -14,9 +14,10 @@ from loguru import logger
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
+from sklearn import datasets
 
 from src.data import data_tools
-from src.data.data_tools import PaddedDatagenerator, TSDataset
+from src.data.data_tools import PaddedDatagenerator, TSDataset, TensorDataset
 
 Tensor = torch.Tensor
 
@@ -144,3 +145,13 @@ def keep_subdirs_only(path: Path) -> None:
     files = [file for file in path.iterdir() if file.is_file()]
     for file in files:
         file.unlink()
+
+def get_breast_cancer_dataset(train_perc) -> Tuple[TensorDataset, TensorDataset]:
+    npdata = datasets.load_breast_cancer()
+    featurenames = npdata.feature_names
+    tensordata = torch.tensor(npdata.data, dtype=torch.float32)
+    tensortarget = torch.tensor(npdata.target, dtype=torch.uint8)
+    trainidx = int(len(tensordata) * train_perc)
+    traindataset = TensorDataset(tensordata[:trainidx], tensortarget[:trainidx])
+    testdataset = TensorDataset(tensordata[trainidx:], tensortarget[trainidx:])
+    return traindataset, testdataset, featurenames

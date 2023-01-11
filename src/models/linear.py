@@ -1,7 +1,9 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import torch
 from loguru import logger
+import torch.nn as nn
+import torch
 
 Params = List[Tuple[torch.Tensor, torch.Tensor]]
 
@@ -29,3 +31,19 @@ def nn_predict(params: Params, activations: torch.Tensor) -> torch.Tensor:
     logits = torch.matmul(activations, final_w) + final_b
     logger.info(f"Shape: {logits.shape}")
     return logits
+
+class NeuralNetwork(nn.Module):
+    def __init__(self, config: Dict) -> None:
+        super().__init__()
+        self.linear = nn.Sequential(
+            nn.Linear(config["input"], config["h1"]),
+            nn.ReLU(),
+            nn.Linear(config["h1"], config["h2"]),
+            nn.Dropout(0.4),
+            nn.ReLU(),
+            nn.Linear(config["h2"], config["output"]),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        logits = self.linear(x)
+        return logits
