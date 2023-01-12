@@ -90,6 +90,7 @@ def trainloop(
     patience: int = 10,
     factor: float = 0.9,
     tunewriter: bool = False,
+    weight_decay: float = 1e-5,
 ) -> GenericModel:
     """
 
@@ -122,7 +123,7 @@ def trainloop(
     """
 
     optimizer_: torch.optim.Optimizer = optimizer(
-        model.parameters(), lr=learning_rate
+        model.parameters(), lr=learning_rate, weight_decay=weight_decay
     )  # type: ignore
 
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(

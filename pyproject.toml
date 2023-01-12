@@ -29,6 +29,8 @@ torchinfo = "^1.7.1"
 tensorflow-macos = {version = "^2.11.0", platform="darwin"}
 tensorflow = {version = "*", platform = "linux" }
 scipy = "^1.10.0"
+shap = "^0.41.0"
+numba = "0.56.4"
 
 [tool.poetry.dev-dependencies]
 black = "^22.1.0"

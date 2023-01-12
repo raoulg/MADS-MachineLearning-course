@@ -205,6 +205,21 @@ class TSDataset(BaseDataset):
             y = torch.tensor(int(file.parent.name) - 1)
             self.dataset.append((x, y))
 
+class TensorDataset:
+    """The main responsibility of the Dataset class is to 
+    offer a __len__ method and a __getitem__ method
+    """
+
+    def __init__(self, data, targets) -> None:
+        self.data = data
+        self.targets = targets
+        assert len(data) == len(targets)
+
+    def __len__(self) -> int:
+        return len(self.targets)
+
+    def __getitem__(self, idx: int) -> Tuple:
+        return self.data[idx], self.targets[idx]
 
 class TextDataset(BaseDataset):
     """This assumes textual data, one line per file
