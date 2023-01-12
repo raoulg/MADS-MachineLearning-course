@@ -1,2 +1,0 @@
-tokenizer.Preprocessor.max = 100
-tokenizer.build_vocab.max = 10000
