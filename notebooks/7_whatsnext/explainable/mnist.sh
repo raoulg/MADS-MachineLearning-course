@@ -5,7 +5,7 @@ export PATH="/home/azureuser/.cache/pypoetry/virtualenvs/deep-learning-ho7aY0_Y-
 cd /home/azureuser/code/ML22/notebooks/7_whatsnext/explainable/
 
 make model
-#make shap
+make shap
 
 env > /tmp/done.txt
 
