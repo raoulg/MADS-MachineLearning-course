@@ -1,13 +1,14 @@
 import shap
-import numpy as np
 import torch
 from loguru import logger
 from torchvision import datasets
 from torchvision.transforms import ToTensor
-import shap
 import numpy as np
 from torch.utils.data import DataLoader
-
+from pathlib import Path
+import matplotlib.pyplot as plt
+from PIL import Image
+from numpy import asarray
 
 logger.add("/tmp/explainer.log")
 logger.add("explainer.log")
@@ -61,7 +62,38 @@ if __name__ == "__main__":
             images_dict[int(l)] = dataset_train.data[i].reshape((28, 28))
 
     logger.info(f"Actual labels of tested images: {test_y}")
+    
+    if not presets.imgpath.exists():
+        presets.imgpath.mkdir(parents=True)
 
-    visualize.plot_categories(images_dict, class_names)
+    imgpath = presets.imgpath / Path("categories.jpeg")
+    imgpathshap = presets.imgpath / Path("shap.jpeg")
 
-    shap.image_plot(shap_numpy, -test_numpy)
+    visualize.plot_categories(images_dict, class_names, figsize = (16,2), filepath = imgpath)
+    
+    shap_image = shap.image_plot(shap_numpy, -test_numpy, show = False)
+    plt.savefig(imgpathshap)
+
+    def reshape_width(image_to_reshape, image_width):
+        factor = image_width.size[0] / image_to_reshape.size[0]
+        resized = image_to_reshape.resize((int(image_to_reshape.size[0]*factor), int(image_to_reshape.size[1]*factor)))
+        resized.size
+        return resized
+
+    imageHeader = Image.open(imgpath)
+    imageShap = Image.open(imgpathshap)
+
+    resized_header = reshape_width(imageHeader, imageShap)
+
+    header = asarray(resized_header)
+    shap_image = asarray(imageShap)
+
+    logger.info(f"Shape header: {header.shape}")
+    logger.info(f"Shape shap image: {shap_image.shape}")
+
+    final_image = np.concatenate((header, shap_image), axis=0)
+    imgpathfinal = presets.imgpath / Path("final.jpeg")
+    im = Image.fromarray(final_image)
+    im.save(imgpathfinal)
+
+    logger.info(f"Saved images to {imgpathfinal}")

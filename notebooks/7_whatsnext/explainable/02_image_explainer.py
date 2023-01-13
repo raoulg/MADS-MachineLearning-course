@@ -51,7 +51,7 @@ if __name__ == "__main__":
     loss_fn = torch.nn.CrossEntropyLoss()
     accuracy = metrics.Accuracy()
 
-    log_dir="../../models/test"
+    log_dir="../../../models/explainer"
 
     logger.info(f"starting training for {presets.epochs} epochs")
 

@@ -23,8 +23,8 @@ def plot_grid(img: np.ndarray, filepath: Path, k: int=3, figsize: Tuple = (10,10
     logger.success(f"saved grid to {filepath}")
 
 # Function to plot images
-def plot_categories(images, class_names):
-  fig, axes = plt.subplots(1, 11, figsize=(16, 15))
+def plot_categories(images, class_names, figsize: Tuple = (16,15), filepath: Path = None):
+  fig, axes = plt.subplots(1, 11, figsize=figsize)
   axes = axes.flatten()
   
   # Plot an empty canvas
@@ -40,6 +40,10 @@ def plot_categories(images, class_names):
     ax.imshow(v, cmap=plt.cm.binary)
     ax.set_title(f"{class_names[k]}")
     ax.set_axis_off()
-
-  plt.tight_layout()
-  plt.show()
+  
+  if filepath != None:
+    fig.savefig(filepath)
+    logger.success(f"saved grid to {filepath}")
+  else:
+    plt.tight_layout()
+    plt.show()

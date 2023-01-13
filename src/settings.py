@@ -73,7 +73,7 @@ class StyleSettings(BaseSettings):
     testpath = Path("../../data/external/sentences/test.feather")
 
 class ImageExplainerSettings(GeneralSettings):
-    datadir: Path = Path("../../data/raw/")
+    datadir: Path = Path("../../../data/raw/")
     epochs: int = 10
     modelname: Path = Path("../../../models/trained_model")
     imgpath: Path = Path("img")
