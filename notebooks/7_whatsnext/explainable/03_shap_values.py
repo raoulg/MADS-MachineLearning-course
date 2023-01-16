@@ -63,6 +63,7 @@ if __name__ == "__main__":
     background = images[:120]
     test_images = images[120:128]
     test_y = y[120:128]
+    logger.info(f"Actual labels of tested images: {test_y}")
 
     explainer = shap.DeepExplainer(model, background)
     shap_values = explainer.shap_values(test_images)
@@ -70,7 +71,6 @@ if __name__ == "__main__":
     test_numpy = np.swapaxes(np.swapaxes(test_images.numpy(), 1, -1), 1, 2)
 
     class_names = dataset_train.classes
-
     images_dict = dict()
     for i, l in enumerate(dataset_train.targets):
         if len(images_dict)==10:
@@ -78,8 +78,6 @@ if __name__ == "__main__":
         if int(l) not in images_dict.keys():
             images_dict[int(l)] = dataset_train.data[i].reshape((28, 28))
 
-    logger.info(f"Actual labels of tested images: {test_y}")
-    
     if not presets.imgpath.exists():
         presets.imgpath.mkdir(parents=True)
 

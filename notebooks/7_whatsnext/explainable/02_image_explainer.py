@@ -17,7 +17,7 @@ if __name__ == "__main__":
     from src.models import metrics, train_model
 
     
-    logger.info("start making model.py")
+    logger.info("start image_explainer.py")
     presets = ImageExplainerSettings()
 
     logger.info(f"Importing {sys.argv[1]}")
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     loss_fn = torch.nn.CrossEntropyLoss()
     accuracy = metrics.Accuracy()
 
-    log_dir="../../../models/explainer"
+    log_dir = "../../../models/explainer"
 
     logger.info(f"starting training for {presets.epochs} epochs")
 
