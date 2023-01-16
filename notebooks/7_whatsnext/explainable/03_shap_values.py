@@ -9,6 +9,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from PIL import Image
 from numpy import asarray
+import sys
+
 
 logger.add("/tmp/explainer.log")
 logger.add("explainer.log")
@@ -22,19 +24,34 @@ if __name__ == "__main__":
 
     presets = ImageExplainerSettings()
 
-    dataset_train = datasets.MNIST(
-        root=presets.data_dir,
-        train=True,
-        download=True,
-        transform=ToTensor(),
-    )
+    if sys.argv[1] == 'mnist':
+        dataset_train = datasets.MNIST(
+            root=presets.data_dir,
+            train=True,
+            download=True,
+            transform=ToTensor(),
+        )
 
-    dataset_test = datasets.MNIST(
-        root=presets.data_dir,
-        train=False,
-        download=True,
-        transform=ToTensor(),
-    )
+        dataset_test = datasets.MNIST(
+            root=presets.data_dir,
+            train=False,
+            download=True,
+            transform=ToTensor(),
+        )
+    else:
+        dataset_train = datasets.FashionMNIST(
+            root=presets.data_dir,
+            train=True,
+            download=True,
+            transform=ToTensor(),
+        )
+
+        dataset_test = datasets.FashionMNIST(
+            root=presets.data_dir,
+            train=False,
+            download=True,
+            transform=ToTensor(),
+        )
 
     test_dataloader = DataLoader(dataset_test, batch_size=128, shuffle=True)
 

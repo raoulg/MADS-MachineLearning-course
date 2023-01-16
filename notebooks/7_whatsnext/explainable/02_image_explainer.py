@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from pathlib import Path
 from loguru import logger
 import torch.optim as optim
+import sys
 
 
 logger.add("/tmp/explainer.log")
@@ -16,22 +17,39 @@ if __name__ == "__main__":
     from src.models import metrics, train_model
 
     
-    logger.info("starting autoencode.py")
+    logger.info("start making model.py")
     presets = ImageExplainerSettings()
 
-    dataset_train = datasets.MNIST(
-        root=presets.data_dir,
-        train=True,
-        download=True,
-        transform=ToTensor(),
-    )
+    logger.info(f"Importing {sys.argv[1]}")
 
-    dataset_test = datasets.MNIST(
-        root=presets.data_dir,
-        train=False,
-        download=True,
-        transform=ToTensor(),
-    )
+    if sys.argv[1] == 'mnist':
+        dataset_train = datasets.MNIST(
+            root=presets.data_dir,
+            train=True,
+            download=True,
+            transform=ToTensor(),
+        )
+
+        dataset_test = datasets.MNIST(
+            root=presets.data_dir,
+            train=False,
+            download=True,
+            transform=ToTensor(),
+        )
+    else:
+        dataset_train = datasets.FashionMNIST(
+            root=presets.data_dir,
+            train=True,
+            download=True,
+            transform=ToTensor(),
+        )
+
+        dataset_test = datasets.FashionMNIST(
+            root=presets.data_dir,
+            train=False,
+            download=True,
+            transform=ToTensor(),
+        )
 
     train_dataloader = DataLoader(dataset_train, batch_size=128, shuffle=True)
     test_dataloader = DataLoader(dataset_test, batch_size=128, shuffle=True)

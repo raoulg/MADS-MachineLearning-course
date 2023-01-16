@@ -1,26 +1,32 @@
-.PHONY: help mnist model shap
+.PHONY: help mnist mnistfashion model modelfashion shap shapfasion
 
 .DEFAULT: help
 
 help:
 	@echo "make mnist"
+	@echo "make mnistfashion"
 
 mnist:
 	make model
 	make shap
+	make tb
 
 mnistfashion:
 	make modelfashion
-	make shap
+	make shapfashion
+	make tb
 
 model:
-	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 02_image_explainer.py
+	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 02_image_explainer.py mnist
+
+modelfashion:
+	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 02_image_explainer.py mnistfashion
 
 shap:
-	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 03_shap_values.py
+	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 03_shap_values.py mnist
+
+shapfashion:
+	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 03_shap_values.py mnistfashion
 
 tb:
-	poetry run tensorboard --logdir=../../models/embeddings
-
-model:
-	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 02_image_explainer.py
+	poetry run tensorboard --logdir= ../../../models/explainable

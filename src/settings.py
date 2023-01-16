@@ -75,6 +75,6 @@ class StyleSettings(BaseSettings):
 class ImageExplainerSettings(GeneralSettings):
     datadir: Path = Path("../../../data/raw/")
     epochs: int = 10
-    modelname: Path = Path("../../../models/trained_model")
+    modelname: Path = Path("../../../models/trained_model.pt")
     imgpath: Path = Path("img")
     num_classes: int = 10
