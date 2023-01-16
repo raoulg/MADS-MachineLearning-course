@@ -1,8 +1,10 @@
 from typing import List, Tuple, Union
 
+import torch
+
 # import jax.numpy as jnp
 from numpy import ndarray
-import torch
+
 # from trax.layers.combinators import Serial as Traxmodel
 # from trax.shapes import signature
 
@@ -26,11 +28,9 @@ def torch_network(
     return [init_weights(m, n, scale, seed) for m, n in zip(sizes[:-1], sizes[1:])]
 
 
-def summary(
-    model, X: Array, init: int = 1, counter: int = 0  # noqa N803
-) -> Array:
+def summary(model, X: Array, init: int = 1, counter: int = 0) -> Array:  # noqa N803
     output = X  # noqa N803
-    input = None #signature(output)
+    input = None  # signature(output)
     if init == 1:
         print(
             f'{"layer":<23} {"input":<19} {"dtype":^7}    {"output":<19} {"dtype":^7}'

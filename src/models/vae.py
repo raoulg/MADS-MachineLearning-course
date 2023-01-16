@@ -1,11 +1,13 @@
+from typing import Dict
+
+import numpy as np
 import torch
 from torch import nn
-from typing import Dict
-import numpy as np
 
 
 class Encoder(nn.Module):
     """encoder"""
+
     def __init__(self, config: Dict) -> None:
         super().__init__()
         self.flatten = nn.Flatten()
@@ -42,7 +44,7 @@ class Decoder(nn.Module):
 
 class RecostructionLoss:
     def __call__(self, y, yhat):
-        sqe = (y-yhat)**2
+        sqe = (y - yhat) ** 2
         summed = sqe.sum(dim=(1, 2, 3))
         return summed.mean()
 
@@ -81,9 +83,9 @@ def build_latent_grid(decoder, minimum: int, maximum: int, k: int = 20):
 
 
 def select_n_random(data, labels, n=300):
-    '''
+    """
     Selects n random datapoints and their corresponding labels from a dataset
-    '''
+    """
     assert len(data) == len(labels)
 
     perm = torch.randperm(len(data))

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Dict, Optional, Union
 
-from pydantic import BaseModel, root_validator, HttpUrl
+from pydantic import BaseModel, HttpUrl, root_validator
 from ray import tune
 
 SAMPLE_INT = tune.search.sample.Integer
@@ -40,6 +40,8 @@ class BaseSettings(BaseModel):
 
 cwd = Path(__file__).parent
 cwd = (cwd / "../").resolve()
+
+
 class GeneralSettings(BaseSettings):
     data_dir = cwd / "data/raw"
 

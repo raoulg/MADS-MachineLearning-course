@@ -1,11 +1,13 @@
-from pathlib import Path
-from typing import List, Dict, Optional, Tuple, Callable, Iterator
 import random
-import torch
+from pathlib import Path
+from typing import Callable, Dict, Iterator, List, Optional, Tuple
+
 import numpy as np
 import tensorflow as tf
+import torch
 
 from src.data import data_tools
+
 
 class Dataloader:
     """Point the dataloader to a directory.
@@ -81,8 +83,8 @@ class Dataloader:
         while True:
             # prepare empty matrices
             X = torch.zeros(  # noqa: N806
-                    (batch_size, image_size[0], image_size[1], channels)
-                )  # noqa: N806
+                (batch_size, image_size[0], image_size[1], channels)
+            )  # noqa: N806
             Y = torch.zeros(batch_size, dtype=torch.long)  # noqa: N806
 
             for i in range(batch_size):

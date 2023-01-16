@@ -18,7 +18,7 @@ from filelock import FileLock
 def train(config: Dict, checkpoint_dir=None):
     """
     The train function should receive a config file, which is a Dict
-    ray will modify the values inside the config before it is passed to the train 
+    ray will modify the values inside the config before it is passed to the train
     function.
     """
 

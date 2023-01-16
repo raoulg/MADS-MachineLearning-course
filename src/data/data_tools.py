@@ -2,17 +2,17 @@ from __future__ import annotations
 
 import random
 import shutil
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
-from PIL import Image
 
 import numpy as np
-import torch
-import tensorflow as tf
 import requests
-import zipfile
+import tensorflow as tf
+import torch
 from loguru import logger
+from PIL import Image
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
 
@@ -205,8 +205,9 @@ class TSDataset(BaseDataset):
             y = torch.tensor(int(file.parent.name) - 1)
             self.dataset.append((x, y))
 
+
 class TensorDataset:
-    """The main responsibility of the Dataset class is to 
+    """The main responsibility of the Dataset class is to
     offer a __len__ method and a __getitem__ method
     """
 
@@ -220,6 +221,7 @@ class TensorDataset:
 
     def __getitem__(self, idx: int) -> Tuple:
         return self.data[idx], self.targets[idx]
+
 
 class TextDataset(BaseDataset):
     """This assumes textual data, one line per file
