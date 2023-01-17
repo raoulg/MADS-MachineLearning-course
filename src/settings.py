@@ -74,6 +74,7 @@ class StyleSettings(BaseSettings):
     trainpath = Path("../../data/external/sentences/train.feather")
     testpath = Path("../../data/external/sentences/test.feather")
 
+
 class ImageExplainerSettings(GeneralSettings):
     datadir: Path = Path("../../../data/raw/")
     epochs: int = 10
