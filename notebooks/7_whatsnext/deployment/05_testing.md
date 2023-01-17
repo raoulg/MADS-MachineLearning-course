@@ -1,4 +1,4 @@
-# Tests
+# Testing
 
 When working in production, you dont want a change in your code to break other stuff.
 Maybe you will know what could break your code, but you cant expect for all other programmers to know all details of breaking your code...
