@@ -60,3 +60,18 @@ If you add the execution of your tests as part of the `Makefile` you make sure a
 
 You can read more about tests in the documentation from [pytest](https://docs.pytest.org/en/7.1.x/contents.html)
 
+# Changing your workflow
+
+A typical workflow for a python beginner would be:
+- start up a jupyter notebook
+- build a piece of code in a write-SHIFT/ENTER loop: you write some, look at the output, debug, repeat
+- once the notebook runs without errors, you are done
+
+It won't take that much more time if you change this workflow to:
+- start with a main.py file
+- move functions to your /src folder
+- move the small tests you do to debug your code to a test file where you automate your tests
+- run tests as part of your makefile
+- run your main.py file from your makefile as a startingpoint
+
+Instead of relying on the jupyter environment as your test environment, automated tests are much more solid.
