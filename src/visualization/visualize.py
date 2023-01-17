@@ -40,12 +40,13 @@ def plot_categories(
     ax.set_axis_off()
     ax.imshow(dummy_array, interpolation="nearest")
 
-    # Plot an empty canvas
-    ax = axes[0]
-    dummy_array = np.array([[[0, 0, 0, 0]]], dtype="uint8")
-    ax.set_title("reference")
-    ax.set_axis_off()
-
+    # Plot an image for every category
+    for k,v in images.items():
+        ax = axes[k+1]
+        ax.imshow(v, cmap=plt.cm.binary)
+        ax.set_title(f"{class_names[k]}")
+        ax.set_axis_off()
+        
     if filepath != None:
         fig.savefig(filepath)
         logger.success(f"saved grid to {filepath}")
