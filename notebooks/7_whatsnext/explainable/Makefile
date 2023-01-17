@@ -9,11 +9,13 @@ help:
 mnist:
 	make model
 	make shap
+# open img/final.jpeg
 	make tb
 
 mnistfashion:
 	make modelfashion
 	make shapfashion
+# open img/final.jpeg
 	make tb
 
 model:
@@ -29,4 +31,4 @@ shapfashion:
 	export PYTHONPATH="$$HOME/code/ML22" ; poetry run python 03_shap_values.py mnistfashion
 
 tb:
-	poetry run tensorboard --logdir= ../../../models/explainable
+	poetry run tensorboard --logdir=../../../models/explainer

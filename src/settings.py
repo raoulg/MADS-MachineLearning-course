@@ -4,8 +4,8 @@ from typing import Dict, Optional, Union
 from pydantic import BaseModel, HttpUrl, root_validator
 from ray import tune
 
-# SAMPLE_INT = tune.search.sample.Integer
-# SAMPLE_FLOAT = tune.search.sample.Float
+SAMPLE_INT = tune.search.sample.Integer
+SAMPLE_FLOAT = tune.search.sample.Float
 
 
 class BaseSearchSpace(BaseModel):
@@ -27,11 +27,11 @@ class BaseSearchSpace(BaseModel):
         return values
 
 
-# this is what ray will use to create configs
-# class SearchSpace(BaseSearchSpace):
-#     hidden_size: Union[int, SAMPLE_INT] = tune.randint(16, 128)
-#     dropout: Union[float, SAMPLE_FLOAT] = tune.uniform(0.0, 0.3)
-#     num_layers: Union[int, SAMPLE_INT] = tune.randint(2, 5)
+#this is what ray will use to create configs
+class SearchSpace(BaseSearchSpace):
+    hidden_size: Union[int, SAMPLE_INT] = tune.randint(16, 128)
+    dropout: Union[float, SAMPLE_FLOAT] = tune.uniform(0.0, 0.3)
+    num_layers: Union[int, SAMPLE_INT] = tune.randint(2, 5)
 
 
 class BaseSettings(BaseModel):
@@ -78,6 +78,6 @@ class StyleSettings(BaseSettings):
 class ImageExplainerSettings(GeneralSettings):
     datadir: Path = Path("../../../data/raw/")
     epochs: int = 10
-    modelname: Path = Path("../../../models/trained_model.pt")
+    modelname: Path = Path("trained_model.pt")
     imgpath: Path = Path("img")
     num_classes: int = 10
