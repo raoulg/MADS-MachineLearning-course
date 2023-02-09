@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import shutil
 import zipfile
+import tarfile
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
@@ -62,9 +63,9 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
     return paths, class_names
 
 
-def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True) -> None:
+def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True, overwrite: bool = False) -> None:
     path = data_dir / filename
-    if path.exists():
+    if path.exists() and not overwrite:
         logger.info(f"File {path} already exists, skip download")
         return path
     response = requests.get(url, stream=True)
@@ -77,9 +78,17 @@ def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True) -> No
             progress_bar.update(len(data))
             file.write(data)
     progress_bar.close()
-    logger.info(f"Unzipping {path}")
-    with zipfile.ZipFile(path, "r") as zip_ref:
-        zip_ref.extractall(data_dir)
+    extract(path)
+
+def extract(path: Path):
+    if path.suffix in [".zip"]:
+        logger.info(f"Unzipping {path}")
+        with zipfile.ZipFile(path, "r") as zip_ref:
+            zip_ref.extractall(data_dir)
+    if path.suffix in [".tgz", ".tar.gz", ".gz"]:
+        logger.info(f"Unzipping {path}")
+        with tarfile.open(path, "r:gz") as tar:
+            tar.extractall(path=path.parent) 
 
 
 def clean_dir(dir: Union[str, Path]) -> None:
