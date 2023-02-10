@@ -10,7 +10,6 @@ from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Un
 
 import numpy as np
 import requests
-import tensorflow as tf
 import torch
 from loguru import logger
 from PIL import Image
@@ -169,32 +168,24 @@ class FacesDataset(BaseDataset):
 
 
 class ImgDataset(BaseDataset):
-    def __init__(self, paths, class_names, img_size, channels):
+    def __init__(self, paths, class_names, img_size):
         self.img_size = img_size
-        self.channels = channels
         self.class_names = class_names
         super().__init__(paths)
 
     def process_data(self) -> None:
         for file in self.paths:
-            img = self.load_image(self, file, self.img_size, self.channels)
+            img = self.load_image(self, file, self.img_size)
             x = np.reshape(img, (1,) + img.shape)
             y = self.class_names.index(file.parent.name)
             self.dataset.append((x, y))
 
     def load_image(
-        self, path: Path, image_size: Tuple[int, int], channels: int
-    ) -> np.ndarray:
-        # TODO replace tf with other library for io and resize
+        path: Path, image_size: Tuple[int, int]
+        ) -> np.ndarray:
         # load file
-        img_ = tf.io.read_file(str(path))
-        # decode as image
-        img = tf.image.decode_image(img_, channels=channels)
-        # resize with bilinear algorithm
-        img_resize = tf.image.resize(img, image_size, method="bilinear")
-        # add correct shape with channels-last convention
-        img_resize.set_shape((image_size[0], image_size[1], channels))
-        # cast to numpy
+        img_ = Image.open(path).resize(image_size, Image.LANCZOS)
+        return np.asarray(img_)
         return img_resize.numpy()
 
 
