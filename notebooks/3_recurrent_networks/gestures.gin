@@ -6,6 +6,6 @@ train_model.trainloop.optimizer = @Adam
 train_model.trainloop.loss_fn = @CrossEntropyLoss()
 
 rnn_models.BaseRNN.input_size = 3
-rnn_models.BaseRNN.hidden_size = 32
-rnn_models.BaseRNN.num_layers = 4
+rnn_models.BaseRNN.hidden_size = 128
+rnn_models.BaseRNN.num_layers = 3
 rnn_models.BaseRNN.horizon = 20
