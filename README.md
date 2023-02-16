@@ -1,4 +1,4 @@
-deep_learning
+deep learning course for Hogeschool Utrecht
 ==============================
 
 For this project you will need some dependencies.
