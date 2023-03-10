@@ -1,6 +1,9 @@
 deep learning course for Hogeschool Utrecht
 ==============================
 
+This course is the last course in a series of modules for data science.
+This course assumes you have done the introduction in Python and the DME course https://github.com/raoulg/DME22
+
 For this project you will need some dependencies.
 The project uses python 3.8, and all dependencies can be installed with `poetry` if you are using that with `poetry install`.
 
