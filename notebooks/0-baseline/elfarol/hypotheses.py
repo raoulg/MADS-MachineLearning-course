@@ -23,6 +23,7 @@ class Hypotheses:
         Raises:
             TypeError: [description]
         """
+        # all available hypotheses
         self._all_h: List[Callable[[List[int]], float]] = [
             self._mirror,
             self._average_4w,
@@ -35,19 +36,25 @@ class Hypotheses:
         ]
 
         if not fixed:
+            # if n is an integer
             if isinstance(n, int) and n > len(self._all_h):
+                # pick all available hypotheses
                 logger.info(f"Max value of n is {len(self._all_h)}, found {n}")
                 n = len(self._all_h)
 
             if isinstance(n, int) and n > 0:
+                # pick n random hypotheses
                 idx = list(np.random.choice(np.arange(0, len(self._all_h)), size=n, replace=False))  # type: ignore
             elif isinstance(n, int) and n == 0:
+                # if 0, pick the last one
                 idx = [-1]
             else:
                 raise TypeError(
                     f"If fixed is False, n should be and int, found {type(n)}"
                 )
         else:
+            # if n is a list and fixed=True, the list defines which hypotheses are 
+            # picked and in what order
             if isinstance(n, list) and np.max(n) >= len(self._all_h):
                 raise ValueError(f"Item in n too big: {np.max(n)}")
             if isinstance(n, int):
@@ -56,6 +63,7 @@ class Hypotheses:
                 )
             idx = n
 
+        # models is a list of callable hypotheses
         self.models: List[Callable[[List[int]], float]] = [self._all_h[i] for i in idx]
         self.n = n
 
@@ -67,13 +75,16 @@ class Hypotheses:
         return f"Hypotheses(models={names})"
 
     def _random(self, hist: List[int]) -> float:
+        # pick a random value from the past
         return float(np.random.choice(hist))
 
     def _mirror(self, hist: List[int]) -> float:
+        # pick the previous number, and mirror around 50
         lw = hist[-1]
         return float((50 - lw) + 50)
 
     def _average_4w(self, hist: List[int]) -> float:
+        # pick the average of the last four weeks
         if len(hist) >= 4:
             lw = hist[-4:]
         else:
@@ -81,6 +92,7 @@ class Hypotheses:
         return float(np.mean(lw))
 
     def _fallback(self, hist: List[int], k: int) -> float:
+        # pick the last k=th item
         if len(hist) >= k:
             x = hist[-k]
         else:
@@ -88,22 +100,29 @@ class Hypotheses:
         return float(x)
 
     def _lastweek(self, hist: List[int]) -> float:
+        # pick the last item 
         x = self._fallback(hist, k=1)
         return x
 
     def _cycle2w(self, hist: List[int]) -> float:
+        # pick the item from two weeks ago
         x = self._fallback(hist, k=2)
         return x
 
     def _cycle4w(self, hist: List[int]) -> float:
+        # pick the number 4 weeks ago
         x = self._fallback(hist, k=4)
         return x
 
     def _cycle5w(self, hist: List[int]) -> float:
+        # pick the number 5 weeks ago
         x = self._fallback(hist, k=5)
         return x
 
     def _trend(self, hist: List[int], n: int = 8) -> float:
+        # calculate a linear regression, and predict this as the next amount
+        # you are now allowed to put into your powerpoint salespitch that your
+        # product uses "ai" and "algorithms" :'D
         if len(hist) == 1:
             yhat = self._fallback(hist, k=1)
         else:

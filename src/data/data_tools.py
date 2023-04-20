@@ -71,7 +71,7 @@ def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True, overw
     total_size_in_bytes = int(response.headers.get("content-length", 0))
     block_size = 2**10
     progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-    logger.info(f"Loading {path}")
+    logger.info(f"Downloading {path}")
     with open(path, "wb") as file:
         for data in response.iter_content(block_size):
             progress_bar.update(len(data))
