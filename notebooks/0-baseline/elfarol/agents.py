@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, List, Optional, Sequence, Union
 
 import numpy as np
 
@@ -7,6 +7,15 @@ import elfarol.hypotheses as hypt
 
 class BaseAgent:
     def __init__(self, threshold: int) -> None:
+        """This generates a basic agent with a set of Hypotheses and a threshold
+
+        Args:
+            threshold (int): Every agent has a threshold of what they consider 
+            a comfortable amount of people in the bar. By default this is fixated 
+            at the 7th hypothesis
+        
+
+        """
         self.threshold = self._get_threshold(threshold)
         self.hypotheses: hypt.Hypotheses = hypt.Hypotheses(n=[7], fixed=True)
         self.log: List[str] = []
@@ -52,7 +61,16 @@ class BaseAgent:
 
 
 class Agent(BaseAgent):
-    def __init__(self, n: int, threshold: int = 60, fixed: bool = False) -> None:
+    def __init__(self, n: Union[int, List[int]], threshold: int = 60, fixed: bool = False) -> None:
+        """By default, the agent has a threshold of 60 and generates a random 
+        order of n hypotheses at initialisation.
+
+        Args:
+            n (int or list[int]): number of hypotheses to use
+            threshold (int, optional): Defaults to 60.
+            fixed (bool, optional):  If the order of hypotheses should be fixed. If 
+            True, n should be a list. Defaults to False.
+        """
         super().__init__(threshold=threshold)
         self.hypotheses: hypt.Hypotheses = hypt.Hypotheses(n, fixed=fixed)
 
@@ -70,32 +88,3 @@ class Agent(BaseAgent):
         idx = np.argmin(diff)
         return self.hypotheses.models[idx]
 
-
-class MoodyAgent(Agent):
-    def __init__(self, n: int, threshold: int = 60, fixed: bool = False) -> None:
-        super().__init__(n=n, threshold=threshold, fixed=fixed)
-        self.hypotheses: hypt.Hypotheses = hypt.Hypotheses(n, fixed=fixed)
-
-    def _get_threshold(self, threshold: int, hist: Optional[List[int]] = None) -> int:
-        noise = np.random.randint(-9, 10)
-
-        return threshold + noise
-
-    def _predict(self, hist: List[int]) -> float:
-        """Run some sort of prediction, based on the history,
-        for the amount of people that will come
-
-        Args:
-            hist (List[int]): historic list of people that came last week to the
-            bar
-
-        Returns:
-            float: prediction for upcoming week
-        """
-        model = self._getmodel(hist)
-        yhat = model(hist)
-        return yhat
-
-    def decide(self, hist: List[int]) -> bool:
-        yhat = self._predict(hist)
-        return yhat <= self._get_threshold(self.threshold)

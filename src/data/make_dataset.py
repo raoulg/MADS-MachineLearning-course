@@ -67,13 +67,9 @@ def get_MNIST(  # noqa: N802
 
 def get_flowers(data_dir: Path) -> Path:
     dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"  # noqa: E501
-    image_folder = Path(data_dir) / "datasets/flower_photos"
+    image_folder = Path(data_dir) / "flower_photos"
     if not image_folder.exists():
-        # TODO remove tf dependency for untar
-        image_folder = tf.keras.utils.get_file(
-            "flower_photos", origin=dataset_url, untar=True, cache_dir=data_dir
-        )
-        image_folder = Path(image_folder)
+        data_tools.get_file(data_dir, "flowers.tgz", url=dataset_url, overwrite=False)
         logger.info(f"Data is downloaded to {image_folder}.")
     else:
         logger.info(f"Dataset already exists at {image_folder}")
@@ -104,9 +100,11 @@ def get_imdb_data(cache_dir: str = ".") -> Tuple[List[Path], List[Path]]:
 
         url = "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"
 
-        _ = tf.keras.utils.get_file(
-            "aclImdb_v1.tar.gz", url, untar=True, cache_dir=cache_dir, cache_subdir=""
-        )
+        data_tools.get_file(datapath, "aclImdb_v1.tar.gz", url=url, overwrite=False)
+
+        # _ = tf.keras.utils.get_file(
+        #     "aclImdb_v1.tar.gz", url, untar=True, cache_dir=cache_dir, cache_subdir=""
+        # )
     testdir = datapath / "test"
     traindir = datapath / "train"
     keep_subdirs_only(testdir)

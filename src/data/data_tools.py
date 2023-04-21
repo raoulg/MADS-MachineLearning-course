@@ -3,13 +3,13 @@ from __future__ import annotations
 import random
 import shutil
 import zipfile
+import tarfile
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import requests
-import tensorflow as tf
 import torch
 from loguru import logger
 from PIL import Image
@@ -62,24 +62,32 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
     return paths, class_names
 
 
-def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True) -> None:
+def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True, overwrite: bool = False) -> None:
     path = data_dir / filename
-    if path.exists():
+    if path.exists() and not overwrite:
         logger.info(f"File {path} already exists, skip download")
         return path
     response = requests.get(url, stream=True)
     total_size_in_bytes = int(response.headers.get("content-length", 0))
     block_size = 2**10
     progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-    logger.info(f"Loading {path}")
+    logger.info(f"Downloading {path}")
     with open(path, "wb") as file:
         for data in response.iter_content(block_size):
             progress_bar.update(len(data))
             file.write(data)
     progress_bar.close()
-    logger.info(f"Unzipping {path}")
-    with zipfile.ZipFile(path, "r") as zip_ref:
-        zip_ref.extractall(data_dir)
+    extract(path)
+
+def extract(path: Path):
+    if path.suffix in [".zip"]:
+        logger.info(f"Unzipping {path}")
+        with zipfile.ZipFile(path, "r") as zip_ref:
+            zip_ref.extractall(data_dir)
+    if path.suffix in [".tgz", ".tar.gz", ".gz"]:
+        logger.info(f"Unzipping {path}")
+        with tarfile.open(path, "r:gz") as tar:
+            tar.extractall(path=path.parent) 
 
 
 def clean_dir(dir: Union[str, Path]) -> None:
@@ -160,32 +168,24 @@ class FacesDataset(BaseDataset):
 
 
 class ImgDataset(BaseDataset):
-    def __init__(self, paths, class_names, img_size, channels):
+    def __init__(self, paths, class_names, img_size):
         self.img_size = img_size
-        self.channels = channels
         self.class_names = class_names
         super().__init__(paths)
 
     def process_data(self) -> None:
         for file in self.paths:
-            img = self.load_image(self, file, self.img_size, self.channels)
+            img = self.load_image(self, file, self.img_size)
             x = np.reshape(img, (1,) + img.shape)
             y = self.class_names.index(file.parent.name)
             self.dataset.append((x, y))
 
     def load_image(
-        self, path: Path, image_size: Tuple[int, int], channels: int
-    ) -> np.ndarray:
-        # TODO replace tf with other library for io and resize
+        path: Path, image_size: Tuple[int, int]
+        ) -> np.ndarray:
         # load file
-        img_ = tf.io.read_file(str(path))
-        # decode as image
-        img = tf.image.decode_image(img_, channels=channels)
-        # resize with bilinear algorithm
-        img_resize = tf.image.resize(img, image_size, method="bilinear")
-        # add correct shape with channels-last convention
-        img_resize.set_shape((image_size[0], image_size[1], channels))
-        # cast to numpy
+        img_ = Image.open(path).resize(image_size, Image.LANCZOS)
+        return np.asarray(img_)
         return img_resize.numpy()
 
 

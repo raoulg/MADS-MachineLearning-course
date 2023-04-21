@@ -7,7 +7,7 @@ train_model.trainloop.loss_fn = @CrossEntropyLoss()
 
 rnn_models.GRUmodel.config = {
     "input_size" : 3,
-    "hidden_size" : 32,
+    "hidden_size" : 64,
     "dropout" : 0.1,
     "num_layers" : 4,
     "output_size" : 20

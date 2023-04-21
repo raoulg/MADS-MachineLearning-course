@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Tuple
 
 import gin
+import mlflow
 import numpy as np
-import tensorflow as tf  # noqa: F401
 
 # needed to make summarywriter load without error
 import torch
@@ -89,7 +89,7 @@ def trainloop(
     eval_steps: int,
     patience: int = 10,
     factor: float = 0.9,
-    tunewriter: bool = False,
+    tunewriter: List[str] = ["tensorboard", "gin", "mlflow", "ray"],
     weight_decay: float = 1e-5,
 ) -> GenericModel:
     """
@@ -111,12 +111,14 @@ def trainloop(
             wait before dropping the learning rate.
         factor (float) : fraction to drop the learning rate with, after patience epochs
             without improvement in the loss.
-        tunewriter (bool) : when running experiments manually, this should
-            be False (default). If false, a subdir is created
-            with a timestamp, and a SummaryWriter is invoked to write in
-            that subdir for Tensorboard use.
-            If True, the logging is left to the ray.tune.report
-
+        tunewriter (List[str]) : 
+            A list of all the options. 
+                "tensorboard" creates a subdir with a timestamp, and a SummaryWriter 
+                is invoked to write in that subdir for Tensorboard use.
+                "gin" simply writes the gin config to a file.
+                "ray" writes the metrics to ray tune, in order for ray to understand what 
+                hyperparameters to pick.
+                "mlflow" uses the MLflow framework for logging.
 
     Returns:
         _type_: _description_
@@ -132,16 +134,12 @@ def trainloop(
         patience=patience,
     )
 
-    if not tunewriter:
+    if "tensorboard" in tunewriter:
         log_dir = data_tools.dir_add_timestamp(log_dir)
         writer = SummaryWriter(log_dir=log_dir)
-        write_gin(log_dir, gin.config_str())
 
-        images, _ = next(iter(train_dataloader))
-        # if len(images.shape) == 4:
-        #     grid = make_grid(images)
-        #     writer.add_image("images", grid)
-        writer.add_graph(model, images)
+    if "gin" in tunewriter:
+        write_gin(log_dir, gin.config_str())
 
     for epoch in tqdm(range(epochs), colour="#1e4706"):
         train_loss = trainbatches(
@@ -154,26 +152,36 @@ def trainloop(
 
         scheduler.step(test_loss)
 
-        if tunewriter:
+        if "ray" in tunewriter:
             tune.report(
                 iterations=epoch,
                 train_loss=train_loss,
                 test_loss=test_loss,
                 **metric_dict,
             )
-        else:
+        
+        if "mlflow" in tunewriter:
+            mlflow.log_metric("train loss", train_loss, step=epoch)
+            mlflow.log_metric("test loss", test_loss, step=epoch)
+            for m in metric_dict:
+                mlflow.log_metric(f"metric/{m}", metric_dict[m], step=epoch)
+            lr = [group["lr"] for group in optimizer_.param_groups][0]
+            mlflow.log_metric("learning_rate", lr, step=epoch)
+        
+        if "tensorboard" in tunewriter:
             writer.add_scalar("Loss/train", train_loss, epoch)
             writer.add_scalar("Loss/test", test_loss, epoch)
             for m in metric_dict:
                 writer.add_scalar(f"metric/{m}", metric_dict[m], epoch)
             lr = [group["lr"] for group in optimizer_.param_groups][0]
             writer.add_scalar("learning_rate", lr, epoch)
-            metric_scores = [f"{v:.4f}" for v in metric_dict.values()]
-            logger.info(
-                f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"  # noqa E501
-            )
 
-    return model
+        metric_scores = [f"{v:.4f}" for v in metric_dict.values()]
+        logger.info(
+            f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"  # noqa E501
+        )
+
+    return model, test_loss 
 
 
 def count_parameters(model: GenericModel) -> int:
