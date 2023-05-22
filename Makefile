@@ -1,5 +1,6 @@
 SHELL := /bin/zsh
 AUTOSUGGESTIONS_DIR := /home/vscode/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+POETRY_DIR := /home/vscode/.cache/pypoetry
 
 .PHONY: help install update add-path add-fonts add-star add-autosuggestions add-zoxide lint format
 
@@ -24,18 +25,27 @@ format:
 
 
 install:
+	make update
+	make env
 	make add-path
 	make add-fonts
 	make add-star
 	make add-autosuggestions
 	make add-zoxide
 
+env:
+	if [ ! -d "$(POETRY_DIR)" ]; then \
+		poetry install; \
+	fi
+
 update:
 	sudo apt update
 
 add-path:
 	# echo 'export PYENV_ROOT="${HOME}/.pyenv"' >> ~/.zshrc
+	# echo 'eval "$$(pyenv init -)"' >> ~/.zshrc \
 	echo 'export PATH="$${PYENV_ROOT}/shims:$${PYENV_ROOT}/bin:$${HOME}/.local/bin:$$PATH"' >> ~/.zshrc
+	echo 'export PATH="$${HOME}/.local/bin:$$PATH"' >> ~/.zshrc
 
 add-fonts:
 	sudo apt update \
@@ -50,7 +60,6 @@ add-fonts:
 
 add-star:
 	curl -ss https://starship.rs/install.sh | sh -s -- --yes \
-	&& echo 'eval "$$(pyenv init -)"' >> ~/.zshrc \
 	&& echo 'eval "$$(starship init zsh)"' >> ~/.zshrc \
 	&& starship preset nerd-font-symbols -o ~/.config/starship.toml
 
