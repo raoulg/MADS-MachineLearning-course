@@ -193,7 +193,7 @@ def trainloop(
             logger.info("Interrupting loop due to early stopping patience.")
             if early_stopping.save:
                 logger.info("retrieving best model.")
-                model = early_stopping.get_best(model)
+                model = early_stopping.get_best()
             else:
                 logger.info(f'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
             break
@@ -281,7 +281,7 @@ class EarlyStopping:
             # we minimize loss. If current loss did not improve
             # the previous best (with a delta) it is considered not to improve.
             self.counter += 1
-            logger.info(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            logger.info(f'best loss: {self.best_loss}, current loss {val_loss}. Counter {self.counter}/{self.patience}.')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
@@ -295,8 +295,8 @@ class EarlyStopping:
         '''Saves model when validation loss decrease.'''
         if self.verbose:
             logger.info(f'Validation loss ({self.best_loss:.6f} --> {val_loss:.6f}). Saving {self.path} ...')
-        torch.save(model.state_dict(), self.path)
+        torch.save(model, self.path)
         self.val_loss_min = val_loss
     
-    def get_best(self, model: torch.nn.Module) -> torch.nn.Module:
-        return model.load_state_dict(self.path)
+    def get_best(self) -> torch.nn.Module:
+        return torch.load(self.path)
