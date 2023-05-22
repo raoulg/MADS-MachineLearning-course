@@ -15,9 +15,10 @@ def plot_timers(timer: Dict[str, float]) -> None:
 
 
 def plot_grid(
-    img: np.ndarray, filepath: Path, k: int = 3, figsize: Tuple = (10, 10)
+    img: np.ndarray, filepath: Path, k: int = 3, figsize: Tuple = (10, 10), title: str = ""
 ) -> None:
     fig, axs = plt.subplots(k, k, figsize=figsize)
+    fig.suptitle(title, fontsize=16)
     axs = axs.ravel()
     for i in tqdm(range(k * k)):
         axs[i].imshow(img[i], cmap="gray")
