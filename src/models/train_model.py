@@ -89,6 +89,8 @@ def trainloop(
     eval_steps: int,
     patience: int = 10,
     factor: float = 0.9,
+    early_stopping_patience: int = 10,
+    early_stopping_save: bool = False,
     tunewriter: List[str] = ["tensorboard", "gin", "mlflow", "ray"],
     weight_decay: float = 1e-5,
 ) -> GenericModel:
@@ -141,6 +143,10 @@ def trainloop(
     if "gin" in tunewriter:
         write_gin(log_dir, gin.config_str())
 
+    early_stopping = EarlyStopping(log_dir, patience=early_stopping_patience, verbose=True,
+    save=early_stopping_save
+    )
+
     for epoch in tqdm(range(epochs), colour="#1e4706"):
         train_loss = trainbatches(
             model, train_dataloader, loss_fn, optimizer_, train_steps
@@ -180,6 +186,17 @@ def trainloop(
         logger.info(
             f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"  # noqa E501
         )
+
+        early_stopping(test_loss, model)
+
+        if early_stopping.early_stop:
+            logger.info("Interrupting loop due to early stopping patience.")
+            if early_stopping.save:
+                logger.info("retrieving best model.")
+                model = early_stopping.get_best(model)
+            else:
+                logger.info(f'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
+            break
 
     return model, test_loss 
 
@@ -230,3 +247,56 @@ def find_lr(
         lr *= update_step
         optimizer.param_groups[0]["lr"] = lr
     return log_lrs[10:-5], smooth_losses[10:-5]
+
+
+
+class EarlyStopping:
+    def __init__(self, log_dir: str, patience: int=7, verbose: bool=False, delta: float=0.0,
+    save: bool = False) -> None:
+        """
+        Args:
+            log_dir (Path): location to save checkpoint to.
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement. 
+                            Default: False
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0.0
+        """ 
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+        self.delta = delta
+        self.path= Path(log_dir) / 'checkpoint.pt'
+        self.save = save
+
+    def __call__(self, val_loss: float, model: torch.nn.Module) -> None:
+        # first epoch best_loss is still None
+        if self.best_loss is None:
+            self.best_loss = val_loss
+            self.save_checkpoint(val_loss, model)
+        elif val_loss >= self.best_loss + self.delta:
+            # we minimize loss. If current loss did not improve
+            # the previous best (with a delta) it is considered not to improve.
+            self.counter += 1
+            logger.info(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            # if not the first run, and val_loss is smaller, we improved.
+            self.best_loss = val_loss
+            if self.save:
+                self.save_checkpoint(val_loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss: float, model: torch.nn.Module) -> None:
+        '''Saves model when validation loss decrease.'''
+        if self.verbose:
+            logger.info(f'Validation loss ({self.best_loss:.6f} --> {val_loss:.6f}). Saving {self.path} ...')
+        torch.save(model.state_dict(), self.path)
+        self.val_loss_min = val_loss
+    
+    def get_best(self, model: torch.nn.Module) -> torch.nn.Module:
+        return model.load_state_dict(self.path)
