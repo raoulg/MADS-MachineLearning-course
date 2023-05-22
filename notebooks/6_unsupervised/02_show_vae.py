@@ -28,7 +28,7 @@ if __name__ == "__main__":
     teststreamer = data_tools.VAEstreamer(test_data, batchsize=32).stream()
 
     logger.info(f"loading pretrained model {presets.modelname}")
-    model = torch.load(presets.modelname)
+    model, modelname = torch.load(presets.modelname)
 
     X, Y = next(teststreamer)
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     if not presets.imgpath.exists():
         presets.imgpath.mkdir(parents=True)
 
-    imgpath = presets.imgpath / Path("vae.png")
+    imgpath = presets.imgpath / Path("vae-output-grid.png")
     plot_grid(img.detach().numpy(), filepath=imgpath)
 
     if presets.latent == 2:

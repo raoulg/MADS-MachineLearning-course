@@ -37,7 +37,7 @@ if __name__ == "__main__":
     ).stream()
 
     logger.info(f"loading pretrained model {presets.modelname}")
-    model = torch.load(presets.modelname)
+    model, modelname = torch.load(presets.modelname)
     X, _ = next(teststreamer)
 
     img = model(X)

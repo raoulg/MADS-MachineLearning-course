@@ -70,6 +70,7 @@ if __name__ == "__main__":
         train_dataloader=trainstreamer,
         test_dataloader=teststreamer,
         log_dir="vaemodels",
+        tunewriter=["tensorboard"],
         train_steps=200,
         eval_steps=200,
         patience=10,

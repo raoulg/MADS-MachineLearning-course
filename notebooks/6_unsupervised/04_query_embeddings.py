@@ -10,6 +10,8 @@ from src.data import data_tools
 from src.settings import VAESettings
 from src.visualization.visualize import plot_grid
 
+import matplotlib.pyplot as plt
+
 logger.add("/tmp/autoencoder.log")
 logger.add("vae.log")
 
@@ -30,7 +32,7 @@ if __name__ == "__main__":
     teststreamer = data_tools.VAEstreamer(test_data, batchsize=10).stream()
 
     logger.info(f"loading pretrained model {presets.modelname}")
-    model = torch.load(presets.modelname)
+    model, modelname = torch.load(presets.modelname)
     x, y = test_data[1]
 
     other = model.encoder(x)
@@ -39,5 +41,5 @@ if __name__ == "__main__":
 
     closest = img[ii]
     logger.info(f"closest items for label {y}")
-    imgpath = presets.imgpath / Path("closest.png")
-    plot_grid(closest, imgpath)
+    imgpath = presets.imgpath / Path(f"closest-label-{y}.png")
+    plot_grid(closest, imgpath, title=f"Label {y}")
