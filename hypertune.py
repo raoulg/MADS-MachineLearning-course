@@ -55,7 +55,7 @@ def train(config: Dict, checkpoint_dir=None):
         eval_steps=len(testloader),
         patience=5,
         factor=0.5,
-        tunewriter=True,
+        tunewriter=["ray"],
     )
 
 
