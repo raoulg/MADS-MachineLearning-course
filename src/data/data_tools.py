@@ -77,7 +77,8 @@ def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True, overw
             progress_bar.update(len(data))
             file.write(data)
     progress_bar.close()
-    extract(path)
+    if unzip:
+        extract(path)
 
 def extract(path: Path):
     if path.suffix in [".zip"]:
