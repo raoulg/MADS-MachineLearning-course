@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import random
 import shutil
-import zipfile
 import tarfile
+import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
@@ -48,7 +48,7 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
 
     Args:
         path (Path): image folder
-        formats (List[str]): suffices to keep.
+        formats (List[str]): suffices to keep, eg [".jpg", ".png"]
 
     Returns:
         Tuple[Iterator, List[str]]: _description_
@@ -62,7 +62,13 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
     return paths, class_names
 
 
-def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True, overwrite: bool = False) -> None:
+def get_file(
+    data_dir: Path,
+    filename: Path,
+    url: str,
+    unzip: bool = True,
+    overwrite: bool = False,
+) -> None:
     path = data_dir / filename
     if path.exists() and not overwrite:
         logger.info(f"File {path} already exists, skip download")
@@ -80,6 +86,7 @@ def get_file(data_dir: Path, filename: Path, url: str, unzip: bool = True, overw
     if unzip:
         extract(path)
 
+
 def extract(path: Path):
     if path.suffix in [".zip"]:
         logger.info(f"Unzipping {path}")
@@ -88,7 +95,7 @@ def extract(path: Path):
     if path.suffix in [".tgz", ".tar.gz", ".gz"]:
         logger.info(f"Unzipping {path}")
         with tarfile.open(path, "r:gz") as tar:
-            tar.extractall(path=path.parent) 
+            tar.extractall(path=path.parent)
 
 
 def clean_dir(dir: Union[str, Path]) -> None:
@@ -176,18 +183,15 @@ class ImgDataset(BaseDataset):
 
     def process_data(self) -> None:
         for file in self.paths:
-            img = self.load_image(self, file, self.img_size)
+            img = self.load_image(file, self.img_size)
             x = np.reshape(img, (1,) + img.shape)
             y = self.class_names.index(file.parent.name)
             self.dataset.append((x, y))
 
-    def load_image(
-        path: Path, image_size: Tuple[int, int]
-        ) -> np.ndarray:
+    def load_image(self, path: Path, image_size: Tuple[int, int]) -> np.ndarray:
         # load file
         img_ = Image.open(path).resize(image_size, Image.LANCZOS)
         return np.asarray(img_)
-        return img_resize.numpy()
 
 
 class TSDataset(BaseDataset):

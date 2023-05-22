@@ -15,7 +15,11 @@ def plot_timers(timer: Dict[str, float]) -> None:
 
 
 def plot_grid(
-    img: np.ndarray, filepath: Path, k: int = 3, figsize: Tuple = (10, 10), title: str = ""
+    img: np.ndarray,
+    filepath: Path,
+    k: int = 3,
+    figsize: Tuple = (10, 10),
+    title: str = "",
 ) -> None:
     fig, axs = plt.subplots(k, k, figsize=figsize)
     fig.suptitle(title, fontsize=16)
@@ -42,12 +46,12 @@ def plot_categories(
     ax.imshow(dummy_array, interpolation="nearest")
 
     # Plot an image for every category
-    for k,v in images.items():
-        ax = axes[k+1]
+    for k, v in images.items():
+        ax = axes[k + 1]
         ax.imshow(v, cmap=plt.cm.binary)
         ax.set_title(f"{class_names[k]}")
         ax.set_axis_off()
-        
+
     if filepath != None:
         fig.savefig(filepath)
         logger.success(f"saved grid to {filepath}")

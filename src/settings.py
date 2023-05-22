@@ -27,7 +27,7 @@ class BaseSearchSpace(BaseModel):
         return values
 
 
-#this is what ray will use to create configs
+# this is what ray will use to create configs
 class SearchSpace(BaseSearchSpace):
     hidden_size: Union[int, SAMPLE_INT] = tune.randint(16, 128)
     dropout: Union[float, SAMPLE_FLOAT] = tune.uniform(0.0, 0.3)

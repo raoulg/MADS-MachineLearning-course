@@ -143,8 +143,11 @@ def trainloop(
     if "gin" in tunewriter:
         write_gin(log_dir, gin.config_str())
 
-    early_stopping = EarlyStopping(log_dir, patience=early_stopping_patience, verbose=True,
-    save=early_stopping_save
+    early_stopping = EarlyStopping(
+        log_dir,
+        patience=early_stopping_patience,
+        verbose=True,
+        save=early_stopping_save
     )
 
     for epoch in tqdm(range(epochs), colour="#1e4706"):
@@ -165,7 +168,7 @@ def trainloop(
                 test_loss=test_loss,
                 **metric_dict,
             )
-        
+
         if "mlflow" in tunewriter:
             mlflow.log_metric("train loss", train_loss, step=epoch)
             mlflow.log_metric("test loss", test_loss, step=epoch)
@@ -173,7 +176,7 @@ def trainloop(
                 mlflow.log_metric(f"metric/{m}", metric_dict[m], step=epoch)
             lr = [group["lr"] for group in optimizer_.param_groups][0]
             mlflow.log_metric("learning_rate", lr, step=epoch)
-        
+
         if "tensorboard" in tunewriter:
             writer.add_scalar("Loss/train", train_loss, epoch)
             writer.add_scalar("Loss/test", test_loss, epoch)
@@ -195,10 +198,11 @@ def trainloop(
                 logger.info("retrieving best model.")
                 model = early_stopping.get_best()
             else:
-                logger.info(f'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
+                logger.info(
+                    f'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
             break
 
-    return model, test_loss 
+    return model, test_loss
 
 
 def count_parameters(model: GenericModel) -> int:
@@ -249,10 +253,9 @@ def find_lr(
     return log_lrs[10:-5], smooth_losses[10:-5]
 
 
-
 class EarlyStopping:
-    def __init__(self, log_dir: str, patience: int=7, verbose: bool=False, delta: float=0.0,
-    save: bool = False) -> None:
+    def __init__(self, log_dir: str, patience: int = 7, verbose: bool = False, delta: float = 0.0,
+                 save: bool = False) -> None:
         """
         Args:
             log_dir (Path): location to save checkpoint to.
@@ -262,26 +265,28 @@ class EarlyStopping:
                             Default: False
             delta (float): Minimum change in the monitored quantity to qualify as an improvement.
                             Default: 0.0
-        """ 
+        """
         self.patience = patience
         self.verbose = verbose
         self.counter = 0
         self.best_loss = None
         self.early_stop = False
         self.delta = delta
-        self.path= Path(log_dir) / 'checkpoint.pt'
+        self.path = Path(log_dir) / 'checkpoint.pt'
         self.save = save
 
     def __call__(self, val_loss: float, model: torch.nn.Module) -> None:
         # first epoch best_loss is still None
         if self.best_loss is None:
             self.best_loss = val_loss
-            self.save_checkpoint(val_loss, model)
+            if self.save:
+                self.save_checkpoint(val_loss, model)
         elif val_loss >= self.best_loss + self.delta:
             # we minimize loss. If current loss did not improve
             # the previous best (with a delta) it is considered not to improve.
             self.counter += 1
-            logger.info(f'best loss: {self.best_loss}, current loss {val_loss}. Counter {self.counter}/{self.patience}.')
+            logger.info(
+                f'best loss: {self.best_loss}, current loss {val_loss:.6f}. Counter {self.counter:.6f}/{self.patience}.')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
@@ -294,9 +299,10 @@ class EarlyStopping:
     def save_checkpoint(self, val_loss: float, model: torch.nn.Module) -> None:
         '''Saves model when validation loss decrease.'''
         if self.verbose:
-            logger.info(f'Validation loss ({self.best_loss:.6f} --> {val_loss:.6f}). Saving {self.path} ...')
+            logger.info(
+                f'Validation loss ({self.best_loss:.6f} --> {val_loss:.6f}). Saving {self.path} ...')
         torch.save(model, self.path)
         self.val_loss_min = val_loss
-    
+
     def get_best(self) -> torch.nn.Module:
         return torch.load(self.path)

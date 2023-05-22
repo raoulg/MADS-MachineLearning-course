@@ -2,7 +2,7 @@
 name = "deep_learning"
 version = "0.1.0"
 description = ""
-authors = ["Raoul Grouls <raoul.grouls@businessdecision.nl>"]
+authors = ["Raoul Grouls <rgrouls@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.8,<=3.11.1"
@@ -12,31 +12,34 @@ matplotlib = "^3.5.1"
 seaborn = "^0.11.2"
 plotly = "^5.5.0"
 scikit-learn = "^1.0.2"
-
-gin-config = "^0.5.0"
 pydantic = "^1.9.0"
 tqdm = "^4.64.1"
-torchvision = "^0.14.0"
-ray = {extras = ["tune"], version = "^2.1.0"}
-torch = {version = "*" } 
+torchvision = "*"
+torch = { url = "https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp39-cp39-linux_x86_64.whl"}
+torchtext = "*"
+torch-tb-profiler = "^0.4.0"
+torchinfo = "^1.7.1"
+torchsummary = "^1.5.1"
+scipy = "^1.10.0"
+# tensorflow-macos = {version = "^2.11.0", platform="darwin"}
+# tensorflow = {version = "*", platform = "linux" }
 
-torchtext = "^0.14.0"
+[tool.poetry.group.tuning.dependencies]
+gin-config = "^0.5.0"
+ray = {extras = ["tune"], version = "^2.1.0"}
+protobuf = "^3.20" # needed for ray
 bayesian-optimization = "^1.4.2"
 hpbandster = "^0.7.4"
 configspace = "^0.6.0"
-torch-tb-profiler = "^0.4.0"
-torchinfo = "^1.7.1"
-tensorflow-macos = {version = "^2.11.0", platform="darwin"}
-tensorflow = {version = "*", platform = "linux" }
-scipy = "^1.10.0"
+mlflow = "^2.1.1"
+
+[tool.poetry.group.extras.dependencies]
 shap = "^0.41.0"
 numba = "0.56.4"
 llvmlite = "^0.39.1"
-mlflow = "^2.1.1"
-torchsummary = "^1.5.1"
 hyperopt = "^0.2.7"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 black = "^22.1.0"
 flake8 = "^4.0.1"
 isort = "^5.10.1"
