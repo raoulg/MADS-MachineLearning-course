@@ -3,9 +3,19 @@
 {
 	"name": "Python 3",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
-	"image": "mcr.microsoft.com/devcontainers/python:0-3.10",
+	"image": "mcr.microsoft.com/devcontainers/python:0-3.9",
+	"runArgs": ["--shm-size=1.49g"],
+	"customizations": {
+        "vscode": {
+            "extensions":["ms-python.python", "ms-toolsai.jupyter", "mhutchie.git-graph"]
+            }
+		},
 	"features": {
-		"ghcr.io/devcontainers/features/common-utils:2": {},
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
+			"configureZshAsDefaultShell": true,
+			"installOhMyZsh": true
+		},
 		"ghcr.io/devcontainers-contrib/features/poetry:2": {}
 	}
 
