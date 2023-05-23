@@ -1,6 +1,6 @@
 from src.data import make_dataset
 from src.models import rnn_models, metrics, train_model
-from src.settings import SearchSpace
+from src.settings import SearchSpace, TrainerSettings
 from pathlib import Path
 from ray.tune import JupyterNotebookReporter
 from ray import tune
@@ -26,7 +26,7 @@ def train(config: Dict, checkpoint_dir=None):
     # access the datadir
     data_dir = config["data_dir"]
     with FileLock(data_dir / ".lock"):
-        trainloader, testloader = make_dataset.get_gestures(
+        trainloader, validloader = make_dataset.get_gestures(
             data_dir=data_dir, split=0.8, batchsize=32
         )
 
@@ -35,28 +35,35 @@ def train(config: Dict, checkpoint_dir=None):
     # and create the model with the config
     model = rnn_models.GRUmodel(config)
 
-    # and we start training.
-    # because we set tunewriter=True
+    trainersettings = TrainerSettings(
+        epochs=50,
+        metrics=[accuracy],
+        logdir=".",
+        train_steps=len(trainloader),
+        valid_steps=len(validloader),
+        tunewriter=["ray"],
+        scheduler_kwargs= {"factor": 0.5, "patience": 5},
+        earlystop_kwargs=None,
+    )
+    # because we set tunewriter=["ray"]
     # the trainloop wont try to report back to tensorboard,
     # but will report back with tune.report
     # this way, ray will know whats going on,
-    # and can start/pause/stop a loop
-    model = train_model.trainloop(
-        epochs=50,
+    # and can start/pause/stop a loop.
+    # This is why we set earlystop_kwargs=None, because we
+    # are handing over this control to ray. 
+
+    trainer = train_model.Trainer(
         model=model,
-        optimizer=torch.optim.Adam,
-        learning_rate=1e-3,
+        settings=trainersettings,
         loss_fn=torch.nn.CrossEntropyLoss(),
-        metrics=[accuracy],
-        train_dataloader=trainloader,
-        test_dataloader=testloader,
-        log_dir=".",
-        train_steps=len(trainloader),
-        eval_steps=len(testloader),
-        patience=5,
-        factor=0.5,
-        tunewriter=["ray"],
+        optimizer=torch.optim.Adam,
+        traindataloader=trainloader,
+        validdataloader=validloader,
+        scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau
     )
+
+    trainer.loop()
 
 
 if __name__ == "__main__":
