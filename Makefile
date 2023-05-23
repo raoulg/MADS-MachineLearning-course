@@ -44,7 +44,7 @@ update:
 add-path:
 	# echo 'export PYENV_ROOT="${HOME}/.pyenv"' >> ~/.zshrc
 	# echo 'eval "$$(pyenv init -)"' >> ~/.zshrc \
-	echo 'export PATH="$${PYENV_ROOT}/shims:$${PYENV_ROOT}/bin:$${HOME}/.local/bin:$$PATH"' >> ~/.zshrc
+	# echo 'export PATH="$${PYENV_ROOT}/shims:$${PYENV_ROOT}/bin:$${HOME}/.local/bin:$$PATH"' >> ~/.zshrc
 	echo 'export PATH="$${HOME}/.local/bin:$$PATH"' >> ~/.zshrc
 
 add-fonts:
