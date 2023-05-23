@@ -1,15 +1,17 @@
 from pathlib import Path
-from typing import Dict, Optional, Union, List, Any
+from typing import Any, Dict, List, Optional, Union
 
 from pydantic import BaseModel, HttpUrl, root_validator
 from ray import tune
+
 from src.models.metrics import Metric
 
 SAMPLE_INT = tune.search.sample.Integer
 SAMPLE_FLOAT = tune.search.sample.Float
 
+
 class TrainerSettings(BaseModel):
-    epochs : int
+    epochs: int
     metrics: List[Metric]
     logdir: Path
     train_steps: int
@@ -17,16 +19,20 @@ class TrainerSettings(BaseModel):
     tunewriter: List[str] = ["tensorboard"]
     optimizer_kwargs: Dict[str, Any] = {"lr": 1e-3, "weight_decay": 1e-5}
     scheduler_kwargs: Optional[Dict[str, Any]] = {"factor": 0.1, "patience": 10}
-    earlystop_kwargs: Optional[Dict[str, Any]] = {"save": False, "verbose": True, "patience": 10}
+    earlystop_kwargs: Optional[Dict[str, Any]] = {
+        "save": False,
+        "verbose": True,
+        "patience": 10,
+    }
+
     class Config:
         arbitrary_types_allowed = True
-    
+
     def __str__(self) -> str:
         return "\n".join(f"{k}: {v}" for k, v in self.__dict__.items())
 
     def __repr__(self) -> str:
         return "\n".join(f"{k}: {v}" for k, v in self.__dict__.items())
-
 
 
 class BaseSearchSpace(BaseModel):

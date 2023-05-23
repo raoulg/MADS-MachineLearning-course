@@ -42,7 +42,7 @@ def train(config: Dict, checkpoint_dir=None):
         train_steps=len(trainloader),
         valid_steps=len(validloader),
         tunewriter=["ray"],
-        scheduler_kwargs= {"factor": 0.5, "patience": 5},
+        scheduler_kwargs={"factor": 0.5, "patience": 5},
         earlystop_kwargs=None,
     )
     # because we set tunewriter=["ray"]
@@ -51,7 +51,7 @@ def train(config: Dict, checkpoint_dir=None):
     # this way, ray will know whats going on,
     # and can start/pause/stop a loop.
     # This is why we set earlystop_kwargs=None, because we
-    # are handing over this control to ray. 
+    # are handing over this control to ray.
 
     trainer = train_model.Trainer(
         model=model,
@@ -60,7 +60,7 @@ def train(config: Dict, checkpoint_dir=None):
         optimizer=torch.optim.Adam,
         traindataloader=trainloader,
         validdataloader=validloader,
-        scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau
+        scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau,
     )
 
     trainer.loop()

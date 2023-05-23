@@ -8,7 +8,6 @@ import gin
 import numpy as np
 import pandas as pd
 import requests
-
 import torch
 from loguru import logger
 from sklearn import datasets as sk_datasets

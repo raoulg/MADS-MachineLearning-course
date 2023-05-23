@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Tuple, Optional
+from typing import Callable, Dict, Iterator, List, Optional, Tuple
 
 import gin
 import mlflow
@@ -19,8 +19,8 @@ from tqdm import tqdm
 
 from src.data import data_tools
 from src.models.metrics import Metric
-from src.typehinting import GenericModel
 from src.settings import TrainerSettings
+from src.typehinting import GenericModel
 
 
 def write_gin(dir: Path, txt) -> None:
