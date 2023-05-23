@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import tensorboard as tb
-# import tensorflow as tf
 import torch
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
@@ -10,8 +9,6 @@ from torchvision.transforms import ToTensor
 
 from src.data import data_tools
 from src.settings import VAESettings
-
-# tf.io.gfile = tb.compat.tensorflow_stub.io.gfile
 
 cwd = Path(__file__).parent
 root = (cwd / "../..").resolve()

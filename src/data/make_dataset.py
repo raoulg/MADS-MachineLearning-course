@@ -9,10 +9,9 @@ import numpy as np
 import pandas as pd
 import requests
 
-# import tensorflow as tf
 import torch
 from loguru import logger
-from sklearn import datasets
+from sklearn import datasets as sk_datasets
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
@@ -147,7 +146,7 @@ def keep_subdirs_only(path: Path) -> None:
 
 
 def get_breast_cancer_dataset(train_perc) -> Tuple[TensorDataset, TensorDataset]:
-    npdata = datasets.load_breast_cancer()
+    npdata = sk_datasets.load_breast_cancer()
     featurenames = npdata.feature_names
     tensordata = torch.tensor(npdata.data, dtype=torch.float32)
     tensortarget = torch.tensor(npdata.target, dtype=torch.uint8)
