@@ -52,7 +52,7 @@ def plot_categories(
         ax.set_title(f"{class_names[k]}")
         ax.set_axis_off()
 
-    if filepath != None:
+    if filepath is not None:
         fig.savefig(filepath)
         logger.success(f"saved grid to {filepath}")
     else:

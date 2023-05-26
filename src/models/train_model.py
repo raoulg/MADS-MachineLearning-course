@@ -14,7 +14,6 @@ from ray import tune
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from torchvision.utils import make_grid
 from tqdm import tqdm
 
 from src.data import data_tools
@@ -23,7 +22,7 @@ from src.settings import TrainerSettings
 from src.typehinting import GenericModel
 
 
-def write_gin(dir: Path, txt) -> None:
+def write_gin(dir: Path, txt: str) -> None:
     path = dir / "saved_config.gin"
     with open(path, "w") as file:
         file.write(txt)
@@ -78,7 +77,7 @@ def evalbatches(
 class Trainer:
     def __init__(
         self,
-        model: GenericModel,
+        model: torch.nn.Module,
         settings: TrainerSettings,
         loss_fn: Callable,
         optimizer: torch.optim.Optimizer,
@@ -86,7 +85,7 @@ class Trainer:
         validdataloader: Iterator,
         scheduler: Optional[Callable],
 
-    ):
+    ) -> None:
         self.model = model
         self.settings = settings
         self.log_dir = data_tools.dir_add_timestamp(settings.logdir)
@@ -95,7 +94,7 @@ class Trainer:
         self.traindataloader = traindataloader
         self.validdataloader = validdataloader
 
-        self.optimizer = optimizer(
+        self.optimizer = optimizer(  # type: ignore
             model.parameters(), **settings.optimizer_kwargs
         )
         self.last_epoch = 0
@@ -107,7 +106,8 @@ class Trainer:
 
         if settings.earlystop_kwargs is not None:
             logger.info(
-                "Found earlystop_kwargs in TrainerSettings. Set to None if you dont want earlystopping.")
+                "Found earlystop_kwargs in settings."
+                "Set to None if you dont want earlystopping.")
             self.early_stopping = EarlyStopping(
                 self.log_dir,
                 **settings.earlystop_kwargs
@@ -120,25 +120,26 @@ class Trainer:
 
         if "gin" in self.settings.tunewriter:
             write_gin(self.log_dir, gin.config_str())
-    
-    def loop(self):
+
+    def loop(self) -> None:
         for epoch in tqdm(range(self.settings.epochs), colour="#1e4706"):
             train_loss = self.trainbatches()
             metric_dict, test_loss = self.evalbatches()
             self.report(epoch, train_loss, test_loss, metric_dict)
 
             if self.early_stopping:
-                self.early_stopping(test_loss, self.model)
+                self.early_stopping(test_loss, self.model)  # type: ignore
 
             if self.early_stopping is not None and self.early_stopping.early_stop:
                 logger.info("Interrupting loop due to early stopping patience.")
                 self.last_epoch = epoch
                 if self.early_stopping.save:
                     logger.info("retrieving best model.")
-                    self.model = self.early_stopping.get_best()
+                    self.model = self.early_stopping.get_best()  # type: ignore
                 else:
                     logger.info(
-                        f'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
+                        "early_stopping_save was false, using latest model."
+                        "Set to true to retrieve best model.")
                 break
         self.last_epoch = epoch
 
@@ -156,7 +157,7 @@ class Trainer:
             train_loss += loss.detach().numpy()
         train_loss /= train_steps
         return train_loss
-    
+
     def evalbatches(self) -> Tuple[Dict[str, float], float]:
         self.model.eval()
         valid_steps = self.settings.valid_steps
@@ -175,8 +176,8 @@ class Trainer:
         for key in metric_dict:
             metric_dict[str(key)] = metric_dict[str(key)] / valid_steps
         return metric_dict, test_loss
-    
-    def report(self, epoch, train_loss, test_loss, metric_dict) -> None:
+
+    def report(self, epoch: int, train_loss: float, test_loss: float, metric_dict: Dict) -> None:
         epoch = epoch + self.last_epoch
         tunewriter = self.settings.tunewriter
         if "ray" in tunewriter:
@@ -194,7 +195,7 @@ class Trainer:
                 mlflow.log_metric(f"metric/{m}", metric_dict[m], step=epoch)
             lr = [group["lr"] for group in self.optimizer.param_groups][0]
             mlflow.log_metric("learning_rate", lr, step=epoch)
-        
+
         if "tensorboard" in tunewriter:
             self.writer.add_scalar("Loss/train", train_loss, epoch)
             self.writer.add_scalar("Loss/test", test_loss, epoch)
@@ -207,17 +208,17 @@ class Trainer:
         logger.info(
             f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"  # noqa E501
         )
-        
+
 
 class EarlyStopping:
-    def __init__(self, log_dir: str, patience: int = 7, verbose: bool = False, delta: float = 0.0,
+    def __init__(self, log_dir: Path, patience: int = 7, verbose: bool = False, delta: float = 0.0,
                  save: bool = False) -> None:
         """
         Args:
             log_dir (Path): location to save checkpoint to.
             patience (int): How long to wait after last time validation loss improved.
                             Default: 7
-            verbose (bool): If True, prints a message for each validation loss improvement. 
+            verbose (bool): If True, prints a message for each validation loss improvement.
                             Default: False
             delta (float): Minimum change in the monitored quantity to qualify as an improvement.
                             Default: 0.0
@@ -234,10 +235,10 @@ class EarlyStopping:
     def __call__(self, val_loss: float, model: torch.nn.Module) -> None:
         # first epoch best_loss is still None
         if self.best_loss is None:
-            self.best_loss = val_loss
+            self.best_loss = val_loss  # type: ignore
             if self.save:
                 self.save_checkpoint(val_loss, model)
-        elif val_loss >= self.best_loss + self.delta:
+        elif val_loss >= self.best_loss + self.delta:  # type: ignore
             # we minimize loss. If current loss did not improve
             # the previous best (with a delta) it is considered not to improve.
             self.counter += 1
@@ -264,8 +265,6 @@ class EarlyStopping:
         return torch.load(self.path)
 
 
-
-
 @gin.configurable
 def trainloop(
     epochs: int,
@@ -285,7 +284,7 @@ def trainloop(
     early_stopping_save: bool = False,
     tunewriter: List[str] = ["tensorboard", "gin", "mlflow", "ray"],
     weight_decay: float = 1e-5,
-) -> GenericModel:
+) -> Tuple[GenericModel, float]:
     """
 
     Args:
@@ -305,18 +304,44 @@ def trainloop(
             wait before dropping the learning rate.
         factor (float) : fraction to drop the learning rate with, after patience epochs
             without improvement in the loss.
-        tunewriter (List[str]) : 
-            A list of all the options. 
-                "tensorboard" creates a subdir with a timestamp, and a SummaryWriter 
+        tunewriter (List[str]) :
+            A list of all the options.
+                "tensorboard" creates a subdir with a timestamp, and a SummaryWriter
                 is invoked to write in that subdir for Tensorboard use.
                 "gin" simply writes the gin config to a file.
-                "ray" writes the metrics to ray tune, in order for ray to understand what 
+                "ray" writes the metrics to ray tune, in order for ray to understand what
                 hyperparameters to pick.
                 "mlflow" uses the MLflow framework for logging.
 
     Returns:
         _type_: _description_
     """
+    msg = """trainloop is deprecated.
+    Use the Trainer class instead:
+
+    from src.settings import TrainerSettings
+
+    settings = TrainerSettings(
+        epochs=10,
+        metrics=[accuracy],
+        logdir=logdir,
+        train_steps=len(traindataloader),
+        valid_steps=len(validdataloader),
+        tunewrite=["tensorboard", "gin"],
+    )
+    trainer = train_model.Trainer(
+        model=model,
+        settings=settings,
+        loss_fn=loss_fn,
+        optimizer=optim.Adam,
+        traindataloader=train_dataloader,
+        validdataloader=test_dataloader,
+        scheduler=optim.lr_scheduler.ReduceLROnPlateau
+    )
+    trainer.loop()
+
+    """
+    logger.warning(msg)
 
     optimizer_: torch.optim.Optimizer = optimizer(
         model.parameters(), lr=learning_rate, weight_decay=weight_decay
@@ -382,16 +407,16 @@ def trainloop(
             f"Epoch {epoch} train {train_loss:.4f} test {test_loss:.4f} metric {metric_scores}"  # noqa E501
         )
 
-        early_stopping(test_loss, model)
+        early_stopping(test_loss, model)  # type: ignore
 
         if early_stopping.early_stop:
             logger.info("Interrupting loop due to early stopping patience.")
             if early_stopping.save:
                 logger.info("retrieving best model.")
-                model = early_stopping.get_best()
+                model = early_stopping.get_best()  # type: ignore
             else:
                 logger.info(
-                    f'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
+                    'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
             break
 
     return model, test_loss
@@ -443,4 +468,3 @@ def find_lr(
         lr *= update_step
         optimizer.param_groups[0]["lr"] = lr
     return log_lrs[10:-5], smooth_losses[10:-5]
-

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import torch
 
@@ -26,26 +26,3 @@ def torch_network(
     seed: int = 42,
 ) -> List[Tuple[torch.Tensor, torch.Tensor]]:
     return [init_weights(m, n, scale, seed) for m, n in zip(sizes[:-1], sizes[1:])]
-
-
-def summary(model, X: Array, init: int = 1, counter: int = 0) -> Array:  # noqa N803
-    output = X  # noqa N803
-    input = None  # signature(output)
-    if init == 1:
-        print(
-            f'{"layer":<23} {"input":<19} {"dtype":^7}    {"output":<19} {"dtype":^7}'
-        )
-    for sub in model.sublayers:
-        name = str(sub.name)
-        if name == "":
-            continue
-        elif name == "Serial":
-            output = summary(sub, output, init + 1, counter)
-        else:
-            output = sub.output_signature(input)
-            print(
-                f"({counter}) {str(sub.name):<19} {str(input.shape):<19}({str(input.dtype):^7}) | {str(output.shape):<19}({str(output.dtype):^7})"  # noqa E501
-            )
-        input = output
-        counter += 1
-    return output

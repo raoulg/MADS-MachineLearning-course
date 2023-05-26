@@ -6,7 +6,7 @@ import tarfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import requests
@@ -68,7 +68,7 @@ def get_file(
     url: str,
     unzip: bool = True,
     overwrite: bool = False,
-) -> None:
+) -> Path:
     path = data_dir / filename
     if path.exists() and not overwrite:
         logger.info(f"File {path} already exists, skip download")
@@ -85,13 +85,14 @@ def get_file(
     progress_bar.close()
     if unzip:
         extract(path)
+    return path
 
 
-def extract(path: Path):
+def extract(path: Path) -> None:
     if path.suffix in [".zip"]:
         logger.info(f"Unzipping {path}")
         with zipfile.ZipFile(path, "r") as zip_ref:
-            zip_ref.extractall(data_dir)
+            zip_ref.extractall(path.parent)
     if path.suffix in [".tgz", ".tar.gz", ".gz"]:
         logger.info(f"Unzipping {path}")
         with tarfile.open(path, "r:gz") as tar:
@@ -162,21 +163,23 @@ class BaseDataset:
 
 
 class FacesDataset(BaseDataset):
-    def __init__(self, paths):
+    def __init__(self, paths: List[Path]) -> None:
         super().__init__(paths)
 
-    def process_data(self):
+    def process_data(self) -> None:
         for path in self.paths:
             img = self.load_image(path)
             self.dataset.append((img, path.name))
 
-    def load_image(self, path: Path):
+    def load_image(self, path: Path) -> Image.Image:
         img = Image.open(path)
         return img
 
 
 class ImgDataset(BaseDataset):
-    def __init__(self, paths, class_names, img_size):
+    def __init__(
+        self, paths: List[Path], class_names: List[str], img_size: Tuple[int, int]
+    ) -> None:
         self.img_size = img_size
         self.class_names = class_names
         super().__init__(paths)
@@ -216,7 +219,7 @@ class TensorDataset:
     offer a __len__ method and a __getitem__ method
     """
 
-    def __init__(self, data, targets) -> None:
+    def __init__(self, data: Tensor, targets: Tensor) -> None:
         self.data = data
         self.targets = targets
         assert len(data) == len(targets)
@@ -354,10 +357,9 @@ class VAEstreamer(BaseDatastreamer):
                 self.reset_index()
             batch = self.batchloop()
             # we throw away the Y
-            X_, _ = zip(*batch)
-            X = torch.stack(X_)
+            X_, _ = zip(*batch)  # noqa N806
+            X = torch.stack(X_)  # noqa N806
             # change the channel to channel-last
-            X = torch.moveaxis(X, 1, 3)
-            # X = X.transpose(0, 2, 3, 1)
+            X = torch.moveaxis(X, 1, 3)  # noqa N806
             # and yield X, X
             yield X, X

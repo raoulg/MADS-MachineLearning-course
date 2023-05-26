@@ -62,13 +62,13 @@ class AutoEncoder(nn.Module):
 
 
 def sample_range(encoder, stream, k: int = 10):
-    minmax = []
+    minmax_list = []
     for _ in range(10):
         X, _ = next(stream)
         y = encoder(X).detach().numpy()
-        minmax.append(y.min())
-        minmax.append(y.max())
-    minmax = np.array(minmax)
+        minmax_list.append(y.min())
+        minmax_list.append(y.max())
+    minmax = np.array(minmax_list)
     return minmax.min(), minmax.max()
 
 

@@ -80,7 +80,7 @@ class NeuralNetworkExplainer(nn.Module):
             nn.Softmax(dim=1),
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.conv_layers(x)
         x = self.flatten(x)
         out = self.fc_layers(x)

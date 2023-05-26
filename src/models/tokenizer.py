@@ -73,7 +73,7 @@ class Preprocessor:
         labels, text = [], []
         for x, y in batch:
             if clean is not None:
-                x = self.clean(x)
+                x = self.clean(x)  # type: ignore
             x = x.split()[: self.max]
             tokens = torch.tensor([self.vocab[word] for word in x], dtype=torch.int32)
             text.append(tokens)

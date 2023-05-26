@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Any
 
 import gin
 import numpy as np
@@ -68,7 +68,7 @@ def get_flowers(data_dir: Path) -> Path:
     dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"  # noqa: E501
     image_folder = Path(data_dir) / "flower_photos"
     if not image_folder.exists():
-        data_tools.get_file(data_dir, "flowers.tgz", url=dataset_url, overwrite=False)
+        data_tools.get_file(data_dir, Path("flowers.tgz"), url=dataset_url, overwrite=False)
         logger.info(f"Data is downloaded to {image_folder}.")
     else:
         logger.info(f"Dataset already exists at {image_folder}")
@@ -99,7 +99,7 @@ def get_imdb_data(cache_dir: str = ".") -> Tuple[List[Path], List[Path]]:
 
         url = "https://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz"
 
-        data_tools.get_file(datapath, "aclImdb_v1.tar.gz", url=url, overwrite=False)
+        data_tools.get_file(datapath, Path("aclImdb_v1.tar.gz"), url=url, overwrite=False)
 
     testdir = datapath / "test"
     traindir = datapath / "train"
@@ -141,7 +141,7 @@ def keep_subdirs_only(path: Path) -> None:
         file.unlink()
 
 
-def get_breast_cancer_dataset(train_perc) -> Tuple[TensorDataset, TensorDataset]:
+def get_breast_cancer_dataset(train_perc: float) -> Tuple[TensorDataset, TensorDataset, Any]:
     npdata = sk_datasets.load_breast_cancer()
     featurenames = npdata.feature_names
     tensordata = torch.tensor(npdata.data, dtype=torch.float32)
