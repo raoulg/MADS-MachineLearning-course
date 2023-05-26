@@ -5,3 +5,20 @@ train_model.trainloop.learning_rate = 1e-3
 train_model.trainloop.optimizer = @Adam
 train_model.trainloop.loss_fn = @CrossEntropyLoss()
 
+settings.TrainerSettings.epochs = 10
+
+rnn_models.GRUmodel.config = {
+    "input_size" : 3,
+    "hidden_size" : 120,
+    "dropout" : 0.06,
+    "num_layers" : 4,
+    "output_size" : 20
+}
+
+rnn_models.AttentionGRU.config = {
+    "input_size" : 3,
+    "hidden_size" : 120,
+    "dropout" : 0.06,
+    "num_layers" : 4,
+    "output_size" : 20
+}
