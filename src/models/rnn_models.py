@@ -64,6 +64,7 @@ class GRUmodel(nn.Module):
         return yhat
 
 
+@gin.configurable
 class AttentionGRU(nn.Module):
     def __init__(
         self,
@@ -93,6 +94,7 @@ class AttentionGRU(nn.Module):
         return yhat
 
 
+@gin.configurable
 class NLPmodel(nn.Module):
     def __init__(
         self,
@@ -117,6 +119,7 @@ class NLPmodel(nn.Module):
         return yhat
 
 
+@gin.configurable
 class AttentionNLP(nn.Module):
     def __init__(
         self,
