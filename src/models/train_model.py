@@ -98,6 +98,7 @@ class Trainer:
         self.optimizer = optimizer(
             model.parameters(), **settings.optimizer_kwargs
         )
+        self.last_epoch = 0
 
         if scheduler:
             if settings.scheduler_kwargs is None:
@@ -131,13 +132,15 @@ class Trainer:
 
             if self.early_stopping is not None and self.early_stopping.early_stop:
                 logger.info("Interrupting loop due to early stopping patience.")
-                if early_stopping.save:
+                self.last_epoch = epoch
+                if self.early_stopping.save:
                     logger.info("retrieving best model.")
                     self.model = self.early_stopping.get_best()
                 else:
                     logger.info(
                         f'early_stopping_save was false, using latest model. Set to true to retrieve best model.')
                 break
+        self.last_epoch = epoch
 
     def trainbatches(self) -> float:
         self.model.train()
@@ -174,6 +177,7 @@ class Trainer:
         return metric_dict, test_loss
     
     def report(self, epoch, train_loss, test_loss, metric_dict) -> None:
+        epoch = epoch + self.last_epoch
         tunewriter = self.settings.tunewriter
         if "ray" in tunewriter:
             tune.report(
