@@ -2,6 +2,7 @@
 **/mlruns/*
 **/models/
 **/modellog/
+**/modellogs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
