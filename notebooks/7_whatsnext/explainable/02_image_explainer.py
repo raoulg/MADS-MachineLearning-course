@@ -15,8 +15,9 @@ if __name__ == "__main__":
     from src.settings import ImageExplainerSettings
     from src.models.imagemodels import NeuralNetworkExplainer
     from src.models import metrics, train_model
+    from src.settings import TrainerSettings
 
-    
+
     logger.info("start image_explainer.py")
     presets = ImageExplainerSettings()
 
@@ -62,7 +63,7 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(
         f"Using {device} device")
-    
+
     model = NeuralNetworkExplainer().to(device)
     logger.info(f"{model}")
 
@@ -73,19 +74,26 @@ if __name__ == "__main__":
 
     logger.info(f"starting training for {presets.epochs} epochs")
 
-    model = train_model.trainloop(
+    settings = TrainerSettings(
         epochs=presets.epochs,
-        model=model,
-        optimizer=optim.Adam,
-        learning_rate=1e-2,
-        loss_fn=loss_fn,
         metrics=[accuracy],
-        train_dataloader=train_dataloader,
-        test_dataloader=test_dataloader,
-        log_dir=log_dir,
+        logdir=log_dir,
         train_steps=50,
-        eval_steps=50,
+        valid_steps=50,
+        tunewrite=["tensorboard"],
+        optimizer_kwargs = {"lr" : 1e-2}
     )
+
+    trainer = train_model.Trainer(
+        model=model,
+        settings=settings,
+        loss_fn=loss_fn,
+        optimizer=optim.Adam,
+        traindataloader=train_dataloader,
+        validdataloader=test_dataloader,
+        scheduler=optim.lr_scheduler.ReduceLROnPlateau
+    )
+    trainer.loop()
 
     torch.save(model, presets.modelname)
     logger.success("finished making model.py")
