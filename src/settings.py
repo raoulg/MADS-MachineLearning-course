@@ -5,11 +5,15 @@ from pydantic import BaseModel, HttpUrl, root_validator
 from ray import tune
 
 from src.models.metrics import Metric
+import gin
+from loguru import logger
 
 SAMPLE_INT = tune.search.sample.Integer
 SAMPLE_FLOAT = tune.search.sample.Float
 
 
+
+@gin.configurable
 class TrainerSettings(BaseModel):
     epochs: int
     metrics: List[Metric]
@@ -33,6 +37,14 @@ class TrainerSettings(BaseModel):
 
     def __repr__(self) -> str:
         return "\n".join(f"{k}: {v}" for k, v in self.__dict__.items())
+    
+    @root_validator
+    def check_path(cls, values: Dict) -> Dict:  # noqa: N805
+        datadir = values.get("logdir").resolve()
+        if not datadir.exists():
+            logger.info(f'logdir did not exist. Creating at {datadir}.')
+            datadir.mkdir(parents=True)
+        return values
 
 
 class BaseSearchSpace(BaseModel):
@@ -63,6 +75,15 @@ class SearchSpace(BaseSearchSpace):
 
 class BaseSettings(BaseModel):
     data_dir: Path
+
+    @root_validator
+    def check_path(cls, values: Dict) -> Dict:  # noqa: N805
+        datadir = values.get("data_dir")
+        if not datadir.exists():
+            raise FileNotFoundError(
+                f"Make sure the datadir exists.\n Found {datadir} to be non-existing."
+            )
+        return values
 
 
 cwd = Path(__file__).parent
