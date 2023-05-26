@@ -101,9 +101,6 @@ def get_imdb_data(cache_dir: str = ".") -> Tuple[List[Path], List[Path]]:
 
         data_tools.get_file(datapath, "aclImdb_v1.tar.gz", url=url, overwrite=False)
 
-        # _ = tf.keras.utils.get_file(
-        #     "aclImdb_v1.tar.gz", url, untar=True, cache_dir=cache_dir, cache_subdir=""
-        # )
     testdir = datapath / "test"
     traindir = datapath / "train"
     keep_subdirs_only(testdir)
