@@ -37,8 +37,6 @@ if __name__ == "__main__":
     model, modelname = torch.load(presets.modelname)
     X, _ = next(teststreamer)
 
-    img = model(X)
-
     embs = model.encoder(X)
     logger.info(f"Embeddings shape {embs.shape}")
 
