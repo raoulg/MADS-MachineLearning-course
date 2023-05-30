@@ -6,7 +6,7 @@ import tarfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Callable, Iterator, List, Optional, Sequence, Tuple, Union, Protocol
 
 import numpy as np
 import requests
@@ -15,8 +15,112 @@ from loguru import logger
 from PIL import Image
 from torch.nn.utils.rnn import pad_sequence
 from tqdm import tqdm
+from abc  import ABC, abstractmethod, abstractproperty
+from enum import Enum
+from pydantic import BaseModel, HttpUrl
+from src.settings import DatasetSettings, flowersdatasetsettings, FileTypes
+from torchvision import transforms
 
 Tensor = torch.Tensor
+
+class DatasetType(Enum):
+    FLOWERS = 1
+
+
+class DatasetProtocol(Protocol):
+    def __len__(self) -> int:
+        ...
+
+    def __getitem__(self, idx: int) -> Tuple:
+        ...
+
+class ProcessingDatasetProtocol(DatasetProtocol):
+    def process_data(self) -> None:
+        ...
+
+class DatastreamerProtocol(Protocol):
+    def stream(self) -> Iterator:
+        ...
+
+class AbstractDatasetFactory(ABC):
+    @abstractproperty
+    def settings(self) -> DatasetSettings:
+        raise NotImplementedError
+
+    @abstractmethod
+    def download_data(self, *args, **kwargs) -> None:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_dataset(self, *args, **kwargs) -> Dict[str, ProcessingDatasetProtocol]:
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_datastreamer(self, *args, **kwargs) -> Dict[str, DatastreamerProtocol]:
+        raise NotImplementedError
+
+
+
+class FlowersDatasetFactory(AbstractDatasetFactory):
+    def __init__(self):
+        self._settings = flowersdatasetsettings
+
+    @property
+    def settings(self) -> DatasetSettings:
+        return self._settings
+
+    def download_data(self):
+        url = self._settings.dataset_url
+        filename = self._settings.filename
+        datadir = self._settings.data_dir
+        self.image_folder = Path(datadir) / "flower_photos"
+        if not self.image_folder.exists():
+            get_file(datadir, filename, url=dataset_url, overwrite=False)
+            logger.info(f"Data is downloaded to {self.image_folder}.")
+        else:
+            logger.info(f"Dataset already exists at {self.image_folder}")
+
+    def create_dataset(self):
+        self.download_data()
+        formats = self._settings.formats
+        paths, class_names = iter_valid_paths(self.image_folder, formats=formats)
+        paths = [*paths]
+        random.shuffle([paths])
+        trainidx = int(len(paths) * self._settings.trainfrac)
+        train = paths[:trainidx]
+        valid = paths[trainidx:]
+        traindataset = ImgDataset(train, class_names, img_size=self._settings.img_size)
+        validdataset = ImgDataset(valid, class_names, img_size=self._settings.img_size)
+        return {"train" : traindataset, "valid" : validdataset}
+
+    def create_datastreamer(self, batchsize: int, transformations = None):
+        datasets = self.create_dataset()
+        traindataset = datasets["train"]
+        validdataset = datasets["valid"]
+        if transformations is None:
+            transformations = transforms.Compose(
+                [
+                    transforms.ToTensor(),
+                    transforms.RandomHorizontalFlip(p=0.5),
+                    transforms.RandomVerticalFlip(p=0.5),
+                    transforms.RandomAffine(10),
+                ]
+            )
+        def _preprocess(batch: List[Tuple]):
+            X, y = zip(*batch)
+            X = torch.stack([transformations(x.squeeze()) for x in X])
+            return X, torch.tensor(y)
+        trainstreamer = BaseDatastreamer(traindataset, batchsize=batchsize, preprocessor=_preprocess)
+        validstreamer = BaseDatastreamer(validdataset, batchsize=batchsize, preprocessor=_preprocess)
+        return {"trainstreamer" : trainstreamer, "validstreamer" : validstreamer}
+
+
+class DatasetFactoryProvider:
+    @staticmethod
+    def get_factory(dataset_type: DatasetType) -> AbstractDatasetFactory:
+        if dataset_type == DatasetType.FLOWERS:
+            return FlowersDatasetFactory()
+
 
 
 def walk_dir(path: Path) -> Iterator:
@@ -39,7 +143,7 @@ def walk_dir(path: Path) -> Iterator:
         yield p.resolve()
 
 
-def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str]]:
+def iter_valid_paths(path: Path, formats: List[FileTypes]) -> Tuple[Iterator, List[str]]:
     """
     Gets all paths in folders and subfolders
     strips the classnames assuming that the subfolders are the classnames
@@ -58,6 +162,7 @@ def iter_valid_paths(path: Path, formats: List[str]) -> Tuple[Iterator, List[str
     # retrieves foldernames as classnames
     class_names = [subdir.name for subdir in path.iterdir() if subdir.is_dir()]
     # keeps only specified formats
+    formats = [f.value for f in formats]
     paths = (path for path in walk if path.suffix in formats)
     return paths, class_names
 
@@ -196,6 +301,9 @@ class ImgDataset(BaseDataset):
         img_ = Image.open(path).resize(image_size, Image.LANCZOS)
         return np.asarray(img_)
 
+    def __repr__(self) -> str:
+        return f"ImgDataset (imgsize {self.img_size}, #classes {len(self.class_names)})"
+
 
 class TSDataset(BaseDataset):
     """This assume a txt file with numeric data
@@ -325,6 +433,9 @@ class BaseDatastreamer:
 
     def __len__(self) -> int:
         return int(len(self.dataset) / self.batchsize)
+
+    def __repr__(self) -> str:
+        return f"{self.dataset} (streamerlen {len(self)})"
 
     def reset_index(self) -> None:
         self.index_list = np.random.permutation(self.size)

@@ -64,17 +64,6 @@ def get_MNIST(  # noqa: N802
     return train_dataloader, test_dataloader
 
 
-def get_flowers(data_dir: Path) -> Path:
-    dataset_url = "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"  # noqa: E501
-    image_folder = Path(data_dir) / "flower_photos"
-    if not image_folder.exists():
-        data_tools.get_file(data_dir, Path("flowers.tgz"), url=dataset_url, overwrite=False)
-        logger.info(f"Data is downloaded to {image_folder}.")
-    else:
-        logger.info(f"Dataset already exists at {image_folder}")
-    return image_folder
-
-
 def get_sunspots(datadir: Path) -> pd.DataFrame:
     """loads sunspot data since 1749, selects year and monthly mean"""
     file = datadir / "sunspots.csv"

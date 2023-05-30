@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple, cast
 
 import gin
 from loguru import logger
@@ -7,9 +7,14 @@ from pydantic import BaseModel, HttpUrl, root_validator
 from ray import tune
 
 from src.models.metrics import Metric
+from enum import Enum
 
 SAMPLE_INT = tune.search.sample.Integer
 SAMPLE_FLOAT = tune.search.sample.Float
+
+class FileTypes(Enum):
+    JPG = ".jpg"
+    PNG = ".png"
 
 
 @gin.configurable
@@ -92,6 +97,22 @@ cwd = (cwd / "../").resolve()
 class GeneralSettings(BaseSettings):
     data_dir = cwd / "data/raw"
 
+class DatasetSettings(GeneralSettings):
+    dataset_url: HttpUrl
+    filename: Path
+
+class ImgDatasetSettings(DatasetSettings):
+    formats: List[FileTypes]
+    trainfrac: float
+    img_size: Tuple[int, int]
+
+flowersdatasetsettings = ImgDatasetSettings(
+    formats = [FileTypes.JPG],
+    dataset_url = cast(HttpUrl, "https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz"),
+    filename = Path("flowers.tgz"),
+    trainfrac = 0.8,
+    img_size = (224, 224)
+)
 
 class VAESettings(GeneralSettings):
     h1: int = 250
