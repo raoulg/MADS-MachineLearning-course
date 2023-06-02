@@ -25,7 +25,7 @@ def build_vocab(
     data = split_and_flat(corpus)
     counter = Counter(data).most_common()
     logger.info(f"Found {len(counter)} tokens")
-    counter = counter[:max]
+    counter = counter[:max - 2]
     ordered_dict = OrderedDict(counter)
     v1 = vocab(ordered_dict, specials=[pad, oov])
     v1.set_default_index(v1[oov])
