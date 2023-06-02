@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 from src.data import data_tools
 from src.models.metrics import Metric
-from src.settings import TrainerSettings
+from src.settings import ReportTypes, TrainerSettings
 from src.typehinting import GenericModel
 
 
@@ -115,10 +115,10 @@ class Trainer:
         else:
             self.early_stopping = None
 
-        if "tensorboard" in self.settings.tunewriter:
+        if ReportTypes.TENSORBOARD in self.settings.reporttypes:
             self.writer = SummaryWriter(log_dir=self.log_dir)
 
-        if "gin" in self.settings.tunewriter:
+        if ReportTypes.GIN in self.settings.reporttypes:
             write_gin(self.log_dir, gin.config_str())
 
     def loop(self) -> None:
@@ -179,8 +179,10 @@ class Trainer:
 
     def report(self, epoch: int, train_loss: float, test_loss: float, metric_dict: Dict) -> None:
         epoch = epoch + self.last_epoch
-        tunewriter = self.settings.tunewriter
-        if "ray" in tunewriter:
+        reporttypes = self.settings.reporttypes
+        self.test_loss = test_loss
+
+        if ReportTypes.RAY in reporttypes:
             tune.report(
                 iterations=epoch,
                 train_loss=train_loss,
@@ -188,7 +190,7 @@ class Trainer:
                 **metric_dict,
             )
 
-        if "mlflow" in tunewriter:
+        if ReportTypes.MLFLOW in reporttypes:
             mlflow.log_metric("Loss/train", train_loss, step=epoch)
             mlflow.log_metric("Loss/test", test_loss, step=epoch)
             for m in metric_dict:
@@ -196,7 +198,7 @@ class Trainer:
             lr = [group["lr"] for group in self.optimizer.param_groups][0]
             mlflow.log_metric("learning_rate", lr, step=epoch)
 
-        if "tensorboard" in tunewriter:
+        if ReportTypes.TENSORBOARD in reporttypes:
             self.writer.add_scalar("Loss/train", train_loss, epoch)
             self.writer.add_scalar("Loss/test", test_loss, epoch)
             for m in metric_dict:
@@ -243,7 +245,7 @@ class EarlyStopping:
             # the previous best (with a delta) it is considered not to improve.
             self.counter += 1
             logger.info(
-                f'best loss: {self.best_loss}, current loss {val_loss:.6f}. Counter {self.counter:.6f}/{self.patience}.')
+                f'best loss: {self.best_loss:.4f}, current loss {val_loss:.4f}. Counter {self.counter}/{self.patience}.')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
@@ -257,7 +259,7 @@ class EarlyStopping:
         '''Saves model when validation loss decrease.'''
         if self.verbose:
             logger.info(
-                f'Validation loss ({self.best_loss:.6f} --> {val_loss:.6f}). Saving {self.path} ...')
+                f'Validation loss ({self.best_loss:.4f} --> {val_loss:.4f}). Saving {self.path} ...')
         torch.save(model, self.path)
         self.val_loss_min = val_loss
 
