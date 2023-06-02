@@ -5,7 +5,7 @@ description = ""
 authors = ["Raoul Grouls <rgrouls@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = ">=3.8,<=3.11.1"
+python = ">=3.9,<=3.11.1"
 loguru = "^0.6.0"
 pandas = "^1.4.0"
 matplotlib = "^3.5.1"
@@ -32,20 +32,20 @@ configspace = "^0.6.0"
 mlflow = "^2.1.1"
 
 [tool.poetry.group.extras.dependencies]
-shap = "^0.41.0"
+shap = "^0.41"
 numba = "0.56.4"
-llvmlite = "^0.39.1"
+llvmlite = "^0.39"
 hyperopt = "^0.2.7"
 
 [tool.poetry.group.dev.dependencies]
-black = "^22.1.0"
-flake8 = "^4.0.1"
-isort = "^5.10.1"
-mypy = "^0.931"
-pytest = "^7.0.0"
+black = "^23"
+flake8 = "^6"
+isort = "^5"
+mypy = "*"
+pytest = "^7"
 pep8-naming = "^0.12.1"
-flake8-annotations = "^2.7.0"
-jupyter = "^1.0.0"
+flake8-annotations = "*"
+jupyter = "*"
 nbformat = "^5.3.0"
 importlib-resources = "^5.7.1"
 
