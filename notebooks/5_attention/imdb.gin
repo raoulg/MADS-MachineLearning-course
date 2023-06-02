@@ -1,5 +1,5 @@
 rnn_models.NLPmodel.config = {
-    "vocab" : 10002,
+    "vocab" : 10000,
     "hidden_size" : 128,
     "num_layers" : 3,
     "dropout" : 0.1,
@@ -7,7 +7,7 @@ rnn_models.NLPmodel.config = {
 }
 
 rnn_models.AttentionNLP.config = {
-    "vocab" : 10002,
+    "vocab" : 10000,
     "hidden_size" : 128,
     "num_layers" : 3,
     "dropout" : 0.1,

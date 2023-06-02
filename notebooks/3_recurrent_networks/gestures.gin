@@ -1,10 +1,5 @@
 import gin.torch.external_configurables
 
-train_model.trainloop.epochs = 10
-train_model.trainloop.learning_rate = 1e-3
-train_model.trainloop.optimizer = @Adam
-train_model.trainloop.loss_fn = @CrossEntropyLoss()
-
 rnn_models.BaseRNN.input_size = 3
 rnn_models.BaseRNN.hidden_size = 128
 rnn_models.BaseRNN.num_layers = 3
