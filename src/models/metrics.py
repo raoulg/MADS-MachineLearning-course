@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import torch
-from torch.utils.data import DataLoader
+
+if TYPE_CHECKING:
+    from src.data.make_dataset import BaseDatastreamer
 
 Tensor = torch.Tensor
 
@@ -13,15 +19,17 @@ class Metric:
 
 
 class MASE(Metric):
-    def __init__(self, dataloader: DataLoader, horizon: int) -> None:
-        self.scale = self.naivenorm(dataloader, horizon)
+    def __init__(self, train: BaseDatastreamer, horizon: int) -> None:
+        self.scale = self.naivenorm(train, horizon)
 
     def __repr__(self) -> str:
         return f"MASE(scale={self.scale:.3f})"
 
-    def naivenorm(self, dataloader: DataLoader, horizon: int) -> Tensor:
+    def naivenorm(self, train: BaseDatastreamer, horizon: int) -> Tensor:
         elist = []
-        for x, y in dataloader:
+        streamer = train.stream()
+        for _ in range(len(train)):
+            x, y = next(iter(streamer))
             yhat = self.naivepredict(x, horizon)
             e = self.mae(y, yhat)
             elist.append(e)
