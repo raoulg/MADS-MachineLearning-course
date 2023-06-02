@@ -11,7 +11,7 @@ if __name__ == "__main__":
     logger.info("starting autoencode.py")
     from src.data import data_tools
     from src.models import train_model, vae
-    from src.settings import VAESettings, TrainerSettings
+    from src.settings import VAESettings, TrainerSettings, ReportTypes
 
     presets = VAESettings()
 
@@ -60,22 +60,24 @@ if __name__ == "__main__":
 
     logger.info(f"starting training for {presets.epochs} epochs")
     autoencoder = vae.AutoEncoder(config)
+
     settings = TrainerSettings(
         epochs=presets.epochs,
         metrics=[lossfn],
         logdir="vaemodels",
         train_steps=200,
         valid_steps=200,
-        tunewriter=["tensorboard"],
+        reporttypes=[ReportTypes.TENSORBOARD],
         scheduler_kwargs={"factor": 0.5, "patience": 10},
     )
+
     trainer = train_model.Trainer(
-        model=autoencoder, 
-        settings=settings, 
+        model=autoencoder,
+        settings=settings,
         loss_fn=lossfn,
-        optimizer=torch.optim.Adam, 
-        traindataloader=trainstreamer, 
-        validdataloader=teststreamer, 
+        optimizer=torch.optim.Adam,
+        traindataloader=trainstreamer,
+        validdataloader=teststreamer,
         scheduler=optim.lr_scheduler.ReduceLROnPlateau
     )
     trainer.loop()

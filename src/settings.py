@@ -2,17 +2,7 @@ from __future__ import annotations
 
 from enum import Enum
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import gin
 from loguru import logger
@@ -20,9 +10,6 @@ from pydantic import BaseModel, HttpUrl, root_validator
 from ray import tune
 
 from src.models import tokenizer
-
-if TYPE_CHECKING:
-    from src.models.metrics import Metric
 
 SAMPLE_INT = tune.search.sample.Integer
 SAMPLE_FLOAT = tune.search.sample.Float

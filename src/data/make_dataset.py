@@ -20,8 +20,6 @@ from typing import (
 )
 
 import numpy as np
-import pandas as pd
-import requests
 import torch
 from loguru import logger
 from PIL import Image
@@ -287,12 +285,12 @@ class IMDBDatasetFactory(AbstractDatasetFactory[TextDatasetSettings]):
 
         traindataset = TextDataset(paths=trainpaths)
         testdataset = TextDataset(paths=testpaths)
-        return {"train": traindataset, "test": testdataset}
+        return {"train": traindataset, "valid": testdataset}
 
     def create_datastreamer(self, batchsize: int) -> Mapping[str, DatastreamerProtocol]:
         datasets = self.create_dataset()
         traindataset = datasets["train"]
-        testdataset = datasets["test"]
+        testdataset = datasets["valid"]
         corpus = []
         clean_fn = self.settings.clean_fn
 
@@ -313,7 +311,7 @@ class IMDBDatasetFactory(AbstractDatasetFactory[TextDatasetSettings]):
         teststreamer = BaseDatastreamer(
             testdataset, batchsize, preprocessor=preprocessor
         )
-        return {"train": trainstreamer, "test": teststreamer}
+        return {"train": trainstreamer, "valid": teststreamer}
 
 
 class FlowersDatasetFactory(AbstractDatasetFactory[ImgDatasetSettings]):
@@ -415,14 +413,12 @@ class AbstractDataset(ABC, ProcessingDatasetProtocol):
     def __len__(self) -> int:
         return len(self.dataset)
 
+    def __getitem__(self, idx: int) -> Tuple:
+        return self.dataset[idx]
+
     @abstractmethod
     def process_data(self) -> None:
         raise NotImplementedError
-
-
-    @abstractmethod
-    def __getitem__(self, idx: int) -> Tuple:
-        return self.dataset[idx]
 
 
 class FacesDataset(AbstractDataset):
@@ -499,9 +495,7 @@ class TensorDataset(DatasetProtocol):
 
 
 class TextDataset(AbstractDataset):
-    """This assumes textual data, one line per file
-
-    """
+    """This assumes textual data, one line per file"""
 
     def process_data(self) -> None:
         for file in tqdm(self.paths, colour="#1e4706"):
