@@ -15,8 +15,8 @@ help:
 
 lint:
 	poetry run flake8 src
-	poetry run mypy --show-error-codes src
-	poetry run mypy --show-error-codes hypertune.py
+	poetry run mypy -m src
+	poetry run mypy hypertune.py
 
 format:
 	poetry run isort -v src
