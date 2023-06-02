@@ -1,10 +1,5 @@
 import gin.torch.external_configurables
 
-train_model.trainloop.epochs = 10
-train_model.trainloop.learning_rate = 1e-3
-train_model.trainloop.optimizer = @Adam
-train_model.trainloop.loss_fn = @CrossEntropyLoss()
-
 rnn_models.GRUmodel.config = {
     "input_size" : 3,
     "hidden_size" : 64,
