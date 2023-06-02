@@ -1,10 +1,5 @@
 import gin.torch.external_configurables
 
-train_model.trainloop.epochs = 100
-train_model.trainloop.learning_rate = 1e-3
-train_model.trainloop.optimizer = @Adam
-train_model.trainloop.loss_fn = @MSELoss()
-
 BaseRNN.input_size=1
 BaseRNN.hidden_size=32
 BaseRNN.num_layers=2

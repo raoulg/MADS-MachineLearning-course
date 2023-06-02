@@ -1,8 +1,0 @@
-import gin.torch.external_configurables
-
-train_model.trainloop.learning_rate = 1e-3
-train_model.trainloop.optimizer = @Adam
-train_model.trainloop.loss_fn = @CrossEntropyLoss()
-train_model.trainloop.log_dir = "../../models/dummy/"
-train_model.trainloop.train_steps=100
-train_model.trainloop.eval_steps=50

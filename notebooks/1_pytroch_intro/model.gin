@@ -1,12 +1,4 @@
 import gin.torch.external_configurables
 
-get_MNIST.batch_size = 32
-get_MNIST.data_dir = "../../data/raw"
 NeuralNetwork.num_classes=10
 NeuralNetwork.units1 = 512
-
-trainloop.epochs = 10
-trainloop.learning_rate = 1e-3
-trainloop.optimizer = @Adam
-trainloop.loss_fn = @CrossEntropyLoss()
-trainloop.log_dir = "../../models/gtest/"
