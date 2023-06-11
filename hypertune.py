@@ -1,4 +1,3 @@
-from src.data import make_dataset
 from src.models import rnn_models, metrics, train_model
 from src.settings import SearchSpace, TrainerSettings, ReportTypes
 from pathlib import Path
@@ -21,12 +20,11 @@ def train(config: Dict, checkpoint_dir=None):
     ray will modify the values inside the config before it is passed to the train
     function.
     """
-    from src.data.make_dataset import DatasetFactoryProvider, DatasetType
-
+    from mads_datasets import DatasetFactoryProvider, DatasetType
     # we lock the datadir to avoid parallel instances trying to
     # access the datadir
     data_dir = config["data_dir"]
-    gesturesdatasetfactory = DatasetFactoryProvider.get_factory(DatasetType.GESTURES)
+    gesturesdatasetfactory = DatasetFactoryProvider.create_factory(DatasetType.GESTURES)
     with FileLock(data_dir / ".lock"):
         streamers = gesturesdatasetfactory.create_datastreamer(batchsize=32)
         train = streamers["train"]
