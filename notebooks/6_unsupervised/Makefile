@@ -15,7 +15,7 @@ run:
 	make tb
 
 encode:
-	export PYTHONPATH=$(PTYHONPATH) ; poetry run python 01_autoencoder.py
+	export PYTHONPATH=$(PYTHONPATH) ; poetry run python 01_autoencoder.py
 
 viz:
 	export PYTHONPATH=$(PYTHONPATH) ; poetry run python 02_show_vae.py
