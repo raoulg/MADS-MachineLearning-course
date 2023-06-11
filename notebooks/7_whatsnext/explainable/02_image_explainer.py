@@ -15,7 +15,7 @@ if __name__ == "__main__":
     from src.settings import ImageExplainerSettings
     from src.models.imagemodels import NeuralNetworkExplainer
     from src.models import metrics, train_model
-    from src.settings import TrainerSettings
+    from src.settings import TrainerSettings, ReportTypes
 
 
     logger.info("start image_explainer.py")
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         logdir=log_dir,
         train_steps=50,
         valid_steps=50,
-        tunewrite=["tensorboard"],
+        reporttypes=[ReportTypes.TENSORBOARD],
         optimizer_kwargs = {"lr" : 1e-2}
     )
 
