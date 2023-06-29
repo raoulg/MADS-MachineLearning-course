@@ -15,7 +15,7 @@ help:
 
 lint:
 	poetry run flake8 src
-	poetry run mypy -m src
+	poetry run mypy src
 	poetry run mypy hypertune.py
 
 format:
