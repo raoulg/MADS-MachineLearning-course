@@ -1,6 +1,7 @@
 # hypertuning
 **/mlruns/*
 **/models/
+**/modellogs/*
 **/logs/
 
 # Byte-compiled / optimized / DLL files
