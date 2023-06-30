@@ -21,12 +21,12 @@ def train(config: Dict, checkpoint_dir=None):
     ray will modify the values inside the config before it is passed to the train
     function.
     """
-    from src.data.make_dataset import DatasetFactoryProvider, DatasetType
+    from mads_datasets import DatasetFactoryProvider, DatasetType
 
     # we lock the datadir to avoid parallel instances trying to
     # access the datadir
     data_dir = config["data_dir"]
-    gesturesdatasetfactory = DatasetFactoryProvider.get_factory(DatasetType.GESTURES)
+    gesturesdatasetfactory = DatasetFactoryProvider.create_factory(DatasetType.GESTURES)
     with FileLock(data_dir / ".lock"):
         streamers = gesturesdatasetfactory.create_datastreamer(batchsize=32)
         train = streamers["train"]
@@ -77,7 +77,7 @@ if __name__ == "__main__":
         input_size=3,
         output_size=20,
         tune_dir=Path("models/ray").resolve(),
-        data_dir=Path("data/external/gestures-dataset").resolve(),
+        data_dir=Path("data/raw/gestures/gestures-dataset").resolve(),
     )
 
     reporter = CLIReporter()
