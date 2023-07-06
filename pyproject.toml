@@ -37,12 +37,10 @@ dependencies = [
 [tool.pdm.dev-dependencies]
 lint = [
     "black>=23.3.0",
-    "flake8>=6.0.0",
     "isort>=5.12.0",
     "mypy>=1.4.1",
     "pytest>=7.4.0",
-    "pep8-naming>=0.13.3",
-    "flake8-annotations>=3.0.1",
+    "ruff>=0.0.277",
 ]
 
 [tool.flake8]
