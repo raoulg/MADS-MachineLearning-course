@@ -43,6 +43,9 @@ lint = [
     "ruff>=0.0.277",
 ]
 
+[tool.pdm.resolution.overrides]
+grpcio = ">=1.53.0"
+
 [tool.flake8]
 ignore = ["W503", "ANN101", "ANN002", "ANN003"]
 max-line-length = 88
