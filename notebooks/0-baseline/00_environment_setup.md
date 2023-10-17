@@ -1,8 +1,6 @@
 There are many ways to set up a python environment. The problem is, this can
 become a mess very quickly...
 
-![text](../img/python_environment.png)
-
 # 1 Python
 We will setup the management of python with `pyenv`. Installing pyenv works
 slightly differently on different machines. Because listing all options is

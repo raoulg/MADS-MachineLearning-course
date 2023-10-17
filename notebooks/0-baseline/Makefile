@@ -10,7 +10,6 @@ help:
 	@echo "       print this help message"
 
 lint:
-	# poetry run flake8 elfarol
 	poetry run mypy --config-file tox.ini elfarol
 
 format:
