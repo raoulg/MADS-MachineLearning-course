@@ -57,6 +57,12 @@ files = [
 ]
 
 [[package]]
+name = "annotated-types"
+version = "0.5.0"
+requires_python = ">=3.7"
+summary = "Reusable constraint types to use with typing.Annotated"
+
+[[package]]
 name = "anyio"
 version = "3.7.0"
 requires_python = ">=3.7"
@@ -1458,7 +1464,7 @@ dependencies = [
     "numpy<2,>=1.21",
     "packaging>=20.0",
     "pillow>=6.2.0",
-    "pyparsing>=2.3.1",
+    "pyparsing<3.1,>=2.3.1",
     "python-dateutil>=2.7",
 ]
 files = [
@@ -2712,6 +2718,12 @@ files = [
     {file = "ruff-0.1.0-py3-none-win_arm64.whl", hash = "sha256:45abdbdab22509a2c6052ecf7050b3f5c7d6b7898dc07e82869401b531d46da4"},
     {file = "ruff-0.1.0.tar.gz", hash = "sha256:ad6b13824714b19c5f8225871cf532afb994470eecb74631cd3500fe817e6b3f"},
 ]
+
+[[package]]
+name = "ruff"
+version = "0.0.277"
+requires_python = ">=3.7"
+summary = "An extremely fast Python linter, written in Rust."
 
 [[package]]
 name = "scikit-learn"

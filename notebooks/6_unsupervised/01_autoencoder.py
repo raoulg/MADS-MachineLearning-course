@@ -12,6 +12,7 @@ if __name__ == "__main__":
     from src.data import data_tools
     from src.models import train_model, vae
     from src.settings import VAESettings, TrainerSettings, ReportTypes
+    from src.data.make_dataset import VAEstreamer
 
     presets = VAESettings()
 
@@ -35,10 +36,8 @@ if __name__ == "__main__":
     )
 
     logger.info("creating datastreamers")
-    trainstreamer = data_tools.VAEstreamer(
-        training_data, batchsize=presets.batchsize
-    ).stream()
-    teststreamer = data_tools.VAEstreamer(test_data, batchsize=32).stream()
+    trainstreamer = VAEstreamer(training_data, batchsize=presets.batchsize).stream()
+    teststreamer = VAEstreamer(test_data, batchsize=32).stream()
 
     X1, X2 = next(trainstreamer)
 
@@ -78,7 +77,7 @@ if __name__ == "__main__":
         optimizer=torch.optim.Adam,
         traindataloader=trainstreamer,
         validdataloader=teststreamer,
-        scheduler=optim.lr_scheduler.ReduceLROnPlateau
+        scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau,
     )
     trainer.loop()
 
