@@ -2,7 +2,7 @@
 
 .DEFAULT: help
 
-PYTHONPATH := "/workspaces/ML22"
+PYTHONPATH := $(PWD)
 
 help:
 	@echo "make run"
@@ -15,17 +15,19 @@ run:
 	make tb
 
 encode:
-	export PYTHONPATH=$(PTYHONPATH) ; poetry run python 01_autoencoder.py
+	echo $(PYTHONPATH)
+	export PYTHONPATH=$(PYTHONPATH) & pdm run 01_autoencoder.py
+	# export PYTHONPATH=$(PTYHONPATH) ; pdm run python 01_autoencoder.py
 
 viz:
-	export PYTHONPATH=$(PYTHONPATH) ; poetry run python 02_show_vae.py
+	export PYTHONPATH=$(PYTHONPATH) ; pdm run python 02_show_vae.py
 
 embed:
-	export PYTHONPATH=$(PYTHONPATH) ; poetry run python 03_vae_embeddings.py
+	export PYTHONPATH=$(PYTHONPATH) ; pdm run python 03_vae_embeddings.py
 
 query:
-	export PYTHONPATH=$(PYTHONPATH) ; poetry run python 04_query_embeddings.py
+	export PYTHONPATH=$(PYTHONPATH) ; pdm run python 04_query_embeddings.py
 
 tb:
-	poetry run tensorboard --logdir=../../models/embeddings
+	pdm run tensorboard --logdir=../../models/embeddings
 
