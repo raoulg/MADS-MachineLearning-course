@@ -47,6 +47,7 @@ dependencies = [
     "torchsummary>=1.5.1",
     "plotly>=5.17.0",
     "mltrainer>=0.1.7",
+    "hyperopt>=0.2.7",
 ]
 
 [tool.flake8]
