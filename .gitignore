@@ -31,3 +31,4 @@ data/*
 **/checkpoint.pt
 .pdm-python
 .lycheecache
+**/*.log

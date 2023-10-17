@@ -13,7 +13,7 @@ At this point, you will need to consider the time it takes to process something.
 Consider again this pipeline. Here, we already considered that the preprocessing might take a lot of time. Why? Because the preprocessor is a separate module, with it's own `pyproject.toml` file, etc.
 It is designed in order to run on a VM, separate from the Trainer and the Explainer.
 
-Because it is easy to create a standalone Preprocessor, it is also pretty easy to spin up 10 machines with 10 Preprocessors. The only thing we will have to manage now is that every preprocessor consumes another part of the data. When it's just 10 VMs, it might be the most straightforward to simple split the directory of files into 10 parts. If things get more complex, you could also use [ray data](https://docs.ray.io/en/latest/data/getting-started.html) to distribute your dataset over a cluster of machines.
+Because it is easy to create a standalone Preprocessor, it is also pretty easy to spin up 10 machines with 10 Preprocessors. The only thing we will have to manage now is that every preprocessor consumes another part of the data. When it's just 10 VMs, it might be the most straightforward to simple split the directory of files into 10 parts. If things get more complex, you could also use [ray data](https://docs.ray.io/en/latest/data/overview.html) to distribute your dataset over a cluster of machines.
 
 ## Speeding up
 Another strategy would be to speed things up.
@@ -27,7 +27,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 If you have a gpu available, device will be "cuda:0".
 
-Now you move your model to the gpu with: 
+Now you move your model to the gpu with:
 ```python
 model.to(device)
 ```
