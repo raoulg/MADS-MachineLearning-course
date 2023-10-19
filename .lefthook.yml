@@ -8,19 +8,19 @@ pre-commit:
     clean-jupyter:
       files: git ls-files
       glob: '*.ipynb'
-      run: pdm run jupyter nbconvert --clear-output --inplace {staged_files}
+      run: jupyter nbconvert --clear-output --inplace {staged_files}
       stage_fixed: true
     toml-sort:
       glob: '*.toml'
-      run: pdm run toml-sort {staged_files}
+      run: toml-sort {staged_files}
       stage_fixed: true
     ruff:
       files: git ls-files
       glob: '*.py'
-      run: pdm run ruff {staged_files}
+      run: ruff {staged_files} --fix
     mypy:
       glob: '*.py'
-      run: pdm run mypy --pretty {staged_files}
+      run: mypy --pretty {staged_files}
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*"
 
@@ -32,17 +32,17 @@ pre-merge:
       stage_fixed: true
     clean-jupyter:
       glob: '*.ipynb'
-      run: pdm run jupyter nbconvert --clear-output --inplace {all_files}
+      run: jupyter nbconvert --clear-output --inplace {all_files}
       stage_fixed: true
     toml-sort:
       glob: '*.toml'
-      run: pdm run toml-sort {all_files}
+      run: toml-sort {all_files}
       stage_fixed: true
     ruff:
       glob: '*.py'
-      run: pdm run ruff {all_files} --fix
+      run: ruff {all_files} --fix
     mypy:
       glob: '*.py'
-      run: pdm run mypy --pretty {all_files} --ignore-missing-imports
+      run: mypy --pretty {all_files} --ignore-missing-imports
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*"
