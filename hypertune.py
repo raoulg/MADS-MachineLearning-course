@@ -1,21 +1,23 @@
-from src.data import make_dataset
-from src.models import rnn_models, metrics, train_model
-from src.settings import SearchSpace, TrainerSettings, ReportTypes
+from mltrainer import rnn_models, metrics, Trainer, ReportTypes, TrainerSettings
+from mltrainer.preprocessors import PaddedPreprocessor
+
 from pathlib import Path
-from ray.tune import JupyterNotebookReporter
 from ray import tune
 import torch
 import ray
 from typing import Dict
 from ray.tune import CLIReporter
-from ray.tune.schedulers import AsyncHyperBandScheduler
 from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
 from ray.tune.search.bohb import TuneBOHB
 from loguru import logger
+
 from filelock import FileLock
 
+SAMPLE_INT = tune.search.sample.Integer
+SAMPLE_FLOAT = tune.search.sample.Float
 
-def train(config: Dict, checkpoint_dir=None):
+
+def train(config: Dict):
     """
     The train function should receive a config file, which is a Dict
     ray will modify the values inside the config before it is passed to the train
@@ -23,12 +25,16 @@ def train(config: Dict, checkpoint_dir=None):
     """
     from mads_datasets import DatasetFactoryProvider, DatasetType
 
-    # we lock the datadir to avoid parallel instances trying to
-    # access the datadir
     data_dir = config["data_dir"]
     gesturesdatasetfactory = DatasetFactoryProvider.create_factory(DatasetType.GESTURES)
+    preprocessor = PaddedPreprocessor()
+
     with FileLock(data_dir / ".lock"):
-        streamers = gesturesdatasetfactory.create_datastreamer(batchsize=32)
+        # we lock the datadir to avoid parallel instances trying to
+        # access the datadir
+        streamers = gesturesdatasetfactory.create_datastreamer(
+            batchsize=32, preprocessor=preprocessor
+        )
         train = streamers["train"]
         valid = streamers["valid"]
 
@@ -47,15 +53,16 @@ def train(config: Dict, checkpoint_dir=None):
         scheduler_kwargs={"factor": 0.5, "patience": 5},
         earlystop_kwargs=None,
     )
+
     # because we set reporttypes=[ReportTypes.RAY]
     # the trainloop wont try to report back to tensorboard,
-    # but will report back with tune.report
+    # but will report back with ray
     # this way, ray will know whats going on,
     # and can start/pause/stop a loop.
     # This is why we set earlystop_kwargs=None, because we
     # are handing over this control to ray.
 
-    trainer = train_model.Trainer(
+    trainer = Trainer(
         model=model,
         settings=trainersettings,
         loss_fn=torch.nn.CrossEntropyLoss(),
@@ -71,14 +78,21 @@ def train(config: Dict, checkpoint_dir=None):
 if __name__ == "__main__":
     ray.init()
 
-    # have a look in src.settings to see how SearchSpace is created.
-    # If you want to search other ranges, you change this in the settings file.
-    config = SearchSpace(
-        input_size=3,
-        output_size=20,
-        tune_dir=Path("models/ray").resolve(),
-        data_dir=Path("data/raw/gestures/gestures-dataset").resolve(),
-    )
+    data_dir = Path("data/raw/gestures/gestures-dataset").resolve()
+    if not data_dir.exists():
+        data_dir.mkdir(parents=True)
+        logger.info(f"Created {data_dir}")
+    tune_dir = Path("models/ray").resolve()
+
+    config = {
+        "input_size": 3,
+        "output_size": 20,
+        "tune_dir": tune_dir,
+        "data_dir": data_dir,
+        "hidden_size": tune.randint(16, 128),
+        "dropout": tune.uniform(0.0, 0.3),
+        "num_layers": tune.randint(2, 5),
+    }
 
     reporter = CLIReporter()
     reporter.add_metric_column("Accuracy")
@@ -94,11 +108,11 @@ if __name__ == "__main__":
 
     analysis = tune.run(
         train,
-        config=config.dict(),
+        config=config,
         metric="test_loss",
         mode="min",
         progress_reporter=reporter,
-        local_dir=config.tune_dir,
+        local_dir=str(config["tune_dir"]),
         num_samples=50,
         search_alg=bohb_search,
         scheduler=bohb_hyperband,
