@@ -1,4 +1,4 @@
-from typing import Callable, List, Sequence, Union
+from typing import Callable, List, Union
 
 import numpy as np
 from loguru import logger
@@ -44,7 +44,11 @@ class Hypotheses:
 
             if isinstance(n, int) and n > 0:
                 # pick n random hypotheses
-                idx = list(np.random.choice(np.arange(0, len(self._all_h)), size=n, replace=False))  # type: ignore
+                idx = list(
+                    np.random.choice(
+                        np.arange(0, len(self._all_h)), size=n, replace=False
+                    )
+                )  # type: ignore
             elif isinstance(n, int) and n == 0:
                 # if 0, pick the last one
                 idx = [-1]
@@ -53,13 +57,13 @@ class Hypotheses:
                     f"If fixed is False, n should be and int, found {type(n)}"
                 )
         else:
-            # if n is a list and fixed=True, the list defines which hypotheses are 
+            # if n is a list and fixed=True, the list defines which hypotheses are
             # picked and in what order
             if isinstance(n, list) and np.max(n) >= len(self._all_h):
                 raise ValueError(f"Item in n too big: {np.max(n)}")
             if isinstance(n, int):
                 raise TypeError(
-                    f"If fixed is True, n should be a list of integers, found int"
+                    "If fixed is True, n should be a list of integers, found int"
                 )
             idx = n
 
@@ -100,7 +104,7 @@ class Hypotheses:
         return float(x)
 
     def _lastweek(self, hist: List[int]) -> float:
-        # pick the last item 
+        # pick the last item
         x = self._fallback(hist, k=1)
         return x
 

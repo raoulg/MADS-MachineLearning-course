@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Sequence, Union, Tuple
+from typing import List, Optional, Union, Tuple
 import numpy as np
 from elfarol.agents import Agent, BaseAgent
 import elfarol.hypotheses as hypt
@@ -9,7 +9,9 @@ from loguru import logger
 
 
 class MoodyAgent(Agent):
-    def __init__(self, n: Union[int, List[int]], threshold: int = 60, fixed: bool = False) -> None:
+    def __init__(
+        self, n: Union[int, List[int]], threshold: int = 60, fixed: bool = False
+    ) -> None:
         super().__init__(n=n, threshold=threshold, fixed=fixed)
         self.hypotheses: hypt.Hypotheses = hypt.Hypotheses(n, fixed=fixed)
 
@@ -37,6 +39,7 @@ class MoodyAgent(Agent):
     def decide(self, hist: List[int]) -> bool:
         yhat = self._predict(hist)
         return yhat <= self._get_threshold(self.threshold)
+
 
 class BaseExperiment:
     def __init__(self, agents: List[BaseAgent], hist: List[int] = [100]) -> None:
@@ -70,7 +73,7 @@ class Experiment(BaseExperiment):
             n.append(len(agent.hypotheses))
         sns.histplot(n)
 
-    def bar_hypt_population(self, figsize: Tuple = (10, 10)):
+    def bar_hypt_population(self, figsize: Tuple[float, float] = (10, 10)):
         types = []
         for agent in self.agents:
             for model in agent.hypotheses.models:
@@ -80,7 +83,7 @@ class Experiment(BaseExperiment):
         sns.barplot(x=list(c.keys()), y=list(c.values()))
         plt.xticks(rotation=90)
 
-    def bar_log(self, figsize: Tuple = (10, 10)):
+    def bar_log(self, figsize: Tuple[float, float] = (10, 10)):
         models_used = [name for x in self.agents for name in x.log]
         normalize = len(models_used)
         logger.info(f"Found {normalize} models.")

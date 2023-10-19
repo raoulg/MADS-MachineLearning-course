@@ -1,10 +1,6 @@
-from collections import Counter
-from typing import List, Tuple
+from typing import List
 
-import matplotlib.pylab as plt
-import numpy as np
 import seaborn as sns
-from loguru import logger
 
 from elfarol.agents import BaseAgent
 
@@ -28,6 +24,3 @@ def simulate(
         x = range(len(hist))
         sns.lineplot(x=x, y=hist)
     return hist
-
-
-

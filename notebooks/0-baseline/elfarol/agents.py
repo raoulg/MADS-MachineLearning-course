@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Sequence, Union
+from typing import Callable, List, Optional, Union
 
 import numpy as np
 
@@ -10,10 +10,10 @@ class BaseAgent:
         """This generates a basic agent with a set of Hypotheses and a threshold
 
         Args:
-            threshold (int): Every agent has a threshold of what they consider 
-            a comfortable amount of people in the bar. By default this is fixated 
+            threshold (int): Every agent has a threshold of what they consider
+            a comfortable amount of people in the bar. By default this is fixated
             at the 7th hypothesis
-        
+
 
         """
         self.threshold = self._get_threshold(threshold)
@@ -61,14 +61,16 @@ class BaseAgent:
 
 
 class Agent(BaseAgent):
-    def __init__(self, n: Union[int, List[int]], threshold: int = 60, fixed: bool = False) -> None:
-        """By default, the agent has a threshold of 60 and generates a random 
+    def __init__(
+        self, n: Union[int, List[int]], threshold: int = 60, fixed: bool = False
+    ) -> None:
+        """By default, the agent has a threshold of 60 and generates a random
         order of n hypotheses at initialisation.
 
         Args:
             n (int or list[int]): number of hypotheses to use
             threshold (int, optional): Defaults to 60.
-            fixed (bool, optional):  If the order of hypotheses should be fixed. If 
+            fixed (bool, optional):  If the order of hypotheses should be fixed. If
             True, n should be a list. Defaults to False.
         """
         super().__init__(threshold=threshold)
@@ -87,4 +89,3 @@ class Agent(BaseAgent):
         diff = np.abs(np.array(yhat) - hist[-1])
         idx = np.argmin(diff)
         return self.hypotheses.models[idx]
-

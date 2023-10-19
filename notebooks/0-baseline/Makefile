@@ -10,8 +10,9 @@ help:
 	@echo "       print this help message"
 
 lint:
-	poetry run mypy --config-file tox.ini elfarol
+	pdm run ruff elfarol --fix
+	pdm run mypy elfarol  --ignore-missing-imports
 
 format:
-	poetry run isort -v elfarol
-	poetry run black elfarol
+	pdm run black elfarol
+
