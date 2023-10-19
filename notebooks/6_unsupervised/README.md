@@ -19,7 +19,7 @@ The architecture should also look familiar; it uses a bottleneck, just like we h
 
 The novelty here is: you feed the model *the same* image that went in, as a label!
 
-Or, with some slight variations: 
+Or, with some slight variations:
 - you feed the model the image + random noise as input, and the clean image as output (to learn the model to denoise images)'
 - a black-and-white version as input, and a colored version as output (to learn the model to color images)
 - a watermarked image as input, and a clean version as output
@@ -41,7 +41,7 @@ You should be able to run all experiments with `make run`:
 - run the `make run` command from the shell
 
 This will run:
-- `make encode` : this learns the embeddings. Settings for the model can be changed in [src/settings.py](../../src/settings.py) for VAESettings
+- `make encode` : this learns the embeddings.
 - `make viz` to create some visualisations
 - `make embed` to add some embeddings to tensorboard so you can easily visualize them
 - `make query` for an example to find the 9 neighbors of a random image.
@@ -83,7 +83,7 @@ The quick and dirty way to do this, is to go to your project folder and to activ
 > poetry shell
 > echo $PATH
 ```
-First, 
+First,
 
 Now you can copy-paste the output of that into this line of code in your .sh script:
 
@@ -98,7 +98,7 @@ env > /tmp/env1.txt
 export PATH="/home/azureuser/.cache/pypoetry/virtualenvs/deep-learning-ho7aY0_Y-py3.9/bin:/home/azureuser/.julia/juliaup/bin:/home/azureuser/.local/bin:/home/azureuser/.julia/juliaup/bin:/home/azureuser/.local/bin:/home/azureuser/.pyenv/shims:/home/azureuser/.pyenv/bin:/home/azureuser/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:$PATH"
 ```
 
-We have a lot of stuff in PATH we dont need, but that's not going to hurt anyone. 
+We have a lot of stuff in PATH we dont need, but that's not going to hurt anyone.
 
 Now we will add the commands we want our script to execute:
 

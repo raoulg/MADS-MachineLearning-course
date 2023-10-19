@@ -1,7 +1,5 @@
 import gin.torch.external_configurables
 
-settings.TrainerSettings.epochs = 10
-
 rnn_models.GRUmodel.config = {
     "input_size" : 3,
     "hidden_size" : 120,
