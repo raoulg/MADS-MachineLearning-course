@@ -35,6 +35,7 @@ dependencies = [
     "plotly>=5.17.0",
     "mltrainer>=0.1.10",
     "hyperopt>=0.2.7",
+    "shap>=0.43.0",
 ]
 
 [tool.mypy]
