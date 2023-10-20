@@ -1,2 +1,5 @@
 *.pt
 /vaemodels
+models
+logs
+data

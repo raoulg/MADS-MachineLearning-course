@@ -6,18 +6,16 @@ from scipy.spatial import KDTree
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
-from src.data import data_tools
-from src.settings import VAESettings
-from src.visualization.visualize import plot_grid
-
-import matplotlib.pyplot as plt
+from settings import VAESettings
+from show_vae import plot_grid
 
 logger.add("/tmp/autoencoder.log")
-logger.add("vae.log")
+logger.add("logs/vae.log")
 
-if __name__ == "__main__":
+
+def main():
     presets = VAESettings()
-    embedfile = "embeds.pt"
+    embedfile = "models/embeds.pt"
 
     img, embeds = torch.load(embedfile)
     logger.info(f"Loaded {embedfile} with shape {embeds.shape}")
@@ -29,10 +27,11 @@ if __name__ == "__main__":
         download=True,
         transform=ToTensor(),
     )
-    teststreamer = data_tools.VAEstreamer(test_data, batchsize=10).stream()
 
-    logger.info(f"loading pretrained model {presets.modelname}")
-    model, modelname = torch.load(presets.modelname)
+    modelpath = presets.modeldir / presets.modelname
+    logger.info(f"loading pretrained model {modelpath}")
+    model = torch.load(modelpath)
+
     x, y = test_data[1]
 
     other = model.encoder(x)
@@ -43,3 +42,7 @@ if __name__ == "__main__":
     logger.info(f"closest items for label {y}")
     imgpath = presets.imgpath / Path(f"closest-label-{y}.png")
     plot_grid(closest, imgpath, title=f"Label {y}")
+
+
+if __name__ == "__main__":
+    main()

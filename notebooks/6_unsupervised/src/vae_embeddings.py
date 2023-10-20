@@ -1,24 +1,21 @@
 from pathlib import Path
 
-import tensorboard as tb
 import torch
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
-from src.data import data_tools
-from src.settings import VAESettings
+from settings import VAESettings, VAEstreamer
 
-cwd = Path(__file__).parent
-root = (cwd / "../..").resolve()
-logdir = root / Path("models/embeddings/")
+logdir = Path("models/embeddings/")
 writer = SummaryWriter(log_dir=logdir)
 
 logger.add("/tmp/autoencoder.log")
-logger.add("vae.log")
+logger.add("logs/vae.log")
 
-if __name__ == "__main__":
+
+def main():
     logger.info("starting vae_embeddings.py")
 
     presets = VAESettings()
@@ -29,18 +26,17 @@ if __name__ == "__main__":
         download=True,
         transform=ToTensor(),
     )
-    teststreamer = data_tools.VAEstreamer(
-        test_data, batchsize=presets.samplesize
-    ).stream()
+    teststreamer = VAEstreamer(test_data, batchsize=presets.samplesize).stream()
 
-    logger.info(f"loading pretrained model {presets.modelname}")
-    model, modelname = torch.load(presets.modelname)
+    modelpath = presets.modeldir / presets.modelname
+    logger.info(f"loading pretrained model {modelpath}")
+    model = torch.load(modelpath)
     X, _ = next(teststreamer)
 
     embs = model.encoder(X)
     logger.info(f"Embeddings shape {embs.shape}")
 
-    embedfile = "embeds.pt"
+    embedfile = "models/embeds.pt"
     torch.save((X, embs.detach().numpy()), embedfile)
     logger.info(f"Saved embeddings and images to {embedfile}")
 
@@ -51,3 +47,7 @@ if __name__ == "__main__":
 
     writer.close()
     logger.success("vae_embeddings.py")
+
+
+if __name__ == "__main__":
+    main()

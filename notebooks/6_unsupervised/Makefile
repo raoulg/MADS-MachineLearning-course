@@ -5,9 +5,9 @@
 PYTHONPATH := $(PWD)
 
 help:
-	@echo "make run"
+	@echo "make all"
 
-run:
+all:
 	make encode
 	make viz
 	make embed
@@ -15,19 +15,22 @@ run:
 	make tb
 
 encode:
-	echo $(PYTHONPATH)
-	export PYTHONPATH=$(PYTHONPATH) & pdm run 01_autoencoder.py
-	# export PYTHONPATH=$(PTYHONPATH) ; pdm run python 01_autoencoder.py
+	export PYTHONPATH=$(PYTHONPATH) & pdm run src/autoencoder.py
 
 viz:
-	export PYTHONPATH=$(PYTHONPATH) ; pdm run python 02_show_vae.py
+	export PYTHONPATH=$(PYTHONPATH) ; pdm run python src/show_vae.py
 
 embed:
-	export PYTHONPATH=$(PYTHONPATH) ; pdm run python 03_vae_embeddings.py
+	export PYTHONPATH=$(PYTHONPATH) ; pdm run python src/vae_embeddings.py
 
 query:
-	export PYTHONPATH=$(PYTHONPATH) ; pdm run python 04_query_embeddings.py
+	export PYTHONPATH=$(PYTHONPATH) ; pdm run python src/query_embeddings.py
 
 tb:
-	pdm run tensorboard --logdir=../../models/embeddings
+	pdm run tensorboard --logdir models/embeddings
 
+lint:
+	black src
+	isort src
+	ruff src --fix
+	mypy src --pretty --ignore-missing-imports
