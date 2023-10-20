@@ -1,19 +1,6 @@
-[tool.pdm.build]
-includes = []
-
-[tool.pdm.dev-dependencies]
-lint = [
-    "black>=23.3.0",
-    "isort>=5.12.0",
-    "mypy>=1.4.1",
-    "pytest>=7.4.0",
-    "ruff>=0.0.277",
-    "toml-sort>=0.23.1",
-]
-
-[tool.pdm.resolution.overrides]
-grpcio = ">=1.53.0"
-
+[build-system]
+build-backend = "pdm.backend"
+requires = ["pdm-backend"]
 
 [project]
 name = "mads-deeplearning"
@@ -31,6 +18,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Typing :: Typed",
 ]
 
@@ -40,32 +28,42 @@ dependencies = [
     "loguru>=0.7.0",
     "pydantic>=1.10.9",
     "pandas>=2.0.3",
-    "mads-datasets>=0.3.7",
-    "jupyter>=1.0.0",
+    "mads-datasets>=0.3.8",
     "matplotlib>=3.7.1",
     "seaborn>=0.12.2",
     "torchsummary>=1.5.1",
     "plotly>=5.17.0",
-    "mltrainer>=0.1.7",
+    "mltrainer>=0.1.10",
     "hyperopt>=0.2.7",
 ]
-
-[tool.flake8]
-ignore = ["W503", "ANN101", "ANN002", "ANN003"]
-max-line-length = 88
-max-complexity = 18
-exclude = ["__init__.py", "tests/*", "docs/*", "examples/*", "scripts/*"]
-select = "C,E,F,W,B,B950"
-extend-ignore = "E203, E501"
-
-[tool.isort]
-multi_line_output = 3
-include_trailing_comma = true
-use_parentheses = true
-line_length = 88
 
 [tool.mypy]
 ignore_missing_imports = true
 strict_optional = true
 warn_unreachable = true
 pretty = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "jupyter>=1.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.6.1",
+    "black>=23.10.0",
+    "toml-sort>=0.23.1",
+    "isort>=5.12.0",
+]
+
+[tool.pdm.resolution.overrides]
+grpcio = ">=1.53.0"
+
+[tool.ruff]
+ignore = [
+  "ANN101",
+  "ANN102",
+  "D",
+  "FIX002",
+  "INP001",
+]
+line-length = 88
+
+
