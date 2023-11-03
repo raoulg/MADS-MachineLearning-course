@@ -11,7 +11,7 @@ authors = [
     {name = "R.Grouls", email = "Raoul.Grouls@han.nl"},
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.12"
 license = {text = "MIT"}
 
 classifiers = [
@@ -28,14 +28,17 @@ dependencies = [
     "loguru>=0.7.0",
     "pydantic>=1.10.9",
     "pandas>=2.0.3",
-    "mads-datasets>=0.3.8",
+    "mads-datasets[torch]>=0.3.10",
     "matplotlib>=3.7.1",
     "seaborn>=0.12.2",
     "torchsummary>=1.5.1",
     "plotly>=5.17.0",
-    "mltrainer>=0.1.10",
+    "mltrainer>=0.1.11",
     "hyperopt>=0.2.7",
     "shap>=0.43.0",
+    "hpbandster>=0.7.4",
+    "configspace>=0.7.1",
+    "bayesian-optimization>=1.4.3",
 ]
 
 [tool.mypy]
