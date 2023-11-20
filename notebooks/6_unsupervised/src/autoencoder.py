@@ -41,7 +41,7 @@ def main():
 
     X1, X2 = next(trainstreamer)
 
-    config = presets.dict()
+    config = presets.model_dump()
     logger.info(f"the shape before: {X1.shape}")
 
     encoder = vae.Encoder(config)
