@@ -2,10 +2,10 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "lint", "dev"]
+groups = ["default", "lint", "dev", "graphs"]
 strategy = ["cross_platform"]
 lock_version = "4.4"
-content_hash = "sha256:fb622dd37d75360b25a58e4d87dce65fa22a1cc4775e3aad8d96eca25cc0f2bc"
+content_hash = "sha256:9587babf5e2ea20bbddb90fb8233b66d828eea69555ecc6cd6b7648cdda79805"
 
 [[package]]
 name = "absl-py"
@@ -3206,6 +3206,26 @@ files = [
     {file = "torch-2.1.0-cp311-cp311-win_amd64.whl", hash = "sha256:5c3bfa91ce25ba10116c224c59d5b64cdcce07161321d978bd5a1f15e1ebce72"},
     {file = "torch-2.1.0-cp311-none-macosx_10_9_x86_64.whl", hash = "sha256:601b0a2a9d9233fb4b81f7d47dca9680d4f3a78ca3f781078b6ad1ced8a90523"},
     {file = "torch-2.1.0-cp311-none-macosx_11_0_arm64.whl", hash = "sha256:3cd1dedff13884d890f18eea620184fb4cd8fd3c68ce3300498f427ae93aa962"},
+]
+
+[[package]]
+name = "torch-geometric"
+version = "2.4.0"
+requires_python = ">=3.8"
+summary = "Graph Neural Network Library for PyTorch"
+dependencies = [
+    "jinja2",
+    "numpy",
+    "psutil>=5.8.0",
+    "pyparsing",
+    "requests",
+    "scikit-learn",
+    "scipy",
+    "tqdm",
+]
+files = [
+    {file = "torch_geometric-2.4.0-py3-none-any.whl", hash = "sha256:9d8eb5eec44382f4072aa5e835450f144e9edb9d164627e532e311880b6bdad0"},
+    {file = "torch_geometric-2.4.0.tar.gz", hash = "sha256:343c6906d0678f16553c2d02b7267d0ec77eafb5b44324070ebcf7da8a934557"},
 ]
 
 [[package]]

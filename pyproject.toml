@@ -43,6 +43,10 @@ dependencies = [
     "torch-tb-profiler>=0.4.3",
 ]
 
+[project.optional-dependencies]
+graphs = [
+    "torch-geometric>=2.4.0",
+]
 [tool.mypy]
 ignore_missing_imports = true
 strict_optional = true
