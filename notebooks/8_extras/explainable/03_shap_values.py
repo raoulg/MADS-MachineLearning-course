@@ -19,12 +19,11 @@ if __name__ == "__main__":
     from src.settings import ImageExplainerSettings
     from src.visualization import visualize
 
-
     logger.info("starting shap_values.py")
 
     presets = ImageExplainerSettings()
 
-    if sys.argv[1] == 'mnist':
+    if sys.argv[1] == "mnist":
         dataset_train = datasets.MNIST(
             root=presets.data_dir,
             train=True,
@@ -73,7 +72,7 @@ if __name__ == "__main__":
     class_names = dataset_train.classes
     images_dict = dict()
     for i, l in enumerate(dataset_train.targets):
-        if len(images_dict)==10:
+        if len(images_dict) == 10:
             break
         if int(l) not in images_dict.keys():
             images_dict[int(l)] = dataset_train.data[i].reshape((28, 28))
@@ -84,14 +83,21 @@ if __name__ == "__main__":
     imgpath = presets.imgpath / Path("categories.jpeg")
     imgpathshap = presets.imgpath / Path("shap.jpeg")
 
-    visualize.plot_categories(images_dict, class_names, figsize = (16,2), filepath = imgpath)
-    
-    shap_image = shap.image_plot(shap_numpy, -test_numpy, show = False)
+    visualize.plot_categories(
+        images_dict, class_names, figsize=(16, 2), filepath=imgpath
+    )
+
+    shap_image = shap.image_plot(shap_numpy, -test_numpy, show=False)
     plt.savefig(imgpathshap)
 
     def reshape_width(image_to_reshape, image_width):
         factor = image_width.size[0] / image_to_reshape.size[0]
-        resized = image_to_reshape.resize((int(image_to_reshape.size[0]*factor), int(image_to_reshape.size[1]*factor)))
+        resized = image_to_reshape.resize(
+            (
+                int(image_to_reshape.size[0] * factor),
+                int(image_to_reshape.size[1] * factor),
+            )
+        )
         resized.size
         return resized
 
