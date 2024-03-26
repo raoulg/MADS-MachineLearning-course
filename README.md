@@ -2,10 +2,10 @@ deep learning course for Hogeschool Utrecht
 ==============================
 
 This course is the last course in a series of modules for data science.
-This course assumes you have done the introduction in Python and the DME course https://github.com/raoulg/DME22
+This course assumes you have done the introduction in Python and the DME course https://github.com/raoulg/MADS-DAV
 
 For this project you will need some dependencies.
-The project uses python 3.8, and all dependencies can be installed with `pdm` if you are using that with `pdm install`.
+The project uses python 3.10, and all dependencies can be installed with `pdm` if you are using that with `pdm install`.
 
 If you prefer to use `pip` you can run `pip install -r requirements.txt`.
 
