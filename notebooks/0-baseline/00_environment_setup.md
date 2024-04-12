@@ -48,23 +48,18 @@ command `pyenv local 3.9.7` will create this file for you.
 
 # 2 Virtual environments
 There are many ways to manage packages. Most common are `pip` and `conda`.
-However, they can cause annoying problems. We sometimes will use conda, for
-example if we are locked into a cloud environment that does not allow us to use
-anything else than conda. But as a default, we recommend using `poetry`.
+However, they can cause annoying problems. There might be situations where pip or conda is preferred, but as a default, we recommend using `pdm`.
 
-## 2.1 Poetry
+## 2.1 PDM
 The basic installation guide can be found
-[here](https://python-poetry.org/docs/master/)
-Make sure you use the master branch that uses the install-poetry.py script (and
-not the get-poetry.py script). Do not use brew to install poetry on a mac! It
-will screw up our intention to use poetry together with pyenv.
+[here](https://pdm-project.org/en/latest/)
 
 
 ## 2.2 Setting up an environment
 
 Now, you can go to a folder where you want to start your new project.
 Inside that folder, you can switch to the correct python version you would like
-to use with pyenv (eg `pyenv local 3.9.7`) and after that you type `poetry init`
+to use with pyenv (eg `pyenv local 3.9.7`) and after that you type `pdm init`
 and poetry will guide you through an interactive menu to set up your
 `pyproject.toml` file
 
@@ -72,30 +67,22 @@ and poetry will guide you through an interactive menu to set up your
 
 The parentfolder of this lesson contains a pyproject.toml file. Have a look at
 it. You will find a section with dependencies used in the project (like numpy,
-seaborn and scikit-learn). There are restraints on the versions (the ^ and ~
-before the numbers), you can read
-about them [here](https://python-poetry.org/docs/master/dependency-specification/)
+seaborn and scikit-learn).
 
-Adding new dependencies can be done with `poetry add`, eg `poetry add scipy`.
+Adding new dependencies can be done with `pdm add`, eg `pdm add scipy`.
+
 ## 2.4 dev dependencies
 What is very usefull, is that we can specify dependencies we will only use for
 development (like libraries for linting and hypertuning for a model). For
 example, if we want to install `black` for linting as a dev-package, we just add
-the `--dev` postfix, eg `poetry add black --dev`.
+the `-dG` postfix (dG for dev group), eg `pmd add -dG black`.
 
 ## 2.5 install
 Installing all the libraries needed can be done by navigating into a folder with
-a pyproject.toml file, and just run `poetry install`. Poetry will install
+a pyproject.toml file, and just run `pdm install`. pdm will install
 everything asynchronously, and not sequentially like pip or conda. This makes it
 a lot faster.
 
 # 3 Activate
-Activating an environment can be done in the shell by typing `poetry shell`, and
+Activating an environment can be done in the shell by typing `eval $(pmd venv activate)`, and
 the environment will be activated.
-
-To set it up with VScode, you can run `poetry config virtualenvs.path` to find
-out the path of your virtualenvs, and add that to VScode configuration by
-opening settings and seaching for "venv". I have added the folder to both the
-`Python: Venv Folders` and `Python: Venv Path` settings op VScode. You will need
-to restart VScode in order for it to work, but after that you can simply select
-the environment from inside VScode.

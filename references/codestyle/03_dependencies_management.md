@@ -89,9 +89,9 @@ dependencies = [
 
 As you can see, the `pdm.lock` file specifies the exact versions of other packages that this version of pandas requires to function correctly (and the related python versions). You can see that pandas requires `Numpy version 1.20.3` when your project uses a Python version lower than `3.10`, `Numpy 1.21.0` when you use Python `3.10` or higher and `1.23.2` when you use Python version `3.11` or higher.
 
-When you run [`pdm install`](https://pdm.fming.dev/latest/reference/cli/#install), PDM will handle all these dependencies correctly for you. The same goes for when you install or update a package. It will also automatically solve any conflicts between packages. This means that if a certain package has constraints on its dependencies, PDM will automatically install the correct versions that works with all the other packages in your project. If PDM finds a solution to this puzzle, it creates a `.lock` file that pins all versions.
+When you run [`pdm install`](https://pdm-project.org/en/latest/reference/cli/), PDM will handle all these dependencies correctly for you. The same goes for when you install or update a package. It will also automatically solve any conflicts between packages. This means that if a certain package has constraints on its dependencies, PDM will automatically install the correct versions that works with all the other packages in your project. If PDM finds a solution to this puzzle, it creates a `.lock` file that pins all versions.
 
-Also, when you install a new package with [pdm add](https://pdm.fming.dev/reference/cli#add), it wil automatically update both `pyproject.toml` and `pdm.lock`. These file changes are then tracked by git (they need to be committed), which ensures that everybody working on the project can verify why which package (verson) was added.
+Also, when you install a new package with [pdm add](https://pdm-project.org/en/latest/reference/cli/), it wil automatically update both `pyproject.toml` and `pdm.lock`. These file changes are then tracked by git (they need to be committed), which ensures that everybody working on the project can verify why which package (verson) was added.
 
 You can imagine when you use a lot of packages it will become very hard (and easy to mess up) to keep track of all their dependencies. **So the third and main reason why we recommend PDM, is that it helps you create deterministic environments, that are easily portable to multiple platforms.**
 
@@ -130,4 +130,4 @@ To familiarize yourself more with PDM, we encourage you read through some of the
 1. [Manage Dependencies](https://pdm.fming.dev/latest/usage/dependency/)
 1. [Working with Virtual Environments](https://pdm.fming.dev/latest/usage/venv/)
 
-For a bit more advanced, but useful information, you can check out [which variables you can specify in `pyproject.toml`](https://pdm.fming.dev/latest/reference/pep621/) and what [commands you can use with PDM](https://pdm.fming.dev/latest/reference/cli/).
+For a bit more advanced, but useful information, you can check out [which variables you can specify in `pyproject.toml`](https://pdm.fming.dev/latest/reference/pep621/).
