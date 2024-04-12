@@ -5,7 +5,7 @@
 groups = ["default", "lint", "dev", "graphs"]
 strategy = ["cross_platform"]
 lock_version = "4.4.1"
-content_hash = "sha256:9587babf5e2ea20bbddb90fb8233b66d828eea69555ecc6cd6b7648cdda79805"
+content_hash = "sha256:e7d7ccf9971aa5d50496bce86d4f0013aaf488a8ae18596244643e2c515e0283"
 
 [[package]]
 name = "absl-py"
@@ -1613,7 +1613,7 @@ files = [
 
 [[package]]
 name = "mltrainer"
-version = "0.1.122"
+version = "0.1.123"
 requires_python = "<3.12,>=3.10"
 summary = "toolkit for training pytorch models"
 dependencies = [
@@ -1630,8 +1630,8 @@ dependencies = [
     "tqdm>=4.65.0",
 ]
 files = [
-    {file = "mltrainer-0.1.122-py3-none-any.whl", hash = "sha256:5a8628b2bb1797a7dfa29c95cad8212df087ac32802a15d2472a9243b81a7514"},
-    {file = "mltrainer-0.1.122.tar.gz", hash = "sha256:fae87b6fdad0d3050503f158791c26c81146d5148f0f3787189bacc4a9d2ec84"},
+    {file = "mltrainer-0.1.123-py3-none-any.whl", hash = "sha256:1495e672b8e907d20a60654a21efe532d18c243e3864ff3c9ac9a55de586e950"},
+    {file = "mltrainer-0.1.123.tar.gz", hash = "sha256:aad09fd29a13dbfc43fb328def0eebe5a67ddddfa748f55e9413a4e0e52b9f62"},
 ]
 
 [[package]]
