@@ -2,12 +2,10 @@ deep learning course for Hogeschool Utrecht
 ==============================
 
 This course is the last course in a series of modules for data science.
-This course assumes you have done the introduction in Python and the DME course https://github.com/raoulg/MADS-DAV
+This course assumes you have done the introduction in Python and the Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
 
 For this project you will need some dependencies.
 The project uses python 3.10, and all dependencies can be installed with `pdm` if you are using that with `pdm install`.
-
-If you prefer to use `pip` you can run `pip install -r requirements.txt`.
 
 The lessons can be found inside the `notebooks`folder.
 The source code for the lessons can be found in the `src`folder.
@@ -16,52 +14,34 @@ The source code for the lessons can be found in the `src`folder.
 Project Organization
 ------------
 
-    ├── LICENSE
-    ├── Makefile           <- Makefile with commands like `make format` or `make lint`
-    ├── README.md          <- The top-level README for developers using this project.
+    ├── README.md          <- This file
     ├── .gitignore         <- Stuff not to add to git
-    ├── poetry.lock        <- Computer readable file that manages the dependencies of the libraries
+    ├── .lefthook.yml      <- Config file for lefthook
     ├── pyproject.toml     <- Human readable file. This specifies the libraries I installed to
     |                         let the code run, and their versions.
-    ├── requirements.txt   <- Export from poetry.lock to requirements.txt, to be used with pip
-    ├── setug.cfg          <- Config file for linters etc.
+    ├── pmd.lock           <- Computer readable file that manages the dependencies of the libraries
     ├── data
     │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
+    │   ├── processed      <- The processed datasets
+    │   └── raw            <- The original, raw data
     │
-    ├── models             <- Trained and serialized models, model predictions, or model summaries
+    ├── models             <- Trained models
     │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
+    ├── notebooks          <- Jupyter notebooks. Naming convention is xx_name_of_module.ipynb where
+    │                         xx is the number of the lesson
     │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
+    ├── references         <- Some background information on codestyle, and a courseguide
     │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
-    │
-    ├── requirements.txt   <- The requirements file for reproducing the analysis environment, e.g.
-    │                         generated with `pip freeze > requirements.txt`
-    │
-    ├── src                <- Source code for use in this project.
-    │   ├── __init__.py    <- Makes src a Python module
-    │   │
-    │   ├── data           <- Scripts to download or generate data
-    │   │   └── make_dataset.py
-    │   │
-    │   ├── features       <- Scripts to turn raw data into features for modeling
-    │   │   └── build_features.py
-    │   │
-    │   ├── models         <- Scripts to train models and then use trained models to make
-    │   │   │                 predictions
-    │   │   ├── predict_model.py
-    │   │   └── train_model.py
-    │   │
-    │   └── visualization  <- Scripts to create exploratory and results oriented visualizations
-    │       └── visualize.py
+    ├── reports            <- Generated analysis like PDF, LaTeX, etc.
+       └── figures         <- Generated graphics and figures to be used in reporting
 
 --------
 
-<p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
+The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it.
+
+I have separated the management of datasets and the trainingloop code. You will find them as dependencies in the project:
+- https://github.com/raoulg/mads_datasets
+- https://github.com/raoulg/mltrainer
+
+Both of these will be used a lot in the notebooks; by separating them it is easier for students to use the code in your own repositories.
+

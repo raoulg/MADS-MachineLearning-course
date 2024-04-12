@@ -25,9 +25,7 @@ data/*
 # Mac OS-specific storage files
 .DS_Store
 
-# Mypy cache
 .mypy_cache/
-
 **/checkpoint.pt
 .pdm-python
 .lycheecache
