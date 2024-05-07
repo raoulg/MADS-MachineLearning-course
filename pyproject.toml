@@ -47,6 +47,16 @@ dependencies = [
 graphs = [
     "torch-geometric>=2.4.0",
 ]
+
+[tool]
+rye = { dev-dependencies = [
+    "jupyter>=1.0.0",
+    "ruff>=0.4.3",
+    "mypy>=1.10.0",
+    "black>=24.4.2",
+    "toml-sort>=0.23.1",
+    "isort>=5.13.2",
+] }
 [tool.mypy]
 ignore_missing_imports = true
 strict_optional = true
