@@ -30,3 +30,4 @@ data/*
 .pdm-python
 .lycheecache
 **/*.log
+**/gestures/
