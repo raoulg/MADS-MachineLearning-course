@@ -61,6 +61,16 @@ def train(config: Dict):
     # This is why we set earlystop_kwargs=None, because we
     # are handing over this control to ray.
 
+    if torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        device = torch.device("mps")
+    else:
+        device = "cpu"
+    logger.info(f"Using {device}")
+    if device != "cpu":
+        logger.warning(
+            f"using acceleration with {device}." "Check if it actually speeds up!"
+        )
+
     trainer = Trainer(
         model=model,
         settings=trainersettings,
@@ -69,6 +79,7 @@ def train(config: Dict):
         traindataloader=train.stream(),
         validdataloader=valid.stream(),
         scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau,
+        device=device,
     )
 
     trainer.loop()
