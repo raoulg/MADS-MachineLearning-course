@@ -265,7 +265,7 @@ mistune==3.0.2
     # via nbconvert
 mlflow==2.12.1
     # via mltrainer
-mltrainer==0.1.124
+mltrainer==0.1.127
     # via mads-deeplearning
 more-itertools==10.2.0
     # via configspace
