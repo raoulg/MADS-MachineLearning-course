@@ -38,7 +38,7 @@ The low latent dimensionality means the model is forced the throw way anything t
 You should be able to run all experiments with `make run`:
 - go to your shell
 - use `cd` or `z` to go into the directory where you can find the `Makefile`
-- run the `make run` command from the shell
+- run the `make all` command from the shell
 
 This will run:
 - `make encode` : this learns the embeddings.
