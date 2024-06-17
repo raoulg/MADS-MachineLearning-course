@@ -7,6 +7,8 @@ import seaborn as sns
 from loguru import logger
 from tqdm import tqdm
 
+import plotly.express as px
+
 
 def plot_timers(timer: Dict[str, float]) -> None:
     x = list(timer.keys())
@@ -58,3 +60,9 @@ def plot_categories(
     else:
         plt.tight_layout()
         plt.show()
+
+
+def parallel_plot(analysis, columns: list[str]):
+    plot = analysis.results_df
+    p = plot[columns].reset_index()
+    return px.parallel_coordinates(p, color="accuracy")
