@@ -57,6 +57,7 @@ rye = { dev-dependencies = [
     "toml-sort>=0.23.1",
     "isort>=5.13.2",
 ] }
+
 [tool.mypy]
 ignore_missing_imports = true
 strict_optional = true
