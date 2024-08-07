@@ -1,8 +1,8 @@
-deep learning course for Hogeschool Utrecht
+deep learning course
 ==============================
 
-This course is the last course in a series of modules for data science.
-This course assumes you have done the introduction in Python and the Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
+This course is part of a series of modules for data science.
+This course assumes you have done the introduction in Python and something similar to the Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
 
 For this project you will need some dependencies.
 The project uses python 3.10, and all dependencies can be installed with `pdm` if you are using that with `pdm install`.
