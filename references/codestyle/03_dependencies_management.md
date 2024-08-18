@@ -69,7 +69,7 @@ dependencies = [
 ]
 ```
 
-This is translated automatically in the following way to the [`pdm.lock` file of this repository](../../pdm.lock) file when you run `pdm install`:
+This is translated automatically in the following way to the `pdm.lock` file of this repository file when you run `pdm install`:
 
 ```
 [[package]]

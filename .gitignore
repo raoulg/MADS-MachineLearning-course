@@ -20,7 +20,11 @@ __pycache__/
 .ipynb_checkpoints/
 
 # exclude data from source control by default
-data/*
+data/external/**/*.gz
+data/external/**/raw/**
+data/external/*.pt
+data/external/*.csv
+data/raw/*.arff
 
 # Mac OS-specific storage files
 .DS_Store
