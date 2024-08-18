@@ -45,11 +45,6 @@ I have separated the management of datasets and the trainingloop code. You will 
 Both of these will be used a lot in the notebooks; by separating them it is easier for students to use the code in your own repositories.
 
 # Installation
-## add build essentials
-run in the cli:
-
-- `sudo apt update; sudo apt install build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev curl git libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev`
-- `sudo reboot`
 
 ## install python with rye
 1. watch the [introduction video about rye](https://rye.astral.sh/guide/)
@@ -58,7 +53,7 @@ run in the cli:
 
 run through the installer like this:
 - platform linux: yes
-- preferred package installer: pip-tools
+- preferred package installer: uv
 - Run a Python installed and managed by Rye
 - which version of python should be used as default: 3.10
 - should the installer add Rye to PATH via .profile? : y
