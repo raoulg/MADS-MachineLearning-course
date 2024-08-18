@@ -36,7 +36,6 @@ dependencies = [
     "mltrainer>=0.1.127",
     "hyperopt>=0.2.7",
     "shap>=0.43.0",
-    "hpbandster>=0.7.4",
     "configspace>=0.7.1",
     "bayesian-optimization>=1.4.3",
     "tensorboard>=2.15.1",

@@ -6,6 +6,7 @@
 #   features: []
 #   all-features: false
 #   with-sources: false
+#   generate-hashes: false
 
 -e file:.
 absl-py==2.1.0
@@ -42,7 +43,6 @@ cloudpickle==3.0.0
 colorama==0.4.6
     # via bayesian-optimization
 configspace==0.7.1
-    # via hpbandster
     # via mads-deeplearning
 contourpy==1.2.1
     # via matplotlib
@@ -84,8 +84,6 @@ grpcio==1.63.0
     # via tensorboard
 gunicorn==21.2.0
     # via mlflow
-hpbandster==0.7.4
-    # via mads-deeplearning
 hyperopt==0.2.7
     # via mads-deeplearning
 idna==3.7
@@ -148,8 +146,6 @@ mpmath==1.3.0
     # via sympy
 msgpack==1.0.8
     # via ray
-netifaces==0.11.0
-    # via hpbandster
 networkx==3.3
     # via hyperopt
     # via torch
@@ -159,7 +155,6 @@ numpy==1.26.4
     # via bayesian-optimization
     # via configspace
     # via contourpy
-    # via hpbandster
     # via hyperopt
     # via mads-datasets
     # via mads-deeplearning
@@ -168,13 +163,11 @@ numpy==1.26.4
     # via mltrainer
     # via numba
     # via pandas
-    # via patsy
     # via pyarrow
     # via scikit-learn
     # via scipy
     # via seaborn
     # via shap
-    # via statsmodels
     # via tensorboard
     # via tensorboardx
     # via torchtext
@@ -187,7 +180,6 @@ packaging==24.0
     # via plotly
     # via ray
     # via shap
-    # via statsmodels
     # via tensorboardx
 pandas==2.2.2
     # via mads-datasets
@@ -196,10 +188,7 @@ pandas==2.2.2
     # via ray
     # via seaborn
     # via shap
-    # via statsmodels
     # via torch-tb-profiler
-patsy==0.5.6
-    # via statsmodels
 pillow==10.3.0
     # via mads-datasets
     # via matplotlib
@@ -227,8 +216,6 @@ pydantic-core==2.18.2
 pyparsing==3.1.2
     # via configspace
     # via matplotlib
-pyro4==4.82
-    # via hpbandster
 python-dateutil==2.9.0.post0
     # via matplotlib
     # via pandas
@@ -261,24 +248,18 @@ scikit-learn==1.4.2
 scipy==1.13.0
     # via bayesian-optimization
     # via configspace
-    # via hpbandster
     # via hyperopt
     # via mlflow
     # via scikit-learn
     # via shap
-    # via statsmodels
 seaborn==0.13.2
     # via mads-deeplearning
-serpent==1.41
-    # via hpbandster
-    # via pyro4
 setuptools==69.5.1
     # via tensorboard
 shap==0.45.0
     # via mads-deeplearning
 six==1.16.0
     # via hyperopt
-    # via patsy
     # via python-dateutil
     # via querystring-parser
     # via tensorboard
@@ -291,8 +272,6 @@ sqlalchemy==2.0.30
     # via mlflow
 sqlparse==0.5.0
     # via mlflow
-statsmodels==0.14.2
-    # via hpbandster
 sympy==1.12
     # via torch
 tenacity==8.3.0

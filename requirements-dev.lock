@@ -6,6 +6,7 @@
 #   features: []
 #   all-features: false
 #   with-sources: false
+#   generate-hashes: false
 
 -e file:.
 absl-py==2.1.0
@@ -72,7 +73,6 @@ comm==0.2.2
     # via ipykernel
     # via ipywidgets
 configspace==0.7.1
-    # via hpbandster
     # via mads-deeplearning
 contourpy==1.2.1
     # via matplotlib
@@ -131,8 +131,6 @@ gunicorn==21.2.0
     # via mlflow
 h11==0.14.0
     # via httpcore
-hpbandster==0.7.4
-    # via mads-deeplearning
 httpcore==1.0.5
     # via httpx
 httpx==0.27.0
@@ -290,8 +288,6 @@ nbformat==5.10.4
     # via nbconvert
 nest-asyncio==1.6.0
     # via ipykernel
-netifaces==0.11.0
-    # via hpbandster
 networkx==3.3
     # via hyperopt
     # via torch
@@ -306,7 +302,6 @@ numpy==1.26.4
     # via bayesian-optimization
     # via configspace
     # via contourpy
-    # via hpbandster
     # via hyperopt
     # via mads-datasets
     # via mads-deeplearning
@@ -315,13 +310,11 @@ numpy==1.26.4
     # via mltrainer
     # via numba
     # via pandas
-    # via patsy
     # via pyarrow
     # via scikit-learn
     # via scipy
     # via seaborn
     # via shap
-    # via statsmodels
     # via tensorboard
     # via tensorboardx
     # via torchtext
@@ -344,7 +337,6 @@ packaging==24.0
     # via qtpy
     # via ray
     # via shap
-    # via statsmodels
     # via tensorboardx
 pandas==2.2.2
     # via mads-datasets
@@ -353,7 +345,6 @@ pandas==2.2.2
     # via ray
     # via seaborn
     # via shap
-    # via statsmodels
     # via torch-tb-profiler
 pandocfilters==1.5.1
     # via nbconvert
@@ -361,8 +352,6 @@ parso==0.8.4
     # via jedi
 pathspec==0.12.1
     # via black
-patsy==0.5.6
-    # via statsmodels
 pexpect==4.9.0
     # via ipython
 pillow==10.3.0
@@ -414,8 +403,6 @@ pygments==2.18.0
 pyparsing==3.1.2
     # via configspace
     # via matplotlib
-pyro4==4.82
-    # via hpbandster
 python-dateutil==2.9.0.post0
     # via arrow
     # via jupyter-client
@@ -472,19 +459,14 @@ scikit-learn==1.4.2
 scipy==1.13.0
     # via bayesian-optimization
     # via configspace
-    # via hpbandster
     # via hyperopt
     # via mlflow
     # via scikit-learn
     # via shap
-    # via statsmodels
 seaborn==0.13.2
     # via mads-deeplearning
 send2trash==1.8.3
     # via jupyter-server
-serpent==1.41
-    # via hpbandster
-    # via pyro4
 setuptools==69.5.1
     # via tensorboard
 shap==0.45.0
@@ -493,7 +475,6 @@ six==1.16.0
     # via asttokens
     # via bleach
     # via hyperopt
-    # via patsy
     # via python-dateutil
     # via querystring-parser
     # via rfc3339-validator
@@ -514,8 +495,6 @@ sqlparse==0.5.0
     # via mlflow
 stack-data==0.6.3
     # via ipython
-statsmodels==0.14.2
-    # via hpbandster
 sympy==1.12
     # via torch
 tenacity==8.3.0
