@@ -9,11 +9,13 @@ from mltrainer import ReportTypes, Trainer, TrainerSettings, metrics, rnn_models
 from mltrainer.preprocessors import PaddedPreprocessor
 from ray import tune
 from ray.tune import CLIReporter
-from ray.tune.schedulers.hb_bohb import HyperBandForBOHB
-from ray.tune.search.bohb import TuneBOHB
+from ray.tune.search.hyperopt import HyperOptSearch
+from ray.tune.schedulers import AsyncHyperBandScheduler
 
 SAMPLE_INT = tune.search.sample.Integer
 SAMPLE_FLOAT = tune.search.sample.Float
+NUM_SAMPLES = 10
+MAX_EPOCHS = 50
 
 
 def train(config: Dict):
@@ -43,7 +45,7 @@ def train(config: Dict):
     model = rnn_models.GRUmodel(config)
 
     trainersettings = TrainerSettings(
-        epochs=50,
+        epochs=MAX_EPOCHS,
         metrics=[accuracy],
         logdir=Path("."),
         train_steps=len(train),  # type: ignore
@@ -64,7 +66,7 @@ def train(config: Dict):
     if torch.backends.mps.is_available() and torch.backends.mps.is_built():
         device = torch.device("mps")
     else:
-        device = "cpu"
+        device = "cpu"  # type: ignore
     logger.info(f"Using {device}")
     if device != "cpu":
         logger.warning(
@@ -93,6 +95,13 @@ if __name__ == "__main__":
         data_dir.mkdir(parents=True)
         logger.info(f"Created {data_dir}")
     tune_dir = Path("models/ray").resolve()
+    search = HyperOptSearch()
+    scheduler = AsyncHyperBandScheduler(
+        time_attr="training_iteration",
+        grace_period=1,
+        reduction_factor=3,
+        max_t=MAX_EPOCHS,
+    )
 
     config = {
         "input_size": 3,
@@ -107,25 +116,16 @@ if __name__ == "__main__":
     reporter = CLIReporter()
     reporter.add_metric_column("Accuracy")
 
-    bohb_hyperband = HyperBandForBOHB(
-        time_attr="training_iteration",
-        max_t=50,
-        reduction_factor=3,
-        stop_last_trials=False,
-    )
-
-    bohb_search = TuneBOHB()
-
     analysis = tune.run(
         train,
         config=config,
         metric="test_loss",
         mode="min",
         progress_reporter=reporter,
-        local_dir=str(config["tune_dir"]),
-        num_samples=50,
-        search_alg=bohb_search,
-        scheduler=bohb_hyperband,
+        storage_path=str(config["tune_dir"]),
+        num_samples=NUM_SAMPLES,
+        search_alg=search,
+        scheduler=scheduler,
         verbose=1,
     )
 
