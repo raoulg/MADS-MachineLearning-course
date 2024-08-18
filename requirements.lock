@@ -119,7 +119,7 @@ loguru==0.7.2
     # via mads-datasets
     # via mads-deeplearning
     # via mltrainer
-mads-datasets==0.3.10
+mads-datasets==0.3.11
     # via mads-deeplearning
 mako==1.3.3
     # via alembic
@@ -195,7 +195,7 @@ pillow==10.3.0
     # via torchvision
 plotly==5.22.0
     # via mads-deeplearning
-polars==0.20.24
+polars==1.5.0
     # via mads-datasets
 protobuf==5.26.1
     # via mlflow
