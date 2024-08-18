@@ -5,7 +5,7 @@ This course is part of a series of modules for data science.
 This course assumes you have done the introduction in Python and something similar to the Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
 
 For this project you will need some dependencies.
-The project uses python 3.10, and dependencies are defined within the `pyproject.toml` file. You will also find `reuirements.lock` files, but they are generated for a Mac so they will miss cuda specific dependencies.
+The project uses python 3.10, and dependencies are defined within the `pyproject.toml` file. You will also find `requirements.lock` files, but they are generated for a Mac so they will miss cuda specific dependencies.
 
 The lessons can be found inside the `notebooks`folder.
 The source code for the lessons can be found in the `src`folder.
