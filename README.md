@@ -79,3 +79,6 @@ run in the cli:
 copy paste your key on the second line (leave the first key there) and save the file, then exit
 4. check with `cat authorized_keys` that your key is added.
 
+## Still watch the video.
+
+I know some of you still skipped the video. Ok, I get that, but now actually watch it... [introduction video about rye](https://rye.astral.sh/guide/)
