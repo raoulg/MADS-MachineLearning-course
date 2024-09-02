@@ -1,3 +1,7 @@
+Read pages 17-55 (chapter 2-4). I have specified for you which pages answer specific learning goals to help you filter the more important parts.
+Some learning goals are better gained from a notebook, some from the text, some from the lesson. Don't worry if you dont get all of them; that's why we need a lesson :)
+There is a youtube video that also explains some stuff.
+
 De student begrijpt:
 1.1 Wat tensors zijn en voorbeelden voor de dimensies tm 5D
 1.2 hoe neurale netwerken zijn opgebouwd (linear + activation), en hoe ze een extensie zijn van lineaire modellen (wanneer kun je ze stapelen)
