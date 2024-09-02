@@ -36,7 +36,7 @@ Project Organization
 
 --------
 
-The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it.
+The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and lints & cleans the code before I commit it. Because, as a student you probably dont commit things, you can ignore it.
 
 I have separated the management of datasets and the trainingloop code. You will find them as dependencies in the project:
 - https://github.com/raoulg/mads_datasets
