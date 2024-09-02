@@ -43,6 +43,7 @@ I have separated the management of datasets and the trainingloop code. You will 
 - https://github.com/raoulg/mltrainer
 
 Both of these will be used a lot in the notebooks; by separating them it is easier for students to use the code in your own repositories.
+In addition to that, you can consider the packages as "extra material"; the way the pacakges are set up is something you can study if you are already more experienced in programming.
 
 # Installation
 
