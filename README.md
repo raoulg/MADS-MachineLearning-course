@@ -4,11 +4,11 @@ deep learning course
 This course is part of a series of modules for data science.
 This course assumes you have done the introduction in Python and something similar to the Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
 
-For this project you will need some dependencies.
-The project uses python 3.10, and dependencies are defined within the `pyproject.toml` file. You will also find `requirements.lock` files, but they are generated for a Mac so they will miss cuda specific dependencies.
 
 The lessons can be found inside the `notebooks`folder.
 The source code for the lessons can be found in the `src`folder.
+
+The book we will be using is Understanding Deep Learning. It is available as pdf here: https://udlbook.github.io/udlbook/ but it is highly recommended to buy the book.
 
 
 Project Organization
@@ -29,14 +29,19 @@ Project Organization
     ├── notebooks          <- Jupyter notebooks. Naming convention is xx_name_of_module.ipynb where
     │                         xx is the number of the lesson
     ├── presentations      <- Contains all powerpoint presentations in .pdf format
-    ├── references         <- Some background information on codestyle, and a courseguide
+    ├── references         <- background information
+    |  └── codestyle       <- Some code Code style standards
+    |  └── leerdoelen      <- Learning goals per lesson, including pages to read and videos to watch
     │
     ├── reports            <- Generated analysis like PDF, LaTeX, etc.
        └── figures         <- Generated graphics and figures to be used in reporting
 
 --------
 
-The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and lints & cleans the code before I commit it. Because, as a student you probably dont commit things, you can ignore it.
+For this project you will need some dependencies.
+The project uses python 3.10, and dependencies are defined within the `pyproject.toml` file. You will also find `requirements.lock` files, but they are generated for a Mac so they will miss cuda specific dependencies.
+
+The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it.
 
 I have separated the management of datasets and the trainingloop code. You will find them as dependencies in the project:
 - https://github.com/raoulg/mads_datasets
