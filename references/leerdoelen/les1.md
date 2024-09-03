@@ -1,4 +1,4 @@
-Read pages 17-55 (chapter 2-4). I have specified for you which pages answer specific learning goals to help you filter the more important parts.
+Read pages 17-55 (chapter 2-4) of the book. I have specified for you which pages answer specific learning goals to help you filter the more important parts.
 Some learning goals are better gained from a notebook, some from the text, some from the lesson. Don't worry if you dont get all of them; that's why we need a lesson :)
 There is a youtube video that also explains some stuff.
 
@@ -22,7 +22,9 @@ De student is in staat om:
 1.15 kan gin files gebruiken
 1.16 een dataclass maken
 
-kijk: https://youtu.be/aircAruvnKk?si=2BVezkYqWVb6-eR2
+watch: https://youtu.be/aircAruvnKk?si=2BVezkYqWVb6-eR2
+
+You can skip chap 5 and 6 for this lesson, we will read them later on.
 
 |                topic | description                                                |              page | notebooks                                 |
 |--------------------- | -----------------------------------------------------------|     ------------- | -----------------------                   |
@@ -31,12 +33,12 @@ kijk: https://youtu.be/aircAruvnKk?si=2BVezkYqWVb6-eR2
 |                  1.1 | scalars, vectors, matrix, batched 3D / 4D / 5D.            |     30-34, lesson | 01_tensors.ipynb                          |
 |                  1.4 | what is a gradient?                                        |             77-80 | 07_extra_autograd.ipynb                   |
 |                  1.6 | impact of hidden layer depth / width                       |             46-50 |                                           |
-|                 1.10 | what is a loss function?                                   |     23, chapter 5 | 2_convolutions/01_losses.ipynb            |
+|                 1.10 | what is a loss function?                                   |     23, (chap 5)  | 2_convolutions/01_losses.ipynb            |
 |                 1.11 | What is the difference between DL and other AI?            |               3-5 | deep_learning_01.pdf                      |
 |                 1.11 | How did AI evolve over time?                               |                37 | deep_learning_01.pdf                      |
 |                 1.12 | data, trainable weights, predict, loss, optimize           |             17-22 | 04_neuralnets.ipynb, deep_learning_01.pdf |
-|                 1.12 | what is optimization?                                      | 22-23, 91, chap 6 | 07_extra_autograd.ipynb                   |
-|       1.5, 1.16, 1.8 | exercise I & II: be able to implement a data class         |                   | 03_dataloader.ipynb                       |
+|                 1.12 | what is optimization?                                      | 22-23, 91 (chap 6)| 07_extra_autograd.ipynb                   |
+|       1.5, 1.16, 1.8 | exercise I & II: be able to implement a data class         |     lesson        | 03_dataloader.ipynb                       |
 |        1.2, 1.3, 1.6 | How can we stack multiple layers?                          |             41-46 | 04_neuralnets.ipynb, 06_exercises         |
 |                  1.9 | What are activation functions?                             |            25, 37 | deep_learning_01.pdf                      |
 |1.7, 1.13, 1.14, 1.15 | Learn to use gin & tensorboard to configure your model     |                   | 06_exercises.ipynb                        |

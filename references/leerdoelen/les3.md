@@ -1,3 +1,8 @@
+Read chapter 6, 8 and 9. This is not about RNNs, but about the training process in general.
+It covers the training process (what we have been doing so far and will continue to do) and will give you a theoretical background on how the training process works and how to improve model performance, so in a sense all these chapters cover the more practical 3.15 from this lesson.
+However, it also helps with previous learning goals like:
+1.12, 2.8, 2.10 and it will also prepare you for 4.4, 4.5, 4.6
+
 # Les 3
 De student begrijpt:
 3.1 - wat de motivatie is om RNNs te gebruiken
@@ -28,3 +33,5 @@ Watch the first two videos.
 The third video is from statsquest, if you like his style you can watch that one too.
 The last video explains the concept in a different way. If it confuses you, stick to the first three,
 but if you feel like a different perspective might help, watch the last one too.
+
+The book doesnt cover RNNs, so all material comes from the lessons and the videos.
