@@ -1,4 +1,4 @@
-Read pages 17-55 (chapter 2-4) of the book. I have specified for you which pages answer specific learning goals to help you filter the more important parts.
+Read pages 17-55 (chapter 2-4) from 'Understanding Deep Learning'. I have specified for you which pages answer specific learning goals to help you filter the more important parts.
 Some learning goals are better gained from a notebook, some from the text, some from the lesson. Don't worry if you dont get all of them; that's why we need a lesson :)
 There is a youtube video that also explains some stuff.
 
