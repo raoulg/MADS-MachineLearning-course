@@ -14,7 +14,8 @@ For example, I am using zhs and my .zshrc file has an entry like this:
 export PATH="$HOME/.pyenv/bin:$PATH"
 ```
 
-This means that when I start up my terminal, it will add the directory `~/.pyenv/bin` to my PATH. This is where the `pyenv` executable is located. If I would not have this line in my .zshrc file, I would not be able to use `pyenv` in my terminal.
+This means that when I start up my terminal, it will add the directory `~/.pyenv/bin` to my PATH. This is where the `pyenv` executable is located. If I would not have this line in my .zshrc file, I would not be able to use `pyenv` in my terminal (it really doesnt matter what pyenv is, it is just an example; but every command you type, for example ls or cd or ssh, it is located somewhere in your $PATH).
+You can check the location of commands with `which ssh` for ssh, or `which cd` for cd, etc.
 
 You can see the value of PATH by typing `echo $PATH` in your terminal. If you do that, you will see something like this:
 
@@ -34,4 +35,4 @@ VScode will help you by adding the directory of your current project to `PYTHONP
 
 Then, there is another type of path, which is a filepath. This is a path to a file on your computer. For example, if you have a file called `my_file.txt` in your home directory, the filepath will be `/Users/yourusername/my_file.txt`. If you have a file called `my_file.txt` in a directory called `my_directory` in your home directory, the filepath will be `/Users/yourusername/my_directory/my_file.txt`.
 
-The problem with using paths like this, is that /Users/yourusername/ is different on every computer. So if you want to share your code with someone else, you would have to change the location. That is why it is better to either use the HOME environment variable, which every shell has in its environment. That is why I write `$HOME/.pyenv/bin` in my .zshrc file, instead of `/Users/yourusername/.pyenv/bin`: this way I dont need to modify my zshrc file if I copy it to another machine.
+The problem with using paths like this, is that /Users/yourusername/ is different on every computer. So if you want to share your code with someone else, you would have to change the location. That is why it is better to either use the HOME environment variable, which every shell has in its environment. That is why I write `$HOME/.pyenv/bin` (for example) in my .zshrc file, instead of `/Users/yourusername/.pyenv/bin`: this way I dont need to modify my zshrc file if I copy it to another machine.
