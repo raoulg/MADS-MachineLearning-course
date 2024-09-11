@@ -18,7 +18,7 @@ pre-commit:
       glob: '*.py'
       run: mypy --pretty {staged_files}
     lychee:
-      run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*"
+      run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*" --max-cache-age 7d
 
 pre-merge:
   commands:
@@ -37,4 +37,4 @@ pre-merge:
       glob: '*.py'
       run: mypy --pretty {all_files} --ignore-missing-imports
     lychee:
-      run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*"
+      run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*" --max-cache-age 7d
