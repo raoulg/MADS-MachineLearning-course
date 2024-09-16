@@ -40,6 +40,7 @@ dependencies = [
     "bayesian-optimization>=1.4.3",
     "tensorboard>=2.15.1",
     "torch-tb-profiler>=0.4.3",
+    "jupytext>=1.16.4",
 ]
 
 [project.optional-dependencies]
@@ -87,3 +88,8 @@ ignore = [
 line-length = 88
 
 
+# ```toml
+# [[tool.rye.sources]]
+# name = "company-internal"
+# url = "https://company.internal/simple/"
+# https://github.com/astral-sh/rye/blob/3cbfdf3363e7df7058b753c831d9b09d1a503833/docs/guide/sources.md
