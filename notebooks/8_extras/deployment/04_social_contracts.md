@@ -6,9 +6,9 @@ Programming is much more an act of communication between you and another program
 It often doesnt matter how you do something exactly, but you need to have an opinion.
 
 - Use git, plus a [convention how to use git](https://www.toptal.com/software/trunk-based-development-git-flow)
-- Dont hardcode, use pydantic
-- use linters (black / flake8 / mypy)
-- use environments (e.g. poetry + pyenv)
+- Dont hardcode, use setting objects (eg pydantic or dataclasses)
+- use linters (ruff / isort / mypy)
+- use environments (rye)
 
 Some situations require another approach, but "I have never used it before" is definitely not a good reason not to use it.
 
