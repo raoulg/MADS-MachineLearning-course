@@ -3,7 +3,7 @@ pre-commit:
     black:
       files: git ls-files
       glob: '*.{py, ipynb}'
-      run: black {staged_files}
+      run: rye fmt {staged_files}
       stage_fixed: true
     clean-jupyter:
       files: git ls-files
@@ -24,7 +24,7 @@ pre-merge:
   commands:
     black:
       glob: '*.{py, ipynb}'
-      run: black {all_files}
+      run: rye fmt {all_files}
       stage_fixed: true
     clean-jupyter:
       glob: '*.ipynb'
