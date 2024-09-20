@@ -53,13 +53,14 @@ explainable = [
 	"shap>=0.43.0",
 ]
 
-[tool]
-rye = { dev-dependencies = [
+[tool.rye]
+dev-dependencies = [
     "jupyter>=1.0.0",
     "ruff>=0.4.3",
     "mypy>=1.10.0",
     "isort>=5.13.2",
-] }
+]
+universal = true
 
 [tool.mypy]
 ignore_missing_imports = true
