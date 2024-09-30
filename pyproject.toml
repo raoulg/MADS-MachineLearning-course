@@ -60,15 +60,8 @@ dev-dependencies = [
     "mypy>=1.10.0",
     "isort>=5.13.2",
 ]
-universal = true
-
-[tool.mypy]
-ignore_missing_imports = true
-strict_optional = true
-warn_unreachable = true
-pretty = true
 
 [build-system]
-build-backend = "pdm.backend"
-requires = ["pdm-backend"]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
