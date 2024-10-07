@@ -61,7 +61,6 @@ dev-dependencies = [
     "isort>=5.13.2",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+virtual = true
+managed = true
 
