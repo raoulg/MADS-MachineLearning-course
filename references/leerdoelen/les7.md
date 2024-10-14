@@ -11,5 +11,6 @@ De student begrijpt:
 7.8 Begrijpt hoe je een Laplacian matrix van een graph maakt
 7.9 Spectral clustering: Begrijpt dat je de eigenvectors van een Laplacian matrix kunt gebruiken om een graph te clusteren
 
+Lees uit Understanding Deep Learning hoofdstuk 13, Graph Neural Networks
 https://www.youtube.com/watch?v=fOctJB4kVlM
 https://www.youtube.com/watch?v=ABCGCf8cJOE

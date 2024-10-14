@@ -26,4 +26,6 @@ De student kan
 | 6.8 | when to use siamese networks        | lesson    |                                       |
 | 6.9 | how to adjust a dataloader for AE   | lesson    | 6_unsupervised/src/settings.py        |
 
+
+Lees uit Understanding Deep Learning hoofdstuk 17
 https://youtu.be/qiUEgSCyY5o?si=AbXEZwyG6ISYaNi_
