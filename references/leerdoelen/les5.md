@@ -28,8 +28,12 @@ Vaardigheden:
 |                          5.12 | Bring your own dataloader          |            exercises, mads_datasets |
 
 # resources
+Lees van Understanding Deep Learning hoofdstuk 12, Transformers
+Kijk de volgende filmpjes:
 - https://www.youtube.com/watch?v=yGTUuEx3GkA
 - https://www.youtube.com/watch?v=tIvKXrEDMhk
 
+Optioneel: lees de attention paper:
 [attention is all you need](https://arxiv.org/pdf/1706.03762.pdf)
+Optioneel: interactieve transformers:
 [transformers visually explained](https://poloclub.github.io/transformer-explainer/)
