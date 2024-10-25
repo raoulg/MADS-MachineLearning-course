@@ -15,19 +15,19 @@ all:
 	make tb
 
 encode:
-	export PYTHONPATH=$(PYTHONPATH) & pdm run src/autoencoder.py
+	python src/autoencoder.py
 
 viz:
-	export PYTHONPATH=$(PYTHONPATH) ; pdm run python src/show_vae.py
+	python src/show_vae.py
 
 embed:
-	export PYTHONPATH=$(PYTHONPATH) ; pdm run python src/vae_embeddings.py
+	python src/vae_embeddings.py
 
 query:
-	export PYTHONPATH=$(PYTHONPATH) ; pdm run python src/query_embeddings.py
+	python src/query_embeddings.py
 
 tb:
-	pdm run tensorboard --logdir models/embeddings
+	tensorboard --logdir models/embeddings
 
 lint:
 	black src
