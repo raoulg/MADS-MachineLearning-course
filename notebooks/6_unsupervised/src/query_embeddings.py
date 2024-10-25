@@ -9,7 +9,6 @@ from torchvision.transforms import ToTensor
 from settings import VAESettings
 from show_vae import plot_grid
 
-logger.add("/tmp/autoencoder.log")
 logger.add("logs/vae.log")
 
 
@@ -38,7 +37,7 @@ def main():
 
     dd, ii = kdtree.query(other.detach().numpy(), k=9)
 
-    closest = img[ii]
+    closest = img[ii[0]]
     logger.info(f"closest items for label {y}")
     imgpath = presets.imgpath / Path(f"closest-label-{y}.png")
     plot_grid(closest, imgpath, title=f"Label {y}")

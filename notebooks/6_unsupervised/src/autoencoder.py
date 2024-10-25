@@ -5,9 +5,22 @@ from torchvision import datasets
 from torchvision.transforms import ToTensor
 
 from settings import VAESettings, VAEstreamer
+import numpy as np
 
 logger.add("/tmp/autoencoder.log")
 logger.add("logs/vae.log")
+
+
+class ReconstructionLoss:
+    def __call__(self, y, yhat):
+        sqe = (y - yhat) ** 2
+        if isinstance(sqe, torch.Tensor):
+            summed = sqe.sum(dim=(1, 2, 3))
+        elif isinstance(sqe, np.ndarray):
+            summed = np.sum(sqe, axis=(1, 2, 3))
+        else:
+            raise TypeError("Input should be either a PyTorch tensor or a NumPy array.")
+        return summed.mean()
 
 
 def main():
@@ -53,7 +66,7 @@ def main():
     x = decoder(latent)
     logger.info(f"the shape after: {x.shape}")
 
-    lossfn = vae.RecostructionLoss()
+    lossfn = ReconstructionLoss()
     loss = lossfn(x, X2)
     logger.info(f"Untrained loss: {loss}")
 
