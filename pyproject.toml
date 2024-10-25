@@ -35,6 +35,7 @@ dependencies = [
     "bayesian-optimization>=1.4.3",
     "tensorboard>=2.15.1",
     "torch-tb-profiler>=0.4.3",
+    "pyright>=1.1.386",
 ]
 
 [project.optional-dependencies]

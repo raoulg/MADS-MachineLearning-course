@@ -14,9 +14,10 @@ pre-commit:
       files: git ls-files
       glob: '*.py'
       run: ruff {staged_files} --fix
-    mypy:
+    pyright:
+      files: git ls-files
       glob: '*.py'
-      run: mypy --pretty {staged_files}
+      run: pyright {staged_files}
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*" --max-cache-age 7d
 
@@ -33,8 +34,8 @@ pre-merge:
     ruff:
       glob: '*.py'
       run: ruff {all_files} --fix
-    mypy:
+    pyright:
       glob: '*.py'
-      run: mypy --pretty {all_files} --ignore-missing-imports
+      run: pyright {staged_files}
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*" --max-cache-age 7d
