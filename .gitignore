@@ -35,3 +35,4 @@ data/raw/*.arff
 .lycheecache
 **/*.log
 **/gestures/
+.venv

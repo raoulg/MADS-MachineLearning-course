@@ -1,0 +1,22 @@
+{
+    "image": "raoulgrouls/devcontainer-slim:latest",
+	"remoteUser": "devuser",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/home/devuser/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+	"workspaceFolder": "/home/devuser/${localWorkspaceFolderBasename}",
+    "postStartCommand": "zsh",
+	"postCreateCommand": "uv venv && . .venv/bin/activate && uv pip install jupyter",
+    "customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-toolsai.jupyter",
+				"mhutchie.git-graph",
+				"charliermarsh.ruff",
+				"ms-python.black-formatter"
+			],
+			"settings": {
+				"editor.rulers" : [88]
+			}
+		}
+	}
+}
