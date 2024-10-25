@@ -26,7 +26,7 @@ class VAESettings(BaseModel):
     h1: int = 250
     h2: int = 100
     insize: int = 784
-    latent: int = 10
+    latent: int = 2
     batchsize: int = 32
     epochs: int = 100
     modelname: Path = Path("vaemodel.pt")
