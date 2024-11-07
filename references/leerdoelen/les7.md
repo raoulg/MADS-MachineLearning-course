@@ -14,3 +14,6 @@ De student begrijpt:
 Lees uit Understanding Deep Learning hoofdstuk 13, Graph Neural Networks
 https://www.youtube.com/watch?v=fOctJB4kVlM
 https://www.youtube.com/watch?v=ABCGCf8cJOE
+
+for non-euclidian spaces:
+https://youtu.be/n7GYYerlQWs
