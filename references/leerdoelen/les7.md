@@ -20,3 +20,6 @@ Kijk deze twee videos over graph neural networks
 
 Lees uit Understanding Deep Learning hoofdstuk 13, Graph Neural Networks
 
+This is a pretty nice overview of research, papers and resources regarding hyperbolic 
+representations and deep learning:
+- https://github.com/marlin-codes/Awesome-Hyperbolic-Representation-and-Deep-Learning
