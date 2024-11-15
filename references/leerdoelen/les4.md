@@ -1,5 +1,5 @@
 # Les 4  
-Lees [[../Automated Machine Learning.pdf | Automated Machine Learning]], hoofdstuk 1.  
+Lees [[../Automated\ Machine\ Learning.pdf | Automated Machine Learning]], hoofdstuk 1.  
 
 De student begrijpt:  
 4.1 - wat een wordembedding is en wat de motivatie is tov one-hot-encoding  
