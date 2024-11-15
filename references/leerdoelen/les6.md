@@ -1,18 +1,20 @@
 # Les 6
-De student begrijpt
-6.1 - hoe de architectuur van een autoencoder in elkaar zit
-6.2 - Wat een latent space is, en hoe je die kunt visualiseren
-6.3 - Wat het contrast is tussen autoencoders en Supervised learning op punten als de latent space en de loss functie.
-6.4 - Wat praktische toepassingen zijn van autoencoders en hoe de latent space gebruikt kan worden als half-fabrikaat voor andere modellen
-6.5 - Hoe anomaly detection met een autoencoder werkt
-6.6 - Hoe unsupervised classification met een autoencoder werkt
-6.7 - Wat de elementen van een siamese network zijn
-6.8 - Wanneer je siamese networks zou willen gebruiken
-6.9 - Hoe je een dataloader moet aanpassen voor een autoencoder
+Lees uit Understanding Deep Learning hoofdstuk 17  
 
-De student kan
-6.9 - Een autoencoder netwerk ontwerpen en hypertunen
-6.10 - Een encoder of decoder uit een getrainde autoencoder hergebruiken
+De student begrijpt  
+6.1 - hoe de architectuur van een autoencoder in elkaar zit  
+6.2 - Wat een latent space is, en hoe je die kunt visualiseren  
+6.3 - Wat het contrast is tussen autoencoders en Supervised learning op punten als de latent space en de loss functie.  
+6.4 - Wat praktische toepassingen zijn van autoencoders en hoe de latent space gebruikt kan worden als half-fabrikaat voor andere modellen  
+6.5 - Hoe anomaly detection met een autoencoder werkt  
+6.6 - Hoe unsupervised classification met een autoencoder werkt  
+6.7 - Wat de elementen van een siamese network zijn  
+6.8 - Wanneer je siamese networks zou willen gebruiken  
+6.9 - Hoe je een dataloader moet aanpassen voor een autoencoder  
+
+De student kan  
+6.9 - Een autoencoder netwerk ontwerpen en hypertunen  
+6.10 - Een encoder of decoder uit een getrainde autoencoder hergebruiken  
 
 |                topic | description        |      page | code                                  |
 |--------------------- | ------------       |  -------- | -----------------------               |
@@ -27,5 +29,5 @@ De student kan
 | 6.9 | how to adjust a dataloader for AE   | lesson    | 6_unsupervised/src/settings.py        |
 
 
-Lees uit Understanding Deep Learning hoofdstuk 17
+# resources
 https://youtu.be/qiUEgSCyY5o?si=AbXEZwyG6ISYaNi_
