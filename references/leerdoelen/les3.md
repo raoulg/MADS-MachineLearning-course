@@ -23,6 +23,27 @@ De student kan:
 3.14 - Een configureerbare RNN bouwen  
 3.15 - Een timeseries model handmatig hypertunen en daar verslaglegging van doen.  
 
+# English
+The student understands:
+
+3.1 - What the motivation is to use RNNs  
+3.2 - What a window and horizon are  
+3.3 - What's important in data preparation to prevent data leakage  
+3.4 - How a simple RNN works (hidden state)  
+3.5 - How GRU and LSTM differ from RNN (gates)  
+3.6 - What the functions of a gate are (remember, forget, something in between)  
+3.7 - How a gate works (with a hadamard product)  
+3.8 - What the advantages and disadvantages of LSTM vs GRU vs RNN are  
+3.9 - How windowing works with timeseries, and why that's relevant  
+3.10 - How 1D convolutions work with timeseries  
+3.11 - Understands how a naive model works and the motivation behind it (MASE metric)  
+
+The student can:  
+3.12 - Passively follow the mathematics of RNN/GRU/LSTM, including the notation  
+3.13 - Window a dataset  
+3.14 - Build a configurable RNN  
+3.15 - Manually hypertune a timeseries model and report on it  
+
 # resources  
 1. https://youtu.be/LHXXI4-IEns?si=JOgsNKCohksH0Pdf  
 2. https://youtu.be/8HyCNIVRbSU?si=p8Su2AOJTRFFI5MK  
