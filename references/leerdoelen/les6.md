@@ -1,5 +1,6 @@
 # Les 6
 Lees uit Understanding Deep Learning hoofdstuk 17  
+Lees de blog over JEPA https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/
 
 De student begrijpt  
 6.1 - hoe de architectuur van een autoencoder in elkaar zit  
