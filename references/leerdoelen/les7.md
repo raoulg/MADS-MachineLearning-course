@@ -1,6 +1,7 @@
 Les 7
 
 De student begrijpt:
+
 7.1 Wat het verschil is tussen euclidische en niet-euclidische geometrie
 7.2 Heeft een globaal idee over de geschiedenis van niet-euclidische geometrie
 7.3 Kent een aantal praktische voorbeelden van niet-euclidische datasets
