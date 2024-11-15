@@ -17,10 +17,10 @@ De student kan:
 2.12 - een Machine Learning probleem classificeren als classificatie / regressie / reinforcement / (semi)unsupervised  
 2.13 - begrijpt welke dimensionaliteit een convolution nodig heeft en wat de strategieen zijn om dit te laten aansluiten op andere tensors  
 
-
-
 Kijk https://www.youtube.com/watch?v=FmpDIaiMIeA  
 Kijk https://www.youtube.com/watch?v=KuXjwB4LzSA  
+
+Als je filmpjes kijken leuk vind, https://www.youtube.com/watch?v=aircAruvnKk is een excellente uitleg van wat we in les 1 hebben besproken.  
 
 |       topic | description                                                           |            page | notebooks                             |
 | ----------- | --------------------------------------------------------------------- |   ------------- | -------------                         |
