@@ -1,5 +1,5 @@
 # Les 6
-Lees uit Understanding Deep Learning hoofdstuk 17  
+Lees uit Understanding Deep Learning hoofdstuk 14.
 Lees de blog over JEPA https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/
 
 De student begrijpt  
@@ -20,16 +20,16 @@ De student kan
 
 |                topic | description        |      page | code                                  |
 |--------------------- | ------------       |  -------- | -----------------------               |
-| 6.1 | what is the architecture of an AE   | 336-338   |  mltrainer.vae.py, 6_unsupervised/src |
-| 6.2 | what is a latent space              | 338-339   | 6_unsupervised/src/show_vae.py        |
-| 6.3 | contrast AE vs Supervised learning  | lesson    |                                       |
-| 6.4 | practical applications of AE        | lesson    |                                       |
+| 6.1 | what is the architecture of an AE   | 17.6.1 (336-338)  |  mltrainer.vae.py, 6_unsupervised/src |
+| 6.2 | what is a latent space              | 14.1,14.2 (268-271)  | 6_unsupervised/src/show_vae.py        |
+| 6.3 | contrast AE vs Supervised learning  | 268    |                                       |
+| 6.4 | practical applications of AE        | lesson, p322 (applications), 17.8 (339-342) |                                       |
 | 6.5 | anomaly detection with AE           | lesson    |                                       |
 | 6.6 | unsupervised classification with AE | lesson    |                                       |
 | 6.7 | elements of a siamese network       | lesson    |                                       |
 | 6.8 | when to use siamese networks        | lesson    |                                       |
 | 6.9 | how to adjust a dataloader for AE   | lesson    | 6_unsupervised/src/settings.py        |
-| 6.10 | Understand the innovation of JEPA  | lesson    |       |
+| 6.10 | Understand the innovation of JEPA  | lesson, [blog](https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/)  |       |
 
 
 # resources
