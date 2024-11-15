@@ -10,11 +10,12 @@ De student begrijpt
 6.6 - Hoe unsupervised classification met een autoencoder werkt  
 6.7 - Wat de elementen van een siamese network zijn  
 6.8 - Wanneer je siamese networks zou willen gebruiken  
-6.9 - Hoe je een dataloader moet aanpassen voor een autoencoder  
+6.9 - Hoe je een dataloader moet aanpassen voor een autoencoder 
+6.10 - Wat is de motivatie voor JEPA? Hoe werkt JEPA in vergelijking met autoencoders / genai?
 
 De student kan  
-6.9 - Een autoencoder netwerk ontwerpen en hypertunen  
-6.10 - Een encoder of decoder uit een getrainde autoencoder hergebruiken  
+6.11 - Een autoencoder netwerk ontwerpen en hypertunen  
+6.12 - Een encoder of decoder uit een getrainde autoencoder hergebruiken  
 
 |                topic | description        |      page | code                                  |
 |--------------------- | ------------       |  -------- | -----------------------               |
@@ -27,6 +28,7 @@ De student kan
 | 6.7 | elements of a siamese network       | lesson    |                                       |
 | 6.8 | when to use siamese networks        | lesson    |                                       |
 | 6.9 | how to adjust a dataloader for AE   | lesson    | 6_unsupervised/src/settings.py        |
+| 6.10 | Understand the innovation of JEPA  | lesson    |       |
 
 
 # resources
