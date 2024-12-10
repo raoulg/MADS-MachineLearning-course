@@ -36,6 +36,7 @@ dependencies = [
     "tensorboard>=2.15.1",
     "torch-tb-profiler>=0.4.3",
     "pyright>=1.1.386",
+    "tokenizers>=0.21.0",
 ]
 
 [project.optional-dependencies]
