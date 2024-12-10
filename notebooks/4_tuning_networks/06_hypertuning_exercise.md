@@ -42,12 +42,12 @@ You CAN use hyperband if you want to speed up scans of big hyperparameter spaces
 
 
 ## Implementing
-Set up your own repository.
+Set up your own repository, if you havent done that yet.
 In hypertune.py, I have set up an example for hypertuning.
 Implement your own hypertuner for another model / dataset from scratch.
 
 - make sure your environment is reproducable
-    - dont blindly reuse the environment from the lessons; use a minimal environment.
+    - dont blindly reuse the environment from the lessons; this means, DO NOT simply copy pyproject.toml but create a minimal environment by following [the codestyle](https://github.com/raoulg/codestyle/blob/main/docs/make_a_module.md)
     - Check the [dependencies for mltrainer](https://github.com/raoulg/mltrainer/blob/main/pyproject.toml) to see whats already installed if you use mltrainer
     - have a look at the pyproject.toml file from the course;
         - `hpbandster` is for hyperband
@@ -55,11 +55,11 @@ Implement your own hypertuner for another model / dataset from scratch.
         - `bayesian-optimization` is for, well, bayesian optimization
         - `hyperopt` is another hyperoptimalisation library which we have used in `2_convolutions/03_mlflow.ipynb`. It doesnt has as much algorithms as ray, which is why we use ray. Just know that `hyperopt` can be an alternative to `ray.tune` that's slightly easier to setup but less powerful.
 - make a function to pull your data, you can use `mads_datasets` for this.
-- make a *configurable model* where you can change the different options from the config
+- make a *configurable model* where you can change the different options from the config. You can decide for yourself if you want to make it configurable by simply passing a dictionary, or by creating a @dataclass as a Settings object, or by using eg gin-config or loading a .toml file with `tomllib` (since python 3.11 part of python).
 - build a hypertuner.py script
-    - DO NOT use hyperband!
+    - DO NOT use hyperband! This is a good idea for deployement, but not for researching the interaction between variables!!!
 - make a README that explains your experiments
-- Lint and format your code !! with black and ruff untill all your errors are gone !!
+- Lint and format your code !! with black, ruff and pyright untill all your errors are gone !!
 
 ## Report
 You will write a report of 1 page. Not 2, not 3. 1 page. Somehow this turns out to be very difficult for students :)
