@@ -13,7 +13,7 @@ pre-commit:
     ruff:
       files: git ls-files
       glob: '*.py'
-      run: ruff {staged_files} --fix
+      run: ruff check {staged_files} --fix
     pyright:
       files: git ls-files
       glob: '*.py'
@@ -33,7 +33,7 @@ pre-merge:
       stage_fixed: true
     ruff:
       glob: '*.py'
-      run: ruff {all_files} --fix
+      run: ruff check {all_files} --fix
     pyright:
       glob: '*.py'
       run: pyright {staged_files}
