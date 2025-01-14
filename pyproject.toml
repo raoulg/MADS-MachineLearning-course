@@ -66,3 +66,11 @@ dev-dependencies = [
 virtual = true
 managed = true
 
+[dependency-groups]
+dev = [
+    "isort>=5.13.2",
+    "jupyter>=1.1.1",
+    "mypy>=1.14.1",
+    "ruff>=0.9.1",
+]
+
