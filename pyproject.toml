@@ -7,7 +7,7 @@ authors = [
     {name = "R.Grouls", email = "Raoul.Grouls@han.nl"},
 ]
 
-requires-python = ">=3.10,<3.12"
+requires-python = ">=3.11,<3.12"
 license = {text = "MIT"}
 
 classifiers = [
@@ -54,17 +54,6 @@ graphs = [
 explainable = [
 	"shap>=0.43.0",
 ]
-
-[tool.rye]
-dev-dependencies = [
-    "jupyter>=1.0.0",
-    "ruff>=0.4.3",
-    "mypy>=1.10.0",
-    "isort>=5.13.2",
-]
-
-virtual = true
-managed = true
 
 [dependency-groups]
 dev = [
