@@ -1575,7 +1575,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "mads-datasets", extras = ["torch"], specifier = ">=0.3.12" },
     { name = "matplotlib", specifier = ">=3.7.1" },
-    { name = "mltrainer", specifier = ">=0.1.129" },
+    { name = "mltrainer", specifier = ">=0.2b1" },
     { name = "numpy", specifier = ">=1.25.0" },
     { name = "pandas", specifier = ">=2.0.3" },
     { name = "plotly", specifier = ">=5.17.0" },
@@ -1794,7 +1794,7 @@ wheels = [
 
 [[package]]
 name = "mltrainer"
-version = "0.1.129"
+version = "0.2b1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "gin-config" },
@@ -1805,13 +1805,11 @@ dependencies = [
     { name = "ray", extra = ["tune"] },
     { name = "torch" },
     { name = "torch-tb-profiler" },
-    { name = "torchtext" },
     { name = "torchvision" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/32/ea/9b7fdec20cb5e768f4756f747240ce3ac2835a0341caeb0ae3cb6e8523dc/mltrainer-0.1.129.tar.gz", hash = "sha256:6e136adbc3290b475953e55e696fe22cdb3c8a4c37a03608d833ef6bbdc44f0d", size = 8965 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/d4/bc629972c9c5f5fefc77ab92602704614c068986ac9cbfdf0cd50841f2a0/mltrainer-0.1.129-py3-none-any.whl", hash = "sha256:b9508c168fc212ba11fc336380019315a9d40a8d3903207585da5d5a46e34414", size = 11329 },
+    { url = "https://files.pythonhosted.org/packages/a0/62/f2dc4caa54b5d2a2c5998a62540194c5e4343d5e1226a675d88b660e984f/mltrainer-0.2b1-py3-none-any.whl", hash = "sha256:4fc6cfcea90d25cac29ce1688dae9abc5d3dd83b696f084c4935125b9911d090", size = 9341 },
 ]
 
 [[package]]
@@ -3407,25 +3405,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5b/64/aa68ef646bcccab489cac2a85d366559df7d9d24406dbbf3344703cbe33f/torchsummary-1.5.1.tar.gz", hash = "sha256:981bf689e22e0cf7f95c746002f20a24ad26aa6b9d861134a14bc6ce92230590", size = 3749 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7d/18/1474d06f721b86e6a9b9d7392ad68bed711a02f3b61ac43f13c719db50a6/torchsummary-1.5.1-py3-none-any.whl", hash = "sha256:10f41d1743fb918f83293f13183f532ab1bb8f6639a1b89e5f8592ec1919a976", size = 2826 },
-]
-
-[[package]]
-name = "torchtext"
-version = "0.18.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "numpy" },
-    { name = "requests" },
-    { name = "torch" },
-    { name = "tqdm" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/94/1e805ef3ec6541de75e8a86c32e00be471d98cdcef5035ad26457bc388cf/torchtext-0.18.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:5826d5bbfe84a3c533e7e97659f72dbff73e1614c00c06709607d17c8446e09c", size = 2137942 },
-    { url = "https://files.pythonhosted.org/packages/d7/4f/9953b4d4b79917e03c393484ea8ce8f46a4cc1745f272cc371550fb7fc05/torchtext-0.18.0-cp310-cp310-manylinux1_x86_64.whl", hash = "sha256:3dc446f74aaa9aebab045fbefd102752675258e72ba447982c65e010e1cfd29a", size = 2021446 },
-    { url = "https://files.pythonhosted.org/packages/b2/3d/6f18d551b00bf8babaa3a569d5fd62cba2bd7bbdeaf82167a959352ba56b/torchtext-0.18.0-cp310-cp310-win_amd64.whl", hash = "sha256:d4bfe9cb7b08cf7ff3473309d9f24ed243c3a847bfbb2c932925551bf7a05892", size = 1949005 },
-    { url = "https://files.pythonhosted.org/packages/61/22/38bba8f6255f3e58b7f9d66cc988e044ee8cfb4edf0c57f4a7918e7c4aa6/torchtext-0.18.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:0f3855b2ada84f02298e72ad19c1a86f940df2f4ce62d89098955f3ae575d174", size = 2139004 },
-    { url = "https://files.pythonhosted.org/packages/13/0a/0d1e5426dbab2171551fe1b53e3ed80f42dbcadf7c28cc3676f0e311dc2f/torchtext-0.18.0-cp311-cp311-manylinux1_x86_64.whl", hash = "sha256:7ac7a392ae42d8b7675bdb31f1764bec77d4dec3a44bca5a2644c2cee3484453", size = 2021969 },
-    { url = "https://files.pythonhosted.org/packages/04/be/03b76f21b87db03101e3dc8055b7e490c2f9cf26b01dabedc15aed15da61/torchtext-0.18.0-cp311-cp311-win_amd64.whl", hash = "sha256:1e00475dbf629ba529d27903f2dd6b53c4a559f1483539b8c2a821d393bd24cf", size = 1949281 },
 ]
 
 [[package]]
