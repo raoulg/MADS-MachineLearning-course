@@ -9,9 +9,9 @@ De student begrijpt:
 2.6 - Wat een Convolution van 1x1 filter doet  
 2.7 - Kent ruwweg de innovaties die de verschillende architecturen doen: AlexNet, VGG, GoogleNet, ResNet, SENet  
 2.8 - Begrijpt wat overfitting is en hoe regularisatie (batchnorm, splits, dropout, learning rate) helpt.  
+2.9 - hoe een Convolution schaalt (O(n)) ten opzicht van een NN (O(n^2))  
 
 De student kan:  
-2.9 - reproduceren hoe een Convolution schaalt (O(n)) ten opzicht van een NN (O(n^2))  
 2.10 - Een configureerbaar Convolution NN bouwen en handmatig hypertunen  
 2.11 - MLFlow gebruiken naast gin-config  
 2.12 - een Machine Learning probleem classificeren als classificatie / regressie / reinforcement / (semi)unsupervised  
