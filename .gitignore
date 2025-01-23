@@ -36,3 +36,4 @@ data/raw/*.arff
 **/*.log
 **/gestures/
 .venv
+.notebookcache
