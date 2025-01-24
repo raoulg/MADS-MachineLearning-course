@@ -208,17 +208,17 @@ wheels = [
 
 [[package]]
 name = "bayesian-optimization"
-version = "2.0.3"
+version = "1.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama" },
     { name = "numpy" },
     { name = "scikit-learn" },
-    { name = "scipy", marker = "python_full_version == '3.11.*'" },
+    { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/1b/6cc2c43dffd16f0b924c905726e602855fae5856ab4f81fd8c68bbfee51e/bayesian_optimization-2.0.3.tar.gz", hash = "sha256:2fd4bff8b2e5dda2d658ab66b57a2f39e6dc2c36ba5489878e45499c732cdf44", size = 29244 }
+sdist = { url = "https://files.pythonhosted.org/packages/48/9d/006cb952083689a487a7e93e44f504a59bb3361f300f8272f325f270820e/bayesian_optimization-1.5.1.tar.gz", hash = "sha256:a83590b64b57a8e4508424629c817b1c41f89b76c9254dc60aa313505df389b0", size = 29501 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/d2/e9c7bc264eb2e59cbc1bfd6c66f053824fb87d630f07a1657bd63415ad2a/bayesian_optimization-2.0.3-py3-none-any.whl", hash = "sha256:73d08237c46a1787c17333aeaae3e41c5fab8e58a68d979645b70e72ba22b63d", size = 31309 },
+    { url = "https://files.pythonhosted.org/packages/c5/fd/5998d2f9d693b5ef2954e3d9ddb96ede395373faa5d9bcfbd7da4b945d47/bayesian_optimization-1.5.1-py3-none-any.whl", hash = "sha256:098946c933d6039073b7ccb0c9f1b4c73ac6e39350043b02e5243b08583c4c5c", size = 28373 },
 ]
 
 [[package]]
@@ -1375,15 +1375,15 @@ dependencies = [
     { name = "mads-datasets", extra = ["torch"] },
     { name = "matplotlib" },
     { name = "mltrainer" },
-    { name = "numpy" },
-    { name = "pandas" },
     { name = "plotly" },
     { name = "pydantic" },
     { name = "seaborn" },
     { name = "tensorboard" },
     { name = "tokenizers" },
     { name = "torch" },
+    { name = "torch-geometric" },
     { name = "torch-tb-profiler" },
+    { name = "torchinfo" },
 ]
 
 [package.optional-dependencies]
@@ -1407,13 +1407,14 @@ dev = [
     { name = "isort" },
     { name = "jupyter" },
     { name = "mypy" },
+    { name = "notebooktester" },
     { name = "pyright" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "bayesian-optimization", specifier = ">=1.4.3" },
+    { name = "bayesian-optimization", specifier = "==1.5.1" },
     { name = "configspace", specifier = ">=0.7.1" },
     { name = "hyperopt", specifier = ">=0.2.7" },
     { name = "jupytext", marker = "extra == 'all'", specifier = ">=1.16.4" },
@@ -1422,8 +1423,6 @@ requires-dist = [
     { name = "mads-datasets", extras = ["torch"], specifier = ">=0.3.12" },
     { name = "matplotlib", specifier = ">=3.7.1" },
     { name = "mltrainer", specifier = ">=0.2b1" },
-    { name = "numpy", specifier = ">=1.25.0" },
-    { name = "pandas", specifier = ">=2.0.3" },
     { name = "plotly", specifier = ">=5.17.0" },
     { name = "pydantic", specifier = ">=1.10.9" },
     { name = "seaborn", specifier = ">=0.12.2" },
@@ -1432,9 +1431,11 @@ requires-dist = [
     { name = "tensorboard", specifier = ">=2.15.1" },
     { name = "tokenizers", specifier = ">=0.21.0" },
     { name = "torch", specifier = ">=2.0.1" },
+    { name = "torch-geometric", specifier = ">=2.6.1" },
     { name = "torch-geometric", marker = "extra == 'all'", specifier = ">=2.4.0" },
     { name = "torch-geometric", marker = "extra == 'graphs'", specifier = ">=2.4.0" },
     { name = "torch-tb-profiler", specifier = ">=0.4.3" },
+    { name = "torchinfo", specifier = ">=1.8.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1442,7 +1443,8 @@ dev = [
     { name = "isort", specifier = ">=5.13.2" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "mypy", specifier = ">=1.14.1" },
-    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "notebooktester", specifier = ">=0.1.0" },
+    { name = "pyright", specifier = ">=1.1.392" },
     { name = "ruff", specifier = ">=0.9.1" },
 ]
 
@@ -1832,6 +1834,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/54/d2/92fa3243712b9a3e8bafaf60aac366da1cada3639ca767ff4b5b3654ec28/notebook_shim-0.2.4.tar.gz", hash = "sha256:b4b2cfa1b65d98307ca24361f5b30fe785b53c3fd07b7a47e89acb5e6ac638cb", size = 13167 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f9/33/bd5b9137445ea4b680023eb0469b2bb969d61303dedb2aac6560ff3d14a1/notebook_shim-0.2.4-py3-none-any.whl", hash = "sha256:411a5be4e9dc882a074ccbcae671eda64cceb068767e9a3419096986560e1cef", size = 13307 },
+]
+
+[[package]]
+name = "notebooktester"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "jupyter" },
+    { name = "loguru" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/29/d6/70eb0a76e34d678b93b6761c70dd42bd9f2b9988134a3dcdab8cb258c7c1/notebooktester-0.1.0.tar.gz", hash = "sha256:535bb296c06f3e2b69f56cc43151ba1d7d8af0749494f90e6a3e74351a61dfe4", size = 54121 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/66/e0/37dfcca1d869222688c0176005bd813914e08adf649b5b5020b91156c84d/notebooktester-0.1.0-py3-none-any.whl", hash = "sha256:c0121f24c4c54bbe81108c2892a2d494a9688fa6c27fcb996d89f0765a5cbe6e", size = 6066 },
 ]
 
 [[package]]
@@ -2989,6 +3006,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/96/3f/1bdbeae21db91179c295bcecb7194d57cd0e184125c69e5a6e315ea4770f/torch_tb_profiler-0.4.3.tar.gz", hash = "sha256:8b8d29b2de960b3c4423087b23cec29beaf9ac3a8c7b046c18fd25b218f726b1", size = 1057029 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/46/d0/891ec43349f287ea5c313ebc1320e4eda38ccd4c7a0951657213467eaab5/torch_tb_profiler-0.4.3-py3-none-any.whl", hash = "sha256:207a49b05572dd983e4ab29eb5e0fcadd60374a8f93c78ec638217e8d18788dc", size = 1053410 },
+]
+
+[[package]]
+name = "torchinfo"
+version = "1.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/53/d9/2b811d1c0812e9ef23e6cf2dbe022becbe6c5ab065e33fd80ee05c0cd996/torchinfo-1.8.0.tar.gz", hash = "sha256:72e94b0e9a3e64dc583a8e5b7940b8938a1ac0f033f795457f27e6f4e7afa2e9", size = 25880 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/72/25/973bd6128381951b23cdcd8a9870c6dcfc5606cb864df8eabd82e529f9c1/torchinfo-1.8.0-py3-none-any.whl", hash = "sha256:2e911c2918603f945c26ff21a3a838d12709223dc4ccf243407bce8b6e897b46", size = 23377 },
 ]
 
 [[package]]

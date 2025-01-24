@@ -30,9 +30,11 @@ dependencies = [
     "plotly>=5.17.0",
     "hyperopt>=0.2.7",
     "configspace>=0.7.1",
-    "bayesian-optimization>=1.4.3",
+    "bayesian-optimization==1.5.1",
     "tensorboard>=2.15.1",
     "torch-tb-profiler>=0.4.3",
+    "torch-geometric>=2.6.1",
+    "torchinfo>=1.8.0",
 ]
 
 [project.optional-dependencies]
@@ -56,6 +58,7 @@ dev = [
     "isort>=5.13.2",
     "jupyter>=1.1.1",
     "mypy>=1.14.1",
+    "notebooktester>=0.1.1",
     "pyright>=1.1.392",
     "ruff>=0.9.1",
 ]
