@@ -12,10 +12,8 @@ from ray.tune import CLIReporter
 from ray.tune.search.hyperopt import HyperOptSearch
 from ray.tune.schedulers import AsyncHyperBandScheduler
 
-SAMPLE_INT = tune.search.sample.Integer
-SAMPLE_FLOAT = tune.search.sample.Float
 NUM_SAMPLES = 10
-MAX_EPOCHS = 50
+MAX_EPOCHS = 10
 
 
 def train(config: Dict):
@@ -81,7 +79,7 @@ def train(config: Dict):
         traindataloader=train.stream(),
         validdataloader=valid.stream(),
         scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau,
-        device=device,
+        device=str(device),
     )
 
     trainer.loop()
@@ -94,7 +92,7 @@ if __name__ == "__main__":
     if not data_dir.exists():
         data_dir.mkdir(parents=True)
         logger.info(f"Created {data_dir}")
-    tune_dir = Path("models/ray").resolve()
+    tune_dir = Path("logs/ray").resolve()
     search = HyperOptSearch()
     scheduler = AsyncHyperBandScheduler(
         time_attr="training_iteration",

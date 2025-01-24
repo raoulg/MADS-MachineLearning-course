@@ -18,27 +18,40 @@ It's up to you to create a configurable model now that can be hypertuned.
 ## Goal
 How do variables interact?
 This means:
-- pick a variable for the x-axis
-- pick another variable for the y-axis
-now you can use a metric as a third variable for color, and create heatmaps to explore how the two variables interact.
+- identify a pair of hyperparameters that you hypothesize will interact, based on the theory
+- make plots to visualize the relationship between the hyperparameters (see lesson 5 from the [DAV](https://github.com/raoulg/MADS-DAV) course)
+- pick a metric to color the plot, so you can see how the hyperparameters impact the metric
 
-You will typically see that variables interact. For example, dropout will exclude random hidden units from a layer. This means that if you have more units, your dropout can be higher. Some variables you can consider, ranging from high to low importance:
+For example, from theory you would know that dropout excludes random hidden units from a layer. It is also intended to counter overfitting caused by models having too much units, causing it to be too complex. This theory gives you all sorts of predictions: for example, you would expect that if you have more units, your dropout can be higher. And that if you increase the amount of units, it will overfit, unless you increase the dropout.
+
+Some hyperparameters to can consider, ranging from high to low importance:
 - the architecture of the model is the most important. Number of layers, type of layers, skiplayers, etc.
 - the number of hidden units
-- learning rate in combination with an optimizer
-- dropout
-- batchnorm
+- dropout, batchnorm, skiplayers
+- learning rate, type of optimizer, type of activation function, etc.
 
 The notebook 02_hypertune is an illustration of the interaction between number of layers and hidden units.
-You will pick two other variables and explore their interaction.
 
-IMPORTANT:
-Dont use hyperband when trying to create a heatmap! Or, at least, dont put models that have run just a few epochs together with models that have run many epochs. This will NOT give you a clear overview of the interaction between the variables.
+!!!IMPORTANT!!!:
+Dont use hyperband when trying to create a heatmap! Because this will cause you to put models that have run just a few epochs together with models that have run many epochs. This will NOT give you a clear overview of the interaction between the variables.
 
-You CAN use hyperband if you want to speed up scans of big hyperparameter spaces, but always keep in mind that you DONT use this for plotting heatmaps.
+You CAN use hyperband in the process (eg if you want to speed up scans of big hyperparameter spaces), but always keep in mind what you are doing when creating visualizations.
 
 - Visualise your finding
 - reflect on what you see, using the theory. Please dont use chatGPT to reflect: you will get text that makes you look like an idiot. Instead, try to make mistakes, it wont be subtracted from your grade; making mistakes gives me an oportunity to correct you, which might actually help you during your exam.
+
+### Scientific method
+The science part of data science is about setting up experiments. You follow this cycle:
+- make a hypothesis
+- design an experiment
+- run the experiment
+- analyze the results and draw conclusions
+- repeat
+
+To keep track of this process, it is useful to keep a journal. While you could use anything to do so, a nice command line tool is [jrnl](https://jrnl.sh/en/stable/). This gives you the advantage of staying in the terminal, just type down your ideas during the process, and you can always look back at what you have done.
+Try to first formulate a hypothesis, and then design an experiment to test it. This will help you to stay focused on the goal, and not get lost in the data.
+
+Important: the report you write is NOT the same as your journal! The journal will help you to keep track of your process, and later write down a reflection on what you have done where you draw conclusion, reflecting back on the theory.
 
 
 ## Implementing
@@ -50,7 +63,6 @@ Implement your own hypertuner for another model / dataset from scratch.
     - dont blindly reuse the environment from the lessons; this means, DO NOT simply copy pyproject.toml but create a minimal environment by following [the codestyle](https://github.com/raoulg/codestyle/blob/main/docs/make_a_module.md)
     - Check the [dependencies for mltrainer](https://github.com/raoulg/mltrainer/blob/main/pyproject.toml) to see whats already installed if you use mltrainer
     - have a look at the pyproject.toml file from the course;
-        - `hpbandster` is for hyperband
         - `configspace` is a dependency for `hpbandster`.
         - `bayesian-optimization` is for, well, bayesian optimization
         - `hyperopt` is another hyperoptimalisation library which we have used in `2_convolutions/03_mlflow.ipynb`. It doesnt has as much algorithms as ray, which is why we use ray. Just know that `hyperopt` can be an alternative to `ray.tune` that's slightly easier to setup but less powerful.
@@ -62,7 +74,7 @@ Implement your own hypertuner for another model / dataset from scratch.
 - Lint and format your code !! with black, ruff and pyright untill all your errors are gone !!
 
 ## Report
-You will write a report of 1 page. Not 2, not 3. 1 page. Somehow this turns out to be very difficult for students :)
+You will write a report of 1 page. Not 2, not 3. 1 page.
 1 A4 page means you will have to be very clear with your report. Remove all clutter. Use clear visualisations. Make sure it's clear in a few seconds what the results are of every experiment.
 
 You will get a:
