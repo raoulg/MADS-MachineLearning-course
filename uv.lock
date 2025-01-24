@@ -1320,12 +1320,6 @@ wheels = [
 ]
 
 [[package]]
-name = "llvmlite"
-version = "0.36.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/19/66/6b2c49c7c68da48d17059882fdb9ad9ac9e5ac3f22b00874d7996e3c44a8/llvmlite-0.36.0.tar.gz", hash = "sha256:765128fdf5f149ed0b889ffbe2b05eb1717f8e20a5c87fa2b4018fbcce0fcfc9", size = 126219 }
-
-[[package]]
 name = "loguru"
 version = "0.7.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1371,6 +1365,7 @@ dependencies = [
     { name = "bayesian-optimization" },
     { name = "configspace" },
     { name = "hyperopt" },
+    { name = "jupyter" },
     { name = "loguru" },
     { name = "mads-datasets", extra = ["torch"] },
     { name = "matplotlib" },
@@ -1387,17 +1382,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-all = [
-    { name = "jupytext" },
-    { name = "shap" },
-    { name = "torch-geometric" },
-]
-explainable = [
-    { name = "shap" },
-]
-graphs = [
-    { name = "torch-geometric" },
-]
 nvim = [
     { name = "jupytext" },
 ]
@@ -1405,7 +1389,6 @@ nvim = [
 [package.dev-dependencies]
 dev = [
     { name = "isort" },
-    { name = "jupyter" },
     { name = "mypy" },
     { name = "notebooktester" },
     { name = "pyright" },
@@ -1417,7 +1400,7 @@ requires-dist = [
     { name = "bayesian-optimization", specifier = "==1.5.1" },
     { name = "configspace", specifier = ">=0.7.1" },
     { name = "hyperopt", specifier = ">=0.2.7" },
-    { name = "jupytext", marker = "extra == 'all'", specifier = ">=1.16.4" },
+    { name = "jupyter", specifier = ">=1.1.1" },
     { name = "jupytext", marker = "extra == 'nvim'", specifier = ">=1.16.4" },
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "mads-datasets", extras = ["torch"], specifier = ">=0.3.12" },
@@ -1426,14 +1409,10 @@ requires-dist = [
     { name = "plotly", specifier = ">=5.17.0" },
     { name = "pydantic", specifier = ">=1.10.9" },
     { name = "seaborn", specifier = ">=0.12.2" },
-    { name = "shap", marker = "extra == 'all'", specifier = ">=0.43.0" },
-    { name = "shap", marker = "extra == 'explainable'", specifier = ">=0.43.0" },
     { name = "tensorboard", specifier = ">=2.15.1" },
     { name = "tokenizers", specifier = ">=0.21.0" },
     { name = "torch", specifier = ">=2.0.1" },
     { name = "torch-geometric", specifier = ">=2.6.1" },
-    { name = "torch-geometric", marker = "extra == 'all'", specifier = ">=2.4.0" },
-    { name = "torch-geometric", marker = "extra == 'graphs'", specifier = ">=2.4.0" },
     { name = "torch-tb-profiler", specifier = ">=0.4.3" },
     { name = "torchinfo", specifier = ">=1.8.0" },
 ]
@@ -1441,9 +1420,8 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "isort", specifier = ">=5.13.2" },
-    { name = "jupyter", specifier = ">=1.1.1" },
     { name = "mypy", specifier = ">=1.14.1" },
-    { name = "notebooktester", specifier = ">=0.1.0" },
+    { name = "notebooktester", specifier = ">=0.1.1" },
     { name = "pyright", specifier = ">=1.1.392" },
     { name = "ruff", specifier = ">=0.9.1" },
 ]
@@ -1838,7 +1816,7 @@ wheels = [
 
 [[package]]
 name = "notebooktester"
-version = "0.1.0"
+version = "0.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -1846,21 +1824,10 @@ dependencies = [
     { name = "loguru" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/29/d6/70eb0a76e34d678b93b6761c70dd42bd9f2b9988134a3dcdab8cb258c7c1/notebooktester-0.1.0.tar.gz", hash = "sha256:535bb296c06f3e2b69f56cc43151ba1d7d8af0749494f90e6a3e74351a61dfe4", size = 54121 }
+sdist = { url = "https://files.pythonhosted.org/packages/37/a1/2fa2b3e5a1de16fbfac5f7c85f53e6be99ff5dd9b2dc7916b02b42c3118d/notebooktester-0.1.1.tar.gz", hash = "sha256:79841ef43bcbb75d70971f66862642d66bf819f623d70a2255acd9c648cc051b", size = 54273 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/66/e0/37dfcca1d869222688c0176005bd813914e08adf649b5b5020b91156c84d/notebooktester-0.1.0-py3-none-any.whl", hash = "sha256:c0121f24c4c54bbe81108c2892a2d494a9688fa6c27fcb996d89f0765a5cbe6e", size = 6066 },
+    { url = "https://files.pythonhosted.org/packages/5e/8d/0a212fc28ae7d9118a06411cd60f60b63e696daf6771a934cb7374d37b2c/notebooktester-0.1.1-py3-none-any.whl", hash = "sha256:df8dcd6259379445d6004bba75ebd46b4ec217e5879428b0defaa99957073ca3", size = 6132 },
 ]
-
-[[package]]
-name = "numba"
-version = "0.53.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "llvmlite" },
-    { name = "numpy" },
-    { name = "setuptools" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e3/7d/3d61160836e49f40913741c464f119551c15ed371c1d91ea50308495b93b/numba-0.53.1.tar.gz", hash = "sha256:9cd4e5216acdc66c4e9dab2dfd22ddb5bef151185c070d4a3cd8e78638aff5b0", size = 2213956 }
 
 [[package]]
 name = "numpy"
@@ -2706,46 +2673,12 @@ wheels = [
 ]
 
 [[package]]
-name = "shap"
-version = "0.46.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cloudpickle" },
-    { name = "numba" },
-    { name = "numpy" },
-    { name = "packaging" },
-    { name = "pandas" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "slicer" },
-    { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/47/46/1b497452be642e19af56044814dfe32ee795805b443378821136729017a0/shap-0.46.0.tar.gz", hash = "sha256:bdaa5b098be5a958348015e940f6fd264339b5db1e651f9898a3117be95b05a0", size = 1214102 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e5/a1/43bd69f32ddf381a09de18ea94d4b215d5ced3a24ff1a7b7d1a9401b5b85/shap-0.46.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:f18217c98f39fd485d541f6aab0b860b3be74b69b21d4faf11959e3fcba765c5", size = 459333 },
-    { url = "https://files.pythonhosted.org/packages/5f/9e/dce41d5ec9e79add65faf4381d8d4492247b29daaa6cc7d7fd0298abc1e2/shap-0.46.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:5bbdae4489577c6fce1cfe2d9d8f3d5b96d69284d29645fe651f78f6e965aeb4", size = 455835 },
-    { url = "https://files.pythonhosted.org/packages/06/6a/09e3cb9864118337c0f3c2a0dc5add6b642e9f672665062e186d67ba992d/shap-0.46.0-cp311-cp311-manylinux_2_12_x86_64.manylinux2010_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:13d36dc58d1e8c010feb4e7da71c77d23626a52d12d16b02869e793b11be4695", size = 540163 },
-    { url = "https://files.pythonhosted.org/packages/c3/74/440eacbdf21c1b2e0a5b6962b79d4435e56a88588043d144a16c7785a596/shap-0.46.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:70e06fdfdf53d5fb932c82f4529397552b262e0ccce734f5226fb1e1eab2bc3e", size = 537765 },
-    { url = "https://files.pythonhosted.org/packages/08/e6/027ca36efcc8871eda4084bde5e4658a90e84006086186e39588fd03b396/shap-0.46.0-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:943f0806fa00b4fafb174f172a73d88de2d8600e6d69c2e2bff833f00e6c4c21", size = 1538290 },
-    { url = "https://files.pythonhosted.org/packages/82/29/923869e92c74bf07ec2b9a52ad5ac67d4184c873ba33ada7d4584356463a/shap-0.46.0-cp311-cp311-win_amd64.whl", hash = "sha256:c972a2efdc9fc00d543efaa55805eca947b8c418d065962d967824c2d5d295d0", size = 456103 },
-]
-
-[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050 },
-]
-
-[[package]]
-name = "slicer"
-version = "0.0.8"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/d3/f9/b4bce2825b39b57760b361e6131a3dacee3d8951c58cb97ad120abb90317/slicer-0.0.8.tar.gz", hash = "sha256:2e7553af73f0c0c2d355f4afcc3ecf97c6f2156fcf4593955c3f56cf6c4d6eb7", size = 14894 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/81/9ef641ff4e12cbcca30e54e72fb0951a2ba195d0cda0ba4100e532d929db/slicer-0.0.8-py3-none-any.whl", hash = "sha256:6c206258543aecd010d497dc2eca9d2805860a0b3758673903456b7df7934dc3", size = 15251 },
 ]
 
 [[package]]

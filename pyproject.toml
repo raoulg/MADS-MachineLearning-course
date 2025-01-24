@@ -19,44 +19,33 @@ classifiers = [
 ]
 
 dependencies = [
-    "torch>=2.0.1",
-    "tokenizers>=0.21.0",
-    "mads-datasets[torch]>=0.3.12",
-    "mltrainer>=0.2b1",
-    "loguru>=0.7.0",
-    "pydantic>=1.10.9",
-    "matplotlib>=3.7.1",
-    "seaborn>=0.12.2",
-    "plotly>=5.17.0",
-    "hyperopt>=0.2.7",
-    "configspace>=0.7.1",
     "bayesian-optimization==1.5.1",
+    "configspace>=0.7.1",
+    "hyperopt>=0.2.7",
+    "jupyter>=1.1.1",
+    "loguru>=0.7.0",
+    "mads-datasets[torch]>=0.3.12",
+    "matplotlib>=3.7.1",
+    "mltrainer>=0.2b1",
+    "plotly>=5.17.0",
+    "pydantic>=1.10.9",
+    "seaborn>=0.12.2",
+    "tokenizers>=0.21.0",
     "tensorboard>=2.15.1",
-    "torch-tb-profiler>=0.4.3",
-    "torch-geometric>=2.6.1",
+    "torch>=2.0.1",
     "torchinfo>=1.8.0",
+    "torch-geometric>=2.6.1",
+    "torch-tb-profiler>=0.4.3",
 ]
 
 [project.optional-dependencies]
-all = [
-	"jupytext>=1.16.4",
-	"torch-geometric>=2.4.0",
-	"shap>=0.43.0",
-]
 nvim = [
     "jupytext>=1.16.4",
-]
-graphs = [
-    "torch-geometric>=2.4.0",
-]
-explainable = [
-	"shap>=0.43.0",
 ]
 
 [dependency-groups]
 dev = [
     "isort>=5.13.2",
-    "jupyter>=1.1.1",
     "mypy>=1.14.1",
     "notebooktester>=0.1.1",
     "pyright>=1.1.392",
