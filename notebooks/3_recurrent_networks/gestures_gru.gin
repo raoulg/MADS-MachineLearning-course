@@ -1,9 +1,0 @@
-import gin.torch.external_configurables
-
-rnn_models.GRUmodel.config = {
-    "input_size" : 3,
-    "hidden_size" : 16,
-    "dropout" : 0.5,
-    "num_layers" : 2,
-    "output_size" : 20
-    }
