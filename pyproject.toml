@@ -36,7 +36,7 @@ dependencies = [
     "torch-geometric>=2.6.1",
     "torch-tb-profiler>=0.4.3",
     "tomlserializer>=0.1.0",
-    "mltrainer>=0.2",
+    "mltrainer>=0.2.1",
 ]
 
 [project.optional-dependencies]
