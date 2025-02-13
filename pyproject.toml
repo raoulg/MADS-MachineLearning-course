@@ -26,7 +26,6 @@ dependencies = [
     "loguru>=0.7.0",
     "mads-datasets[torch]>=0.3.12",
     "matplotlib>=3.7.1",
-    "mltrainer>=0.2b1",
     "plotly>=5.17.0",
     "pydantic>=1.10.9",
     "seaborn>=0.12.2",
@@ -36,6 +35,8 @@ dependencies = [
     "torchinfo>=1.8.0",
     "torch-geometric>=2.6.1",
     "torch-tb-profiler>=0.4.3",
+    "tomlserializer>=0.1.0",
+    "mltrainer>=0.2",
 ]
 
 [project.optional-dependencies]
@@ -47,7 +48,7 @@ nvim = [
 dev = [
     "isort>=5.13.2",
     "mypy>=1.14.1",
-    "notebooktester>=0.1.1",
+    "notebooktester>=0.2.1",
     "pyright>=1.1.392",
     "ruff>=0.9.1",
 ]

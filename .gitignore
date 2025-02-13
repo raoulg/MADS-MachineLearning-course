@@ -37,3 +37,5 @@ data/raw/*.arff
 **/gestures/
 .venv
 .notebookcache
+model.toml
+settings.toml
