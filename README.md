@@ -2,11 +2,11 @@ deep learning course
 ==============================
 
 This course is part of a series of modules for data science.
-This course assumes you have done the introduction in Python and something similar to the Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
+This course assumes you have a decent basis in Python and experience with something similar to this Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
 
 
 The lessons can be found inside the `notebooks`folder.
-The source code for the lessons can be found in the `src`folder.
+The source code for the lessons can be found in the `src` folder.
 
 The book we will be using is Understanding Deep Learning. It is available as pdf here: https://udlbook.github.io/udlbook/ but it is highly recommended to buy the book.
 
@@ -39,41 +39,30 @@ Project Organization
 --------
 
 For this project you will need some dependencies.
-The project uses python >=3.10 and <3.12, and all dependencies are defined within the `pyproject.toml` file.
+The project uses python 3.11 or 3.12, and all dependencies are defined within the `pyproject.toml` file.
 
-The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it.
+The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and automatically lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it, but you might want to use lefthook in your own repositories.
 
 I have separated the management of datasets and the trainingloop code. You will find them as dependencies in the project:
-- https://github.com/raoulg/mads_datasets
-- https://github.com/raoulg/mltrainer
+- https://github.com/raoulg/mads_datasets all code for datasets and dataloaders
+- https://github.com/raoulg/mltrainer all code for the training
 
-Both of these will be used a lot in the notebooks; by separating them it is easier for students to use the code in your own repositories.
+Both of these dependencies will be used a lot in the notebooks; by separating them it is easier to use the code in your own repositories.
 In addition to that, you can consider the packages as "extra material"; the way the pacakges are set up is something you can study if you are already more experienced in programming.
 
-In addition to that, there is a [codestyle repo](https://github.com/raoulg/codestyle) that covers most of the codestyle guidelines for the course.
+In addition to that, there is a [codestyle repo](https://github.com/raoulg/codestyle) that covers most of the codestyle guidelines for the course. You will be expected to follow the codestyle guidelines for your own coding.
 
 # Installation
 The installation guide assumes a UNIX system (os x or linux).
-If you have the option to use a VM, see the references folder for lab setups (both for azure and surf).
+If you have the option to use a VM, see the references folder for lab setups (both for azure and surf, pick the one you are provided with).
 For the people that are stuck on a windows machine, please use [git bash](https://gitforwindows.org/) whenever I 
 refer to a terminal or cli (command line interface).
 
-## install python with rye
-please note that rye might already be installed on your machine.
-1. watch the [introduction video about rye](https://rye.astral.sh/guide/)
-2. You skipped the video, right? Now go back to 1. and actually watch it. I'll wait.
-3. check if rye is already installed with `which rye`. If it returns a location, eg `/Users/user/.rye/shims/rye`, rye is installed.
-4. else, install [rye](https://rye.astral.sh/) with `curl -sSf https://rye.astral.sh/get | bash`
-
-run through the rye installer like this:
-- platform linux: yes
-- preferred package installer: uv
-- Run a Python installed and managed by Rye
-- which version of python should be used as default: 3.11
-- should the installer add Rye to PATH via .profile? : y
-- run in the cli: `source "$HOME/.rye/env"`
-
-For windows this should be the same, except for the platform off course...
+## install python with uv
+please note that uv might already be installed on your VM.
+1. check if uv is already installed with `which uv`. If it returns a location, eg `/Users/user/.cargo/bin/uv`, uv is installed.
+2. else, install [uv](https://docs.astral.sh/uv/) with `curl -LsSf https://astral.sh/uv/install.sh | sh` for macOS and Linux. For windows, see the uv docs.
+3. start a new terminal and test with `which uv` if the installation was succesful.
 
 ## add the git repo
 run in the cli:
@@ -86,7 +75,7 @@ run in the cli:
 
 ## install all dependencies
 1. `cd MADS-MachineLearning-course/`
-2. `rye sync`
+2. `uv sync`
 
 ## add your own ssh key
 If you want easy access to the VM, add your ssh key to the VM:
@@ -96,6 +85,9 @@ If you want easy access to the VM, add your ssh key to the VM:
 copy paste your key to the end of the file (leave existing keys) and save the file, then exit
 4. check with `cat authorized_keys` that your key is added.
 
-## Still watch the video.
+## Make yourself familiar
 
-I know some of you still skipped the video. Ok, I get that, but now actually watch it... [introduction video about rye](https://rye.astral.sh/guide/)
+Get yourself familiar with the toolbox, if you arent already
+- uv: either read the docs [uv projects docs](https://docs.astral.sh/uv/guides/projects/) or watch a video on youtube, eg [uv for python](https://youtu.be/qh98qOND6MI?si=hjFMgpAYaUuV_Hgl)
+- git: do a [tutorial](https://www.w3schools.com/git/git_getstarted.asp) or watch a [video](https://youtu.be/r8jQ9hVA2qs?si=2GicBn0xNeG3wACD)
+- terminal/unix: get familiar with the terminal and the unix commands, again [video](https://youtu.be/gd7BXuUQ91w?si=9WqWNQk5MAKr-sF1) or some [tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview)
