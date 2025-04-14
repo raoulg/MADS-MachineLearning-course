@@ -1,18 +1,18 @@
 # Hypertuning
 ### data
-You can pick the gestures dataset, which is pretty fast en easy to reach high accuracy on.
-You could also pick the flowers if you want to test images, or the ants/bees, or any other datasets from `mads_datasets` or even another set you like from [torchvision](https://pytorch.org/vision/0.8/datasets.html) or [torchtext](https://pytorch.org/text/stable/datasets.html#imdb).
+Pick an image dataset.
+You could pick the flowers, or the ants/bees from notebook [03_minimal_transfer_learning.ipynb](03_minimal_transfer_learning.ipynb), or even another set you like from [torchvision](https://pytorch.org/vision/0.8/datasets.html) or [torchtext](https://pytorch.org/text/stable/datasets.html#imdb).
 
-Keep in mind that your hardware will limit what you can do with the images; if you have a GPU or use a free GPU from google colab, it's much faster to run tests.
+Keep in mind that your hardware will limit what you can do with the images; so you will either need to settle for smaller images, or preprocess them into a smaller size, or use google colab if the VM is too slow or limited in memory.
 
 ## Create a model
 We have worked with a few types of layers:
 - linear
 - conv2d
-- RNNs (GRU, LSTM)
-- dropout, batchnorm
+- dropout
+- batchnorm
 
-and we have also seen architectures like resnet (skiplayers), squeeze-excite and googlenet (inception).
+and we have also seen architectures build with these layers like resnet (skip-layers), squeeze-excite and googlenet (inception).
 It's up to you to create a configurable model now that can be hypertuned.
 
 ## Goal
@@ -29,8 +29,6 @@ Some hyperparameters to can consider, ranging from high to low importance:
 - the number of hidden units
 - dropout, batchnorm, skiplayers
 - learning rate, type of optimizer, type of activation function, etc.
-
-The notebook 02_hypertune is an illustration of the interaction between number of layers and hidden units.
 
 !!!IMPORTANT!!!:
 Dont use hyperband when trying to create a heatmap! Because this will cause you to put models that have run just a few epochs together with models that have run many epochs. This will NOT give you a clear overview of the interaction between the variables.
@@ -55,7 +53,6 @@ Important: the report you write is NOT the same as your journal! The journal wil
 
 
 ## Implementing
-Set up your own repository, if you havent done that yet.
 In hypertune.py, I have set up an example for hypertuning.
 Implement your own hypertuner for another model / dataset from scratch.
 
@@ -67,15 +64,13 @@ Implement your own hypertuner for another model / dataset from scratch.
         - `bayesian-optimization` is for, well, bayesian optimization
         - `hyperopt` is another hyperoptimalisation library which we have used in `2_convolutions/03_mlflow.ipynb`. It doesnt has as much algorithms as ray, which is why we use ray. Just know that `hyperopt` can be an alternative to `ray.tune` that's slightly easier to setup but less powerful.
 - make a function to pull your data, you can use `mads_datasets` for this.
-- make a *configurable model* where you can change the different options from the config. You can decide for yourself if you want to make it configurable by simply passing a dictionary, or by creating a @dataclass as a Settings object, or by using eg gin-config or loading a .toml file with `tomllib` (since python 3.11 part of python).
-- build a hypertuner.py script
-    - DO NOT use hyperband! This is a good idea for deployement, but not for researching the interaction between variables!!!
+- make a *configurable model* where you can change the different options from the config. You can decide for yourself if you want to make it configurable by simply passing a dictionary, or by creating a @dataclass as a Settings object, or by using a `.toml` file with `tomllib` (since python 3.11 part of python) and the `TOMLserializer`.
+- build a `hypertuner.py` script
 - make a README that explains your experiments
-- Lint and format your code !! with black, ruff and pyright untill all your errors are gone !!
+- Lint and format your code !! use ruff and mypy until all your errors are gone !!
 
 ## Report
-You will write a report of 1 page. Not 2, not 3. 1 page.
-1 A4 page means you will have to be very clear with your report. Remove all clutter. Use clear visualisations. Make sure it's clear in a few seconds what the results are of every experiment.
+Write a report of maximum 2 a4 pages. This means you will have to be very clear with your report. Remove all clutter. Use clear visualisations. Make sure it's clear in a few seconds what the results are of every experiment.
 
 You will get a:
 - 0, which means: you will have to improve things, otherwise it will cost you points at your exam
@@ -83,9 +78,8 @@ You will get a:
 - 2, meaning: your work is excellent. You have done everything right, even exceeded expectations,and you have shown that you understand the material. If you do the same on the exam you will be good.
 
 # Common gotchas
-
 - you can't blindly copy paths. Always use `Path` and check if locations exist with `.exists()`
-- If you want to add your own `src` folder for import, you need to figure out if your `src` folder is located at the ".." or "../.." location, relative to your notebook for a `sys.path.insert(0, "..")` command (that is, if you need to explicitly add it because the notebook cant find your src folder)
+- If you want to add your own `src` folder for import, the best way is to properly create your environment with `uv`. Another option is to figure out if your `src` folder is located at the ".." or "../.." location, relative to your notebook, and use a `sys.path.insert(0, "..")` command (that is, if you need to explicitly add it because the notebook cant find your src folder)
 - same goes for datalocations. `"../../data/raw"` might have changed into `"../data/raw"` depending in your setup. `mads_datasets` uses `Path.home() / ".cache/mads_datasets"` as a default location, so you can use that from every folder on your computer.
 - While developing functions, you can:
     1. Write the function in a .py file, and (re)load into a notebook if you change it. Note that ray tune can be problematic to run from inside a notebook.
