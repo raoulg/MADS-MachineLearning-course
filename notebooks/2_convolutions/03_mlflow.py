@@ -44,9 +44,14 @@ def get_device() -> str:
 class CNN(nn.Module):
     def __init__(self, filters, units1, units2, input_size=(32, 1, 28, 28)):
         super().__init__()
+        self.in_channels = input_size[1]
+        self.input_size = input_size
+        self.filters = filters
+        self.units1 = units1
+        self.units2 = units2
 
         self.convolutions = nn.Sequential(
-            nn.Conv2d(1, filters, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(self.in_channels, filters, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=2),
             nn.Conv2d(filters, filters, kernel_size=3, stride=1, padding=0),
