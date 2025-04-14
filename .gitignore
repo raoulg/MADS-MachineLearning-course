@@ -32,3 +32,4 @@ data/raw/*.arff
 **/*.log
 model.toml
 settings.toml
+*.pt
