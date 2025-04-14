@@ -6,9 +6,9 @@
 show_logs:
 	mlflow server \
 		--backend-store-uri sqlite:///mlflow.db \
-		--default-artifact-root ./mlruns \
-		--host 127.0.0.1
-	
+		--host 127.0.0.1 \
+		--port 5000
+
 # `stop_server` target: Check if an MLflow server is running on port 5000 and shut it down if it is
 # Find the process listening on port 5000, filter by 'mlflow', extract its process ID, and terminate it
 stop_server:
