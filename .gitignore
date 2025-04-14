@@ -1,25 +1,8 @@
-# hypertuning
-**/mlruns/*
-**/models/
-**/modellogs/*
-**/logs/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.egg-info/
 
-
-# Database
-*.db
-*.rdb
-
-# VS Code
-.vscode/
-
-# Jupyter NB Checkpoints
-.ipynb_checkpoints/
-
-# exclude data from source control by default
+# exclude data
 data/external/**/*.gz
 data/external/**/raw/**
 data/external/*.pt
@@ -29,13 +12,23 @@ data/raw/*.arff
 # Mac OS-specific storage files
 .DS_Store
 
+# caches and db
+.vscode/
 .mypy_cache/
 **/checkpoint.pt
-.pdm-python
+.ipynb_checkpoints/
 .lycheecache
-**/*.log
 **/gestures/
 .venv
 .notebookcache
+*.db
+
+# hypertuning, logs
+**/mlruns/*
+**/models/
+**/modellogs/*
+**/logs/
+**/demo/
+**/*.log
 model.toml
 settings.toml
