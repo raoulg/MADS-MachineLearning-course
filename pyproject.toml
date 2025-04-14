@@ -35,7 +35,7 @@ dependencies = [
     "torchinfo>=1.8.0",
     "torch-geometric>=2.6.1",
     "torch-tb-profiler>=0.4.3",
-    "tomlserializer>=0.1.0",
+    "tomlserializer>=0.2.0",
     "mltrainer>=0.2.1",
 ]
 
