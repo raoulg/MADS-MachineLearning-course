@@ -40,7 +40,8 @@ def get_device() -> str:
     return device
 
 
-# Define model
+# There are more models in mltrainer.imagemodels for inspiration.
+# You can import them, or create your own like here.
 class CNN(nn.Module):
     def __init__(self, filters, units1, units2, input_size=(32, 1, 28, 28)):
         super().__init__()
