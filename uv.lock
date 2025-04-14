@@ -1470,7 +1470,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "mads-datasets", extras = ["torch"], specifier = ">=0.3.12" },
     { name = "matplotlib", specifier = ">=3.7.1" },
-    { name = "mltrainer", specifier = ">=0.2.1" },
+    { name = "mltrainer", specifier = ">=0.2.2" },
     { name = "plotly", specifier = ">=5.17.0" },
     { name = "pydantic", specifier = ">=1.10.9" },
     { name = "seaborn", specifier = ">=0.12.2" },
@@ -1668,7 +1668,7 @@ wheels = [
 
 [[package]]
 name = "mltrainer"
-version = "0.2.1"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "loguru" },
@@ -1685,7 +1685,7 @@ dependencies = [
     { name = "tqdm" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c5/3a/226dedf76dc6ef8ad83310456df8e3ce71699283e11c75067d2480821206/mltrainer-0.2.1-py3-none-any.whl", hash = "sha256:702cd03e160a6ddb7149f2e5db0ef5681f2304e3ee6e40ff8f2810c333523a63", size = 11146 },
+    { url = "https://files.pythonhosted.org/packages/97/9b/3aa8f991c9ab7afda5b1cb16c44ed410f2d22dc49f66fc5488fe939102d4/mltrainer-0.2.2-py3-none-any.whl", hash = "sha256:79fe77c150c1437b9a111cc9c2ebe9a0d007d3cd88eb03b905af342b180f8537", size = 13141 },
 ]
 
 [[package]]
