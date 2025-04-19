@@ -20,7 +20,6 @@ De student kan:
 Kijk https://www.youtube.com/watch?v=FmpDIaiMIeA  
 Kijk https://www.youtube.com/watch?v=KuXjwB4LzSA  
 
-Als je filmpjes kijken leuk vind, https://www.youtube.com/watch?v=aircAruvnKk is een excellente uitleg van wat we in les 1 hebben besproken.  
 
 |       topic | description                                                           |            page | notebooks                             |
 | ----------- | --------------------------------------------------------------------- |   ------------- | -------------                         |
