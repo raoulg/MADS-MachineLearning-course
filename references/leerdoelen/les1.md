@@ -3,8 +3,8 @@ Some learning goals are better gained from a notebook, some from the text, some 
 There is a youtube video that also explains some stuff.
 
 De student begrijpt:
-1.1 Wat tensors zijn en voorbeelden voor de dimensies tm 5D 
-1.2 hoe neurale netwerken zijn opgebouwd (linear + activation), en hoe ze een extensie zijn van lineaire modellen (wanneer kun je ze stapelen) 
+1.1 Wat tensors zijn en voorbeelden voor de dimensies tm 5D  
+1.2 hoe neurale netwerken zijn opgebouwd (linear + activation), en hoe ze een extensie zijn van lineaire modellen (wanneer kun je ze stapelen)  
 1.3 Hoe neurale netwerken een universal function zijn.
 1.4 Wat gradient descent doet en wat een gradient is
 1.5 Wat de voordelen van een datastreamer zijn oa voor grote datasets
