@@ -5,23 +5,22 @@ There is a youtube video that also explains some stuff.
 De student begrijpt:
 1.1 Wat tensors zijn en voorbeelden voor de dimensies tm 5D  
 1.2 hoe neurale netwerken zijn opgebouwd (linear + activation), en hoe ze een extensie zijn van lineaire modellen (wanneer kun je ze stapelen)  
-1.3 Hoe neurale netwerken een universal function zijn.
-1.4 Wat gradient descent doet en wat een gradient is
-1.5 Wat de voordelen van een datastreamer zijn oa voor grote datasets
-1.6 Wat de invloed is van het aantal units in een dense layer
-1.7 Waarom we train-test-valid splits maken
-1.8 Wat een Activation function is, en kent er een aantal (ReLU, Leaky ReLU, ELU, GELU, Sigmoid)
-1.9 wat een loss functie is, en enkele voorbeelden
-1.10 Hoe deep learning past binnen de geschiedenis van AI, en wat deep learning kenmerkt ten opzichte van de rest.
-1.11 Wat de stappen zijn van het trainen van een NN: datapreparatie, trainbare gewichten, predict, lossfunctie, optimizers
+1.3 Hoe neurale netwerken een universal function zijn.  
+1.4 Wat gradient descent doet en wat een gradient is  
+1.5 Wat de voordelen van een datastreamer zijn oa voor grote datasets.  
+1.6 Wat de invloed is van het aantal units in een dense layer  
+1.7 Waarom we train-test-valid splits maken  
+1.8 Wat een Activation function is, en kent er een aantal (ReLU, Leaky ReLU, ELU, GELU, Sigmoid)  
+1.9 wat een loss functie is, en enkele voorbeelden.  
+1.10 Hoe deep learning past binnen de geschiedenis van AI, en wat deep learning kenmerkt ten opzichte van de rest.  
+1.11 Wat de stappen zijn van het trainen van een NN: datapreparatie, trainbare gewichten, predict, lossfunctie, optimizers   
 
-De student is in staat om:
-1.12 een dataclass maken
-1.13 Een configureerbaar dense neural network te maken met pytorch
-1.14 tensorboard gebruiken om zijn model te monitoren
-1.15 toml files te gebruiken om zijn model te configureren
+De student is in staat om:  
+1.12 een dataclass maken.  
+1.13 Een configureerbaar dense neural network te maken met pytorch.  
+1.14 tensorboard gebruiken om zijn model te monitoren  
+1.15 toml files te gebruiken om zijn model te configureren  
 
-watch: https://youtu.be/aircAruvnKk?si=2BVezkYqWVb6-eR2
 
 From the other chapters, sample the pages summed up below. You can skip the full chap 5 and 6 for now.
 
