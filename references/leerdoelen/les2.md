@@ -1,24 +1,24 @@
 Read chapter 5 (losses), chapter 10 (convolutions) and 11 (residual networks).
 
 De student begrijpt:
-2.1 - Wat de verschillende loss functies (MSE en RMSE, Negative Log Likelihood, Cross Entropy Loss, Binary Cross Entropy loss) zijn en in welke gevallen je ze moet gebruiken of vermijden.  
-2.2 - Wat het dimensionality probleem is bij afbeeldingen waar Dense Neural Networks last van hebben  
-2.3 - Hoe Convolutions dat dimensionality probleem oplossen  
-2.4 - Wat maxpooling doet  
-2.5 - Wat een stride en padding zijn  
-2.6 - Wat een Convolution van 1x1 filter doet  
-2.7 - Kent ruwweg de innovaties die de verschillende architecturen doen: AlexNet, VGG, GoogleNet, ResNet, SENet  
-2.8 - Begrijpt wat overfitting is en hoe regularisatie (batchnorm, splits, dropout, learning rate) helpt.  
-2.9 - hoe een Convolution schaalt (O(n)) ten opzicht van een NN (O(n^2))  
+2.1 - Wat de verschillende loss functies (MSE en RMSE, Negative Log Likelihood, Cross Entropy Loss, Binary Cross Entropy loss) zijn en in welke gevallen je ze moet gebruiken of vermijden.
+2.2 - Wat het dimensionality probleem is bij afbeeldingen waar Dense Neural Networks last van hebben
+2.3 - Hoe Convolutions dat dimensionality probleem oplossen
+2.4 - Wat maxpooling doet
+2.5 - Wat een stride en padding zijn
+2.6 - Wat een Convolution van 1x1 filter doet
+2.7 - Kent ruwweg de innovaties die de verschillende architecturen doen: AlexNet, VGG, GoogleNet, ResNet, SENet
+2.8 - Begrijpt wat overfitting is en hoe regularisatie (batchnorm, splits, dropout, learning rate) helpt.
+2.9 - hoe een Convolution schaalt (O(n)) ten opzicht van een NN (O(n^2))
 
-De student kan:  
-2.10 - Een configureerbaar Convolution NN bouwen en handmatig hypertunen  
-2.11 - MLFlow gebruiken naast gin-config  
-2.12 - een Machine Learning probleem classificeren als classificatie / regressie / reinforcement / (semi)unsupervised  
-2.13 - begrijpt welke dimensionaliteit een convolution nodig heeft en wat de strategieen zijn om dit te laten aansluiten op andere tensors  
+De student kan:
+2.10 - Een configureerbaar Convolution NN bouwen en handmatig hypertunen
+2.11 - MLFlow gebruiken naast gin-config
+2.12 - een Machine Learning probleem classificeren als classificatie / regressie / reinforcement / (semi)unsupervised
+2.13 - begrijpt welke dimensionaliteit een convolution nodig heeft en wat de strategieen zijn om dit te laten aansluiten op andere tensors
 
-Kijk https://www.youtube.com/watch?v=FmpDIaiMIeA  
-Kijk https://www.youtube.com/watch?v=KuXjwB4LzSA  
+Kijk https://www.youtube.com/watch?v=FmpDIaiMIeA
+Kijk https://www.youtube.com/watch?v=KuXjwB4LzSA
 
 
 |       topic | description                                                           |            page | notebooks                             |
