@@ -1,6 +1,6 @@
 Read chapter 5 (losses), chapter 10 (convolutions) and 11 (residual networks).
 
-De student begrijpt:
+De student begrijpt:  
 2.1 - Wat de verschillende loss functies (MSE en RMSE, Negative Log Likelihood, Cross Entropy Loss, Binary Cross Entropy loss) zijn en in welke gevallen je ze moet gebruiken of vermijden.  
 2.2 - Wat het dimensionality probleem is bij afbeeldingen waar Dense Neural Networks last van hebben  
 2.3 - Hoe Convolutions dat dimensionality probleem oplossen  
