@@ -27,6 +27,7 @@ data/raw/*.arff
 **/mlruns/*
 **/models/
 **/modellogs/*
+**/modellog/*
 **/logs/
 **/demo/
 **/*.log
