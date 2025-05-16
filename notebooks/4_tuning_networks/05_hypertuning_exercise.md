@@ -12,7 +12,7 @@ We have worked with a few types of layers:
 - dropout
 - batchnorm
 
-and we have also seen architectures build with these layers like resnet (skip-layers), squeeze-excite and googlenet (inception).
+and we have also seen architectures build with these layers like resnet (skip-layers), squeeze-excite and googlenet (inception). If you dont know how to implement these, ask claude.ai or gemini for help, they do an excellent job at explaining these architectures.
 It's up to you to create a configurable model now that can be hypertuned.
 
 ## Goal
