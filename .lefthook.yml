@@ -1,16 +1,23 @@
 pre-commit:
   commands:
-    black:
-      files: git ls-files
-      glob: '*.{py, ipynb}'
-      run: ruff format {staged_files}
-      stage_fixed: true
+    notebooktester:
+      priority: 1
+      glob: '*.ipynb'
+      run: notebooktester notebooks -v -t 240
     clean-jupyter:
+      priority: 2
       files: git ls-files
       glob: '*.ipynb'
       run: jupyter nbconvert --clear-output --inplace {staged_files}
       stage_fixed: true
+    format:
+      priority: 2
+      files: git ls-files
+      glob: '*.{py, ipynb}'
+      run: ruff format {staged_files}
+      stage_fixed: true
     ruff:
+      priority: 2
       files: git ls-files
       glob: '*.py'
       run: ruff check {staged_files} --fix
@@ -20,15 +27,15 @@ pre-commit:
       run: pyright {staged_files}
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --header "accept=*/*" --max-cache-age 7d
-    notebooktester:
-      glob: '*.ipynb'
-      run: notebooktester notebooks -v -t 240
 
 pre-merge:
   commands:
-    black:
+    notebooktester:
+      glob: '*.ipynb'
+      run: notebooktester notebooks -v -t 240
+    format:
       glob: '*.{py, ipynb}'
-      run: ruff fmt {all_files}
+      run: ruff format {all_files}
       stage_fixed: true
     clean-jupyter:
       glob: '*.ipynb'
