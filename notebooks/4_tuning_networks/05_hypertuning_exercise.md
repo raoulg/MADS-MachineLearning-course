@@ -28,8 +28,7 @@ Some hyperparameters to consider, ranging from high to low importance:
 - dropout, batchnorm, skiplayers all help to reduce overfitting, so it is more relevant for bigger models.
 - learning rate, type of optimizer, type of activation function, etc.
 
-!!!IMPORTANT!!!:
-Dont use hyperband when trying to create a heatmap! Because this will cause you to put models that have run just a few epochs together with models that have run many epochs. This will NOT give you a clear overview of the interaction between the variables.
+!!!IMPORTANT!!!: Dont use hyperband when trying to create a heatmap! Because this will cause you to put models that have run just a few epochs together with models that have run many epochs. This will NOT give you a clear overview of the interaction between the variables.
 
 You CAN use hyperband in the process (eg if you want to speed up scans of big hyperparameter spaces), but always keep in mind what you are doing when creating visualizations.
 
