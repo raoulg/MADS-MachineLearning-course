@@ -12,7 +12,7 @@ from ray.tune import CLIReporter
 from ray.tune.search.hyperopt import HyperOptSearch
 from ray.tune.schedulers import AsyncHyperBandScheduler
 
-NUM_SAMPLES = 10
+NUM_SAMPLES = 50
 MAX_EPOCHS = 10
 
 
@@ -24,7 +24,7 @@ def train(config: Dict):
     """
     from mads_datasets import DatasetFactoryProvider, DatasetType
 
-    data_dir = config["data_dir"]
+    data_dir = config.pop("data_dir")
     gesturesdatasetfactory = DatasetFactoryProvider.create_factory(DatasetType.GESTURES)
     preprocessor = PaddedPreprocessor()
 
@@ -40,7 +40,8 @@ def train(config: Dict):
     # we set up the metric
     # and create the model with the config
     accuracy = metrics.Accuracy()
-    model = rnn_models.GRUmodel(config)
+    modelconfig = rnn_models.ModelConfig(**config)
+    model = rnn_models.GRUmodel(modelconfig)
 
     trainersettings = TrainerSettings(
         epochs=MAX_EPOCHS,
@@ -68,7 +69,7 @@ def train(config: Dict):
     logger.info(f"Using {device}")
     if device != "cpu":
         logger.warning(
-            f"using acceleration with {device}." "Check if it actually speeds up!"
+            f"using acceleration with {device}.Check if it actually speeds up!"
         )
 
     trainer = Trainer(
@@ -104,7 +105,6 @@ if __name__ == "__main__":
     config = {
         "input_size": 3,
         "output_size": 20,
-        "tune_dir": tune_dir,
         "data_dir": data_dir,
         "hidden_size": tune.randint(16, 128),
         "dropout": tune.uniform(0.0, 0.3),
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         metric="test_loss",
         mode="min",
         progress_reporter=reporter,
-        storage_path=str(config["tune_dir"]),
+        storage_path=str(tune_dir),
         num_samples=NUM_SAMPLES,
         search_alg=search,
         scheduler=scheduler,
