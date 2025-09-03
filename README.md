@@ -10,7 +10,7 @@ The source code for the lessons can be found in the `src` folder.
 
 The book we will be using is Understanding Deep Learning. It is available as pdf here: https://udlbook.github.io/udlbook/ but it is highly recommended to buy the book.
 
-To help you track your study progress, I have created this [https://learn-79720.web.app/courses] web-app. Sign up for the `Machine Learning` course. There you will find an overview of everything you can watch, listen and read for every lesson and check the material when you are done.
+To help you track your study progress, I have created this https://learn-79720.web.app/courses web-app. Sign up for the `Machine Learning` course. There you will find an overview of everything you can watch, listen and read for every lesson and check the material when you are done.
 
 
 Project Organization
