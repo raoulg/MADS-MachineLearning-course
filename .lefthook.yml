@@ -26,7 +26,7 @@ pre-commit:
       glob: '*.py'
       run: pyright {staged_files}
     lychee:
-      run: lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --header "accept=*/*" --max-cache-age 7d
+      run: lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --max-cache-age 7d
 
 pre-merge:
   commands:
@@ -48,4 +48,4 @@ pre-merge:
       glob: '*.py'
       run: pyright {staged_files}
     lychee:
-      run: lychee . --suggest --max-concurrency 32 --cache --format detailed --header "accept=*/*" --max-cache-age 7d
+      run: lychee . --suggest --max-concurrency 32 --cache --format detailed --max-cache-age 7d
