@@ -26,11 +26,11 @@ def main():
         download=True,
         transform=ToTensor(),
     )
-    teststreamer = VAEstreamer(test_data, batchsize=presets.samplesize).stream()
+    teststreamer = VAEstreamer(test_data, batchsize=presets.samplesize).stream()  # type: ignore
 
     modelpath = presets.modeldir / presets.modelname
     logger.info(f"loading pretrained model {modelpath}")
-    model = torch.load(modelpath)
+    model = torch.load(modelpath, weights_only=False)
     X, _ = next(teststreamer)
 
     embs = model.encoder(X)
