@@ -16,7 +16,7 @@ def main():
     presets = VAESettings()
     embedfile = "models/embeds.pt"
 
-    img, embeds = torch.load(embedfile)
+    img, embeds = torch.load(embedfile, weights_only=False)
     logger.info(f"Loaded {embedfile} with shape {embeds.shape}")
     kdtree = KDTree(embeds)
 
@@ -29,7 +29,7 @@ def main():
 
     modelpath = presets.modeldir / presets.modelname
     logger.info(f"loading pretrained model {modelpath}")
-    model = torch.load(modelpath)
+    model = torch.load(modelpath, weights_only=False)
 
     x, y = test_data[1]
 
@@ -37,7 +37,7 @@ def main():
 
     dd, ii = kdtree.query(other.detach().numpy(), k=9)
 
-    closest = img[ii[0]]
+    closest = img[ii[0]]  # type: ignore
     logger.info(f"closest items for label {y}")
     imgpath = presets.imgpath / Path(f"closest-label-{y}.png")
     plot_grid(closest, imgpath, title=f"Label {y}")
