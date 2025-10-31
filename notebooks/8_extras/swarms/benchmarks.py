@@ -1,12 +1,8 @@
 import numpy as np
 from typing import Callable, Tuple, List
-import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
-from optimizers import OptimizationResult  # Import shared data class
-
-# --------------------------------------------------------------------------
-# Benchmark Functions
-# --------------------------------------------------------------------------
+from optimizers import OptimizationResult
 
 
 def sphere(x: np.ndarray) -> float:
@@ -45,11 +41,6 @@ def ackley(x: np.ndarray) -> float:
     return -20 * np.exp(-0.2 * np.sqrt(sum1 / n)) - np.exp(sum2 / n) + 20 + np.e
 
 
-# --------------------------------------------------------------------------
-# Plotting Functions
-# --------------------------------------------------------------------------
-
-
 def plot_2d_benchmark(
     ax: Axes3D, func: Callable, bounds: Tuple[float, float], title: str
 ):
@@ -75,7 +66,10 @@ def plot_2d_benchmark(
 
 
 def plot_convergence_on_ax(
-    ax: plt.Axes, results: List[OptimizationResult], title: str, max_iter: int
+    ax: Axes | Axes3D,
+    results: List[OptimizationResult],
+    title: str,
+    max_iter: int,
 ):
     """Plot convergence curves for multiple results on a specific axes"""
 
@@ -90,7 +84,9 @@ def plot_convergence_on_ax(
         # Trim if history is too long (e.g., from extra callbacks)
         history = history[: max_iter + 1]
 
-        ax.plot(history, label=result.algorithm, linewidth=2, alpha=0.9)
+        ax.plot(
+            range(len(history)), history, label=result.algorithm, linewidth=2, alpha=0.9
+        )
 
     ax.set_xlabel("Iteration", fontsize=12)
     ax.set_ylabel("Best Fitness (log scale)", fontsize=12)
