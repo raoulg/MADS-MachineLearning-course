@@ -1,24 +1,23 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
-from scipy.optimize import minimize, differential_evolution
-from scipy.optimize import OptimizeResult as ScipyOptimizeResult
-from typing import cast
 import sys
-from mpl_toolkits.mplot3d import Axes3D
-from loguru import logger
-from tqdm import tqdm
+from pathlib import Path
+from typing import cast
 
-from optimizers import PSO, PSOConfig, GWO, GWOConfig, OptimizationResult
-
-from .benchmarks import (
-    sphere,
-    rastrigin,
-    rosenbrock,
+import matplotlib.pyplot as plt
+import numpy as np
+from benchmarks import (
     ackley,
     plot_2d_benchmark,
     plot_convergence_on_ax,
+    rastrigin,
+    rosenbrock,
+    sphere,
 )
+from loguru import logger
+from mpl_toolkits.mplot3d import Axes3D
+from optimizers import GWO, PSO, GWOConfig, OptimizationResult, PSOConfig
+from scipy.optimize import OptimizeResult as ScipyOptimizeResult
+from scipy.optimize import differential_evolution, minimize
+from tqdm import tqdm
 
 
 class TqdmSink:
@@ -51,7 +50,7 @@ if __name__ == "__main__":
 
     test_functions = {
         "Sphere": (sphere, (-5.0, 5.0)),
-        "Rastrigin": (rastrigin, (-5.12, 5.12)),
+        "Rastrigin": (rastrigin, (-5.0, 5.0)),
         "Rosenbrock": (rosenbrock, (-2.0, 2.0)),
         "Ackley": (ackley, (-5.0, 5.0)),
     }
@@ -103,9 +102,9 @@ if __name__ == "__main__":
         pso_config = PSOConfig(
             n_particles=n_agents,
             max_iterations=max_iterations,
-            omega=0.729,
-            c1=1.49445,
-            c2=1.49445,
+            omega=0.8,
+            c1=1.5,
+            c2=1.5,
             bounds=bounds,
         )
         logger.info("Running PSO...")
