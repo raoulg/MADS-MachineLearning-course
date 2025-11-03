@@ -55,3 +55,8 @@ dev = [
 
 [tool.uv.sources]
 
+[tool.pyright]
+executionEnvironments = [
+  { root = "notebooks/8_extras/swarms" }
+]
+
