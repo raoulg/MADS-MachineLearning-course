@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federated Learning Types Visualization</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --text-color: #2c3e50;
+            --primary-blue: #3498db; /* Client A */
+            --primary-red: #e74c3c;   /* Client B */
+            --overlap-purple: #9b59b6; /* The Intersection */
+            --grid-line: #bdc3c7;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            margin: 0;
+        }
+
+        h1 { margin-bottom: 10px; }
+        p.subtitle { max-width: 600px; text-align: center; color: #7f8c8d; margin-bottom: 30px; }
+
+        /* --- Controls --- */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            background-color: #ecf0f1;
+            color: var(--text-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        button.active { background-color: var(--text-color); color: white; }
+
+        /* --- The Matrix Visualization --- */
+        .vis-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            border-left: 3px solid var(--text-color); /* Y Axis */
+            border-bottom: 3px solid var(--text-color); /* X Axis */
+            
+            /* Increased margin to comfortably fit the rotated Y-label */
+            margin-left: 80px; 
+            margin-bottom: 60px;
+            
+            background-image: linear-gradient(var(--grid-line) 1px, transparent 1px),
+                              linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: 50px 50px; /* Grid cells */
+        }
+
+        /* Axis Labels */
+        .axis-label {
+            position: absolute;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .y-label {
+            /* Robust Rotation Strategy:
+               1. Set width equal to the axis length (500px).
+               2. Center text.
+               3. Position the center of this "bar" to the left of the axis.
+            */
+            width: 500px;
+            height: 20px;
+            text-align: center;
+            
+            /* Center vertically on the axis (250px) */
+            top: 240px; 
+            
+            /* Move left: 
+               Center of 500px width is at 250px.
+               We want that center to be at -50px (outside the grid).
+               So left = -300px.
+            */
+            left: -300px;
+            
+            transform: rotate(-90deg);
+        }
+
+        .x-label {
+            width: 100%;
+            bottom: -50px;
+            left: 0;
+            text-align: center;
+        }
+
+        /* Data Blocks */
+        .dataset {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            opacity: 0.9;
+            transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+            border-radius: 4px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            backdrop-filter: blur(2px);
+        }
+
+        #clientA { background-color: var(--primary-blue); z-index: 10; border: 2px solid #2980b9; }
+        #clientB { background-color: var(--primary-red); z-index: 10; border: 2px solid #c0392b; }
+        
+        /* The Overlap Highlight */
+        #intersection {
+            position: absolute;
+            background-color: var(--overlap-purple); 
+            z-index: 20;
+            opacity: 0; /* Hidden by default */
+            transition: all 0.8s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            color: white;
+            text-align: center;
+            border: 2px dashed white;
+        }
+
+        /* --- Explanation Box --- */
+        .explanation {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            min-height: 120px;
+            margin-top: 20px;
+        }
+        .explanation h3 { margin-top: 0; color: var(--overlap-purple); }
+        
+        /* Responsive adjustments */
+        @media (max-width: 650px) {
+            .vis-container {
+                width: 300px;
+                height: 300px;
+                background-size: 30px 30px;
+                margin-left: 50px;
+            }
+            /* Recalculate for 300px height */
+            .y-label { 
+                width: 300px;
+                top: 140px; /* Center (150) - 10 */
+                left: -190px; /* Center at 150. Want at -40. -190+150 = -40 */
+                font-size: 12px;
+            }
+            .x-label { bottom: -40px; font-size: 12px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>Federated Learning Architectures</h1>
+    <p class="subtitle">Select a mode to visualize how Client A (Blue) and Client B (Red) share data space.</p>
+
+    <div class="controls">
+        <button onclick="setMode('horizontal')" id="btn-hor" class="active">Horizontal FL</button>
+        <button onclick="setMode('vertical')" id="btn-ver">Vertical FL</button>
+        <button onclick="setMode('transfer')" id="btn-tra">Federated Transfer</button>
+    </div>
+
+    <div class="vis-container">
+        <div class="axis-label y-label">Sample IDs (Users/Rows)</div>
+        <div class="axis-label x-label">Features (Attributes/Columns)</div>
+
+        <div id="clientA" class="dataset">Client A</div>
+        <div id="clientB" class="dataset">Client B</div>
+        <div id="intersection">Overlap</div>
+    </div>
+
+    <div class="explanation" id="desc-box">
+        </div>
+
+    <script>
+        const clientA = document.getElementById('clientA');
+        const clientB = document.getElementById('clientB');
+        const intersection = document.getElementById('intersection');
+        const descBox = document.getElementById('desc-box');
+        const btns = document.querySelectorAll('button');
+
+        // State to handle responsiveness
+        let currentMode = 'horizontal';
+
+        // Initial State
+        setMode('horizontal');
+
+        // Listen for resize to adjust coordinates dynamically if needed
+        window.addEventListener('resize', () => setMode(currentMode));
+
+        function getDimensions() {
+            // Check if we are in mobile view
+            const isMobile = window.innerWidth <= 650;
+            const containerSize = isMobile ? 300 : 500;
+            const padding = 20;
+            return { size: containerSize, pad: padding, isMobile };
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            const dim = getDimensions();
+            const fullSize = dim.size; // 500 or 300
+            const halfSize = fullSize / 2; // 250 or 150
+            const pad = dim.pad; // 20
+            
+            // Widths for blocks
+            const wideW = fullSize - (pad * 2); // 460 or 260
+            const thinW = (fullSize / 2) - (pad * 1.5); // ~220 or ~130
+            const sqSize = (fullSize * 0.6); // 300 or 180 (for transfer)
+
+            // Reset Buttons
+            btns.forEach(b => b.classList.remove('active'));
+            
+            // Set styles based on mode
+            if(mode === 'horizontal') {
+                document.getElementById('btn-hor').classList.add('active');
+                
+                // Visual Logic: Stacked vertically (Same Features, Different IDs)
+                
+                // A: Top half
+                clientA.style.top = `${pad}px`;
+                clientA.style.left = `${pad}px`;
+                clientA.style.width = `${wideW}px`; 
+                clientA.style.height = `${(fullSize/2) - (pad*2)}px`; 
+                
+                // B: Bottom half
+                clientB.style.top = `${halfSize - pad}px`; 
+                clientB.style.left = `${pad}px`;
+                clientB.style.width = `${wideW}px`; 
+                clientB.style.height = `${(fullSize/2) - (pad*2)}px`;
+
+                // Hide overlap
+                intersection.style.opacity = '0';
+                intersection.style.top = '0'; 
+                intersection.style.left = '0'; 
+
+                // Description
+                updateText(
+                    "Horizontal Federated Learning",
+                    "Shared Feature Space, Different IDs",
+                    "Examples: Two different regional hospitals holding data for the same disease. They have the same columns (Patient Age, Symptoms, Diagnosis) but completely different patients (rows).",
+                    "The model aggregates gradients averaged across the two datasets."
+                );
+
+            } else if (mode === 'vertical') {
+                document.getElementById('btn-ver').classList.add('active');
+
+                // Visual Logic: Side by Side (Same IDs, Different Features)
+                
+                // A: Left side
+                clientA.style.top = `${pad}px`;
+                clientA.style.left = `${pad}px`;
+                clientA.style.width = `${thinW}px`; 
+                clientA.style.height = `${fullSize - (pad*2)}px`; 
+                
+                // B: Right side
+                clientB.style.top = `${pad}px`;
+                clientB.style.left = `${halfSize + (pad/2)}px`; 
+                clientB.style.width = `${thinW}px`; 
+                clientB.style.height = `${fullSize - (pad*2)}px`;
+
+                intersection.style.opacity = '0';
+
+                // Description
+                updateText(
+                    "Vertical Federated Learning",
+                    "Shared ID Space, Different Features",
+                    "Examples: A Bank and a Retailer in the same city. They share the same customers (IDs/Rows), but the Bank has financial data while the Retailer has shopping preferences (Features/Columns).",
+                    "The model learns to correlate features from A with features from B for the same users using encrypted alignment."
+                );
+
+            } else if (mode === 'transfer') {
+                document.getElementById('btn-tra').classList.add('active');
+
+                // Visual Logic: Partial overlap in both dimensions
+                
+                // A: Top Left large
+                clientA.style.top = `${pad}px`;
+                clientA.style.left = `${pad}px`;
+                clientA.style.width = `${sqSize}px`; 
+                clientA.style.height = `${sqSize}px`; 
+                
+                // B: Bottom Right large
+                // Position depends on container size
+                const offset = fullSize - sqSize - pad;
+                
+                clientB.style.top = `${offset}px`;
+                clientB.style.left = `${offset}px`;
+                clientB.style.width = `${sqSize}px`; 
+                clientB.style.height = `${sqSize}px`;
+
+                // Intersection: The middle ground
+                // The overlap starts at B's position (offset) and ends at A's end position (pad + sqSize)
+                const intersectPos = offset;
+                const intersectSize = (pad + sqSize) - offset;
+
+                intersection.style.opacity = '0.9';
+                intersection.style.top = `${intersectPos}px`;
+                intersection.style.left = `${intersectPos}px`;
+                intersection.style.width = `${intersectSize}px`;
+                intersection.style.height = `${intersectSize}px`;
+                intersection.innerText = "Transfer Mapping";
+
+                // Description
+                updateText(
+                    "Federated Transfer Learning",
+                    "Limited Common Sample",
+                    "Examples: An International Bank (A) and a Local E-commerce site (B) in a different country. They have very few common users and different feature sets.",
+                    "We use the small overlap (Purple) to learn a mapping function, allowing us to transfer knowledge from the feature space of A to B."
+                );
+            }
+        }
+
+        function updateText(title, subtitle, example, mechanics) {
+            descBox.innerHTML = `
+                <h3>${title}</h3>
+                <p><strong>Definition:</strong> ${subtitle}</p>
+                <p><strong>Real World:</strong> ${example}</p>
+                <p style="font-size: 0.9em; color: #666;"><em>Mechanics: ${mechanics}</em></p>
+            `;
+        }
+    </script>
+</body>
+</html>
