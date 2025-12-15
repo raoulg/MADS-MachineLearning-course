@@ -13,6 +13,9 @@ Begrip:
 5.7 - wat positional encoding is, en waarom dat behulpzaam kan zijn
 5.8 - kan uitleggen hoe attention behulpzaam is bij timeseries in het algemeen, en NLP in het bijzonder.
 5.9 - kent het verschil in dimensionaliteit van tensors (2D tensors, 3D tensors, 4D tensors) voor de diverse lagen  (Dense, 1D en 2D Convulutionl, MaxPool, RNN/GRU/LSTM, Attention, Activation functions, Flatten) en hoe deze met elkaar te combineren zijn.
+5.13 - kan uitleggen wat scaling laws zijn
+5.14 - begrijpt RAG, LoRA en MCP
+5.15 - Kan redeneren over AI alignment uitdagingen
 
 Vaardigheden:
 
@@ -36,7 +39,6 @@ Kijk de volgende filmpjes:
 - https://www.youtube.com/watch?v=yGTUuEx3GkA
 - https://www.youtube.com/watch?v=tIvKXrEDMhk
 
-Optioneel: lees de attention paper:
-[attention is all you need](https://arxiv.org/pdf/1706.03762.pdf)
-Optioneel: interactieve transformers:
-[transformers visually explained](https://poloclub.github.io/transformer-explainer/)
+Optioneel: lees de attention paper [attention is all you need](https://arxiv.org/pdf/1706.03762.pdf)
+Optioneel: [transformers visually explained](https://poloclub.github.io/transformer-explainer/)
+Optioneel: [chatgpt made me delusional](https://www.youtube.com/watch?v=VRjgNgJms3Q)
