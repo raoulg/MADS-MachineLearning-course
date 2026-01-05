@@ -1,0 +1,8 @@
+dataset: CIFAR-10 (3-class subset)
+classes: ('cat', 'dog', 'horse')
+seed: 42
+train_per_class: 800
+val_per_class: 160
+test_per_class: 160
+raw_dir: data/raw
+out_dir: data/processed/cifar3
