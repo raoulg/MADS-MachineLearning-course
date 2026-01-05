@@ -2,6 +2,9 @@
 __pycache__/
 *.egg-info/
 
+# exclude all datasets
+data/
+
 # exclude data
 data/external/**/*.gz
 data/external/**/raw/**
