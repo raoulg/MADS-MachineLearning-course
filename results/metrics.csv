@@ -1,0 +1,10 @@
+run_name,device,classes,train_size,val_size,best_val_acc,best_val_loss,data_dir,batch_size,epochs,num_workers,seed,lr,weight_decay,base_channels,fc_units,dropout,log_root
+lr=0.003_fc=64,cpu,"cat,dog,horse",2400,480,0.6270833333333333,0.8088999629020691,data/processed/cifar3,64,5,2,42,0.003,0.0001,16,64,0.0,runs/grid
+lr=0.003_fc=32,cpu,"cat,dog,horse",2400,480,0.6229166666666667,0.7848205010096232,data/processed/cifar3,64,5,2,42,0.003,0.0001,16,32,0.0,runs/grid
+lr=0.003_fc=128,cpu,"cat,dog,horse",2400,480,0.6166666666666667,0.7910363932450613,data/processed/cifar3,64,5,2,42,0.003,0.0001,16,128,0.0,runs/grid
+lr=0.001_fc=64,cpu,"cat,dog,horse",2400,480,0.60625,0.8207056283950805,data/processed/cifar3,64,5,2,42,0.001,0.0001,16,64,0.0,runs/grid
+lr=0.001_fc=32,cpu,"cat,dog,horse",2400,480,0.6041666666666666,0.8387861728668213,data/processed/cifar3,64,5,2,42,0.001,0.0001,16,32,0.0,runs/grid
+lr=0.001_fc=128,cpu,"cat,dog,horse",2400,480,0.5958333333333333,0.8433127045631409,data/processed/cifar3,64,5,2,42,0.001,0.0001,16,128,0.0,runs/grid
+lr=0.01_fc=128,cpu,"cat,dog,horse",2400,480,0.5479166666666667,0.9158715407053629,data/processed/cifar3,64,5,2,42,0.01,0.0001,16,128,0.0,runs/grid
+lr=0.01_fc=64,cpu,"cat,dog,horse",2400,480,0.525,0.8889037211736043,data/processed/cifar3,64,5,2,42,0.01,0.0001,16,64,0.0,runs/grid
+lr=0.01_fc=32,cpu,"cat,dog,horse",2400,480,0.3333333333333333,1.0986474752426147,data/processed/cifar3,64,5,2,42,0.01,0.0001,16,32,0.0,runs/grid
