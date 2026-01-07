@@ -2,6 +2,11 @@
 __pycache__/
 *.egg-info/
 
+# experiment outputs
+runs/
+mlruns/
+results/
+
 # exclude all datasets
 data/
 
