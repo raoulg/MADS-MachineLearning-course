@@ -2,14 +2,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from typing import Any, Optional, Dict
+from typing import Optional, Dict, Any
 
 import mlflow
 import torch
 from torch import optim
 
-from mltrainer import Trainer
-from mltrainer import TrainerSettings
+from mltrainer import Trainer, TrainerSettings
 
 from .models import RNNConfig, build_model
 
@@ -41,11 +40,8 @@ def run_experiment(
     # Build model
     model = build_model(model_name=model_name, config=config).to(device)
 
-    # Loss + optimizer factory
+    # Loss
     loss_fn = torch.nn.CrossEntropyLoss()
-
-    def optimizer_factory(params):
-        return optim.Adam(params, lr=lr, weight_decay=weight_decay)
 
     # Start MLflow run
     with mlflow.start_run(run_name=run_name):
@@ -63,17 +59,29 @@ def run_experiment(
         mlflow.log_param("device", str(device))
         mlflow.log_param("epochs", getattr(settings, "epochs", None))
 
-        trainer = Trainer(
+        # Trainer (mltrainer verwacht optimizer als class; kwargs via optimizer_kwargs)
+        trainer_kwargs: Dict[str, Any] = dict(
             model=model,
             settings=settings,
             loss_fn=loss_fn,
-            optimizer=optimizer_factory,  # factory i.p.v. class, zodat lr/weight_decay vastligt
+            optimizer=optim.Adam,
             traindataloader=trainstreamer,
             validdataloader=validstreamer,
             scheduler=optim.lr_scheduler.ReduceLROnPlateau,
             device=device,
         )
 
+        # Probeer optimizer_kwargs te gebruiken (meest correct). Als mltrainer dit niet ondersteunt,
+        # valt het terug op Adam defaults zodat je pipeline blijft werken.
+        try:
+            trainer_kwargs["optimizer_kwargs"] = {"lr": lr, "weight_decay": weight_decay}
+            trainer = Trainer(**trainer_kwargs)
+        except TypeError:
+            # Fallback: Trainer accepteert geen optimizer_kwargs
+            trainer_kwargs.pop("optimizer_kwargs", None)
+            trainer = Trainer(**trainer_kwargs)
+
         trainer.loop()
 
     return model
+
