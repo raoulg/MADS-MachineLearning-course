@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from pathlib import Path
 from typing import Optional, Dict, Any
 
 import mlflow
@@ -11,6 +12,17 @@ from torch import optim
 from mltrainer import Trainer, TrainerSettings
 
 from .models import RNNConfig, build_model
+
+
+def _default_tracking_uri() -> str:
+    """
+    Maak een stabiele, absolute sqlite tracking URI.
+    Werkt ongeacht waar je notebook/terminal de cwd heeft.
+    """
+    project_root = Path(__file__).resolve().parents[1]  # .../MADS-MachineLearning-course
+    db_path = project_root / "notebooks" / "ex3" / "mlflow.db"
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    return f"sqlite:///{db_path}"
 
 
 def run_experiment(
@@ -23,7 +35,7 @@ def run_experiment(
     device,
     experiment_name: str = "gestures-ex3",
     run_name: Optional[str] = None,
-    tracking_uri: str = "sqlite:///mlflow.db",
+    tracking_uri: Optional[str] = None,
     lr: float = 1e-3,
     weight_decay: float = 0.0,
     extra_tags: Optional[Dict[str, str]] = None,
@@ -33,25 +45,29 @@ def run_experiment(
 
     Notebooks blijven dun: zij geven alleen config + streamers + settings door.
     """
-    # MLflow setup
+    # 1) MLflow tracking (stabiel pad)
+    if tracking_uri is None:
+        tracking_uri = _default_tracking_uri()
+
     mlflow.set_tracking_uri(tracking_uri)
     mlflow.set_experiment(experiment_name)
 
-    # Build model
+    # 2) Build model
     model = build_model(model_name=model_name, config=config).to(device)
 
-    # Loss
+    # 3) Loss
     loss_fn = torch.nn.CrossEntropyLoss()
 
-    # Start MLflow run
+    # 4) Start MLflow run
     with mlflow.start_run(run_name=run_name):
-        # Tags (handig voor filteren)
+        # Tags
         mlflow.set_tag("model_name", model_name)
+        mlflow.set_tag("tracking_uri", tracking_uri)
         if extra_tags:
             for k, v in extra_tags.items():
                 mlflow.set_tag(k, v)
 
-        # Params loggen
+        # Params
         for k, v in asdict(config).items():
             mlflow.log_param(k, v)
         mlflow.log_param("lr", lr)
@@ -59,7 +75,7 @@ def run_experiment(
         mlflow.log_param("device", str(device))
         mlflow.log_param("epochs", getattr(settings, "epochs", None))
 
-        # Trainer (mltrainer verwacht optimizer als class; kwargs via optimizer_kwargs)
+        # Trainer
         trainer_kwargs: Dict[str, Any] = dict(
             model=model,
             settings=settings,
@@ -71,8 +87,7 @@ def run_experiment(
             device=device,
         )
 
-        # Probeer optimizer_kwargs te gebruiken (meest correct). Als mltrainer dit niet ondersteunt,
-        # valt het terug op Adam defaults zodat je pipeline blijft werken.
+        # mltrainer: probeer optimizer_kwargs (als ondersteund)
         try:
             trainer_kwargs["optimizer_kwargs"] = {"lr": lr, "weight_decay": weight_decay}
             trainer = Trainer(**trainer_kwargs)
@@ -84,4 +99,3 @@ def run_experiment(
         trainer.loop()
 
     return model
-
