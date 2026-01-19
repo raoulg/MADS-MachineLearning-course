@@ -6,7 +6,6 @@ Since this is the last lesson, we will do Q&A. Prepare yourself to:
 
 - look through all learning goals. Ask questions if there are goals you wouldnt be able to answer
 - think about the feedback on the hypertuning exercise; if you dont understand it, ask questions
-- You can have a look at this old exam: https://github.com/raoulg/ML22-tentamen/blob/master/reports/antwoorden.md and use it to ask questions about things you dont understand.
 
 De student begrijpt:
 7.1 Wat het verschil is tussen euclidische en niet-euclidische geometrie
