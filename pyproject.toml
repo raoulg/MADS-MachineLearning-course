@@ -7,7 +7,7 @@ authors = [
     {name = "R.Grouls", email = "Raoul.Grouls@han.nl"},
 ]
 
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 
 classifiers = [
@@ -24,7 +24,7 @@ dependencies = [
     "hyperopt>=0.2.7",
     "jupyter>=1.1.1",
     "loguru>=0.7.0",
-    "mads-datasets[torch]>=0.3.12",
+    "mads-datasets[torch]>=0.3.15",
     "matplotlib>=3.7.1",
     "plotly>=5.17.0",
     "pydantic>=1.10.9",
