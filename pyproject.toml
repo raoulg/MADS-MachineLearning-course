@@ -41,7 +41,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-nvim = [
+notebook = [
     "jupytext>=1.16.4",
 ]
 
