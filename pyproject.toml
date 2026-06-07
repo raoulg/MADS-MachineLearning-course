@@ -7,7 +7,7 @@ authors = [
     {name = "R.Grouls", email = "Raoul.Grouls@han.nl"},
 ]
 
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 
 classifiers = [
@@ -31,7 +31,7 @@ dependencies = [
     "pydantic>=1.10.9",
     "seaborn>=0.12.2",
     "tokenizers>=0.21.0",
-    "tensorboard>=2.15.1",
+    "tensorboard>=2.20",
     "torch>=2.6.0",
     "torchinfo>=1.8.0",
     "torch-geometric>=2.6.1",
@@ -39,6 +39,7 @@ dependencies = [
     "tomlserializer>=0.2.0",
     "mltrainer[tune]>=0.3.0",
     "flax>=0.12.2",
+    "vectormesh>=0.2.0",
 ]
 
 [dependency-groups]
@@ -47,7 +48,7 @@ dev = [
     "mypy>=1.14.1",
     "notebooktester>=0.2.1",
     "pyright>=1.1.392",
-    "ruff>=0.9.1",
+    "ruff>=0.15.16",
 ]
 
 [tool.uv.sources]
