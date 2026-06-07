@@ -13,8 +13,9 @@ license = {text = "MIT"}
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
 
@@ -31,18 +32,13 @@ dependencies = [
     "seaborn>=0.12.2",
     "tokenizers>=0.21.0",
     "tensorboard>=2.15.1",
-    "torch>=2.0.1",
+    "torch>=2.6.0",
     "torchinfo>=1.8.0",
     "torch-geometric>=2.6.1",
     "torch-tb-profiler>=0.4.3",
     "tomlserializer>=0.2.0",
-    "mltrainer>=0.2.4",
+    "mltrainer[tune]>=0.3.0",
     "flax>=0.12.2",
-]
-
-[project.optional-dependencies]
-notebook = [
-    "jupytext>=1.16.4",
 ]
 
 [dependency-groups]
