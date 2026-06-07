@@ -34,3 +34,6 @@ data/raw/*.arff
 model.toml
 settings.toml
 *.pt
+artefacts/**
+**/tmp/*
+**/assets/*
