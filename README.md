@@ -41,7 +41,7 @@ Project Organization
 --------
 
 For this project you will need some dependencies.
-The project uses python 3.11 or 3.12, and all dependencies are defined within the `pyproject.toml` file.
+The project uses python 3.11, 3.12 or 3.13, and all dependencies are defined within the `pyproject.toml` file.
 
 The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and automatically lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it, but you might want to use lefthook in your own repositories.
 
@@ -93,3 +93,17 @@ Get yourself familiar with the toolbox, if you arent already
 - uv: either read the docs [uv projects docs](https://docs.astral.sh/uv/guides/projects/) or watch a video on youtube, eg [uv for python](https://youtu.be/qh98qOND6MI?si=hjFMgpAYaUuV_Hgl)
 - git: do a [tutorial](https://www.w3schools.com/git/git_getstarted.asp) or watch a [video](https://youtu.be/r8jQ9hVA2qs?si=2GicBn0xNeG3wACD)
 - terminal/unix: get familiar with the terminal and the unix commands, again [video](https://youtu.be/gd7BXuUQ91w?si=9WqWNQk5MAKr-sF1) or some [tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview)
+
+## ⚠️ Intel Macs (x86_64) are not supported
+The course runs on Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs,
+on Python 3.11–3.13. 
+
+**Intel Macs are not supported**: `torch` and `ray` releases
+stopped publishing macOS x86_64 wheels (PyTorch's last Intel-Mac wheel was `2.2.2`)
+
+If you are on an Intel Mac, your options are:
+
+- **Use a Linux VM (recommended).** This is the supported path; see the `references`
+   folder for lab setups (azure / surf).
+-  **Drop the `[tune]` extra in the pyproject.toml** if your blocker is Ray rather than torch: using plain `mltrainer` instead of `mltrainer[tune]` skips Ray, so the Ray hypertuning notebooks won't run but the rest will. 
+- **Build your own environment with older versions.** create your own environment with uv. Start with mltrainer, an option could be to go back to `mltrainer==0.2.7.1`.
