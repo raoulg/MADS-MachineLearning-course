@@ -1,0 +1,370 @@
+# =============================================================================
+# Lesson 2 (notebooks/2_convolutions) — refactor plan
+#
+# Parent: planning/masterplan.yml (phase_1 P1.2, phase_2 P2.4, decisions D8/D9)
+# Kill list rows: planning/mads_datasets_killlist.md § "Lesson 2"
+#
+# This plan implements D9: transfer learning moves UP into L2, and L2 becomes
+# the lesson about representations. It therefore also *removes* material from
+# L4, which lesson4.yml must pick up.
+# =============================================================================
+
+meta:
+  lesson: L2
+  dir: notebooks/2_convolutions
+  status: draft — awaiting approval
+  created: 2026-07-30
+  phase: 1 (dataset swap) + 2 (the frozen-encoder notebook)
+  goal: >
+    L2 answers one question: **where does a good representation of an image
+    come from?** Three answers in order — you design it (convolutions, by
+    hand), you learn it (train the CNN), or you take one that already exists
+    (a frozen pretrained encoder). The third is the north star of the course,
+    and it lands hardest here because the student has just built the first two.
+
+# -----------------------------------------------------------------------------
+# The proposed shape. See restructure_rationale for why.
+# -----------------------------------------------------------------------------
+proposed_arc:
+  notebooks:
+    - "01_convolutions.ipynb   — what a convolution is; build a CNN by hand"
+    - "02_pretrained.ipynb     — the same task with a frozen encoder + cached vectors  [NEW]"
+    - "03_mlflow.ipynb         — track the comparison; search a little"
+  moved_out:
+    - "01_losses.ipynb -> lesson 1 (see restructure_rationale.losses)"
+  moved_in:
+    - "the frozen-features half of L4/03 + L4/04 (D9)"
+
+restructure_rationale:
+
+  losses: >
+    `01_losses.ipynb` should move to L1. This is not a new opinion — it fixes an
+    existing inconsistency: `references/leerdoelen/les1.md` already maps goal
+    1.9 ("what is a loss function?") to `2_convolutions/01_losses.ipynb`. The
+    notebook is being taught against lesson 1's goals from lesson 2's folder.
+    It is also entirely self-contained: 40 cells of pure tensor arithmetic
+    (MSE, NLL, CrossEntropy, BCE, BCEWithLogits) with no dataset at all, so it
+    moves without touching a single line. Moving it pays for what L2 gains
+    under make_room.
+
+  transfer_learning_moves_up: >
+    D9. The strongest argument is ordering: `02_convolutions` ends with the
+    student having hand-built a CNN and trained it on fashion. That is the
+    single best moment in the whole course to show a frozen ResNet doing better
+    in a fraction of the time, because the contrast is *theirs* — they built the
+    thing being compared against. Putting that lesson two modules later, in L4,
+    wastes the setup.
+
+  what_L4_loses: >
+    L4/03_minimal_transfer_learning and L4/04_transfer_learning_with_resnet.
+    Note these already overlap heavily — L4/03 teaches *both* modes in one
+    notebook (cells 20-21 fine-tune every parameter; cells 25-27 freeze all and
+    train only `fc`), and L4/04 is the frozen case again on flowers, with a
+    hand-written `AugmentPreprocessor`. Roughly 74 cells with one idea between
+    them. L2 takes the frozen-features half; the fine-tune-vs-frozen *cost*
+    comparison stays in L4, where it becomes a budget question. lesson4.yml
+    must confirm this before L2 is executed.
+
+# -----------------------------------------------------------------------------
+current_state:
+  - notebook: 01_losses.ipynb
+    cells: 40
+    content: >
+      regression losses from first principles (residual -> abs -> squared ->
+      MSELoss), then classification (softmax, log-softmax, NLLLoss, the
+      hand-written loop that reproduces it, CrossEntropyLoss), then multilabel
+      (sigmoid, BCELoss, hand-written, BCEWithLogitsLoss)
+    mads_datasets: none
+    data: none — synthetic tensors throughout
+    change: move to L1 unchanged
+
+  - notebook: 02_convolutions.ipynb
+    cells: 38
+    content: >
+      FASHION streamers (2-5); Conv2d with padding/stride variations and their
+      output shapes (8-13); nn.Sequential stack (15); the deliberate
+      too-small-input RuntimeError (17); Flatten and AvgPool2d (19-21); a
+      configurable CNN class + torchinfo summary at two input sizes (24-26);
+      Trainer + 3 epochs (28-36)
+    mads_datasets: cell 2 (FASHION factory + streamers; FLOWERS commented out)
+    change: dataset swap; keep everything else. This is the hand-rolled half of
+      the lesson and it stays hand-rolled — north_star clause (a), it explains
+      what is inside the frozen model that comes next.
+
+  - notebook: 03_mlflow.ipynb
+    cells: 37
+    content: >
+      FASHION streamers; a CNN defined inline, then `mltrainer.imagemodels`
+      CNNConfig/CNNblocks; torchinfo; Trainer; then mlflow with a sqlite
+      backend, an experiment, and a hyperopt TPE search over filters /
+      kernel_size (3 evals); ends pointing at `mlflow server`
+    mads_datasets: cells 1 (markdown selling the package), 2, 5
+    change: dataset swap + point the tracked comparison at the new material
+
+# -----------------------------------------------------------------------------
+learning_goals_delta:
+  file: references/leerdoelen/les2.md
+  note: read les2.md before finalising — this section is written from the
+    notebooks, and the stated goals may not match them.
+  unchanged:
+    - what a convolution does; kernel size, stride, padding, and their effect
+      on output shape
+    - pooling and flattening as rank-reducing operations
+    - building a configurable CNN and reading a torchinfo summary
+    - experiment tracking with mlflow
+  gains:
+    - id: 2.x-a
+      text: >
+        can explain why a pretrained encoder beats a small CNN trained from
+        scratch on a small dataset, in terms of what the encoder has already
+        seen — and can name the conditions under which that stops being true
+    - id: 2.x-b
+      text: >
+        can state the cost profile of the two approaches separately: one-time
+        embedding cost vs per-experiment training cost, and which one a
+        hyperparameter search multiplies
+    - id: 2.x-c
+      text: >
+        recognises that an image embedding `(D,)` takes the same downstream
+        path as any other vector — same Collate, same head — and can say why
+        that means the pipeline is modality-agnostic
+  inherits_from_L4:
+    - the frozen-encoder / feature-extraction goals currently in les4.md
+  gives_away:
+    - goal 1.9 (loss functions) formally returns to les1.md with the notebook
+
+# -----------------------------------------------------------------------------
+datasets:
+  - old: mads_datasets FASHION
+    new: zalando-datasets/fashion_mnist
+    used_in: [02_convolutions.ipynb, 03_mlflow.ipynb]
+    verified: parquet-native, passes the selection_checklist
+    gotcha: >
+      the hub gives PIL images; the notebooks assume `(B, 1, 28, 28)` float
+      tensors. The transform is explicit now — which is *useful* here, because
+      cell 26's `summary(model, input_size=(32, 1, 28, 28))` and cell 25's
+      `(32, 3, 224, 224)` are already teaching students to reason about input
+      shape.
+  - new: nkirschi/oxford-flowers
+    used_in: [02_pretrained.ipynb]
+    verified: parquet-native; already proven in vectormesh's image notebook
+    why: >
+      the frozen-encoder comparison needs a task where a pretrained encoder can
+      actually show its worth. Fashion-MNIST is 28x28 greyscale — ImageNet
+      features are a poor fit and the hand-rolled CNN is already near-ceiling,
+      so the comparison would be flat or misleading. 102-class flowers is the
+      opposite: hard, fine-grained, natural photographs, and a small CNN from
+      scratch does badly on it. That contrast is the lesson.
+    note: >
+      this means 02_pretrained runs a *different* dataset than 02_convolutions.
+      That is a deliberate second lesson — "the same head on a harder problem"
+      — but it must be said out loud, and the notebook should also run the
+      frozen encoder on fashion so the comparison has one honest apples-to-apples
+      row. Predict-then-check: students should guess which gap is bigger.
+
+# -----------------------------------------------------------------------------
+vectormesh_usage:
+  notebooks_touched: [02_pretrained.ipynb]
+  components:
+    - ImageVectorizer (mobilenet_v2 -> dinov2_small as the swap exercise)
+    - DatasetSchema.infer (so switching datasets changes one string)
+    - VectorCache.create(remove_columns=["image"]) / .load / .metadata
+    - Collate(padder=torch.stack), OneHot
+    - Serial, NeuralNet, GaussianNoise
+    - metrics.Accuracy
+  shapes_taught:
+    - "image (H, W, 3) -> ImageVectorizer -> (D,) per item"
+    - "Collate(padder=torch.stack) -> (B, D)"
+    - "NeuralNet head -> (B, K)"
+    - >
+      the point to name explicitly: there is no chunk axis and no aggregator
+      here. An image is one vector, so the ladder is one rung shorter than the
+      text path in L1. Same Collate, same head. Goal 2.x-c.
+  reuses_from_L1: Collate, OneHot, Serial, NeuralNet, the metadata-first habit
+
+# -----------------------------------------------------------------------------
+tasks:
+
+  - id: L2.1
+    title: Move 01_losses.ipynb to lesson 1
+    effort: S
+    detail: >
+      git mv to notebooks/1_pytorch_intro/ (numbering per lesson1.yml § naming),
+      update the les1.md and les2.md tables. No content change — the notebook
+      has no dataset and no imports beyond torch/pandas/seaborn.
+    touches: [notebooks/2_convolutions/01_losses.ipynb, references/leerdoelen/]
+    depends_on: [lesson1.yml naming decision]
+
+  - id: L2.2
+    title: fashion_mnist from the hub in 02_convolutions
+    effort: S
+    detail: >
+      cell 2 -> load_dataset + DataLoader with the D7 defaults
+      (num_workers=2, persistent_workers=True) + explicit PIL->tensor
+      normalise. Cells 3-5 (len, shapes) adapt. Everything from cell 8 onward
+      is untouched.
+    touches: [notebooks/2_convolutions/02_convolutions.ipynb]
+    killlist_rows: 1 (cell 2)
+    depends_on: [P0.6]
+
+  - id: L2.3
+    title: NEW — 02_pretrained.ipynb, the frozen-encoder counterpart
+    effort: M
+    detail: >
+      The centrepiece. Structure it as a continuation of 02_convolutions rather
+      than a fresh start: same task framing, same head, one thing changed.
+    outline:
+      - >
+        open by naming the question: your CNN learned its filters from 60k
+        fashion images. What if the filters were already learned, from 1.4M
+        ImageNet ones? Show the first-layer kernels of both if it is cheap.
+      - ImageVectorizer over the dataset -> VectorCache, with
+        remove_columns=["image"] so the artefact is distributable
+      - read the metadata before building anything (the L1 habit, reinforced)
+      - Serial([NeuralNet]) head on the cached vectors, trained on CPU in
+        seconds
+      - >
+        the comparison table, filled in by running it: accuracy, trainable
+        parameters, time-to-train, and the one-time embedding cost as a
+        separate column. That last column is the entire argument of the course
+        and it must be measured, not asserted.
+      - GaussianNoise as the cache-compatible answer to pixel augmentation,
+        with the train/eval determinism check
+      - >
+        close by connecting back to L1: this is the same Collate and the same
+        head that ran on IMDB regex features. Only the vectorizer changed.
+    exercises: see below
+    depends_on: [P0.3 for the published cache, D4 for oxford-flowers]
+    open_question: >
+      does this notebook build its own cache or download one? Both, with the
+      download as the default path — but the build must be runnable, because
+      "you can make one of these yourself" is the point of phase_5. Needs the
+      measured CPU embedding time (Q5) to decide how loudly to warn.
+
+  - id: L2.4
+    title: Point 03_mlflow at the comparison
+    effort: M
+    detail: >
+      dataset swap (cells 1, 2, 5) plus a reframing. Today it searches
+      filters/kernel_size of a CNN with hyperopt, 3 evals. Make the tracked
+      experiment the *actual* question of the lesson: log the hand-rolled CNN
+      and the frozen-encoder head as runs in one mlflow experiment, with the
+      embedding cost recorded as a parameter. Then let the search run over the
+      head, where 3 evals is no longer a compute-driven apology.
+    touches: [notebooks/2_convolutions/03_mlflow.ipynb]
+    killlist_rows: 2 (cells 1 markdown, 2, 5)
+    note: >
+      keep the hyperopt/TPE search — it is the L4 setup, and moving it to a
+      cheap-run setting is exactly what makes L4 teachable (D9).
+
+  - id: L2.5
+    title: Confirm the L4 handover
+    effort: S
+    detail: >
+      L2 cannot land before lesson4.yml agrees what L4 keeps. Specifically:
+      which notebook owns fine-tune-vs-frozen, and whether L4/03's
+      `train_model` / `visualize_model` helpers survive anywhere.
+    depends_on: [planning/lesson4.yml]
+    blocking: true
+
+  - id: L2.6
+    title: Run everything, tick the kill list
+    effort: S
+    depends_on: [L2.1, L2.2, L2.3, L2.4]
+
+# -----------------------------------------------------------------------------
+exercises:
+  keep:
+    - >
+      the deliberate RuntimeError in 02_convolutions cell 17 (input too small
+      for the stack) — it is a shape-reasoning exercise and it belongs to the
+      same family as L1's beartype violation. Say so explicitly, so the thread
+      is visible.
+  add:
+    - id: E1
+      where: 02_pretrained.ipynb
+      task: >
+        Swap the encoder: mobilenet_v2 (3.5M params) -> dinov2_small (22M) ->
+        dinov2_base. Record accuracy *and* the one-time caching time for each.
+        Plot accuracy against caching cost.
+      why: >
+        makes the central trade-off of the course a curve the student has drawn
+        themselves, and shows that encoder size costs nothing at *training*
+        time — it is paid once, by someone else, possibly not by you.
+    - id: E2
+      where: 02_pretrained.ipynb
+      task: >
+        Shrink the training set to 100 images per class and re-run both the
+        hand-rolled CNN and the frozen-encoder head. Which degrades faster?
+        Predict before running.
+      why: >
+        the honest boundary of the north_star principle — pretrained features
+        win most where data is scarce, which is most real projects. It also
+        stops the lesson being a sales pitch: name the conditions under which
+        training from scratch is still right.
+    - id: E3
+      where: 03_mlflow.ipynb
+      task: >
+        Run the same hyperopt search twice: once over the CNN (from scratch),
+        once over the head (on cached vectors). Compare wall-clock for the same
+        number of evaluations, then answer: at what search budget does the
+        embed-once approach pay for itself?
+      why: >
+        turns the economics into arithmetic the student does, and sets up L4
+        directly. This is the bridge exercise between the two lessons.
+
+# -----------------------------------------------------------------------------
+runtime_budget:
+  to_measure:
+    - fashion_mnist download + the 3-epoch CNN in 02_convolutions (the current
+      baseline — measure before changing anything, so the comparison is fair)
+    - ImageVectorizer over oxford-flowers on CPU, per encoder (E1 depends on it)
+    - the head training run on cached vectors — expected seconds
+    - the two hyperopt searches in E3
+  note: >
+    E3's answer depends entirely on these numbers, so they are course content,
+    not just planning overhead. Write them into the notebook as measured facts
+    with the hardware named.
+
+# -----------------------------------------------------------------------------
+depends_on:
+  masterplan:
+    - D4  oxford-flowers approved
+    - D7  DataLoader defaults (num_workers=2, persistent_workers)
+    - D9  the L2/L4 re-split — this whole plan implements it
+    - P0.3 published cache + loader snippet
+    - P0.6 mltrainer iterator fix — blocks any timing claim, and blocks
+      num_workers>0 entirely
+  other_plans:
+    - lesson1.yml — the naming/renumber decision, and receiving 01_losses
+    - lesson4.yml — MUST be written before L2 is executed (L2.5)
+  vectormesh_version: ">=0.2.0 — ImageVectorizer, DatasetSchema, GaussianNoise
+    all exist already; no new library features needed"
+
+# -----------------------------------------------------------------------------
+open_questions:
+  - id: L2.Q1
+    question: >
+      Does 02_pretrained use oxford-flowers (a hard task where the encoder
+      shines) or fashion (apples-to-apples with the hand-rolled CNN)?
+    recommendation: both, but flowers as the headline and fashion as the
+      honest control. See datasets.note.
+  - id: L2.Q2
+    status: ANSWERED — masterplan D10
+    question: three tracking mechanisms is two too many
+    answer: >
+      consolidate on MLflow. `mltrainer.ReportTypes` already has `MLFLOW` and
+      Trainer already logs loss, metrics and learning rate to it, so this is a
+      settings change per notebook, not a build. TensorBoard stays available as
+      the zero-setup local option but stops being taught. aimlflow is a viewer
+      layered on the same store — additive, reversible, try it after MLflow is
+      the single store.
+    remaining_for_conventions_md: >
+      where the store lives for students (currently `sqlite:///mlflow.db` in
+      the working dir) and whether runs are meant to be shareable.
+  - id: L2.Q3
+    question: >
+      Does 01_losses actually move, or does L1 just reference it in place?
+    note: >
+      moving is cleaner but touches two leerdoelen files and the git history of
+      a notebook students may have open. Cheap either way; just decide once.
