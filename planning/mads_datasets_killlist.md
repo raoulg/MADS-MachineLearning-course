@@ -12,7 +12,8 @@ site has a replacement that has been **run**. `mads-datasets[torch]` stays in
 | 🔶 | replacement written, **not yet run** — does not count |
 | ✅ | replaced, notebook executed top to bottom, output inspected |
 
-Last updated: 2026-07-30. **Lesson 1 is green.**
+Last updated: 2026-07-31. **Lessons 1 and 2 are green**, both verified against the
+published vectormesh 0.4.0 / mltrainer 0.3.4.
 
 ---
 
@@ -86,18 +87,18 @@ batch.
 
 | Site | Uses | Replacement | Status |
 |---|---|---|---|
-| `05_classfication.ipynb` cell 2 | `import mads_datasets`, FASHION factory | dead code — deleted 2026-07-30. Notebook is now `06_vectors.ipynb` | ✅ |
+| `05_classfication.ipynb` cell 2 | `import mads_datasets`, FASHION factory | dead code — deleted 2026-07-30. Notebook is now `07_vectors.ipynb` | ✅ |
 | `03_dataloader.ipynb` cells 2, 7, 17, 48 | FLOWERS factory + `download_data()`, `FileTypes`, `BaseDatastreamer` | Done 2026-07-30. Image-folder half cut per D8; rebuilt as an iterator lesson on `nkirschi/oxford-flowers`: memory-map + lazy decode, then `yield` + shuffled index + wrapping pointer, then DataLoader, then `streaming=True` on FineWeb for goal 1.5. **52 → 30 cells.** Runs in 17s | ✅ |
-| `05_image_classfication.ipynb` cell 2, 19 | FASHION factory + `create_datastreamer` → 4 streamers | Done 2026-07-30, renamed `05_classification.ipynb`. `zalando-datasets/fashion_mnist` + DataLoader with an explicit PIL→`(1,28,28)` float conversion. The "which one is faster" comparison became DataLoader (1.4 ms/batch) vs HF streaming (2.1 ms/batch) — **and the `%timeit next(iter(loader))` idiom was fixed too**, it was timing iterator construction. Runs in 65s | ✅ |
-| `06_exercises.ipynb` cell 0, 1 | `DatasetType` import; markdown telling students to add `mads_datasets` to their own repo | Done 2026-07-30, renamed `08_exercises.ipynb`. Dependency advice now names `datasets`, `vectormesh` and `mltrainer >= 0.3.2`, and points the "source to study" hint at `BaseVectorizer`/`VectorCache`. Runs in 64s | ✅ |
+| `05_image_classfication.ipynb` cell 2, 19 | FASHION factory + `create_datastreamer` → 4 streamers | Done 2026-07-30, renamed `06_classification.ipynb`. `zalando-datasets/fashion_mnist` + DataLoader with an explicit PIL→`(1,28,28)` float conversion. The "which one is faster" comparison became DataLoader (1.4 ms/batch) vs HF streaming (2.1 ms/batch) — **and the `%timeit next(iter(loader))` idiom was fixed too**, it was timing iterator construction. Runs in 65s | ✅ |
+| `06_exercises.ipynb` cell 0, 1 | `DatasetType` import; markdown telling students to add `mads_datasets` to their own repo | Done 2026-07-30, renamed `09_exercises.ipynb`. Dependency advice now names `datasets`, `vectormesh` and `mltrainer >= 0.3.2`, and points the "source to study" hint at `BaseVectorizer`/`VectorCache`. Runs in 64s | ✅ |
 
 ### Lesson 2 — convolutions
 
 | Site | Uses | Replacement | Status |
 |---|---|---|---|
-| `02_convolutions.ipynb` cell 2 | FASHION factory + streamers; commented-out FLOWERS variant | Done 2026-07-30. `zalando-datasets/fashion_mnist` + `DataLoader` with the same explicit PIL→`(1,28,28)` conversion as L1/05, `num_workers=0` per conventions §4. The commented-out FLOWERS variant is gone — the frozen-encoder notebook covers flowers properly now. Runs in 31s | ✅ |
-| `03_mlflow.ipynb` cell 1, 2, 5 | FASHION factory; markdown selling the mads_datasets package | Done 2026-07-30, renamed **`04_mlflow.ipynb`** and rewritten around the L2 comparison (masterplan D9/D10). The "let's use the mads_datasets package" paragraph is gone; the notebook now reuses the cache `03_pretrained` wrote. MLflow is the only report type | ✅ |
-| `03_mlflow.py` — **was not on this list** | `get_fashion_streamers()`: FASHION factory + `BasePreprocessor` + `create_datastreamer` | Done 2026-07-30, renamed **`04_mlflow.py`**. Rewritten around `load_dataset` + `DataLoader`. This is the one place in the course that uses `num_workers=2, persistent_workers=True` and carries the `if __name__ == "__main__"` spawn-guard comment — i.e. it is where conventions §4's script/notebook split is demonstrated | ✅ |
+| `01_convolutions.ipynb` cell 2 (was `02_`) | FASHION factory + streamers; commented-out FLOWERS variant | Done 2026-07-30. `zalando-datasets/fashion_mnist` + `DataLoader` with the same explicit PIL→`(1,28,28)` conversion as L1/06_classification, `num_workers=0` per conventions §4. The commented-out FLOWERS variant is gone — the frozen-encoder notebook covers flowers properly now. Runs in 31s | ✅ |
+| `03_mlflow.ipynb` cell 1, 2, 5 | FASHION factory; markdown selling the mads_datasets package | Done 2026-07-30, rewritten around the L2 comparison (masterplan D9/D10); re-verified 07-31. The "let's use the mads_datasets package" paragraph is gone; the notebook now reuses the cache `02_pretrained` wrote, and runs on **flowers** because fashion has no crossover to show (lesson2.yml C9). MLflow is the only report type | ✅ |
+| `03_mlflow.py` — **was not on this list** | `get_fashion_streamers()`: FASHION factory + `BasePreprocessor` + `create_datastreamer` | Done 2026-07-30. Rewritten around `load_dataset` + `DataLoader`. This is the one place in the course that uses `num_workers=2, persistent_workers=True` and carries the `if __name__ == "__main__"` spawn-guard comment — i.e. it is where conventions §4's script/notebook split is demonstrated | ✅ |
 
 > The `.py` row above was missing from the original table, which counted **14 sites** by scanning
 > notebooks only. Running `grep -rln mads_datasets notebooks/` on 2026-07-30 turned up **three**
