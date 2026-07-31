@@ -1,12 +1,24 @@
-"""The 03_mlflow notebook, as a script.
-
-Same experiment, run from the terminal instead of a notebook:
+"""A hyperparameter search as a script, rather than in a notebook.
 
     uv run python 03_mlflow.py
 
 A script is the right shape once a search takes long enough that you do not want to babysit a
-kernel. It is also where the dataloader settings differ from the notebooks (see `DataLoader`
-below) and where the multiprocessing gotcha bites -- both are commented at the point they matter.
+kernel, and it is where two things differ from the notebooks: the dataloader settings (see
+`get_fashion_loaders`) and the multiprocessing entry-point guard (see the bottom of the file).
+Both are commented at the point they matter.
+
+This is deliberately *not* a copy of `03_mlflow.ipynb`. The notebook searches a head on cached
+flower vectors, because that is where the cost argument lives; this searches the CNN from
+`01_convolutions.ipynb` on raw fashion pixels, which is the slow side of that same argument and
+the one worth running unattended. Logs to the same MLflow store, so the two end up in one
+experiment and are directly comparable.
+
+It imports that CNN from `cnn.py` rather than using `mltrainer.imagemodels.CNNblocks`, and the
+reason is worth knowing before you search anything. `CNNblocks` derives its flatten size from the
+pooling alone, so changing `kernel_size` silently invalidates the arithmetic and the run dies with
+a shape error partway through the search. Our `CNN` measures the activation map with `_conv_test`
+instead of predicting it, so every point in the search space builds. **A model that cannot be
+reconfigured cannot be searched** -- which is a lesson about writing models, not about hyperopt.
 """
 
 from datetime import datetime
@@ -22,10 +34,10 @@ from hyperopt import STATUS_OK, Trials, fmin, hp, tpe
 from hyperopt.pyll import scope
 from loguru import logger
 from mltrainer import ReportTypes, Trainer, TrainerSettings
-from mltrainer.imagemodels import CNNConfig, CNNblocks
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset as TorchDataset
 
+from cnn import CNN  # the model from 01_convolutions.ipynb
 from vectormesh.components.metrics import Accuracy
 from vectormesh.data.vectorizers import detect_device
 
@@ -33,6 +45,29 @@ BATCHSIZE = 64
 EPOCHS = 3
 NUM_CLASSES = 10
 MLRUNS = Path(__file__).resolve().parents[2] / "mlruns.db"
+
+
+def collate(items):
+    """Turn a list of rows into a batch: PIL -> (1, 28, 28) float, label -> one-hot.
+
+    This lives at module level, and that is load-bearing. With `num_workers > 0` the DataLoader
+    has to *pickle* its `collate_fn` to hand it to the worker processes, and a function defined
+    inside another function cannot be pickled -- you get
+
+        AttributeError: Can't get local object 'get_fashion_loaders.<locals>.collate'
+
+    which is the same multiprocessing constraint as the `if __name__ == "__main__"` guard at the
+    bottom of this file, in a second disguise. Notebooks never hit either, because they run with
+    `num_workers=0`.
+    """
+    X = [
+        torch.from_numpy(np.asarray(i["image"], dtype=np.float32) / 255.0).unsqueeze(0)
+        for i in items
+    ]
+    y = torch.nn.functional.one_hot(
+        torch.tensor([i["label"] for i in items]), NUM_CLASSES
+    ).float()
+    return torch.stack(X), y
 
 
 def get_fashion_loaders(batchsize: int) -> tuple[DataLoader, DataLoader]:
@@ -49,18 +84,6 @@ def get_fashion_loaders(batchsize: int) -> tuple[DataLoader, DataLoader]:
     fashion = cast(
         dict[str, TorchDataset], load_dataset("zalando-datasets/fashion_mnist")
     )
-
-    def collate(items):
-        X = [
-            torch.from_numpy(
-                np.asarray(i["image"], dtype=np.float32) / 255.0
-            ).unsqueeze(0)
-            for i in items
-        ]
-        y = torch.nn.functional.one_hot(
-            torch.tensor([i["label"] for i in items]), NUM_CLASSES
-        ).float()
-        return torch.stack(X), y
 
     train = DataLoader(
         fashion["train"],
@@ -109,15 +132,10 @@ def objective(params):
         mlflow.log_params(params)
         mlflow.log_param("batchsize", f"{BATCHSIZE}")
 
-        model = CNNblocks(
-            CNNConfig(
-                matrixshape=(28, 28),
-                batchsize=BATCHSIZE,
-                input_channels=1,
-                maxpool=2,
-                num_classes=NUM_CLASSES,
-                **params,
-            )
+        model = CNN(
+            input_size=(BATCHSIZE, 1, 28, 28),
+            num_classes=NUM_CLASSES,
+            **params,
         )
         model.to(device)
 
@@ -146,9 +164,9 @@ def main():
     setup_mlflow("l2_representations")
 
     search_space = {
-        "hidden": scope.int(hp.quniform("hidden", 16, 64, 8)),
-        "kernel_size": scope.int(hp.quniform("kernel_size", 3, 5, 2)),
-        "num_layers": scope.int(hp.quniform("num_layers", 2, 4, 1)),
+        "filters": scope.int(hp.quniform("filters", 16, 128, 8)),
+        "units1": scope.int(hp.quniform("units1", 32, 128, 8)),
+        "units2": scope.int(hp.quniform("units2", 32, 128, 8)),
     }
 
     best_result = fmin(
