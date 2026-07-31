@@ -73,13 +73,17 @@ A cache people cannot download is not a cache people will use.
 
 ## 2. One-time setup
 
-### Account or organisation?
+### Where the course caches live
 
-A personal account (e.g. `pttrnio`) works fine and is one click. An **organisation** is
-worth it if you want co-teachers to be able to re-upload a cache, or if you want the
-course caches to survive independently of one person's account. You can move a repo to an
-org later, but the URL changes and every notebook that hardcodes it breaks — so decide
-before you publish the first one.
+**<https://huggingface.co/pttrn-io>** — an organisation, created 2026-07-31, empty until the
+first cache lands. Settled in masterplan D12; do not publish course caches anywhere else.
+
+An organisation rather than a personal account because co-teachers need to be able to
+re-upload a cache, and the caches should outlive any one account. The Hub has no
+convert-user-to-organisation path, and moving a repo later changes its URL and breaks every
+notebook that hardcodes it — so this had to be decided before the first publish, and now is.
+Note the hyphen: `pttrn-io`, not `pttrnio` (that handle is a personal user account, and users
+and orgs share one namespace).
 
 ### Log in
 
@@ -103,7 +107,7 @@ The token is stored in `~/.cache/huggingface/token`. In CI or on a VM, set the
 One dataset repo per **(dataset × encoder)** pair, with one folder per split inside it:
 
 ```
-pttrnio/imdb-granite-small-r2-cache
+pttrn-io/imdb-granite-small-r2-cache
 ├── README.md            <- the dataset card (see §5)
 ├── train/
 │   ├── data-00000-of-00001.arrow
@@ -131,24 +135,24 @@ already dates it. Keep the timestamped folder locally as your own record.
 Create the repo (public by default; add `--private` while you are still testing):
 
 ```bash
-uv run hf repos create pttrnio/imdb-granite-small-r2-cache --type dataset
+uv run hf repos create pttrn-io/imdb-granite-small-r2-cache --type dataset
 ```
 
 Upload one split. The three arguments are `REPO_ID`, `LOCAL_PATH`, `PATH_IN_REPO`:
 
 ```bash
-uv run hf upload pttrnio/imdb-granite-small-r2-cache ./artefacts/20260730131253_imdb_train_embed train --type dataset --commit-message "granite-small-r2 embeddings, train split"
+uv run hf upload pttrn-io/imdb-granite-small-r2-cache ./artefacts/20260730131253_imdb_train_embed train --type dataset --commit-message "granite-small-r2 embeddings, train split"
 ```
 
 ```bash
-uv run hf upload pttrnio/imdb-granite-small-r2-cache ./artefacts/20260730131253_imdb_test_embed test --type dataset --commit-message "granite-small-r2 embeddings, test split"
+uv run hf upload pttrn-io/imdb-granite-small-r2-cache ./artefacts/20260730131253_imdb_test_embed test --type dataset --commit-message "granite-small-r2 embeddings, test split"
 ```
 
 For anything above a few GB use the resumable variant instead — it retries and picks up
 where it stopped, which matters on a hotel wifi or a VM that gets reaped:
 
 ```bash
-uv run hf upload-large-folder pttrnio/eurosat-dinov2-cache ./artefacts/eurosat_train --type dataset
+uv run hf upload-large-folder pttrn-io/eurosat-dinov2-cache ./artefacts/eurosat_train --type dataset
 ```
 
 ### From Python
@@ -160,7 +164,7 @@ same code that built it:
 from pathlib import Path
 from huggingface_hub import HfApi
 
-REPO = "pttrnio/imdb-granite-small-r2-cache"
+REPO = "pttrn-io/imdb-granite-small-r2-cache"
 api = HfApi()
 api.create_repo(REPO, repo_type="dataset", exist_ok=True)
 
@@ -213,7 +217,7 @@ from pathlib import Path
 from huggingface_hub import snapshot_download
 from vectormesh import VectorCache
 
-path = snapshot_download("pttrnio/imdb-granite-small-r2-cache", repo_type="dataset")
+path = snapshot_download("pttrn-io/imdb-granite-small-r2-cache", repo_type="dataset")
 train = VectorCache.load(Path(path) / "train")
 ```
 
@@ -245,7 +249,7 @@ from huggingface_hub import snapshot_download
 from vectormesh import VectorCache
 
 path = Path(snapshot_download(
-    "pttrnio/imdb-granite-small-r2-cache",
+    "pttrn-io/imdb-granite-small-r2-cache",
     repo_type="dataset",
     revision="main",          # pin a commit hash for a graded assignment
 ))
@@ -260,7 +264,7 @@ the notebook is safe to re-run. To get the files in a specific folder instead, p
 `local_dir=...`, or use the CLI:
 
 ```bash
-uv run hf download pttrnio/imdb-granite-small-r2-cache --type dataset --local-dir ./artefacts/imdb-granite
+uv run hf download pttrn-io/imdb-granite-small-r2-cache --type dataset --local-dir ./artefacts/imdb-granite
 ```
 
 Only need one split? `snapshot_download(..., allow_patterns="train/*")`.

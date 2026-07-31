@@ -133,17 +133,15 @@ decisions:
     answers: Q3
     decision: >
       Caches move from the current secure-server download to the HuggingFace
-      hub, under the existing `pttrnio` account. Layout: one dataset repo per
+      hub, under the **`pttrn-io` organisation** (superseded the personal
+      `pttrnio` account — see D12). Layout: one dataset repo per
       (dataset x encoder), one folder per split, uploaded with `hf upload` /
       `HfApi.upload_folder`, consumed with `snapshot_download` +
       `VectorCache.load`. Written up in docs/publishing-caches-to-huggingface.md.
     notes:
       - >
-        `pttrnio` is a *user* account, currently empty. An organisation would
-        let co-teachers re-upload and would outlive one personal account;
-        moving a repo later changes its URL and breaks every notebook that
-        hardcodes it. Worth deciding before the first cache is published —
-        tracked as Q8.
+        SETTLED by D12 2026-07-31 — the org exists and is empty. The account
+        question that was tracked here as Q8 is closed.
       - >
         A save_to_disk folder is not loadable with `load_dataset`. This is the
         main thing students will trip over; the load snippet is standardised in
@@ -404,6 +402,33 @@ decisions:
       and hand-rolling it proves worse — decide with code, not in advance.
     date: 2026-07-30
 
+  - id: D12
+    answers: Q8
+    decision: >
+      Course caches are published under the **`pttrn-io` organisation**
+      (https://huggingface.co/pttrn-io), created 2026-07-31. Not the personal
+      `pttrnio` account. Every hardcoded repo id in the course points here.
+    why_an_org: >
+      co-teachers must be able to re-upload a cache, and the caches should
+      outlive any one personal account. The deciding constraint is that the Hub
+      has **no convert-user-to-organisation path** — unlike GitHub, you create a
+      new org and transfer repos into it, and a transfer changes the URL. So the
+      choice was only free before the first publish. It was made there.
+    why_the_hyphen: >
+      users and organisations share one global namespace on the Hub, so
+      `pttrnio` was unavailable — it is held by the personal account. `pttrn-io`
+      is the org. The near-identical names are a footgun: check the hyphen when
+      a `snapshot_download` 404s.
+    state_at_decision: >
+      the org is empty. Creating it publishes nothing; the pilot upload is
+      P0.3's remaining work and has not happened yet.
+    already_applied:
+      - docs/publishing-caches-to-huggingface.md — §2 rewritten from an open
+        question into the settled location; all 9 example repo ids re-pointed
+      - notebooks/1_pytorch_intro/07_vectors.ipynb — CACHE_REPO
+      - notebooks/2_convolutions/02_pretrained.ipynb — CACHE_REPO
+    date: 2026-07-31
+
 # -----------------------------------------------------------------------------
 # What each addition displaces. Enforced by the make_room principle: a phase
 # that adds material without a row here is not ready to start.
@@ -591,7 +616,7 @@ lesson_inventory:
 # -----------------------------------------------------------------------------
 dataset_migration:
 
-  # Can we legally re-publish it under pttrnio? Checked 2026-07-30 against the
+  # Can we legally re-publish it under pttrn-io? Checked 2026-07-30 against the
   # source URLs in mads_datasets/settings.py.
   # Run this before a dataset enters any plan. Two of the four candidates I
   # first proposed failed one of these checks (see R9 and the SUNSPOTS row).
@@ -741,13 +766,13 @@ dataset_migration:
             cache on a laptop), not fidelity to the old data.
     - name: EEG / "egg" (L5 exercise)
       used_by: [L5]
-      candidate: UCI "EEG Eye State" (dataset 264), self-mirrored to pttrnio
+      candidate: UCI "EEG Eye State" (dataset 264), self-mirrored to pttrn-io
       confidence: verified (source identified; hub mirror is our own action)
       notes: >
         the notebook downloads one .arff straight from UCI with
         `datatools.get_file`, so the only mads_datasets dependency here is that
         one helper. Cheapest migration in the whole plan: mirror the file to a
-        pttrnio dataset repo (UCI is CC BY 4.0) or just use urllib.
+        pttrn-io dataset repo (UCI is CC BY 4.0) or just use urllib.
     - name: FAVORITA, SECURE, IRIS, PENGUINS
       used_by: [none of the current notebooks]
       candidate: n/a
@@ -818,17 +843,24 @@ phases:
         title: Cache distribution via the hub
         status: documented, not yet exercised
         detail: >
-          Decided in D3: hub, under pttrnio, one dataset repo per
+          Decided in D3: hub, under the pttrn-io org, one dataset repo per
           (dataset x encoder). The how-to is written
           (docs/publishing-caches-to-huggingface.md); what remains is to
           actually publish the first cache and prove the round trip.
         deliverable: docs/publishing-caches-to-huggingface.md [done]
         remaining:
-          - decide user account vs organisation before the first publish (Q8)
-          - publish the IMDB granite cache as the pilot
-          - load it from a clean machine / fresh HF cache and time the download
-          - standardise the loader snippet that every notebook copies
-        depends_on: [Q5, Q8]
+          - "[x] account vs organisation — DONE 2026-07-31, D12: the pttrn-io
+             org exists and is empty"
+          - "[ ] publish the IMDB granite cache as the pilot — needs `hf auth
+             login` first; the CLI is currently not logged in on this machine"
+          - "[ ] load it from a clean machine / fresh HF cache and time the
+             download"
+          - "[ ] standardise the loader snippet that every notebook copies"
+        depends_on: [Q5]
+        blocks: >
+          phase_1's last exit criterion, and the default download path in
+          L1/07_vectors + L2/02_pretrained — both currently fall back to
+          building a cache locally (~2h/split on CPU), which no student will do.
       - id: P0.4
         status: >
           DONE 2026-07-30 — `datasets>=4.0` and `huggingface-hub>=0.30` are now
@@ -1011,7 +1043,7 @@ phases:
       - id: P2.3
         title: EEG exercise dataset — mirror or inline the download
         detail: source identified as UCI dataset 264 (CC BY 4.0). Either mirror
-          the .arff to pttrnio or replace `datatools.get_file` with urllib.
+          the .arff to pttrn-io or replace `datatools.get_file` with urllib.
         touches: [notebooks/5_attention/08_excercise.ipynb]
         effort: S
       - id: P2.4
@@ -1357,17 +1389,7 @@ open_questions:
   - id: Q3
     status: answered — see D3
   - id: Q8
-    question: >
-      Publish course caches under the personal `pttrnio` account, or create an
-      organisation for them?
-    why_it_matters: >
-      repo URLs get hardcoded in notebooks, and moving a repo to an org later
-      changes the URL. An org lets co-teachers re-upload and outlives one
-      account; a personal account is zero setup. Cheap now, annoying later.
-    recommendation: >
-      an org, if anyone other than you will ever rebuild a cache. Decide before
-      the pilot cache is published (P0.3).
-    blocks: [P0.3]
+    status: answered — see D12
   - id: Q4
     question: Do the SSL lessons extend 6_unsupervised, or become a new
       9_selfsupervised (leaving L6 as the classic autoencoder lesson)?
