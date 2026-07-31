@@ -29,8 +29,11 @@ its first one. Goal 2.1 folded into les1.md goal 1.9, which had been pointing ac
 lesson boundary at `2_convolutions/01_losses.ipynb` all along; fixing that inconsistency is
 what motivated D9.
 
-Still open: nothing has been removed from L4 yet (the L2.5 handover), so the
-transfer-learning material is currently duplicated between L2 and L4.
+**The L2/L4 duplication is deliberate, and it stays for now.** Nothing has been removed from
+lesson 4 — `03_minimal_transfer_learning` and `04_transfer_learning_with_resnet` are untouched
+— so transfer learning currently exists in both places. Sequencing decided by the owner on
+2026-07-31: **build L2 first, then decide what L4 drops, having seen the built L2 rather than a
+plan.** So do not "tidy up" the overlap, and do not open lesson4.yml, until that call is made.
 
 Done:
 

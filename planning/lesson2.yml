@@ -493,11 +493,16 @@ tasks:
       `next_deliverables.planning_paused` said the L4 decision should wait for.
     effort: S
     detail: >
-      L2 cannot land before lesson4.yml agrees what L4 keeps. Specifically:
-      which notebook owns fine-tune-vs-frozen, and whether L4/03's
+      Which notebook owns fine-tune-vs-frozen, and whether L4/03's
       `train_model` / `visualize_model` helpers survive anywhere.
     depends_on: [planning/lesson4.yml]
-    blocking: true
+    blocking: false
+    sequencing_decided: >
+      2026-07-31, by the owner: **build L2 first, decide L4 after reviewing it.**
+      The duplication between L2 and L4 is therefore deliberate and sanctioned
+      for now, not an oversight — do not "tidy" it away in a later pass. The
+      call on what L4 drops is the owner's, and it is made against a built L2,
+      not against a plan. Nothing in L4 is to be touched until then.
 
   - id: L2.6
     title: Run everything, tick the kill list
@@ -508,10 +513,13 @@ tasks:
       migrated — see the kill list).
     effort: S
     depends_on: [L2.2, L2.3, L2.4]
-    caveat: >
-      run with `PYTHONPATH=../vectormesh/src`, because the published vectormesh
-      is 0.2.0 and has no ImageVectorizer (C1). A student cannot reproduce this
-      until 0.3.0 ships.
+    re_verified: >
+      2026-07-31, against the **published** vectormesh 0.4.0 and mltrainer
+      0.3.4 — no PYTHONPATH shim, no editable install, so this is what a student
+      actually gets. notebooktester: L1 9/9, L2 3/3.
+      (The repo-wide hook run also reports 5 failures in lessons 0, 4 and 7;
+      all five were confirmed to fail identically at commit 1989a2e, i.e. they
+      pre-date this work and are unrelated to the renumber.)
 
 # -----------------------------------------------------------------------------
 exercises:
@@ -524,8 +532,12 @@ exercises:
     E4 (what the tracker cannot tell you — which encoder built the cache).
   e2b_was_added_late: >
     and it is the one that matters most for honesty. The flowers CNN reaches
-    0.166 against the head's 0.905, which reads as a rout until you look at the
-    per-epoch log and see the CNN still improving when the budget runs out.
+    somewhere around 0.13-0.17 against the head's ~0.90 — the CNN number moves
+    a fair bit between runs, since nothing seeds the model init, so quote it as
+    a range rather than a figure. Either way it reads as a rout until you look
+    at the per-epoch log and see the CNN still improving when the budget runs
+    out (measured 07-31: accuracy 0.016 -> 0.135 over ten epochs, train loss
+    falling monotonically 4.39 -> 3.03, i.e. not converged rather than stuck).
     E2b makes the student find out what a fair fight would actually cost
     (more epochs, batchnorm) instead of leaving them with "CNNs are bad at
     flowers", which is not what the experiment shows.
