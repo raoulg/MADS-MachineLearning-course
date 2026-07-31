@@ -21,7 +21,9 @@ classifiers = [
 
 dependencies = [
     "bayesian-optimization==1.5.1",
+    "datasets>=4.0",
     "configspace>=0.7.1",
+    "huggingface-hub>=0.30",
     "hyperopt>=0.2.7",
     "jupyter>=1.1.1",
     "loguru>=0.7.0",
@@ -37,7 +39,7 @@ dependencies = [
     "torch-geometric>=2.6.1",
     "torch-tb-profiler>=0.4.3",
     "tomlserializer>=0.2.0",
-    "mltrainer[tune]>=0.3.0",
+    "mltrainer[tune]>=0.3.2",
     "flax>=0.12.2",
     "vectormesh>=0.2.0",
 ]

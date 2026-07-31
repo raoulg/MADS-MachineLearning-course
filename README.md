@@ -45,12 +45,14 @@ The project uses python 3.11, 3.12 or 3.13, and all dependencies are defined wit
 
 The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and automatically lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it, but you might want to use lefthook in your own repositories.
 
-I have separated the management of datasets and the trainingloop code. You will find them as dependencies in the project:
-- https://github.com/raoulg/mads_datasets all code for datasets and dataloaders
-- https://github.com/raoulg/mltrainer all code for the training
+Data, representations and the training loop are separated out. You will find them as dependencies in the project:
+- [huggingface `datasets`](https://huggingface.co/docs/datasets) — every dataset in the course is loaded from the hub with `load_dataset`. Nothing is downloaded by hand.
+- https://github.com/raoulg/vectormesh — vectorizers, the `VectorCache` artefact format, and the small shape-checked components you compose into a pipeline
+- https://github.com/raoulg/mltrainer — all code for the training
 
-Both of these dependencies will be used a lot in the notebooks; by separating them it is easier to use the code in your own repositories.
-In addition to that, you can consider the packages as "extra material"; the way the pacakges are set up is something you can study if you are already more experienced in programming.
+These will be used a lot in the notebooks; by separating them it is easier to use the code in your own repositories.
+
+In addition to that, you can consider `vectormesh` as "extra material": if you are already more experienced in programming, `BaseVectorizer` and `VectorCache` are worth reading. They are short, and they are a good example of two ideas the course cares about — writing a tensor's shape into its type signature, and treating a computed artefact as a deliverable with a documented contract (`metadata.json`) rather than as a temp file.
 
 In addition to that, there is a [codestyle repo](https://github.com/raoulg/codestyle) that covers most of the codestyle guidelines for the course. You will be expected to follow the codestyle guidelines for your own coding.
 

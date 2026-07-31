@@ -8,7 +8,7 @@
 meta:
   lesson: L1
   dir: notebooks/1_pytorch_intro
-  status: draft — awaiting approval
+  status: IMPLEMENTED 2026-07-30 — all 8 notebooks run green; see status below
   created: 2026-07-30
   phase: 1
   goal: >
@@ -272,7 +272,7 @@ tasks:
     effort: S
     detail: >
       after §1.7 (broadcasting), add a short section that names the four rungs
-      and points at references/tensor-ladder.md (masterplan P0.2). One
+      and points at notebooks/1_pytorch_intro/tensor-ladder.md (masterplan P0.2). One
       deliberate shape error to read: call a Linear on a (B, C, D) tensor when
       (B, D) was meant, show that pytorch accepts it silently, then show the
       jaxtyping/beartype version rejecting it. That contrast is the point —
@@ -414,6 +414,7 @@ tasks:
 
   - id: L1.7
     title: Run everything, then tick the kill list
+    status: DONE 2026-07-30 — 8 passed, 0 failed
     effort: S
     detail: >
       notebooktester is already a dev dependency. Per masterplan D2 a swap only
@@ -473,22 +474,43 @@ exercises:
 
 # -----------------------------------------------------------------------------
 runtime_budget:
-  constraint: masterplan Q5 is unanswered — these are the numbers to measure
-    against whatever you pick.
-  to_measure:
-    - >
-      03_dataloader — nothing to download beyond the dataset the lesson already
-      uses. Worth measuring instead: how big a dataset you can `len()` and index
-      without it entering RAM, since that is now the notebook's opening claim.
-    - 05_classification — fashion_mnist download + one 5-epoch dense-net run
-    - 06_vectors — cache download, then the two training runs
-    - 06_vectors optional branch — the granite embedding pass over 50k reviews
-      on CPU, which is the number that decides whether the cache download is
-      mandatory or merely recommended
-  note: >
-    the last one is the whole argument of the lesson. Measure it once, put the
-    number in the notebook text, and the "embed once" claim stops being a
-    slogan.
+  status: MEASURED 2026-07-30, M-series mac, notebooktester, warm HF cache
+  measured:
+    01_tensors: 1.7s
+    02_datagenerators: 1.4s
+    03_dataloader: 16.4s   # + a ~330MB oxford-flowers download on first run
+    04_neuralnets: 2.6s
+    05_classification: 66.4s
+    06_vectors: 74.0s
+    07_extra_autograd: 1.4s
+    08_exercises: 64.5s
+    whole_lesson: 2m17s wall with 2 workers (228s summed)
+  the_number_that_matters: >
+    the granite embedding pass over the 25k IMDB train split:
+      MPS  ~16 min per split  (measured: 200 rows in 7.7s)
+      CPU  ~125 min per split (measured: 100 rows in 30.1s)
+    against a RegexVectorizer fit + cache build of ~5s for the same 25k rows.
+    That is the "embed once, reuse many" argument, and it is now a number in
+    the notebook text rather than a slogan.
+    Consequence: **the cache download is mandatory, not merely recommended.**
+    A student on a CPU laptop cannot build both splits in a lesson, so P0.3
+    blocks a real student run of 06_vectors even though the notebook is done.
+  training_runs_in_06_vectors:
+    regex_head:   {params: 1980,   epochs: 5, time: 11s, F1: 0.731}
+    granite_head: {params: 148610, epochs: 5, time: 44s, F1: 0.796}
+    note: >
+      the granite run overfits after epoch 2 (test loss 0.4335 -> 0.5083 while
+      train loss keeps falling) — worth keeping, it is an honest illustration
+      that 148k parameters on 25k rows is enough to memorise, and that the
+      1980-parameter head never gets the chance.
+  loader_numbers_for_05:
+    dataloader: 1.4 ms/batch
+    hf_streaming: 2.1 ms/batch
+    warning: >
+      both measured with a *held* iterator. `%timeit next(iter(loader))` gives
+      2362 ms/batch for the streaming case because it rebuilds the stream every
+      call — the same mistake P0.6 fixed in mltrainer. The notebook now teaches
+      this explicitly instead of committing it.
 
 # -----------------------------------------------------------------------------
 depends_on:

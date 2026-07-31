@@ -12,7 +12,7 @@ site has a replacement that has been **run**. `mads-datasets[torch]` stays in
 | 🔶 | replacement written, **not yet run** — does not count |
 | ✅ | replaced, notebook executed top to bottom, output inspected |
 
-Last updated: 2026-07-30.
+Last updated: 2026-07-30. **Lesson 1 is green.**
 
 ---
 
@@ -53,7 +53,15 @@ numbers the choice is invisible next to any training step, so pick the simplest.
 `streaming=True` only where streaming is the lesson (L1/03) or the data genuinely does not
 fit.
 
-### ⚠ Fix mltrainer before migrating any streamer (masterplan P0.6)
+### ✅ mltrainer fixed (masterplan P0.6) — landed 2026-07-30, needs publishing
+
+`Trainer` now holds its dataloader iterator and re-`iter`s it only on `StopIteration`
+(`_next_batch`, `src/mltrainer/trainer.py`), with four regression tests in
+`tests/test_trainer_iteration.py`. Verified: pre-fix a `shuffle=False` loader yielded batch
+`[0, 0, 0, 0]`, post-fix `[0, 16, 32, 48]`. Released as **0.3.2** on PyPI (2026-07-30) and the course floor is raised to match, so this
+holds for a student on a fresh `uv sync`. Original description below.
+
+#### The original problem
 
 `Trainer.trainbatches` and `Trainer.evalbatches` call `next(iter(self.dataloader))` **inside
 the step loop**. That is correct for an *iterator* — which `BaseDatastreamer.stream()`
@@ -78,17 +86,32 @@ batch.
 
 | Site | Uses | Replacement | Status |
 |---|---|---|---|
-| `05_classfication.ipynb` cell 2 | `import mads_datasets`, FASHION factory | dead code — deleted 2026-07-30 (notebook is IMDB + vectormesh now) | ✅ |
-| `03_dataloader.ipynb` cells 2, 7, 17, 48 | FLOWERS factory + `download_data()`, `FileTypes`, `BaseDatastreamer` | **the whole image-folder half of this notebook is cut** (masterplan D8) — `walk_dir`, `iter_valid_paths`, `load_image`, PIL timing, `BaseDataset`-over-paths, ~30 of 52 cells. Rebuilt as an iterator lesson on a plain HF dataset: `yield` + shuffled index + wrapping pointer, then DataLoader, then `streaming=True` for goal 1.5. See lesson1.yml L1.2. **Blocked on P0.6** before any timing claim | ⬜ |
-| `05_image_classfication.ipynb` cell 2, 19 | FASHION factory + `create_datastreamer` → 4 streamers | `zalando-datasets/fashion_mnist` + DataLoader. Cell 19 comments "check out which one is faster" — keep that comparison, it is now DataLoader vs HF streaming | ⬜ |
-| `06_exercises.ipynb` cell 0, 1 | `DatasetType` import; markdown telling students to add `mads_datasets` to their own repo | swap the import; **rewrite the markdown** — this is where students are told which packages to depend on, so it must point at `datasets` + `vectormesh` instead | ⬜ |
+| `05_classfication.ipynb` cell 2 | `import mads_datasets`, FASHION factory | dead code — deleted 2026-07-30. Notebook is now `06_vectors.ipynb` | ✅ |
+| `03_dataloader.ipynb` cells 2, 7, 17, 48 | FLOWERS factory + `download_data()`, `FileTypes`, `BaseDatastreamer` | Done 2026-07-30. Image-folder half cut per D8; rebuilt as an iterator lesson on `nkirschi/oxford-flowers`: memory-map + lazy decode, then `yield` + shuffled index + wrapping pointer, then DataLoader, then `streaming=True` on FineWeb for goal 1.5. **52 → 30 cells.** Runs in 17s | ✅ |
+| `05_image_classfication.ipynb` cell 2, 19 | FASHION factory + `create_datastreamer` → 4 streamers | Done 2026-07-30, renamed `05_classification.ipynb`. `zalando-datasets/fashion_mnist` + DataLoader with an explicit PIL→`(1,28,28)` float conversion. The "which one is faster" comparison became DataLoader (1.4 ms/batch) vs HF streaming (2.1 ms/batch) — **and the `%timeit next(iter(loader))` idiom was fixed too**, it was timing iterator construction. Runs in 65s | ✅ |
+| `06_exercises.ipynb` cell 0, 1 | `DatasetType` import; markdown telling students to add `mads_datasets` to their own repo | Done 2026-07-30, renamed `08_exercises.ipynb`. Dependency advice now names `datasets`, `vectormesh` and `mltrainer >= 0.3.2`, and points the "source to study" hint at `BaseVectorizer`/`VectorCache`. Runs in 64s | ✅ |
 
 ### Lesson 2 — convolutions
 
 | Site | Uses | Replacement | Status |
 |---|---|---|---|
-| `02_convolutions.ipynb` cell 2 | FASHION factory + streamers; commented-out FLOWERS variant | `zalando-datasets/fashion_mnist`; keep the FLOWERS alternative commented, pointing at `nkirschi/oxford-flowers` | ⬜ |
-| `03_mlflow.ipynb` cell 1, 2 | FASHION factory; markdown selling the mads_datasets package | swap; rewrite the markdown paragraph (same issue as L1/06) | ⬜ |
+| `02_convolutions.ipynb` cell 2 | FASHION factory + streamers; commented-out FLOWERS variant | Done 2026-07-30. `zalando-datasets/fashion_mnist` + `DataLoader` with the same explicit PIL→`(1,28,28)` conversion as L1/05, `num_workers=0` per conventions §4. The commented-out FLOWERS variant is gone — the frozen-encoder notebook covers flowers properly now. Runs in 31s | ✅ |
+| `03_mlflow.ipynb` cell 1, 2, 5 | FASHION factory; markdown selling the mads_datasets package | Done 2026-07-30, renamed **`04_mlflow.ipynb`** and rewritten around the L2 comparison (masterplan D9/D10). The "let's use the mads_datasets package" paragraph is gone; the notebook now reuses the cache `03_pretrained` wrote. MLflow is the only report type | ✅ |
+| `03_mlflow.py` — **was not on this list** | `get_fashion_streamers()`: FASHION factory + `BasePreprocessor` + `create_datastreamer` | Done 2026-07-30, renamed **`04_mlflow.py`**. Rewritten around `load_dataset` + `DataLoader`. This is the one place in the course that uses `num_workers=2, persistent_workers=True` and carries the `if __name__ == "__main__"` spawn-guard comment — i.e. it is where conventions §4's script/notebook split is demonstrated | ✅ |
+
+> The `.py` row above was missing from the original table, which counted **14 sites** by scanning
+> notebooks only. Running `grep -rln mads_datasets notebooks/` on 2026-07-30 turned up **three**
+> non-notebook sites, none of them listed:
+>
+> | Site | Status |
+> |---|---|
+> | `2_convolutions/03_mlflow.py` | ✅ migrated (row above) |
+> | `4_tuning_networks/hypertune.py` | ⬜ add to the L4 section |
+> | `6_unsupervised/src/settings.py` | ⬜ add to an L6 section, which does not exist yet |
+>
+> So the real count is **17 sites, not 14**, and the two open ones must be green before
+> `mads-datasets[torch]` can leave `pyproject.toml`. Also note `4_tuning_networks/05_hypertuning_exercise.md`
+> mentions the package in prose — no import, but it needs rewording with the L4 rows.
 
 ### Lesson 3 — recurrent networks
 
