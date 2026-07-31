@@ -7,19 +7,22 @@ De student begrijpt:
 1.2 hoe neurale netwerken zijn opgebouwd (linear + activation), en hoe ze een extensie zijn van lineaire modellen (wanneer kun je ze stapelen)  
 1.3 Hoe neurale netwerken een universal function zijn.  
 1.4 Wat gradient descent doet en wat een gradient is  
-1.5 Wat de voordelen van een datastreamer zijn oa voor grote datasets.  
+1.5 Waarom grote datasets lazy/gestreamd geladen worden in plaats van in het geheugen, en kan de trade-offs benoemen.  
 1.6 Wat de invloed is van het aantal units in een dense layer  
 1.7 Waarom we train-test-valid splits maken  
 1.8 Wat een Activation function is, en kent er een aantal (ReLU, Leaky ReLU, ELU, GELU, Sigmoid)  
 1.9 wat een loss functie is, en enkele voorbeelden.  
 1.10 Hoe deep learning past binnen de geschiedenis van AI, en wat deep learning kenmerkt ten opzichte van de rest.  
 1.11 Wat de stappen zijn van het trainen van een NN: datapreparatie, trainbare gewichten, predict, lossfunctie, optimizers   
+1.16 Het verschil tussen het *formele* niveau van een tensor (rank en shape; een 2D tensor is een 2D tensor) en het *semantische* niveau (wat de assen betekenen). Kan de treden van de ladder benoemen — (D) één item, (C,D) één gechunkt item, (B,D) een batch, (B,C,D) een batch gechunkte items — en welke operatie tussen twee treden beweegt. Kan uitleggen waarom "kan een CNN op een timeseries?" een formele vraag is met ja als antwoord.  
+1.17 Het verschil tussen een *ontworpen* feature vector (transparant, met de hand geschreven, bv regex counts) en een *geleerde* embedding (ondoorzichtig, pretrained), en kan voor beide een situatie noemen waarin die wint.  
 
 De student is in staat om:  
 1.12 een dataclass maken.  
 1.13 Een configureerbaar dense neural network te maken met pytorch.  
 1.14 tensorboard gebruiken om zijn model te monitoren  
 1.15 toml files te gebruiken om zijn model te configureren  
+1.18 de `metadata.json` van een cache lezen en, vóórdat er code draait, de shape van een batch voorspellen plus welke componenten er tussen de DataLoader en de loss nodig zijn.  
 
 
 From the other chapters, sample the pages summed up below. You can skip the full chap 5 and 6 for now.
@@ -37,6 +40,9 @@ From the other chapters, sample the pages summed up below. You can skip the full
 |                 1.11 | data, trainable weights, predict, loss, optimize           |             17-22 | 04_neuralnets.ipynb, deep_learning_01.pdf |
 |                 1.11 | what is optimization?                                      | 22-23, 91 (chap 6)| 07_extra_autograd.ipynb                   |
 |       1.5, 1.12, 1.7 | exercise I & II: be able to implement a data class         |     lesson        | 03_dataloader.ipynb                       |
-|        1.2, 1.3, 1.6 | How can we stack multiple layers?                          |             41-46 | 04_neuralnets.ipynb, 06_exercises         |
+|        1.2, 1.3, 1.6 | How can we stack multiple layers?                          |             41-46 | 04_neuralnets.ipynb, 08_exercises         |
 |                  1.8 | What are activation functions?                             |            25, 37 | deep_learning_01.pdf                      |
-|1.13, 1.14, 1.15  | Learn to use tomlfiles & tensorboard to configure your model     |                   | 06_exercises.ipynb                        |
+|1.13, 1.14, 1.15  | Learn to use tomlfiles & tensorboard to configure your model     |                   | 08_exercises.ipynb                        |
+|            1.16 | shape vs meaning; the tensor ladder; can a CNN eat a timeseries?    |            lesson | 01_tensors.ipynb, tensor-ladder.md        |
+|            1.17 | designed features vs learned embeddings, and what each costs        |            lesson | 06_vectors.ipynb                          |
+|            1.18 | reading a cache's metadata.json as a contract                       |            lesson | 06_vectors.ipynb                          |

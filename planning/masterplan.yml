@@ -12,9 +12,11 @@
 
 meta:
   title: VectorMesh integration into the MADS Machine Learning course
-  version: 0.2.0
+  version: 0.3.0
   status: >
-    phases approved in outline; Q1/Q2/Q3 answered (see decisions). Q4-Q7 open.
+    phase_0 done except P0.3; **phase_1 implemented** (L1 green, 8/8 notebooks
+    run). Q1/Q2/Q3 answered (see decisions). Q4-Q8 open — Q8 now blocks the
+    only remaining phase_1 exit criterion.
   created: 2026-07-30
   updated: 2026-07-30
   owner: R. Grouls
@@ -441,6 +443,34 @@ cuts:
         Vectorizer does it, and tokenisation is taught once in L5/04
       - TBD, per lesson plan
     status: draft — each lesson plan must fill its own row
+    l2_accounting:
+      status: >
+        **L2 does not yet satisfy make_room, and this is the honest ledger.**
+        Implemented 2026-07-30; the payment is still outstanding.
+      added:
+        - "03_pretrained.ipynb — 31 cells, entirely new"
+      cut_so_far:
+        - >
+          03_mlflow's inline `CNN` class — ~40 lines that were a verbatim copy of
+          02_convolutions' model, redefined only to be trained once
+        - >
+          03_mlflow's opening movement: the "let's use the mads_datasets package"
+          pitch, the `for dataset in DatasetType` tour, and the paragraph
+          explaining which datasets it offers (4 cells)
+        - >
+          03_mlflow's MLflow-versus-TensorBoard-versus-gin-config sales pitch,
+          trimmed to a sentence — D10 settled that argument, so the notebook no
+          longer needs to have it
+        - 02_convolutions' commented-out FLOWERS variant, and its second report type
+      still_owed: >
+        Roughly a notebook's worth. The intended payment was L2.1 — moving
+        `01_losses.ipynb` (40 cells) out to L1, where les1.md already maps goal
+        1.9 to it. That did not happen (see lesson2.yml L2.1), so **until Q3 is
+        answered and the move is made, L2 is one notebook heavier than it was.**
+        Do not treat L2 as closed on this criterion.
+      note: >
+        the other half of the intended payment is the L4 collapse (D9), which
+        is L2.5 and also still open. Both are cheap; neither is done.
   - phase: phase_3
     adds: probabilistic forecasting; fourier features; TSFM encoders
     cuts:
@@ -758,6 +788,8 @@ phases:
     effort: S
     tasks:
       - id: P0.1
+        status: DONE 2026-07-30 — planning/conventions.md. `artefacts/**` was
+          already in .gitignore.
         title: Fix the artefact/cache layout for the whole course
         detail: >
           One documented location for caches (currently a mix of
@@ -766,10 +798,22 @@ phases:
           Include a naming convention: {date}_{dataset}_{modality}_{model_tag}.
         deliverable: planning/conventions.md + .gitignore update
       - id: P0.2
+        status: >
+          DONE 2026-07-30, and restructured on review. It lives at
+          notebooks/1_pytorch_intro/tensor-ladder.md, not references/, so a
+          student reading 01_tensors does not have to go looking for it.
+          More importantly it is now built around the **formal/semantic split**
+          rather than around the four rungs: formally a 2D tensor is a 2D
+          tensor, and (C,D) vs (B,D) is a semantic distinction, not a formal
+          one. The worked example is "can a CNN eat a timeseries?" — a formal
+          question with a yes, which students answer semantically ("a CNN is an
+          image model") and get wrong. Same permissiveness that lets Conv1d take
+          a series also lets Linear silently eat (B,C,D); the difference is
+          whether you meant it.
         title: Write the tensor-ladder cheatsheet used by every lesson
         detail: adapt vectormesh docs 1.3 table + mermaid into a course asset;
           reference it from each lesson README instead of re-explaining.
-        deliverable: references/tensor-ladder.md
+        deliverable: notebooks/1_pytorch_intro/tensor-ladder.md [done]
       - id: P0.3
         title: Cache distribution via the hub
         status: documented, not yet exercised
@@ -786,6 +830,11 @@ phases:
           - standardise the loader snippet that every notebook copies
         depends_on: [Q5, Q8]
       - id: P0.4
+        status: >
+          DONE 2026-07-30 — `datasets>=4.0` and `huggingface-hub>=0.30` are now
+          explicit in pyproject.toml, and the mltrainer floor is raised to
+          >=0.3.2 (P0.6), which resolves now that 0.3.2 is on PyPI.
+          mads-datasets stays per D2. README dependency story rewritten (this also closes P1.5).
         title: Dependency plan
         detail: >
           add `datasets` and `huggingface_hub` explicitly to pyproject.toml
@@ -810,6 +859,18 @@ phases:
         deliverable: planning/mads_datasets_killlist.md [done]
       - id: P0.6
         title: Fix mltrainer's per-step iterator rebuild
+        status: >
+          FIXED 2026-07-30 in /Users/rgrouls/code/courses/mltrainer. `Trainer`
+          holds its iterator and re-`iter`s only on StopIteration
+          (`Trainer._next_batch`); annotations widened Iterator -> Iterable.
+          Four regression tests in tests/test_trainer_iteration.py; 51 tests
+          pass, ruff + ty clean. Verified against the old behaviour: a
+          shuffle=False loader gave batch [0, 0, 0, 0] before and
+          [0, 16, 32, 48] after. Version bumped to 0.3.2.
+          PUBLISHED 2026-07-30 as mltrainer 0.3.2 (commit fd330b6 on
+          raoulg/mltrainer main). The course pins `mltrainer[tune]>=0.3.2`,
+          `uv lock` resolves, and L1 was re-run against the PyPI build rather
+          than an editable install. P0.6 is closed.
         severity: blocker for trusting any phase_1 number
         effort: S
         repo: raoulg/mltrainer
@@ -849,6 +910,7 @@ phases:
     depends_on: [phase_0]
     tasks:
       - id: P1.1
+        status: DONE 2026-07-30 — now 06_vectors.ipynb
         title: Renumber and clean up 05_classfication.ipynb
         detail: >
           REVISED per lesson1.yml correction C3 — there is no split to do. The
@@ -869,6 +931,8 @@ phases:
             of the split, and it is the natural place to put the
             snapshot_download loader from P0.3 instead.
       - id: P1.2
+        status: L1 DONE 2026-07-30 (fashion_mnist in 05_classification and
+          08_exercises; oxford-flowers in 03_dataloader). L2/L4/L5 open.
         title: FASHION and FLOWERS -> HF ids across L1, L2, L4, L5
         detail: >
           swap DatasetFactoryProvider for load_dataset + DatasetSchema.infer.
@@ -878,10 +942,14 @@ phases:
           Per D2 each swap is only "done" once that notebook has been run.
         touches: [L1, L2, L4, L5]
       - id: P1.3
+        status: L1 DONE 2026-07-30 — 01_tensors §1.8. L0 (00_Vectorisation and
+          Broadcasting) not touched yet.
         title: Introduce the tensor ladder + one shape contract in L0/L1
         detail: extend 00_Vectorisation and Broadcasting and 01_tensors with the
           ladder notation and one deliberate beartype violation to read.
       - id: P1.4
+        status: DONE 2026-07-30, but per D8 rather than per this task's own text —
+          the notebook was rebuilt as an iterator lesson, 52 -> 30 cells.
         title: Re-point 03_dataloader's "library version" section at HF datasets
         detail: >
           REVISED per lesson1.yml correction C2. Do NOT rewrite this notebook
@@ -894,14 +962,22 @@ phases:
           comparison.
         touches: [notebooks/1_pytorch_intro/03_dataloader.ipynb]
       - id: P1.5
+        status: DONE 2026-07-30 — README now names datasets + vectormesh +
+          mltrainer, and points "code to study" at BaseVectorizer/VectorCache.
         title: Update README dependency story
         detail: mads_datasets -> datasets + vectormesh; point "code to study"
           at vectormesh's BaseVectorizer/VectorCache.
     exit_criteria:
-      - every notebook in L1 runs end to end, with no mads_datasets import
-      - the first cache is published on the hub and loads from a fresh HF cache
-      - the ladder cheatsheet is referenced, not re-explained, in L1
-      - the kill list (P0.5) shows a tested replacement for every L1 site
+      - "[x] every notebook in L1 runs end to end, with no mads_datasets import
+         — 8/8 green 2026-07-30, `grep mads_datasets notebooks/1_pytorch_intro`
+         returns nothing"
+      - "[ ] the first cache is published on the hub and loads from a fresh HF
+         cache — BLOCKED on P0.3/Q8. This is the last open criterion.
+         06_vectors falls back to a local cache, then to building one, and the
+         build is ~2h/split on CPU, so a student cannot currently run its second
+         half."
+      - "[x] the ladder cheatsheet is referenced, not re-explained, in L1"
+      - "[x] the kill list (P0.5) shows a tested replacement for every L1 site"
 
   - id: phase_2
     name: Close the dataset gaps and make the cache the default entry point
