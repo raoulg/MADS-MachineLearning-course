@@ -44,7 +44,7 @@ from vectormesh.data.vectorizers import detect_device
 BATCHSIZE = 64
 EPOCHS = 3
 NUM_CLASSES = 10
-MLRUNS = Path(__file__).resolve().parents[2] / "mlruns.db"
+MLRUNS = Path(__file__).resolve().parents[2] / "artefacts" / "mlflow" / "mlruns.db"
 
 
 def collate(items):
@@ -105,7 +105,10 @@ def get_fashion_loaders(batchsize: int) -> tuple[DataLoader, DataLoader]:
 
 
 def setup_mlflow(experiment_path: str) -> None:
-    # one store at the repo root, so runs from every lesson are comparable
+    # One store for the whole course, so runs from every lesson are comparable -- and the same
+    # one 03_mlflow.ipynb writes to, which is what makes the notebook's head search and this
+    # script's CNN search show up side by side. sqlite creates the file but not its directory.
+    MLRUNS.parent.mkdir(parents=True, exist_ok=True)
     mlflow.set_tracking_uri(f"sqlite:///{MLRUNS}")
     mlflow.set_experiment(experiment_path)
 
