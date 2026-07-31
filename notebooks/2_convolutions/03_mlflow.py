@@ -1,162 +1,154 @@
+"""The 03_mlflow notebook, as a script.
+
+Same experiment, run from the terminal instead of a notebook:
+
+    uv run python 03_mlflow.py
+
+A script is the right shape once a search takes long enough that you do not want to babysit a
+kernel. It is also where the dataloader settings differ from the notebooks (see `DataLoader`
+below) and where the multiprocessing gotcha bites -- both are commented at the point they matter.
+"""
+
 from datetime import datetime
 from pathlib import Path
-from typing import Iterator
+from typing import cast
 
 import mlflow
+import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
+from datasets import load_dataset
 from hyperopt import STATUS_OK, Trials, fmin, hp, tpe
 from hyperopt.pyll import scope
 from loguru import logger
-from mads_datasets import DatasetFactoryProvider, DatasetType
-from mltrainer import ReportTypes, Trainer, TrainerSettings, metrics
-from mltrainer.preprocessors import BasePreprocessor
+from mltrainer import ReportTypes, Trainer, TrainerSettings
+from mltrainer.imagemodels import CNNConfig, CNNblocks
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset as TorchDataset
+
+from vectormesh.components.metrics import Accuracy
+from vectormesh.data.vectorizers import detect_device
+
+BATCHSIZE = 64
+EPOCHS = 3
+NUM_CLASSES = 10
+MLRUNS = Path(__file__).resolve().parents[2] / "mlruns.db"
 
 
-def get_fashion_streamers(batchsize: int) -> tuple[Iterator, Iterator]:
-    fashionfactory = DatasetFactoryProvider.create_factory(DatasetType.FASHION)
-    preprocessor = BasePreprocessor()
-    streamers = fashionfactory.create_datastreamer(
-        batchsize=batchsize, preprocessor=preprocessor
+def get_fashion_loaders(batchsize: int) -> tuple[DataLoader, DataLoader]:
+    """Fashion MNIST from the hub, as two dataloaders.
+
+    `num_workers=2, persistent_workers=True` is the setting for scripts, not for notebooks. The
+    measured gain is a fraction of a millisecond per batch -- invisible next to a training step --
+    but a script runs long enough for it to be free, and `persistent_workers` matters more than
+    the worker count, because without it the pool is rebuilt every epoch.
+    """
+    # A huggingface `Dataset` implements __getitem__/__len__, so a torch DataLoader is perfectly
+    # happy with it -- but it does not inherit from torch's generic `Dataset[T]`, so a type
+    # checker cannot see that. The cast says "I checked"; it changes nothing at runtime.
+    fashion = cast(
+        dict[str, TorchDataset], load_dataset("zalando-datasets/fashion_mnist")
     )
-    train = streamers["train"]
-    valid = streamers["valid"]
-    trainstreamer = train.stream()
-    validstreamer = valid.stream()
-    return trainstreamer, validstreamer
 
+    def collate(items):
+        X = [
+            torch.from_numpy(
+                np.asarray(i["image"], dtype=np.float32) / 255.0
+            ).unsqueeze(0)
+            for i in items
+        ]
+        y = torch.nn.functional.one_hot(
+            torch.tensor([i["label"] for i in items]), NUM_CLASSES
+        ).float()
+        return torch.stack(X), y
 
-def get_device() -> str:
-    if torch.backends.mps.is_available() and torch.backends.mps.is_built():
-        device = "mps"
-        logger.info("Using MPS")
-    elif torch.cuda.is_available():
-        device = "cuda:0"
-        logger.info("Using cuda")
-    else:
-        device = "cpu"
-        logger.info("Using cpu")
-    return device
-
-
-# There are more models in mltrainer.imagemodels for inspiration.
-# You can import them, or create your own like here.
-class CNN(nn.Module):
-    def __init__(self, filters, units1, units2, input_size=(32, 1, 28, 28)):
-        super().__init__()
-        self.in_channels = input_size[1]
-        self.input_size = input_size
-        self.filters = filters
-        self.units1 = units1
-        self.units2 = units2
-
-        self.convolutions = nn.Sequential(
-            nn.Conv2d(self.in_channels, filters, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(filters, filters, kernel_size=3, stride=1, padding=0),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
-            nn.Conv2d(filters, filters, kernel_size=3, stride=1, padding=0),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2),
-        )
-
-        activation_map_size = self._conv_test(input_size)
-        logger.info(f"Aggregating activationmap with size {activation_map_size}")
-        self.agg = nn.AvgPool2d(activation_map_size)
-
-        self.dense = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(filters, units1),
-            nn.ReLU(),
-            nn.Linear(units1, units2),
-            nn.ReLU(),
-            nn.Linear(units2, 10),
-        )
-
-    def _conv_test(self, input_size=(32, 1, 28, 28)):
-        x = torch.ones(input_size)
-        x = self.convolutions(x)
-        return x.shape[-2:]
-
-    def forward(self, x):
-        x = self.convolutions(x)
-        x = self.agg(x)
-        logits = self.dense(x)
-        return logits
+    train = DataLoader(
+        fashion["train"],
+        batch_size=batchsize,
+        shuffle=True,
+        collate_fn=collate,
+        num_workers=2,
+        persistent_workers=True,
+    )
+    valid = DataLoader(
+        fashion["test"],
+        batch_size=batchsize,
+        shuffle=False,
+        collate_fn=collate,
+        num_workers=2,
+        persistent_workers=True,
+    )
+    return train, valid
 
 
 def setup_mlflow(experiment_path: str) -> None:
-    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    # one store at the repo root, so runs from every lesson are comparable
+    mlflow.set_tracking_uri(f"sqlite:///{MLRUNS}")
     mlflow.set_experiment(experiment_path)
 
 
 def objective(params):
     modeldir = Path("models").resolve()
-    if not modeldir.exists():
-        modeldir.mkdir(parents=True)
-        logger.info(f"Created {modeldir}")
-    batchsize = 64
-    trainstreamer, validstreamer = get_fashion_streamers(batchsize)
-    accuracy = metrics.Accuracy()
+    modeldir.mkdir(parents=True, exist_ok=True)
+
+    trainloader, validloader = get_fashion_loaders(BATCHSIZE)
+    device = detect_device()
+
     settings = TrainerSettings(
-        epochs=3,
-        metrics=[accuracy],
+        epochs=EPOCHS,
+        metrics=[Accuracy()],
         logdir=Path("modellog"),
         train_steps=100,
         valid_steps=100,
         reporttypes=[ReportTypes.MLFLOW],
     )
-    # Start a new MLflow run for tracking the experiment
-    device = get_device()
+
     with mlflow.start_run():
-        # Set MLflow tags to record metadata about the model and developer
         mlflow.set_tag("model", "convnet")
         mlflow.set_tag("dev", "raoul")
-        # Log hyperparameters to MLflow
         mlflow.log_params(params)
-        mlflow.log_param("batchsize", f"{batchsize}")
+        mlflow.log_param("batchsize", f"{BATCHSIZE}")
 
-        # Initialize the optimizer, loss function, and accuracy metric
-        optimizer = optim.Adam
-        loss_fn = torch.nn.CrossEntropyLoss()
-
-        # Instantiate the CNN model with the given hyperparameters
-        model = CNN(**params)
+        model = CNNblocks(
+            CNNConfig(
+                matrixshape=(28, 28),
+                batchsize=BATCHSIZE,
+                input_channels=1,
+                maxpool=2,
+                num_classes=NUM_CLASSES,
+                **params,
+            )
+        )
         model.to(device)
-        # Train the model using a custom train loop
+
         trainer = Trainer(
             model=model,
             settings=settings,
-            loss_fn=loss_fn,
-            optimizer=optimizer,  # type: ignore
-            traindataloader=trainstreamer,
-            validdataloader=validstreamer,
+            loss_fn=torch.nn.CrossEntropyLoss(),
+            optimizer=optim.Adam,  # type: ignore
+            traindataloader=trainloader,
+            validdataloader=validloader,
             scheduler=optim.lr_scheduler.ReduceLROnPlateau,
             device=device,
         )
         trainer.loop()
 
-        # Save the trained model with a timestamp
         tag = datetime.now().strftime("%Y%m%d-%H%M")
         modelpath = modeldir / (tag + "model.pt")
         logger.info(f"Saving model to {modelpath}")
         torch.save(model, modelpath)
 
-        # Log the saved model as an artifact in MLflow
         mlflow.log_artifact(local_path=str(modelpath), artifact_path="pytorch_models")
         return {"loss": trainer.test_loss, "status": STATUS_OK}
 
 
 def main():
-    setup_mlflow("mlflow_database")
+    setup_mlflow("l2_representations")
 
     search_space = {
-        "filters": scope.int(hp.quniform("filters", 16, 128, 8)),
-        "units1": scope.int(hp.quniform("units1", 32, 128, 8)),
-        "units2": scope.int(hp.quniform("units2", 32, 128, 8)),
+        "hidden": scope.int(hp.quniform("hidden", 16, 64, 8)),
+        "kernel_size": scope.int(hp.quniform("kernel_size", 3, 5, 2)),
+        "num_layers": scope.int(hp.quniform("num_layers", 2, 4, 1)),
     }
 
     best_result = fmin(
@@ -167,4 +159,7 @@ def main():
 
 
 if __name__ == "__main__":
+    # This guard is load-bearing, not decoration. With num_workers > 0 the DataLoader spawns
+    # worker processes, and on macOS and Windows a spawned worker re-imports this module. Without
+    # the guard it would re-run main() on import, and the workers would crash on startup.
     main()

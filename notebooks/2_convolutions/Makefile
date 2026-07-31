@@ -3,9 +3,12 @@
 # Set the URI for the backend store (where MLflow metadata is stored)
 # Set the default root directory for storing artifacts (e.g., models, plots)
 # Set the host for the MLflow server to bind to (localhost in this case)
+# The store is the repo-root mlruns.db (planning/conventions.md section 5), shared by every lesson.
+STORE := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))../../mlruns.db)
+
 show_logs:
 	mlflow server \
-		--backend-store-uri sqlite:///mlflow.db \
+		--backend-store-uri sqlite:///$(STORE) \
 		--host 127.0.0.1 \
 		--port 5000
 

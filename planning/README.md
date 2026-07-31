@@ -8,22 +8,29 @@ correct it when a notebook disagrees.
 | [masterplan.yml](masterplan.yml) | principles, decisions D1-D11, 7 phases, cuts register, risks, backlog |
 | [conventions.md](conventions.md) | cache layout, naming, dataloading, tracking, shape vocabulary (P0.1) |
 | [../notebooks/1_pytorch_intro/tensor-ladder.md](../notebooks/1_pytorch_intro/tensor-ladder.md) | shape vs meaning, and the four rungs (P0.2) |
-| [mads_datasets_killlist.md](mads_datasets_killlist.md) | the 14 import sites, their replacements, and whether each has been **run** |
+| [mads_datasets_killlist.md](mads_datasets_killlist.md) | the 17 import sites, their replacements, and whether each has been **run** |
 | [lesson1.yml](lesson1.yml) | L1 refactor, cell-level |
 | [lesson2.yml](lesson2.yml) | L2 refactor, cell-level; implements the L2/L4 re-split |
 | [../docs/publishing-caches-to-huggingface.md](../docs/publishing-caches-to-huggingface.md) | how to publish and consume a VectorCache on the hub |
 
-## Where things stand (2026-07-30, evening)
+## Where things stand (2026-07-31)
 
-**Lesson 1 is implemented.** All 8 notebooks run top to bottom (2m17s for the lesson),
-zero `mads_datasets` imports, kill-list rows green.
+**Lessons 1 and 2 are implemented and verified**, both against the *published*
+`vectormesh 0.4.0` and `mltrainer 0.3.4` — no editable installs, no `PYTHONPATH` shims.
 
-**Lesson 2 is implemented too** (built in parallel, see [lesson2.yml](lesson2.yml) for the
-per-task status and corrections C1-C7). New arc: `01_losses` (unchanged) → `02_convolutions`
-(dataset swapped) → **`03_pretrained`** (new, the frozen-encoder counterpart) → `04_mlflow`
-(rewritten) → `05_exercises.md`. Two things were deliberately *not* done: `01_losses` did not
-move to L1 (L2.Q3 is unanswered, and L1 was being edited concurrently), and nothing was removed
-from L4 yet (the L2.5 handover).
+L2's arc (see [lesson2.yml](lesson2.yml) for per-task status and corrections C1-C10):
+`01_convolutions` (dataset swapped) → **`02_pretrained`** (new, the frozen-encoder
+counterpart) → `03_mlflow` (rewritten around the comparison) → `04_exercises.md`, with
+`cnn.py` holding the CNN that 01 builds and 02/03 import.
+
+**`01_losses` moved to lesson 1** as `05_losses`, ahead of `06_classification` (L2.Q3
+answered). That is why both lessons renumbered — L1 gained a notebook in the middle, L2 lost
+its first one. Goal 2.1 folded into les1.md goal 1.9, which had been pointing across the
+lesson boundary at `2_convolutions/01_losses.ipynb` all along; fixing that inconsistency is
+what motivated D9.
+
+Still open: nothing has been removed from L4 yet (the L2.5 handover), so the
+transfer-learning material is currently duplicated between L2 and L4.
 
 Done:
 
@@ -36,27 +43,28 @@ Done:
 - **L1.1 - L1.7** — see [lesson1.yml](lesson1.yml) for per-notebook status and measured
   runtimes.
 
-Renames: `05_image_classfication` → `05_classification`, `05_classfication` →
-`06_vectors`, `06_exercises` → `08_exercises`.
+Renames, L1: `05_image_classfication` → `06_classification`, `05_classfication` →
+`07_vectors`, `06_exercises` → `09_exercises`, plus `07_extra_autograd` → `08_extra_autograd`
+to make room for `05_losses`.
 
 ### What blocks a real student run
 
-**vectormesh 0.3.0 is not published**, and L2 needs it. The published release is 0.2.0, which has
-no `ImageVectorizer`, `DatasetSchema` or `GaussianNoise` — those exist only in the
-`../vectormesh` working tree. `03_pretrained.ipynb` was verified with
-`PYTHONPATH=../vectormesh/src` (deliberately not an editable install, to avoid disturbing the L1
-thread's venv). Publish 0.3.0 and raise the `pyproject.toml` floor. Exactly the shape of the
-mltrainer 0.3.2 blocker, one lesson later.
+**vectormesh is no longer a blocker.** 0.4.0 is on PyPI with `ImageVectorizer`,
+`DatasetSchema` and `GaussianNoise`; `pyproject.toml` pins `vectormesh>=0.4.0` and
+`mltrainer[tune]>=0.3.4`. (If `uv sync` still resolves 0.2.0, its index cache is stale —
+`uv sync --refresh-package vectormesh`.)
 
-Also worth knowing before building more caches: **`VectorCache.create` costs a flat ~21 seconds
-per call** regardless of dataset size, because `datasets.map` pickle-hashes the whole encoder to
-fingerprint the operation. Measured flat from n=250 to n=2000; bypassing it gives 940 img/s. See
-lesson2.yml C2.
+Still worth knowing before building more caches: **`VectorCache.create` costs a flat ~21
+seconds per call** regardless of dataset size, because `datasets.map` pickle-hashes the whole
+encoder to fingerprint the operation. Measured flat from n=250 to n=2000; bypassing it gives
+940 img/s. Re-checked against 0.4.0 on 2026-07-31 — **still present**. `02_pretrained` builds
+four caches, so a cold run pays ~88s of pure hashing, and the notebook carries a caveat
+paragraph about it that should be deleted once this is fixed. See lesson2.yml C2.
 
 
 **P0.3 + Q8 — publish the IMDB granite cache.** Measured: the embedding pass is ~16 min
 per split on MPS and **~125 min per split on CPU**.
-So the cache download is mandatory, not optional, and `06_vectors.ipynb` currently falls back
+So the cache download is mandatory, not optional, and `07_vectors.ipynb` currently falls back
 to a local cache that only exists on Raoul's machine. The hub id is a single constant in that
 notebook (`CACHE_REPO`), waiting on the user-vs-organisation decision (Q8).
 

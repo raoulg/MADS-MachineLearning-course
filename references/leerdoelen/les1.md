@@ -32,17 +32,17 @@ From the other chapters, sample the pages summed up below. You can skip the full
 |                  1.2 | how are neural networks built up                           |             25-28 | 04_neuralnets.ipynb                       |
 |                  1.3 | how are neural networks a universal function approximator  |    29-30, 38 , 50 |                                           |
 |                  1.1 | scalars, vectors, matrix, batched 3D / 4D / 5D.            |     30-34, lesson | 01_tensors.ipynb                          |
-|                  1.4 | what is a gradient?                                        |             77-80 | 07_extra_autograd.ipynb                   |
+|                  1.4 | what is a gradient?                                        |             77-80 | 08_extra_autograd.ipynb                   |
 |                  1.6 | impact of hidden layer depth / width                       |             46-50 |                                           |
-|                 1.9 | what is a loss function?                                   |     23, (chap 5)  | 2_convolutions/01_losses.ipynb            |
+|                 1.9 | what is a loss function?                                   |     23, (chap 5)  | 05_losses.ipynb                            |
 |                 1.10 | What is the difference between DL and other AI?            |               3-5 | deep_learning_01.pdf                      |
 |                 1.10 | How did AI evolve over time?                               |                37 | deep_learning_01.pdf                      |
 |                 1.11 | data, trainable weights, predict, loss, optimize           |             17-22 | 04_neuralnets.ipynb, deep_learning_01.pdf |
-|                 1.11 | what is optimization?                                      | 22-23, 91 (chap 6)| 07_extra_autograd.ipynb                   |
+|                 1.11 | what is optimization?                                      | 22-23, 91 (chap 6)| 08_extra_autograd.ipynb                   |
 |       1.5, 1.12, 1.7 | exercise I & II: be able to implement a data class         |     lesson        | 03_dataloader.ipynb                       |
-|        1.2, 1.3, 1.6 | How can we stack multiple layers?                          |             41-46 | 04_neuralnets.ipynb, 08_exercises         |
+|        1.2, 1.3, 1.6 | How can we stack multiple layers?                          |             41-46 | 04_neuralnets.ipynb, 09_exercises         |
 |                  1.8 | What are activation functions?                             |            25, 37 | deep_learning_01.pdf                      |
-|1.13, 1.14, 1.15  | Learn to use tomlfiles & tensorboard to configure your model     |                   | 08_exercises.ipynb                        |
+|1.13, 1.14, 1.15  | Learn to use tomlfiles & tensorboard to configure your model     |                   | 09_exercises.ipynb                        |
 |            1.16 | shape vs meaning; the tensor ladder; can a CNN eat a timeseries?    |            lesson | 01_tensors.ipynb, tensor-ladder.md        |
-|            1.17 | designed features vs learned embeddings, and what each costs        |            lesson | 06_vectors.ipynb                          |
-|            1.18 | reading a cache's metadata.json as a contract                       |            lesson | 06_vectors.ipynb                          |
+|            1.17 | designed features vs learned embeddings, and what each costs        |            lesson | 07_vectors.ipynb                          |
+|            1.18 | reading a cache's metadata.json as a contract                       |            lesson | 07_vectors.ipynb                          |
