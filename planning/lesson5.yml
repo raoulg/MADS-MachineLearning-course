@@ -1,0 +1,1547 @@
+# =============================================================================
+# Lesson 5 (notebooks/5_attention) — refactor plan
+#
+# Parent: planning/masterplan.yml (phase_2 P2.2/P2.3/P2.6, D5/D7/D10)
+# Kill list rows: planning/mads_datasets_killlist.md § "Lesson 5"
+#
+# L5 is the lesson that owns attention. It is also the lesson where the
+# masterplan's phase_2 task (P2.6) turned out to describe something L1 has
+# already built — so this plan spends its first half saying what L5 must NOT
+# repeat, and its second half on the thing only L5 can do: what happens when a
+# document does not fit in the encoder's context window.
+# =============================================================================
+
+meta:
+  lesson: L5
+  dir: notebooks/5_attention
+  status: >
+    PLAN — nothing implemented. Written 2026-08-01, after L1 and L2 shipped and
+    L3 was planned. Every number marked `measured` was produced on this machine
+    today (M-series, MPS, warm HF cache); everything else is a proposal. Two
+    decisions belong to the owner and are flagged: the dataset pick (L5.Q1) and
+    the gestures replacement — the latter **answered 2026-08-01, WISDM, D22**.
+  created: 2026-08-01
+  updated: 2026-08-01
+  phase: 2 (datasets + the cache as the default entry point)
+  goal: >
+    L5 answers two questions. **How does a sequence reweigh itself?** —
+    attention from scratch, which is the architecture family this lesson owns
+    and hand-rolls (handroll_once_then_reuse). And the one that is genuinely
+    new at the vector level: **what do you do with a document that does not fit
+    in the context window?** There are three answers — truncate it, chunk it
+    and aggregate, or pay for a long-context model — and the lesson makes the
+    student measure the first two instead of being told which is better.
+    That second question is where the designed/learned line reappears in this
+    lesson: a mean over chunks is a designed aggregator, an AttentionAggregator
+    is a learned one, and the comparison is three lines of code.
+  sequencing_note: >
+    Written before lesson4.yml, following the precedent set on 2026-07-31 when
+    lesson3.yml jumped the queue. Nothing here touches L4. One dependency runs
+    the other way: L5/03_Attention_gestures shares its dataset with L3/04, so
+    the gestures swap is executed for **both** notebooks in a single pass (kill
+    list § Ordering, item 6). Decided 2026-08-01 as WISDM (D22). L4/01 was
+    originally in this group and has left it — lesson4.yml moved its search
+    onto an image cache, so it has no GESTURES site.
+
+# -----------------------------------------------------------------------------
+# Corrections to the masterplan and to the kill list, found by reading the
+# notebooks and measuring the data today. Per planning/README.md: when reality
+# contradicts the plan, reality wins.
+# -----------------------------------------------------------------------------
+corrections:
+
+  - id: C1
+    severity: this one removes L5's assigned task, so read it first
+    supersedes: masterplan P2.6 ("L5 — chunking as the answer to the context window")
+    finding: >
+      **P2.6 has already been built — in lesson 1.** `07_vectors.ipynb` (46
+      cells, shipped 2026-07-31) does the entire thing: it reads `chunk_sizes`
+      out of the cache metadata (cell 34), explains `tensordtype: 2` as "items
+      no longer have the same shape" (33), collates with
+      `FixedPadding(max_chunks=2)` (36), names `(B, C, D)` as one rung above
+      the regex path (37), aggregates with `MaskedMeanAggregator` (38-40) with
+      the line "aggregation is the only rank-reducing step in the whole
+      pipeline", and ships **the aggregator ablation as exercise E1** (45).
+    consequence: >
+      Two things. (a) phase_2's exit criterion "one aggregator ablation exists
+      as a graded exercise" is **already met**, by L1, and should be ticked
+      there rather than waited on here. (b) If L5 executes P2.6 as written it
+      re-teaches lesson 1 with a different dataset, which is the single worst
+      outcome available to this refactor — it spends the room that make_room
+      just paid for on a repeat.
+    what_L5_gets_instead: see proposed_arc and C2. The chunk axis in L1 is
+      decorative; in L5 it is the subject.
+
+  - id: C2
+    severity: the measurement that forces the dataset change
+    finding: >
+      **IMDB cannot teach chunking, because IMDB does not chunk.** Measured two
+      ways today, agreeing:
+        - the *published* cache
+          (pttrn-io/imdb-granite-embedding-small-english-r2, train split), read
+          straight out of `metadata["embed"]["chunk_sizes"]`:
+            1 chunk 21.501 (86.0%) | 2 chunks 2.879 (11.5%) | 3 chunks 587 (2.3%)
+            4 chunks 26 | 5 chunks 5 | 6 chunks 1 | 8 chunks 1
+        - a fresh tokenisation of 2.000 shuffled train reviews with the same
+          granite tokenizer: median **227** tokens, p90 584, p99 1.119, max
+          1.374. At `max_length=512, stride=51`, **87.3%** of documents are a
+          single chunk and the mean is 1.15 chunks/document.
+    consequence: >
+      For six documents in seven the `(B, C, D)` tensor is `(B, 1, D)` with the
+      rest padding, so "which aggregator?" is a question about padding, not
+      about content. L1's E1 (mean vs masked mean) is a *fair* exercise on this
+      data precisely because it is a question about padding — that is why it
+      belongs there. But mean-vs-attention has nothing to chew on: there is
+      nothing to attend over.
+    the_tempting_wrong_fix: >
+      Shrinking the context window makes IMDB chunk on demand. Measured on the
+      same 2.000 reviews: at `max_length=256` 41.6% of documents are
+      multi-chunk (mean 1.65), and at `max_length=128` **88.5%** are (mean
+      3.01). So one could hand the encoder a smaller window and manufacture a
+      chunk axis.
+      **Do not.** That is staging a scenario to keep a demo alive — the exact
+      mistake D8 named — and it also costs a fresh cache (~2h/split on CPU) to
+      produce data that is worse than what a real long-document corpus gives
+      for free. The numbers are recorded here because they are the honest
+      answer to "could we just...", not because they are a plan.
+
+  - id: C3
+    finding: >
+      The published IMDB cache still carries the raw `text` column. Its
+      `features` are `[text, label, regex_features, onehot, embed]` — i.e.
+      L1/07's `VectorCache.create` was called without `remove_columns`, unlike
+      L2's image caches where `remove_columns=["image"]` is what makes the
+      artefact distributable.
+    why_it_matters_here: >
+      Harmless on disk (25k reviews is a few MB next to 158 MB of vectors) and
+      genuinely useful in L5, because the long-document notebook wants to show
+      a chunk *next to the text it came from*. But it means "a cache ships a
+      pointer, not the payload" is not a rule the course actually follows, and
+      L5 is where a student will notice, since it is the lesson that looks
+      inside chunks. State the trade-off out loud: text is cheap and quotable,
+      pixels are not, so the two caches make different calls on purpose.
+    also: >
+      the cache's `vectormesh_version` is recorded as **0.2.0** — it was built
+      before the 0.4.x line. Nothing is wrong with it, but a cache records the
+      library that made it, and that is worth one sentence in the metadata
+      reading, because the student will otherwise assume it matches their venv.
+
+  - id: C4
+    finding: >
+      `references/leerdoelen/les5.md` points at notebooks that do not exist.
+      Its material table names `05_metrics.ipynb`, `04_imdb_attention.ipynb`
+      and `03_imdb_preprocessing.ipynb`; the folder holds `07_metric.ipynb`,
+      `06_imdb_attention.ipynb` and `05_imdb_preprocessing.ipynb`. So the file
+      is already one renumber behind, *before* this plan renumbers anything.
+    also: >
+      goal **5.12** ("kan een datapreprocessor aanpassen voor een dataset")
+      lists its material as "exercises, mads_datasets" — a package that is
+      being deleted. The kill list already proposes the replacement
+      ("implement your own `BaseVectorizer`"); this makes it a leerdoelen edit
+      too, not only a notebook edit.
+    consequence: P6.1 is not a tidy-up here, it is a prerequisite for the
+      lesson's own table being true. Fix les5.md in the same pass as L5.
+
+  - id: C5
+    finding: >
+      **The lesson teaches tokenization after it uses it.** `01_reweighing`
+      cells 11-13 train a `WordLevel` tokenizer on three Dutch sentences and
+      call `tokenizer.encode`, then embed the result — all before
+      `04_tokenization` explains what a tokenizer, a vocabulary or an embedding
+      lookup is. `04_tokenization` then re-introduces the same `Tokenizer` /
+      `WordLevelTrainer` / `Whitespace` construction from scratch (cells 6-9).
+    consequence: >
+      the fix is a reorder, not a rewrite: tokenization becomes notebook 01 and
+      reweighing 02. `01_reweighing`'s three tokenizer cells shrink to two lines
+      that *use* what the student just built, and the Dutch "bank" example — a
+      genuinely good polysemy demo, and the reason the notebook works — is
+      untouched.
+
+  - id: C6
+    finding: >
+      `05_imdb_preprocessing` and `06_imdb_attention` are 55 cells that share
+      one idea and duplicate their code. Both build the same BPE tokenizer with
+      the same `Sequence([NFD(), Replace("<br />", ""), StripAccents(),
+      Lowercase()])` normaliser (05 cell 12, 06 cell 7), and both define the
+      **same hand-written `Preprocessor` class** (05 cell 18, 06 cell 10) —
+      copied, not imported. 05 ends by saying "all this code is wrapped into
+      the DatasetFactoryProvider, which you can see in the next notebook",
+      which is a pointer at the package being removed.
+    consequence: >
+      this is exactly the drift L2 solved with `cnn.py` (lesson2.yml C10): two
+      copies that both run, so nothing fails when they diverge. The two
+      notebooks collapse into one, and what is left of the preprocessing lesson
+      (goal 5.11 — normalisers, lowercase, strip xml) lives in the tokenization
+      notebook where it belongs.
+
+  - id: C7
+    finding: >
+      Two of the eight notebooks are sections, not notebooks: `02_transformer`
+      is **7 cells** (positional encoding + a `TransformerBlock` class + a shape
+      test on random data, no dataset and no training), and
+      `03_Attention_gestures` is **15**, of which the actual content is "train a
+      GRU, then train an AttentionGRU, look at the difference".
+      `03_Attention_gestures` also never plots anything — its conclusion is
+      cell 14, a markdown paragraph describing what the author saw in *their*
+      tensorboard ("in my tensorboard, I see: loss is better in both train and
+      test").
+    consequence: >
+      the claim a student is asked to accept is unverified on their own screen,
+      and it is the lesson's headline claim about attention. Cheap fix: log both
+      runs to the same MLflow experiment (D10) and read the comparison off it,
+      which is what L2/03_mlflow already established as the house style.
+
+  - id: C9
+    date: 2026-08-01
+    severity: this is the finding the new notebook gets built around
+    supersedes: >
+      the implicit arc of D18's first draft — "truncate, then mean, then
+      *get serious* with a learned aggregator".
+    finding: >
+      Measured on a 600-train / 300-test SCOTUS subset, granite chunk
+      embeddings, identical head (`NeuralNet(384 -> 13)`), 8 epochs, batch 32,
+      Adam 1e-3, **three seeds**. Majority class is 0.223 of train / 0.250 of
+      test, so everything below is well clear of guessing.
+
+        config                  accuracy (min-max)      f1_macro (min-max)   params    s/run
+        truncate: first chunk   0.546 (0.533-0.563)   0.343 (0.321-0.358)   152.845    1.4
+        mean, C=4               0.582 (0.577-0.587)   0.376 (0.372-0.381)   152.845    1.4
+        mean, C=16              0.584 (0.580-0.590)   0.417 (0.396-0.450)   152.845    1.4
+        mean, C=32              0.596 (0.567-0.617)   0.396 (0.383-0.416)   152.845    1.6
+        masked mean, C=16       0.580 (0.560-0.590)   0.394 (0.365-0.436)   152.845    1.6
+        attention, C=16         0.589 (0.570-0.607)   0.393 (0.383-0.413)   153.230    1.4
+        rnn, C=16               0.566 (0.553-0.577)   0.358 (0.346-0.375)  1.039.885    2.0
+
+      Three results, in decreasing order of how solid they are:
+      1. **Truncation is the one thing that clearly costs you.** First-chunk-only
+         is worse than every multi-chunk configuration, on both metrics, on
+         every seed, with no overlap in the spreads. Reading past the first 512
+         tokens is worth ~4 accuracy points and ~5-7 macro-F1 points.
+      2. **The curve flattens almost immediately.** C=4 already captures nearly
+         all of it; C=16 and C=32 add little, and their seed spreads overlap.
+         The median opinion is 15 chunks long, so this says most of the signal
+         is in the first ~2.000 tokens — not in the first 512, and not in the
+         other 90% either.
+      3. **The learned aggregators do not beat the mean at this budget.**
+         Attention ties it (0.589 vs 0.584, spreads overlapping) for 385 extra
+         parameters; the RNN aggregator is *worse* for 7x the parameters.
+    this_is_the_house_result_by_now: >
+      the same shape as L2 (a frozen encoder + linear head beats the CNN it is
+      compared with) and L3's C7 (a linear layer beats a GRU at forecasting).
+      Three lessons, three modalities, one rule: **the expensive component has
+      to earn its place, and often it does not.** Do not go hunting for a
+      configuration where attention finally wins — teach the result, and put the
+      burden of proof where it belongs.
+    what_it_means_for_the_lesson: >
+      the notebook's spine becomes "how much of the document do you need to
+      read?" rather than "which aggregator is best". Rung 1 -> 2 is the lesson;
+      rungs 3 and 4 are the honest anticlimax that makes it a lesson instead of
+      a sales pitch. E1 becomes the required ablation and E2 becomes the
+      cost-benefit argument, not a search for a winner.
+    the_honest_caveat: >
+      600 train documents is 12% of the split, 8 epochs, one encoder, no
+      tuning, and the 300-document test subset happens to be longer than the
+      train subset (mean 28.4 chunks vs 19.2). Every number will move when the
+      full cache exists. The *ranking* is what this probe is for, and the only
+      gap wide enough to survive is truncation-vs-not.
+
+  - id: C8
+    finding: >
+      `07_metric.ipynb` is a **vision** notebook sitting in the attention
+      lesson. It loads FASHION, post-processes the label into "is it a four"
+      to manufacture a 90/10 imbalance, trains `imagemodels.CNN` for 100 steps
+      and computes a confusion matrix, precision-recall and ROC on that.
+      The metrics content (goal 5.1) is good and stays; the scaffolding around
+      it is a second dataset, a second modality and a second model, all present
+      only to produce an imbalanced binary problem.
+    consequence: >
+      if L5 moves to a corpus that is *already* imbalanced and multi-class, the
+      metrics notebook runs on the lesson's own data and its 30 cells of
+      scaffolding disappear. That is where most of the room for the new
+      notebook comes from — see make_room.
+
+  - id: C10
+    date: 2026-08-01
+    severity: the measurement 06_composition is built around, and it says "no"
+    answers: >
+      the owner's proposal (2026-08-01) to build notebooks that "more fully
+      embrace the capabilities of vectormesh — MoE, or pretrained models that
+      vectorize the texts combined with regex".
+    what_was_built_to_test_it: >
+      a US-legal `ChunkedRegexVectorizer` (vectormesh ships only the *Dutch*
+      `build_legal_reference_pattern`, for the aktes example), matching
+      citations (`347 U.S. 483` -> `cite:US`), statutes (`28 U.S.C. §1291` ->
+      `cite:USC`), amendments, procedural posture (certiorari, remanded,
+      dissent) and doctrine (due process, antitrust, equal protection). Fitted
+      on 600 SCOTUS opinions at `min_doc_frequency=5`: **58 features**, median
+      13 per document, **zero documents with no match**.
+    the_alignment_contract_holds: >
+      built with the embedding cache's own `(model_tag, context_size, stride)`,
+      the regex matrix is chunk-for-chunk aligned: **0 chunk-count mismatches**
+      over 900 documents, `offsets_supported: true`. And the metadata *does*
+      record `stride` (51), so the docs' instruction to read it from the cache
+      is correct — no course-side arithmetic needed.
+    first_pass_looked_like_a_win: >
+      comparing pipelines as written in vectormesh docs 5.2 and 5.5, 8 epochs,
+      600/300 documents, three seeds:
+        embed only, wide head    0.584 acc  0.417 f1   152.845 params
+        regex only               0.357      0.082        4.189
+        doc fusion (cat2D)       0.577      0.384      197.867
+        chunk fusion (cat3D)     0.609      0.386       29.197
+        chunk fusion + MoE       0.597      0.398       79.759
+      Read naively: chunk-level fusion wins on accuracy with a fifth of the
+      parameters. **That reading is wrong**, and it is wrong in the way
+      students are wrong.
+    the_ablation_that_killed_it: >
+      those pipelines differ in *two* ways at once — the fusion, and a
+      `Projection` bottleneck to 64 dims before aggregation. Running the
+      identical bottleneck shape with and without the regex stream:
+        A. bottleneck, embed only    0.624 (0.613-0.633)  f1 0.390   25.485
+        B. bottleneck, embed+regex   0.609 (0.597-0.627)  f1 0.386   29.197
+        C. + MoE, embed only         0.584 (0.557-0.610)  f1 0.390   76.047
+        D. + MoE, embed+regex        0.597 (0.593-0.600)  f1 0.398   79.759
+        E. wide head, embed only     0.584 (0.580-0.590)  f1 0.417  152.845
+      **The regex stream contributes nothing** (A beats B). **The MoE
+      contributes nothing** (A beats C; D beats B by less than a seed spread).
+      What actually produced the apparent win was the bottleneck — a *smaller*
+      model, 25k parameters against 152k.
+    and_the_two_metrics_disagree: >
+      the bottleneck has the best accuracy (0.624) and a mediocre macro-F1
+      (0.390); the wide head has the worst accuracy (0.584) and the best
+      macro-F1 (0.417). Compressing to 64 dimensions helps the common classes
+      and costs the rare ones. With a 3-example class in the training set
+      (datasets.SCOTUS.classes), "which architecture is better" is not a
+      question the data answers — it is a question about who the system is for.
+    what_it_means_for_the_lesson: >
+      **build 06_composition anyway, and build it around this.** The skill is
+      composing and then *ablating*, not collecting components that win. Three
+      things it now teaches that a successful fusion could not:
+        1. the methodology — a comparison table that looks conclusive, then the
+           one-variable ablation that overturns it. This is the most common
+           mistake in student projects and it is here, self-inflicted, with the
+           numbers to prove it.
+        2. the fourth consecutive "the expensive component did not earn its
+           place" (after L2's CNN, L3's GRU, L5's own aggregators, D18).
+        3. two metrics that rank the same models differently, which hands
+           07_metrics its motivating example from the notebook before it.
+    the_honest_caveat: >
+      600 training documents, 8 epochs, one feature design. The regex stream is
+      weak *as designed here*: four of its top features (`cite:US`, `cite:SCT`,
+      `cite:LED`, `cite:LED2D`) appear in over 83% of documents and one appears
+      in 100%, so they carry no discriminative signal at all, and the doctrine
+      vocabulary that would carry it is only ~24 terms. "Design better features
+      and beat the embedding" is therefore a *real* open exercise, not a
+      rhetorical one — E7.
+
+# -----------------------------------------------------------------------------
+decisions:
+
+  - id: D17
+    to_be_added_to: masterplan.yml decisions
+    answers: >
+      "we already use imdb in lesson 1 as a demo, so maybe something more
+      challenging?" (owner, 2026-08-01) — and independently, C1 + C2, which say
+      the same thing from the data side.
+    decision: >
+      **L5 drops IMDB.** The lesson's text dataset becomes a long-document
+      corpus, so that the chunk axis it teaches is real rather than staged, and
+      so that L5 is not lesson 1 with a bigger head. IMDB survives in L5 only as
+      a *string literal* — the `<br />`-infested review in
+      `05_imdb_preprocessing` cell 9 is the best available motivation for a
+      normaliser (goal 5.11) and costs no dataset dependency to keep.
+    recommended_replacement: >
+      **`coastalcph/lex_glue`, config `scotus`** — US Supreme Court opinions,
+      13 issue areas, single-label. See datasets.SCOTUS for the measurements.
+      The pick between `scotus` and `ecthr_a` is L5.Q1.
+    made_by: owner decided the *direction* 2026-08-01; the concrete id is this
+      plan's recommendation and needs the owner's confirmation (L5.Q1).
+    consequences_accepted:
+      - "a new cache must be built and published under pttrn-io before students
+         can run the lesson (P0.3 machinery already exists — `make publish-all`
+         via scripts/publish_cache.py)"
+      - "05_imdb_preprocessing and 06_imdb_attention are replaced by one
+         notebook, not renamed (C6)"
+      - "the IMDB kill-list rows for L5 close by **deletion** rather than by
+         swap, which is a cheaper outcome than the table anticipated"
+      - "L5 stops sharing a dataset with L1, so the two lessons no longer
+         accidentally answer the same question with the same numbers"
+
+  - id: D18
+    to_be_added_to: masterplan.yml decisions (or folded into P2.6's rewrite)
+    answers: what L5's vector-level half is, given C1
+    decision: >
+      **P2.6 is rewritten from "chunking + aggregator ablation" to "the context
+      window is a budget: measure what truncation costs you".** L1 owns
+      chunking-as-mechanics (how a long text becomes `(C, D)`, why masked mean
+      beats mean when most of C is padding). L5 owns chunking-as-a-decision:
+      how much of the document you can afford to read, where in a document the
+      signal lives, and whether a *learned* aggregator finds it.
+      The ladder the new notebook walks, in cells:
+        first chunk only  (= truncation, what a plain transformer does)
+        -> mean over chunks        (designed, free)
+        -> attention over chunks   (learned, ~150k parameters)
+        -> TransformerBlock over chunks (learned, with position)
+      Each rung is the same head on the same cache with one component swapped,
+      which is `composition_over_configuration` demonstrated rather than
+      asserted.
+    why_this_is_not_a_repeat: >
+      L1 compares two aggregators on data where 86% of items have one chunk.
+      L5 compares four on data where **96% have more than one** and the median
+      is 15 (measured, datasets.SCOTUS). Same components, different question,
+      and the second question only becomes askable once the data is long.
+    what_the_rungs_actually_measured: >
+      rung 1 -> 2 is worth ~4 accuracy points and is stable across seeds; rungs
+      3 and 4 are not worth anything at this budget (C9). The notebook is built
+      around the first step, and the flat top of the curve is the honest part —
+      see C9.what_it_means_for_the_lesson.
+
+  - id: D23
+    to_be_added_to: masterplan.yml decisions
+    title: L5 gains a composition notebook — architecture as assembly, then ablation
+    answers: >
+      "instead of just swapping the old datasets, create new notebooks that
+      more fully embrace the capabilities of vectormesh (eg with the MoE or
+      pretrained models that vectorize the texts and combine that with regex);
+      these options come up much nicer with the new datasets" (owner,
+      2026-08-01).
+    decision: >
+      **L5 gets `06_composition.ipynb`, a second new notebook**, and L5
+      therefore stays at 8 notebooks instead of shrinking to 7. It teaches the
+      part of vectormesh nothing in the course currently touches: `Parallel`,
+      `Concatenate2D`/`Concatenate3D`, `CollateParallel`, and the routing
+      family `Gate -> Highway -> MoE`. The vehicle is two representations of
+      the same opinion — a frozen granite embedding and a designed legal-regex
+      stream — fused first per document, then per chunk.
+    why_the_legal_corpus_is_what_makes_it_possible: >
+      three things that IMDB could not give and SCOTUS does.
+        - **the chunk axis is real** (18.3 chunks/document), so per-chunk fusion
+          via `Concatenate3D` is a different operation from document-level
+          fusion rather than the same one written twice;
+        - **the designed features are readable domain concepts** —
+          `due process`, `antitrust`, `cite:USC`, `amend:fourteenth` — so
+          "designed vs learned" is legible instead of abstract, in a way
+          `great|terrible|acting` on film reviews never quite was;
+        - **13 imbalanced classes** make the routing question ("do experts
+          specialise by issue area?") a question with a checkable answer.
+    what_it_absorbs_rather_than_duplicates: >
+      vectormesh's own notebooks 2 (`2_design`) and 3 (`3_moe`) teach exactly
+      this material — **on the Dutch `aktes` cache, which the course cannot
+      distribute** (masterplan meta). So the course has been unable to teach
+      the library's central design lesson at all. SCOTUS is the distributable
+      twin: same pipelines, same questions (does the regex branch contribute?
+      does the router specialise or collapse to uniform? 4 experts x 64 vs 1 x
+      256 at equal parameters?), on a cache students can download.
+    it_is_built_around_a_negative_result: >
+      measured before writing this: the fusion does not win, and neither does
+      the MoE (C10). That is not a reason to drop the notebook — the components
+      are the syllabus, and the ablation discipline is the skill. It *is* a
+      reason to write the notebook as "compose, then ablate, and report what
+      you find", rather than as a demonstration of a technique that works.
+    cost: >
+      L5 breaks even on cells instead of paying for itself (proposed_arc.net).
+      The lever, if room is needed later, is L5.Q6.
+    made_by: owner, 2026-08-01
+    date: 2026-08-01
+
+# -----------------------------------------------------------------------------
+proposed_arc:
+  today: >
+    8 notebooks: 01_reweighing (40), 02_transformer (7),
+    03_Attention_gestures (15), 04_tokenization (31),
+    05_imdb_preprocessing (26), 06_imdb_attention (29), 07_metric (34),
+    08_excercise (18). Total 200 cells.
+  notebooks:
+    - "01_tokenization.ipynb  — was 04. Moves to the front, because everything
+       after it already assumes it (C5). Absorbs the normaliser/cleaning half of
+       05_imdb_preprocessing (goal 5.11), including the `<br />` review."
+    - "02_reweighing.ipynb    — was 01. The gaussian-filter -> self-attention
+       derivation, unchanged, minus its tokenizer detour which 01 now owns."
+    - "03_transformer.ipynb   — was 02. Positional encoding + TransformerBlock;
+       gains the one thing it lacks, a reason to exist: the block it builds is
+       the block 05 runs over chunk vectors."
+    - "04_attention_sequences.ipynb — was 03_Attention_gestures. GRU vs
+       AttentionGRU on the gestures replacement, with the comparison *measured*
+       in MLflow instead of described from the author's tensorboard (C7)."
+    - "05_long_documents.ipynb — NEW. Replaces 05_imdb_preprocessing +
+       06_imdb_attention. The context-window budget, on cached chunk vectors:
+       truncate -> mean -> attention -> transformer over chunks (D18)."
+    - "06_composition.ipynb   — NEW (D23). Two streams over the same documents:
+       the opaque learned embedding and a *readable* designed one (legal
+       citations, statutes, doctrine). Fused at document level (Parallel +
+       Concatenate2D) and per chunk (Concatenate3D), then routed
+       (Gate -> Highway -> MoE). Architecture as composition — and an honest
+       ablation, because the measured answer is that the fusion does not win
+       (C10)."
+    - "06_metrics.ipynb       — was 07_metric. Same metrics, on the 13
+       imbalanced classes the lesson already has, instead of on a synthetic
+       binary fashion problem (C8). Renumbers to 07 with the new notebook."
+    - "07_exercise.ipynb      — was 08_excercise. EEG via urllib (problem E);
+       the 'build your own datafactory' bullet becomes 'build your own
+       BaseVectorizer'. Renumbers to 08."
+  net: >
+    8 notebooks -> 8; ~200 cells -> ~195. **L5 breaks even rather than
+    shrinking**, and that is a change from this plan's first draft (which had
+    7 notebooks and -35 cells). The composition notebook is what the extra
+    room buys. See make_room for the ledger and for the lever if it has to
+    shrink after all.
+  what_stays_hand_rolled: >
+    the whole of 02_reweighing (QK^T/sqrt(d) by hand, softmax, bmm, then
+    `nn.MultiheadAttention` with a padding mask) and 03_transformer's
+    `PositionalEncoding` + `TransformerBlock`. Attention is the architecture
+    family this lesson owns — principle handroll_once_then_reuse — and 05 then
+    runs the *same* block over cached vectors, which is the "feel the cost
+    difference immediately after" half of that principle, in one lesson.
+
+# -----------------------------------------------------------------------------
+make_room:
+  status: >
+    This fills the phase_2 `cuts` row that reads "TBD, per lesson plan", for
+    L5. **Revised 2026-08-01 by D23, and the revision is worse for L5**: with a
+    second new notebook the lesson now breaks even instead of paying for
+    itself. Recorded honestly rather than re-argued — make_room asks what an
+    addition displaces, and the answer here is "the surplus the first draft
+    had", not "nothing".
+  adds:
+    - "05_long_documents.ipynb — NEW, ~25 cells"
+    - "06_composition.ipynb — NEW (D23), ~30 cells: two streams, two fusion
+       points, the routing family, and the ablation that overturns the first
+       comparison (C10)"
+    - "the chunk-budget cells in 01_tokenization (what does the encoder's
+       context window mean for *your* document?) — ~4 cells"
+  cuts:
+    - "06_imdb_attention.ipynb — all 29 cells. Its content is (a) a BPE
+       tokenizer, taught in 01; (b) a `Preprocessor` copied verbatim from 05
+       (C6); (c) NLPmodel vs AttentionNLP, which is the same GRU-vs-attention
+       comparison 04 already runs on gestures. The third is the only unique
+       part and it is one row of a table in 05."
+    - "05_imdb_preprocessing.ipynb cells 18-25 — the hand-written `Preprocessor`
+       class, its dummy-corpus test, and the DataLoader wiring. This is problem
+       B (kill list): `Collate(padder=DynamicPadding())` is the same function
+       with a documented shape contract. The normaliser half (cells 8-17)
+       survives into 01_tokenization."
+    - "07_metric cells 3-12 and 28-30 — the FASHION factory, the
+       `DummyPreprocessor`, the is-it-a-four relabelling, and two CNN training
+       runs. ~13 cells of scaffolding whose only job is to produce an
+       imbalanced classifier to measure (C8). The classifier is now the head
+       05 already trained."
+    - "01_reweighing cells 11-13 — the WordLevel tokenizer detour, which moves
+       to 01_tokenization where it is taught properly (C5)."
+    - "08_excercise cell 17, bullet 3 — 'you can try to implement your own
+       datafactory, study all the examples in mads_datasets sourcecode'.
+       Replaced, per the kill list, with `BaseVectorizer` — which is a better
+       exercise and points at code the course still ships."
+  net: >
+    roughly **-64 cells, +59**, and 8 notebooks in, 8 out. The first draft of
+    this plan claimed -64/+29 and 8 -> 7; D23 spends that surplus on
+    06_composition. L5 no longer exports a spare notebook slot to masterplan Q6
+    — it consumes its own.
+  if_it_has_to_shrink: >
+    the lever is **L5.Q6**: fold `03_transformer` (7 cells, no dataset, no
+    training) into `05_long_documents`, where its block is used two cells
+    later. That is -1 notebook and roughly -4 net cells, and it makes the
+    build-it-then-use-it beat immediate instead of deferred. The reason it is
+    not done here is that it costs 03 its identity as the place positional
+    encoding is taught, and that is the owner's call rather than an
+    arithmetic one.
+  the_other_lever_and_why_not: >
+    `04_attention_sequences` (gestures) is the other candidate — 15 cells, and
+    the GRU-vs-attention comparison also appears at the vector level in 05. It
+    stays because goal 5.8 explicitly wants attention demonstrated on
+    timeseries *and* on text, and because it is the only place in L5 where the
+    sequence axis is time rather than chunks. Cutting it would make L5 a
+    text-only lesson.
+  not_cut:
+    - "02_reweighing's gaussian-filter opening (cells 0-8). It is the best
+       motivation for attention in the course — a convolution mixes neighbours
+       by *distance*, attention mixes them by *similarity* — and it is the
+       reason the lesson starts on a timeseries instead of on text. Keep it,
+       and link it to L3/02_1d_convolutions rather than re-deriving it."
+    - "01_reweighing cells 20/33 — the same word 'bank' embedded before and
+       after attention, in two sentences. Four lines of code for the single
+       clearest demonstration of contextualisation in the lesson."
+
+# -----------------------------------------------------------------------------
+current_state:
+
+  - notebook: 01_reweighing.ipynb
+    cells: 40
+    content: >
+      a noisy sine smoothed by a hand-built gaussian `Conv1d` kernel (0-8);
+      a WordLevel tokenizer trained on three Dutch sentences about a "bank"
+      (11-13); `nn.Embedding` + `pad_sequence` -> (3, 7, 4), showing that
+      "bank" gets one fixed vector (18-20); then attention by hand — Q/K/V as
+      clones, `bmm(Q, K^T)/sqrt(d)`, the (3, 7, 7) weight matrix, softmax,
+      `bmm(weights, V)` (21-33); `nn.MultiheadAttention` with a
+      `key_padding_mask` (34-37); a seaborn heatmap of the untrained weights (39).
+    mads_datasets: none
+    change: >
+      becomes **02_reweighing**. Cut cells 11-13 (C5); open instead from the
+      tokenizer 01 built. Everything from cell 14 on is untouched — it is the
+      strongest sequence in the lesson.
+    note: >
+      cell 38 says "what you expect is that after training, bank should be
+      mostly mixed with zit" and then never trains. That is a fine cliffhanger
+      if 05 pays it off, and 05 does — its attention aggregator is trained and
+      its weights are plotted over chunks (E3).
+
+  - notebook: 02_transformer.ipynb
+    cells: 7
+    content: >
+      `PositionalEncoding` (sin/cos, dropout, `max_seq_len=5000`) with a
+      markdown derivation (0-1); a `TransformerBlock` — MultiheadAttention +
+      LayerNorm + feedforward + residuals (2-3); a shape test on
+      `torch.randn(32, 64, 128)` (5-6).
+    mads_datasets: none
+    data: none — random tensors
+    change: >
+      becomes **03_transformer**, unchanged in content. What it gains is a
+      consumer: 05 imports this block and runs it over `(B, C, D)` chunk
+      vectors, so the student sees their own block do work on real data. Add
+      one closing cell naming that: the block does not care whether the
+      sequence axis is tokens or chunks — formal vs semantic (conventions §6).
+
+  - notebook: 03_Attention_gestures.ipynb
+    cells: 15
+    content: >
+      GESTURES factory + `PaddedPreprocessor` (0-2); accuracy/CrossEntropy/log
+      dir (4); `TrainerSettings` with TENSORBOARD (6); `rnn_models.GRUmodel`
+      trained 3 epochs (7-10); `rnn_models.AttentionGRU` trained the same way
+      (13); a markdown conclusion describing the author's tensorboard (14).
+    mads_datasets: cells 0 (datatools), 2 (factory + streamers)
+    change: >
+      becomes **04_attention_sequences**, on WISDM (D22), swapped in the same
+      pass as L3/04. Beyond the dataset swap: MLflow instead of
+      TensorBoard (D10), and the conclusion becomes a two-row table the
+      notebook prints (C7).
+
+  - notebook: 04_tokenization.ipynb
+    cells: 31
+    content: >
+      NFD/StripAccents normalisers on "blasé" (4-5); a WordLevel tokenizer,
+      vocabulary, `[UNK]`, encode/decode round-trip (6-18); one-hot vs
+      embedding, with the tensorflow.org images (19-24); a GRU over the
+      embedded sentence (25); then the word-vs-character trade-off and **BPE**
+      (26-30), ending with a reusable `buildBPE(corpus, vocab_size)`.
+    mads_datasets: none
+    change: >
+      becomes **01_tokenization** — first notebook of the lesson (C5). Gains
+      the normaliser cells from 05_imdb_preprocessing (goal 5.11, including the
+      `<br />` review as a string literal) and ~4 new cells on the context
+      window: tokenize one real document, count its tokens, compare to the
+      encoder's `max_position_embeddings`, and let the student discover the
+      problem 05 solves.
+
+  - notebook: 05_imdb_preprocessing.ipynb
+    cells: 26
+    content: >
+      IMDB factory (2-3); look at a review, find one with `<br />` (6-7); a
+      `Sequence([NFD(), Replace("<br />", ""), StripAccents(), Lowercase()])`
+      normaliser (9-11); BPE trained on the train split (12-15); a hand-written
+      `Preprocessor` class that truncates to `max`, casts pos/neg to ints and
+      pads (18-19); a DataLoader with it as `collate_fn` (21-24).
+    mads_datasets: cell 2 (IMDB factory)
+    change: >
+      **deleted as a notebook.** Cells 8-17 (the normaliser and BPE) move to
+      01_tokenization; cells 18-25 are cut (problem B — `Collate` +
+      `DynamicPadding` is the same function with a shape contract).
+
+  - notebook: 06_imdb_attention.ipynb
+    cells: 29
+    content: >
+      IMDB factory + settings (0-5); the same BPE tokenizer as 05 (6-9); the
+      same `Preprocessor` class as 05 (10); streamers at batch 32 (11-15);
+      accuracy/loss (17); `TrainerSettings(train_steps=100)` with TENSORBOARD
+      (19); `ModelConfig` + `NLPmodel` (a GRU behind an embedding) (20-22);
+      trained 3 epochs (24-25); then `AttentionNLP` trained the same way (27).
+    mads_datasets: cells 0, 2 (IMDB factory + streamers)
+    change: "**deleted** — see make_room and C6."
+    what_survives: >
+      its one unique idea, "does attention help this model?", already exists in
+      04 on gestures and reappears in 05 as attention-over-chunks. The notebook
+      is the third place it is asked and the only place it is asked twice.
+
+  - notebook: 07_metric.ipynb
+    cells: 34
+    content: >
+      FASHION + a relabelling to "is it a four" (1-6); `DummyPreprocessor` and
+      streamers (10-11); `imagemodels.CNN` trained 100 steps (12); the "90%
+      accuracy by guessing zero" trap (13); confusion matrix (14-17); an F1
+      surface over a precision x recall grid (18-19); precision-recall curve
+      and ROC with the threshold argument (22-26); then the same on 10 classes
+      (28-32).
+    mads_datasets: cell 4 (FASHION factory), cell 29 (factory + streamers)
+    change: >
+      becomes **06_metrics**, on the lesson's own dataset (C8). Cells 13-27
+      (the trap, the confusion matrix, F1, PR and ROC) are the content and
+      survive nearly verbatim; what changes is where `y` and `yhat` come from —
+      the head trained in 05, on 13 imbalanced classes.
+    what_gets_better: >
+      the imbalance stops being manufactured. "90% accuracy by guessing 0" is a
+      good line, but it is a *constructed* 90%; a real 13-class distribution
+      with a long tail makes macro-vs-micro F1 a decision rather than a
+      definition, and that is the version of goal 5.1 worth having.
+    what_gets_harder: >
+      ROC and the precision-recall curve are binary by construction. Keep them
+      one-vs-rest on the rarest class, which is the honest multiclass framing
+      and keeps the threshold argument (5.1's ethical half) intact.
+
+  - notebook: 08_excercise.ipynb
+    cells: 18
+    content: >
+      UCI EEG Eye State via `datatools.get_file` (1); `scipy.io.arff` load and
+      a tour of the tuple/byte-label structure (3-15); then two exercise blocks
+      — build a Dataset, a windowed/padded/batched dataloader, and a seq2seq
+      variant with BCELoss (17).
+    mads_datasets: cell 1 (`datatools.get_file`)
+    change: >
+      becomes **07_exercise**. Problem E: `urllib.request.urlretrieve` replaces
+      `get_file` — verified today, the UCI URL still answers 200, and so does
+      the newer `archive.ics.uci.edu/static/public/264/eeg+eye+state.zip`
+      mirror. Exercise text: "implement your own datafactory" -> "implement
+      your own `BaseVectorizer`" (kill list), and the windowing bullets point
+      at L3/01_windowing rather than re-deriving windowing here.
+
+# -----------------------------------------------------------------------------
+learning_goals_delta:
+  file: references/leerdoelen/les5.md
+  first_fix_the_table: >
+    it names three notebooks that do not exist (C4). Any edit below is on top
+    of that correction, not instead of it.
+  unchanged:
+    - 5.0.1 / 5.0.2 word embeddings, tokenization, BPE (01_tokenization)
+    - 5.2 / 5.4 / 5.5 / 5.6 / 5.7 attention, scaling, masking, multihead,
+      positional encoding (02_reweighing, 03_transformer)
+    - 5.3 semantic vector space (lecture)
+    - 5.13 / 5.14 / 5.15 scaling laws, RAG/LoRA/MCP, alignment (lecture)
+  strengthened:
+    - id: 5.1
+      was: precision/recall/confusion matrix on a manufactured 90/10 binary
+        split of Fashion-MNIST
+      becomes: >
+        the same content on the lesson's own 13-class imbalanced corpus, where
+        macro-vs-micro F1 changes the answer and one-vs-rest is a modelling
+        choice the student makes. The ethical half of the goal survives intact
+        — arguably better, since "which class does this system fail on" has 13
+        candidate answers instead of one.
+    - id: 5.8
+      was: >
+        "kan uitleggen hoe attention behulpzaam is bij timeseries in het
+        algemeen, en NLP in het bijzonder" — currently explained twice and
+        measured once, in a markdown paragraph about someone else's tensorboard
+      becomes: >
+        measured twice, by the student: attention over *timesteps* in 04
+        (gestures) and attention over *chunks* in 05 (documents), with the
+        cost of each next to its score. Same mechanism, two rungs of the
+        ladder, which is the formal/semantic point conventions §6 asks every
+        notebook to name.
+    - id: 5.9
+      was: knowing which layer takes which rank
+      becomes: >
+        unchanged in content, but it now has the hardest case in the course to
+        practise on — `(B, C, D)` where C is chunks, fed to a block written for
+        C = tokens. Nothing changes formally and everything changes
+        semantically.
+    - id: 5.10
+      was: add an attention layer to an RNN model
+      becomes: >
+        kept in 04, and joined by its vector-level twin: `AttentionAggregator`
+        as an attention layer over *documents*. The second one is three lines
+        and costs seconds, which is the point.
+  gains:
+    - id: 5.x-a
+      text: >
+        can say what an encoder's context window is, find it
+        (`max_position_embeddings`), compare it to the token length of their own
+        documents, and name the three responses — truncate, chunk and
+        aggregate, or use a long-context model — with a cost for each.
+    - id: 5.x-b
+      text: >
+        can measure what truncation throws away, rather than assuming it is
+        either negligible or fatal.
+    - id: 5.x-c
+      text: >
+        can choose an aggregator with an argument, and knows that mean vs
+        attention over chunks is the designed/learned line in the same place it
+        appeared for regex-vs-embeddings (L1) and fourier-vs-patches (L3).
+  retired:
+    - id: 5.12
+      was: >
+        "kan een datapreprocessor aanpassen voor een dataset", with its material
+        listed as "exercises, mads_datasets"
+      becomes: >
+        "can implement a `BaseVectorizer` for a dataset the course does not
+        ship" — same skill, code that still exists, and it lands in 07's EEG
+        exercise where the student genuinely has to write one.
+  at_risk:
+    - id: 5.11
+      text: NLP preprocessing (punctuation, lowercase, spaces, strip xml)
+      status: >
+        **kept, deliberately.** SCOTUS text is clean, so the motivation for a
+        normaliser evaporates with the dataset swap. The fix is cheap: keep the
+        `<br />`-ridden IMDB review as a *literal string* in 01_tokenization
+        (D17). One paragraph of messy text is all the goal ever needed, and it
+        costs no dataset dependency.
+
+# -----------------------------------------------------------------------------
+datasets:
+
+  - name: IMDB
+    old: mads_datasets IMDB (05_imdb_preprocessing, 06_imdb_attention)
+    new: >
+      **removed from L5** (D17). L1/07_vectors keeps it, and keeps the
+      published cache. The two L5 kill-list rows close by deletion.
+    keeps: one review, as a string literal, for the normaliser demo (goal 5.11)
+
+  - name: SCOTUS
+    id: coastalcph/lex_glue, config `scotus`
+    role: proposed replacement — the lesson's text corpus (L5.Q1)
+    licence: CC-BY-4.0 on the card; the underlying texts are US Supreme Court
+      opinions, i.e. public domain. Satisfies R7 for republishing a cache,
+      with attribution to LexGLUE recorded in the dataset card.
+    verified_today:
+      loading: parquet-native, 0 scripts in the repo, 21 parquet files — loads
+        on datasets 5.0 with a plain `load_dataset(id, "scotus")`, no
+        `data_files` gymnastics (contrast L3's Monash, C1 there)
+      splits: train 5.000 / validation 1.400 / test 1.400
+      columns: [text, label]
+      classes: >
+        13, single-label, and **imbalanced at both ends**: the top three are
+        1.043 / 1.011 / 811 of 5.000, and the bottom two are class 5 with **35**
+        training examples and class 12 with **3**.
+        The long tail is not a footnote, it is a design constraint for
+        06_metrics — a macro-F1 that averages over a 3-example class is mostly
+        noise, and *that is the lesson*: goal 5.1 becomes "which averaging tells
+        you the truth about a system, and who does the other one hide?".
+        Concretely: report macro and micro side by side, and either fold the
+        two rarest classes into "other" **with the reason stated out loud**, or
+        keep them and show the per-class support column next to the per-class
+        F1. Do not quietly quote a macro number over 13 classes when one of them
+        has three examples. See L5.Q5.
+      token_length: median 6.496, p90 16.554, p99 37.203, max 41.574 (granite
+        tokenizer, 300-doc sample)
+      chunking: >
+        at max_length=512, stride=51: mean **18.3 chunks/document**, median 15,
+        p90 36, and **96%** of documents have more than one chunk.
+        Compare IMDB's 1.15 / 13% (C2). This is the whole reason for the swap.
+        Confirmed on the embedded probe subset: mean 19.2, median 15, p90 39,
+        **max 237** — the tail is long, so `max_chunks` is a real decision and
+        `FixedPadding(16)` already truncates 44% of documents.
+      it_learns: >
+        the thing worth checking before committing a lesson to a dataset.
+        A frozen-embedding head reaches **0.58 accuracy / 0.42 macro-F1** on 13
+        classes from 600 training documents, against a 0.22-0.25 majority-class
+        baseline (C9). Not a solved task — LexGLUE's fine-tuned baselines are
+        far higher — which is right for a lesson: there is headroom for the
+        exercises to move.
+    why_it_fits_L5:
+      - >
+        **the chunk axis is real.** `(B, C, D)` with C=16 is a tensor with
+        content in every slot, so "which aggregator" is a question about the
+        document rather than about padding.
+      - >
+        **truncation has a measurable price.** A 512-token window sees ~8% of a
+        median opinion. "What does the first chunk cost you?" is E1, and the
+        answer is not obvious in advance — legal opinions front-load their
+        summary, which is an argument *for* truncation that the data can settle.
+      - >
+        **it is already imbalanced and multi-class**, so 06_metrics runs on it
+        without manufacturing anything (C8).
+      - >
+        it echoes vectormesh's own `aktes` legal example (masterplan meta) at
+        the one point where the course could not use it — that cache cannot be
+        distributed, this one can.
+    costs:
+      encoding: >
+        ~91.600 chunks for the train split. Measured throughput and the
+        resulting publish estimate are in runtime_budget — this is a one-time
+        GPU job, and it is exactly the `embed_once_reuse_many` story the course
+        tells, run for real by the person who has the hardware.
+      cache_size: ~140 MB for train at 384 float32 dims (91.6k x 384 x 4 B),
+        ~40 MB each for validation and test. Comparable to the 158 MB IMDB
+        cache already on the hub.
+      download: one `snapshot_download`, per conventions §3
+    alternative_measured:
+      id: coastalcph/lex_glue, config `ecthr_a`
+      what_it_is: >
+        European Court of Human Rights cases, 9.000/1.000/1.000, **multi-label**
+        over 10 articles + "no violation". Measured today: `text` arrives as a
+        **list of paragraphs** (median 16 per case, p90 45, max 201), median
+        1.321 tokens per case, 5.1 chunks/doc at 512, 83% multi-chunk.
+        Heavily imbalanced (label 3 appears 4.704 times in 9.000) and **914
+        cases carry no label at all**.
+      for: >
+        the document arrives *pre-chunked* by its own author, which is the
+        honest version of chunking — paragraphs are semantic units, a
+        512-token sliding window is not. Multi-label also makes 06_metrics much
+        richer (per-label precision/recall, thresholds, micro vs macro), and it
+        would reuse `BCEWithLogitsLoss` from L1/05_losses.
+      against: >
+        multi-label changes the head, the loss and every metric in the lesson
+        at once, and the 914 empty-label cases are a trap that needs its own
+        cell. It is the more interesting dataset and the more expensive lesson.
+      verdict: L5.Q1 — recommendation is `scotus`, but this is a real choice
+        and the owner should make it.
+    also_screened:
+      - "ccdv/arxiv-classification — 11 classes, long papers, parquet-native,
+         but **no licence on the card**, so a published cache would violate R7.
+         Fine to read, not to redistribute. Out."
+      - "coastalcph/lex_glue `ledgar` — 60.000 contract provisions, 100 classes,
+         but median 113 tokens: short. No chunk axis. Out."
+      - "SetFit/20_newsgroups — ships a `create_dataset.py`, i.e. script-based
+         (R9), and the documents are short anyway. Out."
+      - "big_patent — CC-BY-4.0 and genuinely long, but 187 parquet files and a
+         summarisation task; laptop_feasible is doubtful and the task does not
+         fit the lesson. Out."
+
+  - name: GESTURES
+    used_in: 03_Attention_gestures (-> 04_attention_sequences)
+    status: >
+      **DECIDED 2026-08-01 — `monster-monash/WISDM`** (masterplan D22,
+      lesson3.yml L3.Q1). 17.166 x 3 x 100, 6 classes, 36 subjects, 20.6 MB,
+      two `hf_hub_download` calls. Fixed-length windows, 3 channels, so
+      `input_size=3` here is unchanged and `output_size` goes 20 -> 6.
+      Execute in the same pass as L3/04 (kill-list ordering rule).
+    measured: >
+      GRU(3->64) 2.7s/epoch on CPU, 0.902 after 3 epochs on a random split and
+      0.761 on the dataset's own subject fold — the card states "WISDM is split
+      based on subjects". L5's GRU-vs-AttentionGRU comparison should be scored
+      on the **fold**, not the random split, or the two architectures are being
+      compared on inflated numbers.
+    note_for_L5: >
+      WISDM's 100-timestep sequences are a *shorter* attention problem than the
+      variable-length FBK gestures. That is fine here — 04's job is
+      GRU-vs-AttentionGRU, not raggedness — and the raggedness lesson L3 loses
+      (L3.Q2) lands in 05 on chunk counts instead, where it is intrinsic.
+
+  - name: EEG
+    used_in: 08_excercise (-> 07_exercise)
+    old: "`datatools.get_file` (problem E)"
+    new: >
+      `urllib.request.urlretrieve` on the same UCI URL. **Verified today: the
+      original URL still returns 200**, as does
+      `archive.ics.uci.edu/static/public/264/eeg+eye+state.zip`. No mirror to
+      pttrn-io is needed; masterplan P2.3's "either mirror or inline" resolves
+      to inline, which is 3 lines and no new artefact.
+    licence: CC BY 4.0 (UCI dataset 264) — mirroring would be legal, it is just
+      unnecessary.
+
+  - name: FASHION
+    used_in: 07_metric (-> 06_metrics)
+    new: >
+      **none — the site disappears.** The metrics notebook stops needing an
+      image classifier (C8). This closes a kill-list row without a replacement
+      dataset, which is the cheapest way a row can close.
+
+# -----------------------------------------------------------------------------
+vectormesh_usage:
+  today: none. L5 uses mltrainer's `rnn_models` and hand-written preprocessors.
+  version_check: >
+    **0.4.1 has everything this plan needs — verified today by import**, which
+    makes L5 the first lesson since L1 that is not waiting on the library.
+    `vectormesh.components.aggregation` exports MeanAggregator,
+    MaskedMeanAggregator, AttentionAggregator, RNNAggregator;
+    `.padding` exports FixedPadding, DynamicPadding; `.neural` exports
+    NeuralNet, Projection, Attention, **TransformerBlock**; `.pipelines`
+    exports Serial, Parallel.
+  planned:
+    - component: Vectorizer (the chunking text vectorizer)
+      where: 05_long_documents
+      note: >
+        it chunks by itself — `tokenize()` passes `return_overflowing_tokens`
+        and reconstructs per-document chunks via `overflow_to_sample_mapping`.
+        Worth reading in the notebook (it is 20 lines) because the whole lesson
+        rests on what that function does, and because `stride =
+        max_length // 10` is a design decision the student can change.
+    - component: VectorCache + snapshot_download
+      where: 05_long_documents, 06_metrics
+      note: conventions §3 — download first, build in a marked optional branch.
+    - component: Collate + FixedPadding / DynamicPadding
+      where: 05_long_documents
+      note: >
+        this is where L3.Q2's homeless variable-length lesson lands. Chunk
+        counts vary from 1 to 40+ *intrinsically*, so `FixedPadding(max_chunks)`
+        is a truncation decision with a measurable cost and `DynamicPadding` is
+        the alternative — padding taught on data where the raggedness is real.
+    - component: aggregation (Mean / MaskedMean / Attention / RNN)
+      where: 05_long_documents
+      note: the four rungs of D18's ladder, one `Serial` slot.
+    - component: TransformerBlock
+      where: 03_transformer builds it, 05 runs it over (B, C, D)
+      note: >
+        the payoff for C7 — 03 currently tests its block on `torch.randn(32,
+        64, 128)` and stops. Running the student's own block over chunk vectors
+        costs one cell and turns a construction exercise into a component.
+    - component: ChunkedRegexVectorizer
+      where: 06_composition
+      note: >
+        the designed stream, chunk-aligned to the embedding by construction.
+        Built with the embedding cache's own `(model_tag, context_size,
+        stride)` — all three are in the metadata, verified today, including
+        `stride`. Fed by the course's own `legal_patterns.py` (L5.4b), because
+        the shipped legal builder is Dutch.
+    - component: CollateParallel
+      where: 06_composition
+      note: >
+        yields `((X1, X2), y)` instead of `(X, y)` — the one place in the
+        course where a batch is a tuple of streams. Both padders must use the
+        same `max_chunks` or `Concatenate3D` aligns garbage silently.
+    - component: Parallel / Concatenate2D / Concatenate3D
+      where: 06_composition
+      note: >
+        fusion at two altitudes: after aggregation (each stream reduced to
+        `(B, D)` first) and before it (per chunk, `(B, C, D1+D2)`). The second
+        is only meaningful because C is real here — on IMDB the two would be
+        the same operation written twice.
+    - component: Gate / Highway / MoE
+      where: 06_composition
+      note: >
+        one family at increasing resolution — per-dimension scale, two-way
+        interpolation, N-way learned mixture — swapped into one `Serial` slot.
+        vectormesh docs 5.3/5.4 frame it exactly this way and the course has
+        never taught any of it.
+    - component: metrics.F1Score / Accuracy
+      where: 05, 06, 07
+      note: >
+        L3.Q4 (mltrainer vs vectormesh metrics — two implementations, two
+        dependencies) applies here too. L1/07 uses vectormesh's `F1Score`;
+        07_metric uses sklearn. That is defensible — sklearn owns the confusion
+        matrix and the curves — but it should be a stated convention, not an
+        accident. C10 makes it sharper: accuracy and macro-F1 rank the same
+        models differently here, so the *default* metric decides conclusions.
+  what_this_closes: >
+    before D23, L5 touched `Vectorizer`, `VectorCache`, `Collate`, padding and
+    the aggregators — the same components L1 and L2 already use. With
+    06_composition, L5 becomes the only lesson that exercises the *composition*
+    half of the library: `Parallel`, the connectors, the gating family and
+    `CollateParallel`. Those are 4 of the 8 component modules and nothing in
+    the course reaches them today.
+  shapes_taught:
+    - "document -> Vectorizer -> (C, D), C = number of chunks, D = 384"
+    - "Collate + FixedPadding -> (B, C, D)"
+    - "aggregator -> (B, D)   <- the only rank-reducing step"
+    - "NeuralNet -> (B, K), K = 13"
+    - >
+      and the one that matters most, straight out of conventions §6: the
+      TransformerBlock built in 03 for `(B, tokens, D)` runs unchanged on
+      `(B, chunks, D)`. Formally identical, semantically a different model.
+      This is the best example of the formal/semantic split the course has.
+    - >
+      06_composition adds the two-stream shapes: `((B, C, 384), (B, C, 58))` ->
+      `Concatenate3D` -> `(B, C, 442)` -> `Projection` -> `(B, C, 64)`, and the
+      document-level route where each branch is aggregated to `(B, D)` first
+      and joined by `Concatenate2D`. Same two tensors, two different places to
+      merge them — which is the whole design question in one line.
+
+# -----------------------------------------------------------------------------
+tasks:
+
+  - id: L5.1
+    title: Reorder — tokenization first, reweighing second
+    effort: S
+    detail: >
+      `git mv 04_tokenization.ipynb 01_tokenization.ipynb`, `01_reweighing ->
+      02_reweighing`, `02_transformer -> 03_transformer`. Cut 01_reweighing's
+      cells 11-13 and open it from the tokenizer built in 01 (C5). Sweep
+      les5.md's material table while there — it is already wrong (C4).
+    touches: [01_reweighing.ipynb, 02_transformer.ipynb, 04_tokenization.ipynb,
+      references/leerdoelen/les5.md]
+
+  - id: L5.2
+    title: Fold the preprocessing notebook into 01_tokenization
+    effort: S
+    detail: >
+      Move 05_imdb_preprocessing cells 8-17 (the `<br />` review, the NFD /
+      Replace / StripAccents / Lowercase normaliser, BPE on a real corpus) into
+      01_tokenization after the BPE section. Keep the messy review as a string
+      literal (D17) — goal 5.11 survives the dataset swap that way. Cut cells
+      18-25 (the hand-written `Preprocessor`); add the four context-window
+      cells that set up 05.
+    touches: [04_tokenization.ipynb, 05_imdb_preprocessing.ipynb]
+    killlist_rows: L5 row 2 (05_imdb_preprocessing cell 2 — closes by deletion)
+
+  - id: L5.3
+    title: Build and publish the SCOTUS cache
+    effort: M
+    status: BLOCKED on L5.Q1 (the dataset pick)
+    detail: >
+      `Vectorizer(model_name="ibm-granite/granite-embedding-small-english-r2",
+      col_name="embed", input_col="text", max_length=512)` over all three
+      splits, `remove_columns=[]` — keep the text (C3), it is small and 05 wants
+      to show a chunk next to its source. Publish to
+      `pttrn-io/scotus-granite-embedding-small-english-r2` with
+      `scripts/publish_cache.py` / `make publish-all`, and fill in the dataset
+      card per docs/publishing-caches-to-huggingface.md: licence CC-BY-4.0,
+      source revision, encoder, max_length, stride, chunk_sizes.
+    watch_out: >
+      the flat ~21s `VectorCache.create` overhead (lesson2.yml C2) is
+      irrelevant at this scale — the encoding itself is the cost here for the
+      first time in the course. See runtime_budget.
+    depends_on: [L5.Q1]
+
+  - id: L5.4
+    title: NEW — 05_long_documents.ipynb
+    effort: L
+    detail: >
+      The centrepiece (D18). Structure it as the continuation of
+      01_tokenization's cliffhanger: your document is 6.496 tokens, your
+      encoder's window is 512, now what?
+    outline:
+      - >
+        read the cache metadata first (the L1 habit): `tensordtype: 2`,
+        `hidden_size: 384`, `context_size: 512`, and the `chunk_sizes`
+        histogram — which here is a long, *fat* tail, not the thin one L1
+        showed. Pick `max_chunks` off it, out loud.
+      - >
+        show one document's chunks next to its text: chunk 0 is the syllabus,
+        chunk 14 is the middle of an argument. This is why the text column was
+        kept (C3).
+      - >
+        rung 1 — `FixedPadding(max_chunks=1)` + mean. This *is* truncation, and
+        naming it that way is the point: it is what every "just use BERT" answer
+        silently does.
+      - rung 2 — mean over all chunks (designed, zero parameters)
+      - rung 3 — `AttentionAggregator` (learned)
+      - >
+        rung 4 — the student's own `TransformerBlock` from 03, over the chunk
+        axis, then aggregate. Name the shape argument: nothing in that block
+        knows what a chunk is.
+      - >
+        the comparison table, printed by the notebook: F1 (macro and micro),
+        trainable parameters, seconds/epoch, and the fraction of the document
+        each rung actually reads. That last column is the honest one.
+      - >
+        close on the cost that is *not* in the table: the encoding, paid once,
+        by someone else, and downloadable. Point at L2/03_mlflow's crossover
+        arithmetic rather than redoing it.
+    touches: [05_long_documents.ipynb (new), 05_imdb_preprocessing.ipynb,
+      06_imdb_attention.ipynb]
+    killlist_rows: L5 row 3 (06_imdb_attention — closes by deletion)
+    depends_on: [L5.3]
+
+  - id: L5.4b
+    title: NEW — legal_patterns.py, the designed stream for US opinions
+    effort: S
+    detail: >
+      vectormesh ships `build_legal_reference_pattern` / `harmonize_legal_
+      reference` for **Dutch** notarial deeds ("artikel 7:2 Burgerlijk
+      Wetboek"). SCOTUS needs its own, so the course carries one — in
+      `notebooks/5_attention/legal_patterns.py`, the same one-definition-imported
+      -by-several pattern `cnn.py` established in L2 (lesson2.yml C10).
+      Written and measured 2026-08-01 (C10): citations, statutes, amendments,
+      procedural posture, doctrine. 58 features fit at `min_doc_frequency=5`.
+    why_a_module_and_not_a_cell: >
+      06_composition builds the cache from it and 07_metrics reads feature
+      *names* off it when explaining which class is confused with which. Two
+      consumers is exactly the condition C10 of lesson2.yml named.
+    teaching_note: >
+      the four most common features appear in 83-100% of documents and
+      therefore carry no information. Show `print_stats` and let the student
+      find that before the model does — it is `min_doc_frequency` made
+      concrete, and it is the honest reason the designed stream underperforms.
+    touches: [notebooks/5_attention/legal_patterns.py (new)]
+
+  - id: L5.4c
+    title: NEW — 06_composition.ipynb
+    effort: L
+    detail: >
+      D23. The notebook the course has never been able to teach, because
+      vectormesh's own version of it runs on an undistributable cache.
+    outline:
+      - >
+        open on the two representations: the same opinion as 384 opaque
+        dimensions and as 58 named legal features. Print both for one document,
+        side by side. `print_stats` on the regex fit.
+      - >
+        build the second cache with the alignment contract explicit — pass the
+        embedding cache's own `model_tag`, `context_size`, `stride`, then
+        *verify* it: chunk counts equal, `offsets_supported: true`. Measured:
+        0 mismatches over 900 documents.
+      - >
+        the deliberate bug, in the family of L1's beartype violation and L2's
+        RuntimeError: rebuild the regex cache with `context_size=256` and
+        concatenate anyway. It **runs clean** — `FixedPadding` makes both
+        branches the same shape and `Concatenate3D` only checks that — and the
+        result is silently meaningless. Shape contracts catch rank errors, not
+        semantic misalignment. This is conventions §6's formal/semantic split
+        with teeth.
+      - "rung 1 — document-level fusion: `Parallel` + `Concatenate2D` (docs 5.2)"
+      - "rung 2 — per-chunk fusion: `Concatenate3D` + `Projection` (docs 5.5)"
+      - >
+        rung 3 — routing, as one family at increasing resolution:
+        `Gate` (per-dimension scale) -> `Highway` (two-way interpolation) ->
+        `MoE` (N-way learned mixture). One `Serial` slot, three swaps.
+      - >
+        **then the ablation**, and it is the point of the notebook: rerun the
+        best pipeline with the regex branch removed, holding everything else
+        fixed. Measured answer: the embedding-only version wins (C10). The
+        student watches a conclusion get overturned by controlling one
+        variable.
+      - >
+        close on the two-metric disagreement — best accuracy and best macro-F1
+        are different models — which hands 07_metrics its opening question.
+    depends_on: [L5.3, L5.4, L5.4b]
+    watch_out: >
+      keep the comparison parameter-aware. The first pass here compared a 25k
+      bottleneck against a 152k wide head and called it a fusion result; the
+      notebook must show parameter counts in the table for exactly that reason.
+
+  - id: L5.5
+    title: Move 07_metric onto the lesson's own data
+    effort: M
+    detail: >
+      Keep cells 13-27 (the accuracy trap, confusion matrix, F1 surface, PR
+      curve, ROC) and replace their input: `y`/`yhat` come from the head 05
+      trained, over 13 classes. Cut cells 3-12 and 28-30 (FASHION,
+      DummyPreprocessor, two CNN runs). Add macro-vs-micro F1 as a decision,
+      and keep ROC/PR as one-vs-rest on the rarest class so the threshold
+      argument survives.
+    touches: [07_metric.ipynb]
+    killlist_rows: L5 row 4 (07_metric cell 4 — closes by deletion)
+    depends_on: [L5.4]
+
+  - id: L5.6
+    title: Gestures swap in 04_attention_sequences
+    effort: S
+    status: >
+      UNBLOCKED 2026-08-01 — WISDM (D22). Execute with L3/04 in one pass; L4/01
+      is no longer part of the group.
+    detail: >
+      Two `hf_hub_download` calls + `TensorDataset` replace the factory and
+      `PaddedPreprocessor` (the sequences are fixed-length now). `input_size=3`
+      is unchanged, `output_size` 20 -> 6. Then C7: both runs (GRU,
+      AttentionGRU) log to one MLflow experiment and the notebook prints the
+      comparison instead of describing the author's tensorboard.
+    score_on_the_fold: >
+      use `test_indices_fold_0.txt`, not a random split — measured 0.902 random
+      vs 0.761 subject-wise, and comparing two architectures on the inflated
+      numbers would make the comparison meaningless.
+    touches: [03_Attention_gestures.ipynb]
+    killlist_rows: L5 row 1
+
+  - id: L5.7
+    title: EEG exercise — problem E, and a better exercise
+    effort: S
+    detail: >
+      `urllib.request.urlretrieve` (verified live today) into `../../data/`,
+      per conventions §1's split between artefacts and raw downloads. Rewrite
+      the exercise bullets: "implement your own datafactory / study
+      mads_datasets sourcecode" becomes "implement your own `BaseVectorizer`
+      for this signal, and cache it" — which is the L5 version of the phase_5
+      capstone and points at code the course ships.
+    touches: [08_excercise.ipynb]
+    killlist_rows: L5 row 5
+
+  - id: L5.8
+    title: One tracker, one store
+    effort: S
+    detail: >
+      D10 + conventions §5. `ReportTypes.TENSORBOARD` appears in
+      03_Attention_gestures cell 6 and 06_imdb_attention cell 19; the second
+      disappears with the notebook, the first becomes MLFLOW against the
+      repo-root `mlruns.db`. Delete the `logs/` and `modellogs/` leftovers in
+      the lesson directory while there.
+    touches: [03_Attention_gestures.ipynb]
+
+  - id: L5.9
+    title: Run everything, tick the kill list
+    effort: S
+    depends_on: [L5.1, L5.2, L5.4, L5.5, L5.6, L5.7, L5.8]
+    detail: >
+      notebooktester over the lesson; all five L5 kill-list rows go green —
+      three of them by deletion. Per R8, ship the whole lesson or none of it.
+
+# -----------------------------------------------------------------------------
+exercises:
+  - id: E1
+    type: ablation (the required one)
+    title: What does truncation cost?
+    detail: >
+      Retrain the same head at `max_chunks` ∈ {1, 2, 4, 8, 16, 32}. Predict
+      first, from the `chunk_sizes` histogram and from what you know about how
+      a court opinion is organised: does the signal sit in the first chunk, or
+      is it spread? Then plot F1 against max_chunks *and* against
+      seconds/epoch. The interesting outcome is not "more is better" — it is
+      where the curve flattens, because that number is the answer to "how much
+      of the document do I actually need to read?".
+    what_the_probe_found: >
+      the step from 1 to 4 chunks carries almost all of it (accuracy 0.546 ->
+      0.582); 16 and 32 add little and their seed spreads overlap (C9). So the
+      expected answer is "more than one chunk, but nowhere near all of them",
+      which is a more useful thing to learn than either "truncation is fine" or
+      "always read everything".
+    why_it_is_not_L1_E1: >
+      L1's E1 (mean vs masked mean) is a question about padding, on data where
+      86% of items have one chunk. This is a question about content, on data
+      where the median item has 15.
+
+  - id: E2
+    type: designed vs learned (principle designed_vs_learned)
+    title: Does a learned aggregator find what a mean misses?
+    detail: >
+      Swap `MeanAggregator` -> `AttentionAggregator` -> `RNNAggregator` in the
+      one `Serial` slot. Report score, parameters and seconds/epoch for each.
+      The honest question to answer in writing: if attention wins by a point at
+      ten times the cost, would you ship it? This is the L1 regex-vs-embedding
+      table and the L3 linear-vs-GRU table, in the third modality.
+    what_the_probe_found: >
+      it does not (C9): attention ties the mean within seed noise and the RNN
+      aggregator loses with 7x the parameters. Frame the exercise as
+      "measure, then decide" and let the student find the tie — with the
+      follow-up that matters: **under what conditions would you expect
+      attention to win?** (a document where one chunk decides the label and the
+      rest is boilerplate — which is a hypothesis they can test on the tail of
+      the length distribution).
+
+  - id: E3
+    type: interpretation
+    title: Where in the document is the signal?
+    detail: >
+      Pull the attention weights out of the trained `AttentionAggregator` and
+      plot them against chunk index, averaged over the test set — the same
+      seaborn heatmap 02_reweighing draws on an *untrained* model, now trained
+      and over documents instead of words. Cell 38 of the current
+      01_reweighing promises exactly this and never delivers it (C7); this is
+      where the promise is paid.
+    caveat: >
+      the aggregator this reads weights from does not beat a plain mean (C9),
+      and that makes the exercise *better*, not worse: a model that performs
+      like an average is a model whose attention is probably close to uniform.
+      Ask the student to check that before interpreting anything — reading
+      attention weights as an explanation when the model is not using them is
+      one of the more common mistakes in the field.
+
+  - id: E4
+    type: shape contract (inherited from L3.Q2)
+    title: Fixed or dynamic padding?
+    detail: >
+      Replace `FixedPadding(max_chunks=16)` with `DynamicPadding()` and watch
+      the batch shape change between batches. Which documents are affected, how
+      much padding does each strategy waste, and what does `max_chunks` throw
+      away? This is the variable-length lesson L3 can no longer teach honestly
+      (its replacement datasets are all fixed-length), landing where the
+      raggedness is intrinsic rather than an artefact of segmentation.
+
+  - id: E5
+    type: carried over
+    title: the EEG exercise (07_exercise)
+    detail: >
+      keep the windowed / padded / batched ladder — it is a good exercise and
+      it now points at L3/01_windowing for the mechanics. The third bullet
+      becomes "write a `BaseVectorizer` for this signal and cache it", which is
+      also the smallest possible rehearsal of the phase_5 capstone (P5.3).
+
+  - id: E6
+    where: 06_composition.ipynb
+    type: routing / conditional computation
+    title: Does the router actually specialise?
+    detail: >
+      Train the `MoE` and then *look at it*: plot the router's softmax weights
+      per document, grouped by issue area. Does expert 0 own criminal
+      procedure and expert 1 economic activity, or is every document a near
+      uniform blend? Then the parameter-matched question that settles whether
+      the structure earned anything: **2 experts of width 64 against 1 expert
+      of width 128** — same budget, different shape.
+    inherited_from: >
+      vectormesh docs 5.4 and its notebook 3 ask exactly these; the course can
+      finally set them, because SCOTUS is distributable and `aktes` is not.
+    expected: >
+      measured at this budget, the MoE does not beat the plain pipeline (C10),
+      so a collapsed-to-uniform router is the likely finding — which is the
+      *answer*, not a failed exercise. A student who can say "the router did
+      not differentiate, so this is an expensive ensemble average" has learned
+      the thing.
+
+  - id: E7
+    where: 06_composition.ipynb
+    type: designed vs learned (principle designed_vs_learned)
+    title: Beat the embedding with features you wrote yourself
+    detail: >
+      The shipped `legal_patterns.py` loses to the embedding (C10), and its
+      weakness is diagnosable: four of its top features appear in over 83% of
+      documents, and its doctrine vocabulary is ~24 terms. Raise
+      `min_doc_frequency`, drop the universal citations, add the vocabulary of
+      an issue area you care about — and see how close a *readable* 58-dimension
+      representation can get to 384 opaque ones.
+      Report both the score and what you can say about the model afterwards:
+      the regex model can be *read*, and that is a property no accuracy column
+      shows.
+    why_it_is_a_real_exercise: >
+      it is open. The plan does not know the answer, and says so — the measured
+      baseline is 0.357 accuracy against the embedding's 0.584, on features
+      designed in one afternoon by someone who is not a lawyer.
+
+# -----------------------------------------------------------------------------
+runtime_budget:
+  status: >
+    MEASURED 2026-08-01 on an M-series mac (MPS), warm HF cache, from a
+    scratch script — **not** from notebooks, which do not exist yet. See
+    scotus_probe below for the protocol.
+  imdb_chunking: see C2 — the measurements that motivate the swap.
+  scotus_probe:
+    protocol: >
+      600 train / 300 test SCOTUS documents, shuffled seed 42, embedded with
+      `Vectorizer(granite-embedding-small-english-r2, max_length=512)` on MPS,
+      then a `NeuralNet(384 -> 13)` head for 8 epochs at batch 32, Adam 1e-3,
+      over three seeds. Full table in C9.
+    encoding:
+      train: 600 documents (~11.500 chunks) in **146s**
+      test: 300 documents (~8.500 chunks) in **104s**
+      throughput: ~**80 chunks/s** on MPS, i.e. ~4 documents/s
+      note: >
+        this is 2.6x the rate implied by L1's IMDB run (16 min for ~29k chunks,
+        ~30 chunks/s). Long documents batch better — the chunks are full rather
+        than mostly padding. Do not reuse L1's rate to size this job.
+    cache_size:
+      measured: 17 MB for 600 train documents, 13 MB for 300 test documents
+      note: the test subset is denser because those documents are longer (28.4
+        chunks/doc vs 19.2) — chunk count, not document count, sets the size
+    head_training: 1.4-2.0s per configuration for 8 epochs on 600 documents
+    regex_stream: >
+      the second cache is nearly free next to the first: fitting 58 patterns
+      over 600 opinions plus writing the chunk-aligned matrix took **7s for
+      train and 5s for test** (CPU), against 142s and 106s for the embeddings.
+      Worth saying out loud in 06_composition — a designed representation costs
+      minutes of *your* time and seconds of compute; a learned one is the other
+      way round.
+    fusion_pipelines: 2.7-3.6s per configuration, 8 epochs, 600 documents —
+      the MoE variants are the slowest, ~30% over the plain pipeline
+    whole_notebook_estimate: >
+      once the cache is downloaded, 05_long_documents is a couple of minutes:
+      seven configurations at full scale is roughly 8x the subset numbers, so
+      2-3 minutes of training plus the download. Well inside laptop_feasible.
+  publish_estimate:
+    status: extrapolated from the measured 80 chunks/s, not yet run
+    train: 5.000 docs x 18.3 chunks = ~91.600 chunks -> **~19 min** on MPS, ~140 MB
+    validation: 1.400 docs -> ~25.600 chunks -> ~5 min, ~40 MB
+    test: 1.400 docs -> ~25.600 chunks -> ~5 min, ~40 MB
+    total: ~30 minutes and ~220 MB for the whole published artefact
+    why_this_number_matters: >
+      it is the first time in the course that the encoding is the expensive
+      part rather than the `VectorCache.create` fingerprint overhead
+      (lesson2.yml C2, a flat ~21s per call — here it is 2% of the job).
+      Thirty minutes on one machine, once, and every student downloads 220 MB
+      instead: that is `embed_once_reuse_many` at a scale where the argument
+      is self-evident rather than illustrative.
+
+# -----------------------------------------------------------------------------
+depends_on:
+  masterplan:
+    - D5   `window` -> vectormesh (irrelevant to L5 except via L3)
+    - D7   DataLoader defaults
+    - D10  MLflow as the single tracker (L5.8)
+    - P0.3 the publish/download machinery — L5 is its second real customer
+    - P2.2 gestures replacement — **decided, WISDM (D22)**
+    - P2.3 EEG — resolves to "inline the urllib download", no mirror needed
+    - P2.6 **rewritten by D18** — its original text is already built in L1 (C1)
+    - R7   licence before publishing a cache — settled for SCOTUS (CC-BY-4.0),
+           and it is what disqualifies ccdv/arxiv-classification
+    - R9   script-based datasets — lex_glue is parquet-native, verified
+  vectormesh_version: ">=0.4.1, and **nothing new is required** — verified by
+    import today, see vectormesh_usage.version_check"
+  mltrainer_version: ">=0.3.4"
+  other_plans:
+    - lesson3.yml — L3.Q1 decided 04_attention_sequences' dataset (WISDM, D22);
+      L3.Q2 hands the variable-length lesson to L5, which this plan accepts (E4)
+    - lesson4.yml — written 2026-08-01; nothing here depends on it, and L4 has
+      left the gestures blocked group, so the WISDM edit is L3/04 + L5/03 only
+  open_masterplan_questions:
+    - Q5 — the per-lesson compute budget. L5's notebooks are all small once the
+      cache is downloaded; the *publishing* job is the only expensive thing and
+      it is not a student's job.
+    - Q6 — L5 goes from 8 notebooks to 7, which is a small contribution to the
+      lesson-count question rather than an answer to it.
+
+# -----------------------------------------------------------------------------
+open_questions:
+  - id: L5.Q1
+    status: >
+      **ANSWERED 2026-08-01 by the owner: the legal corpus, `scotus`.** The
+      reasons given were the ones the measurements support — the LexGLUE family
+      holds both short and long tasks, long documents are worth having in their
+      own right, and the labels are imbalanced. Carried into D17; L5.3 and L5.4
+      are unblocked.
+    blocking: no longer blocking
+    question: Which corpus replaces IMDB — `scotus` or `ecthr_a`?
+    recommendation: >
+      **scotus.** Single-label 13-class keeps the head, the loss and the
+      metrics unchanged from the rest of the course, and 18.3 chunks/document
+      is the strongest chunk axis measured. `ecthr_a` is the more interesting
+      dataset — paragraphs are *authored* chunks rather than sliding windows,
+      and multi-label would make 06_metrics genuinely rich — but it changes the
+      head, the loss and every metric at once, and its 914 unlabelled cases
+      need their own cell.
+    measurements: see datasets.SCOTUS and datasets.SCOTUS.alternative_measured
+
+  - id: L5.Q2
+    blocking: no
+    question: >
+      Does 06_metrics really leave Fashion-MNIST behind, or is a vision example
+      worth keeping in the metrics notebook for contrast?
+    recommendation: >
+      leave it. The metrics content is modality-independent, the confusion
+      matrix reads better with 13 real classes than with a manufactured binary,
+      and it removes a mads_datasets site by deletion. If a second modality is
+      wanted, L2's flowers head is one cache away and costs nothing.
+
+  - id: L5.Q3
+    blocking: L5.3
+    question: >
+      What `max_length` does the published cache use? 512 gives 18.3
+      chunks/document; 256 would roughly double that (finer chunks, more to
+      aggregate, twice the storage and twice the encoding time).
+    recommendation: >
+      512 — it is the encoder's own window, it keeps the cache at ~140 MB, and
+      "the chunk is as big as the model can read" is one less arbitrary number
+      to explain. Revisit only if E1's curve turns out to be flat, which would
+      mean the chunks are too coarse to differentiate.
+
+  - id: L5.Q4
+    blocking: no
+    question: >
+      L3.Q2 proposed moving the variable-length/padding lesson to L5. Accepted?
+    this_plan_assumes: yes — E4 and `DynamicPadding` in 05. Confirm, because
+      if L3 keeps it, E4 is redundant and 05 loses a beat.
+
+  - id: L5.Q5
+    blocking: no
+    question: >
+      07_metric's curves are binary; multiclass forces a choice (one-vs-rest on
+      which class? macro or micro F1 as the headline?). Which does the course
+      teach as its default?
+    why_it_matters: >
+      the same drift risk as L3.Q4 — this is a conventions.md line, not a
+      per-notebook improvisation, and the exam (P6.3) will ask for one number.
+    now_urgent: >
+      C10 measured two architectures where accuracy and macro-F1 **rank them
+      differently**. The lesson cannot dodge this any more: whichever metric
+      06_composition prints first is the one that decides its conclusion.
+
+  - id: L5.Q6
+    blocking: no — but it is the answer if L5 is judged too big
+    question: >
+      D23 leaves L5 at 8 notebooks and break-even on cells. Does
+      `03_transformer` (7 cells, no dataset, no training) stay a notebook, or
+      fold into `05_long_documents`, where the block it builds is used two
+      cells later?
+    recommendation: >
+      fold it, if room is needed. Build-it-then-use-it in one notebook is a
+      better beat than build-it-now-use-it-two-notebooks-later, and it costs
+      the lesson nothing but a heading. The reason this plan does not simply do
+      it: positional encoding currently has its own home, and moving it is a
+      teaching-order call rather than an arithmetic one.
+
+  - id: L5.Q7
+    blocking: L5.4c, mildly
+    question: >
+      Does 06_composition publish its regex cache to the hub alongside the
+      embedding one, or build it in the notebook?
+    recommendation: >
+      **build it in the notebook.** Measured at 7s for 600 documents (CPU), so
+      even the full 5.000-document split is well under a minute — this is the
+      one vectorizer in the course cheap enough to run live. That is itself the
+      lesson: you publish what is expensive, you rebuild what is cheap, and the
+      student now has one example of each in the same notebook.
+    caveat: >
+      it does mean the notebook depends on `legal_patterns.py` being importable
+      and on the embedding cache's metadata being readable — which is the
+      alignment contract, i.e. the thing the notebook is about anyway.

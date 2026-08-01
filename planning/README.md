@@ -5,12 +5,15 @@ correct it when a notebook disagrees.
 
 | file | what it is |
 |---|---|
-| [masterplan.yml](masterplan.yml) | principles, decisions D1-D11, 7 phases, cuts register, risks, backlog |
+| [masterplan.yml](masterplan.yml) | principles, decisions D1-D18, 7 phases, cuts register, risks, backlog |
 | [conventions.md](conventions.md) | cache layout, naming, dataloading, tracking, shape vocabulary (P0.1) |
 | [../notebooks/1_pytorch_intro/tensor-ladder.md](../notebooks/1_pytorch_intro/tensor-ladder.md) | shape vs meaning, and the four rungs (P0.2) |
 | [mads_datasets_killlist.md](mads_datasets_killlist.md) | the 17 import sites, their replacements, and whether each has been **run** |
 | [lesson1.yml](lesson1.yml) | L1 refactor, cell-level |
 | [lesson2.yml](lesson2.yml) | L2 refactor, cell-level; implements the L2/L4 re-split |
+| [lesson3.yml](lesson3.yml) | L3 refactor, cell-level; the dataset-gap lesson (sunspots + gestures) |
+| [lesson4.yml](lesson4.yml) | L4 refactor, cell-level; the cost of an experiment, and the L4 handover D9 left open |
+| [lesson5.yml](lesson5.yml) | L5 refactor, cell-level; attention, and what to do when a document does not fit |
 | [../docs/publishing-caches-to-huggingface.md](../docs/publishing-caches-to-huggingface.md) | how to publish and consume a VectorCache on the hub |
 
 ## Where things stand (2026-07-31)
@@ -33,7 +36,87 @@ what motivated D9.
 lesson 4 — `03_minimal_transfer_learning` and `04_transfer_learning_with_resnet` are untouched
 — so transfer learning currently exists in both places. Sequencing decided by the owner on
 2026-07-31: **build L2 first, then decide what L4 drops, having seen the built L2 rather than a
-plan.** So do not "tidy up" the overlap, and do not open lesson4.yml, until that call is made.
+plan.** The plan for that drop now exists ([lesson4.yml](lesson4.yml), written 2026-08-01 at the
+owner's instruction), but it is a plan: **do not "tidy up" the overlap until D19 is made and
+`03_finetune_vs_frozen` is built.**
+
+**Lesson 4 is planned, not built** ([lesson4.yml](lesson4.yml)), and it found that **lesson 4
+does not run at all right now** — `ray.train.report` raises inside a Tune function on ray 2.55,
+so every trial in `01_hypertuner` errors, and `hypertune.py` fails the same way through
+mltrainer's `ReportTypes.RAY`. That is masterplan **P0.7**, a P0.6-class upstream fix, and it is
+almost certainly one of the five long-standing notebooktester failures. The lesson's own thesis
+is now measured rather than assumed: a 5-epoch trial costs **1.2 s** on the flowers cache,
+**159 s** on pixels, and fine-tuning resnet18 costs **135 s per epoch** — so hypertuning becomes
+teachable exactly where D9 said it would. The surprise is the other direction: **ray's per-trial
+process overhead (~2-3 s) is larger than the trial it schedules**, which turns "what is ray for?"
+into a measurement with a boundary. Three decisions wait on the owner (**D19-D21**: the handover
+itself, hymenoptera dying without a replacement, and `tune.Tuner` over `tune.run`).
+
+One knock-on worth knowing: **L4 has left the gestures blocked group**. If its search runs on an
+image cache it has no GESTURES site at all, so **L3.Q1 now decides for L3 and L5 only** — which
+is why lesson4.yml could be written before that pick.
+
+**Lesson 3 is planned, not built** ([lesson3.yml](lesson3.yml), written 2026-07-31 ahead of
+lesson4 at the owner's instruction, revised 2026-08-01 after measuring five candidate series
+and a foundation model). It carries **D13** (Monash over SILSO, and the parquet-branch loader
+that only works with explicit `data_files`), **D14** (the taught series is
+`pedestrian_counts`, not sunspot), **D15** and **D16** — see below.
+
+**The gestures replacement is decided: `monster-monash/WISDM`** (**D22**, 2026-08-01) —
+17,166 × 3 × 100, 6 classes, 36 subjects, 20.6 MB, two `hf_hub_download` calls. It measures
+0.902 on a random split and **0.761 on the dataset's own subject fold**, and that 14-point gap
+is the leakage artefact goal 3.3 has never had. 3 channels means `input_size=3` is unchanged,
+so the edit is confined to the loading cells in L3/04 and L5/03, done in one pass. **This was
+the last open dataset gap in the plan.**
+
+### Three measured results that change what L3 claims
+
+Full protocol and caveats in [lesson3.yml](lesson3.yml) C7–C11; summarised as masterplan
+D15/D16.
+
+1. **A linear layer beats the GRU**, on all four candidate series, at ~100× less compute.
+   That is the LTSF-Linear result reproduced, and today's `03_basemodels` arc implies the
+   opposite. Teach it — it is the north star pointed at architectures.
+2. **TimesFM 2.5 zero-shot beats everything trained** — 0.140 against the best trained
+   model's 0.216, no training, and *no new dependency*: `TimesFm2_5Model` is in the
+   installed transformers 5.12.1.
+3. **The freeze-and-cache pattern loses here** (0.499 vs 0.216 for a linear layer on raw
+   values). Two hypotheses were tested and both falsified. The rule of thumb that survives:
+   *if the encoder expands the data it is re-encoding, not extracting* — images compress
+   ~100×, a 512-step window expands **40×**. The course gets to show its own central
+   technique failing, which is worth more than another success.
+
+And one habit worth carrying into every lesson that touches a foundation model: **check the
+pretraining corpus before quoting a zero-shot number.** `pedestrian_counts` is in LOTSA and
+in `chronos_datasets`; TimesFM's card documents no corpus at all. `Salesforce/GiftEval`
+(apache-2.0, parquet-native, 28 configs) is where an honest number comes from.
+
+Sunspot is not discarded — it becomes exercise E4, carrying the two things pedestrian cannot:
+3.240 NaNs all sitting before 1849, and a dominant cycle ~32× longer than any window the
+lesson uses.
+
+**Lesson 5 is planned, not built** ([lesson5.yml](lesson5.yml), written 2026-08-01). It
+carries **D17** and **D18**, and both came out of the same measurement.
+
+- **IMDB leaves lesson 5.** It cannot teach chunking, because it does not chunk: **86% of
+  reviews are a single 512-token chunk** (read straight out of the published cache; confirmed
+  by tokenising 2.000 fresh reviews, median 227 tokens). The replacement is a long-document
+  corpus — recommended `coastalcph/lex_glue` config `scotus`, CC-BY-4.0, parquet-native,
+  13 classes, **median 6.496 tokens and 18.3 chunks per document**. The pick between `scotus`
+  and the multi-label `ecthr_a` is **L5.Q1**.
+- **P2.6 was already built — in lesson 1.** `07_vectors.ipynb` does chunking, `FixedPadding`,
+  `MaskedMeanAggregator` and the aggregator ablation. So L1 keeps chunking-as-mechanics and
+  L5 takes chunking-as-a-decision: *the context window is a budget, measure what truncation
+  costs you.* The phase_2 exit criterion about an aggregator ablation is ticked at L1.
+- Measured on a 600/300-document SCOTUS subset over three seeds: **truncating to the first
+  chunk costs ~4 accuracy points and ~6 macro-F1 points**, the curve flattens by C=4, and the
+  **learned aggregators do not beat a plain mean** (attention ties; the RNN aggregator loses
+  with 7× the parameters). Third lesson in a row where the expensive component fails to earn
+  its place — after L2's CNN and L3's GRU.
+
+L5 also pays for itself under make_room without needing a decision: two notebooks collapse
+into one and the metrics notebook stops needing Fashion-MNIST, so it goes **8 notebooks → 7,
+roughly −64 cells and +29**. Three of its five kill-list rows close by *deletion*.
 
 Done:
 
@@ -65,11 +148,12 @@ four caches, so a cold run pays ~88s of pure hashing, and the notebook carries a
 paragraph about it that should be deleted once this is fixed. See lesson2.yml C2.
 
 
-**P0.3 + Q8 — publish the IMDB granite cache.** Measured: the embedding pass is ~16 min
-per split on MPS and **~125 min per split on CPU**.
-So the cache download is mandatory, not optional, and `07_vectors.ipynb` currently falls back
-to a local cache that only exists on Raoul's machine. The hub id is a single constant in that
-notebook (`CACHE_REPO`), waiting on the user-vs-organisation decision (Q8).
+**P0.3 + Q8 — DONE 2026-07-31.** Four caches are published under
+[pttrn-io](https://huggingface.co/pttrn-io) and round-tripped from a clean `local_dir`
+(~2s per image split, ~4s per IMDB split), so `07_vectors.ipynb` no longer falls back to
+building one. That matters because the embedding pass is ~16 min per split on MPS and
+**~125 min per split on CPU** — the download is mandatory, not a convenience. Publishing is
+`make publish-all` via `scripts/publish_cache.py`.
 
 ## The one-paragraph version
 
