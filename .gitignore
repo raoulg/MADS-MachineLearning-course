@@ -37,3 +37,5 @@ settings.toml
 artefacts/**
 **/tmp/*
 **/assets/*
+# claude code worktrees
+.claude/
