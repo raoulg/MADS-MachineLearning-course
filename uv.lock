@@ -2585,7 +2585,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "mads-datasets", extras = ["torch"], specifier = ">=0.3.15" },
     { name = "matplotlib", specifier = ">=3.7.1" },
-    { name = "mltrainer", extras = ["tune"], specifier = ">=0.3.5" },
+    { name = "mltrainer", extras = ["tune"], specifier = ">=0.3.6" },
     { name = "plotly", specifier = ">=5.17.0" },
     { name = "pydantic", specifier = ">=1.10.9" },
     { name = "seaborn", specifier = ">=0.12.2" },
@@ -2928,7 +2928,7 @@ wheels = [
 
 [[package]]
 name = "mltrainer"
-version = "0.3.5"
+version = "0.3.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "loguru" },
@@ -2944,9 +2944,9 @@ dependencies = [
     { name = "torchvision" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/2c/017838c8a0a48ac7d065e6bf5c6ac9330295c66acf372246c647f6ac5433/mltrainer-0.3.5.tar.gz", hash = "sha256:ac822f9ff8e120c37e38464b16d6cf49ed14a5c0bcdfea54d777ccdabab9dfac", size = 148994, upload-time = "2026-08-01T15:59:35.58Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8d/a2/3f257a27ea86e4783f0688ca07ec9f7efb406c2a2d375d5b592ff8d15094/mltrainer-0.3.6.tar.gz", hash = "sha256:06d686b50e9b8d631c71d7f94ce3d9dd031c013a1aacc9da76021e937a0c85c0", size = 149060, upload-time = "2026-08-01T16:37:34.948Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1f/39/fabf3256a4fae38e0b08cc3564b04cff6e2c605b83118c241cec45f32506/mltrainer-0.3.5-py3-none-any.whl", hash = "sha256:b2a2e4e530dceda59a28a90d8db1642d8cb58e2084316b4ecd765582e8d6c363", size = 17880, upload-time = "2026-08-01T15:59:32.84Z" },
+    { url = "https://files.pythonhosted.org/packages/39/73/178367735151f5a3588b6548ced5f47576b240f9c5a1b3d3e3e687eba5e5/mltrainer-0.3.6-py3-none-any.whl", hash = "sha256:2f35a3c6d18aa763c74df3c10beec4defd87372bb64c8c5295c9b0acf962b18e", size = 17985, upload-time = "2026-08-01T16:37:33.615Z" },
 ]
 
 [package.optional-dependencies]
