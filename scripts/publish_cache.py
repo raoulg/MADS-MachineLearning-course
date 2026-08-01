@@ -118,6 +118,22 @@ Built for the [MADS MachineLearning course](https://github.com/raoulg/MADS-Machi
 
 The raw input column was dropped before upload — these are vectors and labels only.
 
+## Getting the original back
+
+Rows carry a `source_idx` column: the row's position in the **source** split, so you can go from a
+vector back to the image or text it came from without this repo having to carry it.
+
+```python
+from datasets import load_dataset
+
+source = load_dataset("{source}", revision="{revision(api, source, "dataset")}")["train"]
+source[train[5]["source_idx"]]      # the original row behind cache row 5
+```
+
+Pass that `revision`. The cache was subsampled with a shuffle, so `source_idx` is *not* the row
+number, and an index into a different revision of `{source}` would resolve to the wrong row
+silently rather than failing.
+
 ## Load it
 
 ```python
