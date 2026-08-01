@@ -21,11 +21,16 @@ meta:
   lesson: L4
   dir: notebooks/4_tuning_networks
   status: >
-    PLAN — nothing implemented. Written 2026-08-01. Every number marked
-    `measured` was produced on this machine today (M-series mac, CPU, warm HF
-    cache, `artefacts/hub/flowers_mobilenet_v2_1.0_224`); everything else is a
-    proposal. Two things are broken *now* rather than after the refactor (C1,
-    C5) and one of them needs an upstream release, exactly like P0.6 did.
+    PLAN — no notebook cells implemented yet. Written 2026-08-01. Every number
+    marked `measured` was produced on this machine that day (M-series mac,
+    CPU, warm HF cache, `artefacts/hub/flowers_mobilenet_v2_1.0_224`);
+    everything else is a proposal.
+    `01_hypertuner.ipynb`'s C1 fix (`tune.report`) is applied. P0.7 (the
+    mltrainer side) is half-released: mltrainer 0.3.5 is out with the
+    `RayReporter`/`check_path` fix; a second parallel-trial race (C5b,
+    `dir_add_timestamp`) is source-fixed and version-bumped to 0.3.6 but not
+    yet built or published — the course pin must move to `>=0.3.6` before L4.0
+    can be called done. Three owner decisions (D19-D21) are still open.
   created: 2026-08-01
   updated: 2026-08-01
   phase: 2 (P2.5), and it discharges the phase_2 debt in masterplan
@@ -199,6 +204,34 @@ corrections:
       inside the trainable hits it immediately, and the traceback blames their
       own path handling.
     fix: "`mkdir(parents=True, exist_ok=True)` — bundle it with the C1 release."
+    status: >
+      FIXED and published in mltrainer 0.3.5, 2026-08-01. See C5b for a second
+      race the fix for this one did not cover.
+
+  - id: C5b
+    date: 2026-08-01
+    severity: same bug shape as C5, found only by testing several parallel trials
+    finding: >
+      `Trainer.dir_add_timestamp` (trainer.py:34) has the *same* check-then-
+      create race as C5, in a different function:
+        if not log_dir.exists(): log_dir.mkdir(parents=True)
+      It appends a **second-resolution** timestamp to `settings.logdir` and
+      creates that folder. Two ray trials constructed in the same wall-clock
+      second collide on it — which is the common case, not the rare one, since
+      ray starts a batch of trials at once. Verified: a 2-trial run fixed for
+      C5 (mltrainer 0.3.5) still failed here with the same
+      `FileExistsError: [Errno 17] File exists`, one call site further in.
+    why_C5s_fix_did_not_catch_it: >
+      C5 was verified with a single trial completing; this one only shows up
+      with >=2 trials racing on the same second, which is why it survived a
+      release. The lesson: verify a parallel-trial fix *with actual parallel
+      trials*, not with one trial run twice.
+    fix: >
+      same shape, `mkdir(parents=True, exist_ok=True)`. Fixed in source,
+      verified against 6 concurrent trials completing with no error, version
+      bumped to 0.3.6 in `pyproject.toml`. **Not yet built or published** —
+      the course pin (`mltrainer[tune]>=0.3.5`) must move to `>=0.3.6` once it
+      is, and P0.7 does not close until then.
 
   - id: C6
     date: 2026-08-01
@@ -267,34 +300,87 @@ decisions:
 
   - id: D19
     to_be_added_to: masterplan.yml decisions
-    proposed: not yet made — this is the L4 handover call D9/L2.5 left open
+    status: >
+      **REVISED 2026-08-01 by the owner — this is the second version of D19,
+      not the first.** The original proposal below (collapsing 03+04 into one
+      `03_finetune_vs_frozen.ipynb`) is **rejected**. Superseded text kept
+      for the record, marked `superseded:` on each line.
     answers: "what does L4 keep, now that L2 owns the frozen-encoder story?"
     decision: >
-      **L4 becomes the lesson about the cost of an experiment.** The search
-      moves onto cached vectors, where a trial is 1.2 s (C3), and the
-      transfer-learning material collapses from two notebooks into one
-      *fine-tune vs frozen* comparison framed as a budget question — which is
-      what D9 said, now with the numbers to size it.
-      The expensive search does not disappear; it moves into `hypertune.py`,
-      where it becomes the demonstration of *why* a long search belongs in a
-      script and not in a notebook. So the lesson holds both regimes and the
-      contrast between them is the content.
-    what_that_costs: >
-      L4/03_minimal_transfer_learning + L4/04_transfer_learning_with_resnet
-      (74 cells, one idea) become one notebook of ~30. That is the payment
-      masterplan `cuts.phase_2.l2_accounting.still_owed` has been waiting for
-      since 2026-07-31.
+      **L4 stays the ray-hypertuning lesson, and goes deeper into it rather
+      than pivoting to cost-accounting.** Owner's own words: "I think the
+      lesson should focus on learning to use ray to hypertune. But instead of
+      tuning gestures, let's try to tune the heads on e.g. the flowers
+      vectorcache... try multiple architectures from vectormesh (MoE, gates,
+      highway, but also simpler architectures) and use ray to automate adding
+      building blocks into the model and finetuning basic numbers like
+      dimensions and depth of layers."
+      Concretely: `01_hypertuner`'s existing plan (search the head on the
+      flowers cache, D9/P2.5) **stands and is unaffected** — that direction
+      already matched what the owner wants. What's new is
+      **`05_architecture_search.ipynb`**: ray searches not just numeric
+      hyperparameters but *which vectormesh building blocks compose the head*
+      — `NeuralNet` baseline vs `MoE` vs `Highway`-wrapped, alongside
+      hidden_size/depth/num_experts. See L4.7.
+    transfer_learning_notebooks: >
+      **`03_minimal_transfer_learning.ipynb` and
+      `04_transfer_learning_with_resnet.ipynb` are left untouched.** Owner:
+      "leave them, but add new notebooks besides those." The collapse into one
+      fine-tune-vs-frozen comparison does **not** happen in this pass.
+    the_l2_musing_not_acted_on: >
+      the owner also said, in the same breath: "essentially the
+      transferlearning should go to lesson 2, I think?" — a real idea (it
+      would resolve the L2/L4 duplication D9 first raised, and 02_pretrained
+      already makes most of the argument), but immediately qualified with
+      "just leave the notebook for now, and focus on the new nb". Recorded as
+      a live idea, **not executed**. See L4.Q8.
+    make_room_consequence: >
+      **masterplan `cuts.phase_2.l2_accounting.still_owed` is NOT discharged
+      by this revision** — it was going to be paid by the collapse, and the
+      collapse is off. The L2/L4 transfer-learning duplication stays exactly
+      as it was on 2026-07-31. This is an explicit, owner-made exception to
+      the make_room principle, in the same spirit as the L2/L4 duplication
+      itself — not an oversight, and not to be "tidied up" by a later pass.
+      See make_room below.
+    superseded:
+      original_decision: >
+        superseded: "L4 becomes the lesson about the cost of an experiment.
+        The search moves onto cached vectors, where a trial is 1.2 s (C3), and
+        the transfer-learning material collapses from two notebooks into one
+        *fine-tune vs frozen* comparison framed as a budget question — which
+        is what D9 said, now with the numbers to size it. The expensive search
+        does not disappear; it moves into `hypertune.py`, where it becomes the
+        demonstration of *why* a long search belongs in a script and not in a
+        notebook."
+      original_what_that_costs: >
+        superseded: "L4/03_minimal_transfer_learning +
+        L4/04_transfer_learning_with_resnet (74 cells, one idea) become one
+        notebook of ~30. That is the payment masterplan
+        `cuts.phase_2.l2_accounting.still_owed` has been waiting for since
+        2026-07-31." — this payment does not happen; see
+        make_room_consequence above.
 
   - id: D20
     to_be_added_to: masterplan.yml decisions
-    proposed: not yet made
-    answers: >
-      dataset_migration.hymenoptera — "find a hymenoptera mirror on the hub or
-      substitute a small 2-3 class set. Decide in lesson4.yml."
-    decision: >
-      **Neither. Hymenoptera dies without a replacement.** The small-data axis
-      is carried by *subsetting the flowers cache* — 10 images per class is one
-      `.select()` on a cache that is already published and already used by L2.
+    status: >
+      **DEFERRED 2026-08-01 by the owner** — not decided, and out of scope for
+      this pass. Owner: "hymenoptera — it's a nice dataset, especially because
+      it shows how SMALL you can go. Just leave the notebook for now, and
+      focus on the new nb that use vectormesh and hf datasets."
+    consequence: >
+      `03_minimal_transfer_learning.ipynb` is untouched (D19 revision), so
+      `get_hymenoptera()`, `ImageFolder` and the small-data comparison it makes
+      all stay exactly as they are. The proposal below (subset the flowers
+      cache instead) is **not adopted** — the owner's stated reason is the
+      opposite of the proposal's reasoning: hymenoptera's value is precisely
+      that its 244 images is a *different, more extreme* small-data regime
+      than a 10-per-class subset of a 102-class set, not an equivalent one.
+    proposed_but_not_decided: >
+      superseded-in-status, kept as a live option: "Neither. Hymenoptera dies
+      without a replacement. The small-data axis is carried by *subsetting the
+      flowers cache* — 10 images per class is one `.select()` on a cache that
+      is already published and already used by L2." Full reasoning (why /
+      it_also_kills) preserved below for whenever this is revisited.
     why: >
       the notebook's point is small-data transfer learning, not ants. A second
       dataset costs a download, a second normalisation convention and a second
@@ -311,74 +397,112 @@ decisions:
 
   - id: D21
     to_be_added_to: masterplan.yml decisions
-    proposed: not yet made
+    status: >
+      **DECIDED AND EXECUTED 2026-08-01.** Owner: "if tune.run is legacy,
+      remove it and go for the new api." Done, not just planned — see
+      `verified` below.
     answers: "`tune.run` or `tune.Tuner`?"
     decision: >
-      **`tune.Tuner` + `tune.report`.** Both are verified working today (C1,
-      C4); `tune.run` is legacy, and its own signature already carries seven
-      deprecated parameters. Since C1 forces every trial function to be edited
-      anyway, migrating the driver at the same time costs one pass and stops
+      **`tune.Tuner` + `tune.report`.** Both are verified working (C1, C4);
+      `tune.run` is legacy, and its own signature already carries seven
+      deprecated parameters. Since C1 forced every trial function to be edited
+      anyway, migrating the driver at the same time cost one pass and stops
       the course teaching an API on its way out.
+    verified: >
+      all five `tune.run` call sites in `01_hypertuner.ipynb` (random, grid,
+      bayes, hyperband, hyperopt) migrated to
+      `tune.Tuner(trainable, param_space=..., tune_config=tune.TuneConfig(...),
+      run_config=tune.RunConfig(...)).fit()`, returning a `ResultGrid`.
+      Downstream code updated to match: `analysis.results_df` ->
+      `results.get_dataframe()`, `analysis.get_best_config()` /
+      `analysis.best_result[...]` -> `results.get_best_result().config` /
+      `.metrics[...]`. `visualize.py`'s `parallel_plot(analysis, columns)` took
+      `.results_df` internally too — changed its signature to accept a
+      dataframe directly (`parallel_plot(df, columns)`), which also decouples
+      it from any particular Ray API. **Full notebook re-executed via
+      notebooktester after the migration: passes, 66s, all five searches
+      complete.** Zero `tune.run` left in the notebook's code (one mention
+      remains, in a markdown cell explaining why it isn't used).
     caveat: >
       `ExperimentAnalysis` (02_ray, reading a finished run off disk) still
       exists in 2.55 and still works — but the Tuner-native path is
       `tune.Tuner.restore(...).get_results()`. Pick one per notebook and say
-      which; do not show both.
+      which; do not show both. `02_ray.ipynb` itself is not yet migrated (it
+      reads `hypertune.py`'s logs, and `hypertune.py` still uses
+      `ReportTypes.RAY` / awaits the L4.Q4 call) — same principle applies
+      there once it's touched.
 
 # -----------------------------------------------------------------------------
 proposed_arc:
+  status: REVISED 2026-08-01 — D19. See superseded_arc at the bottom for the
+    version this replaces.
   notebooks:
     - "01_hypertuner.ipynb  — the search-algorithm tour, on cached vectors,
        at honest sample counts. Random -> grid -> bayes -> hyperband ->
        hyperopt, plus the cost-per-trial table that makes the whole comparison
-       affordable. ~77 cells -> ~55."
+       affordable. ~77 cells -> ~55. Unaffected by D19's revision — this
+       direction already matched what the owner wants (D21 already executed,
+       see the file itself)."
     - "02_ray.ipynb         — the search you cannot afford in a notebook.
        `hypertune.py` runs the *pixel* search in a terminal (tmux), this
        notebook reads the logs afterwards and compares the two regimes. ~21
-       cells -> ~25."
-    - "03_finetune_vs_frozen.ipynb — NEW, replacing 03 + 04. Fine-tune
-       resnet18 against a head on the cache: cost per epoch, cost per trial,
-       and data efficiency on a 10-per-class subset. 74 cells -> ~30."
-    - "04_schedulers.ipynb  — OPTIONAL, see L4.Q2. Goals 4.5/4.6 have no
-       notebook today; cheap trials make them a 2-minute experiment."
-    - "05_hypertuning_exercise.md — reworded, not rewritten."
+       cells -> ~25. Unaffected."
+    - "03_minimal_transfer_learning.ipynb — UNTOUCHED (D19/D20). Left exactly
+       as it is."
+    - "04_transfer_learning_with_resnet.ipynb — UNTOUCHED (D19). Left exactly
+       as it is."
+    - "05_architecture_search.ipynb — NEW (L4.7). Ray searches which
+       vectormesh building blocks compose the head — plain `NeuralNet` vs
+       `MoE` vs `Highway`-wrapped — alongside hidden_size/depth/num_experts, on
+       the flowers cache. This is the notebook the owner actually asked for."
+    - "05_hypertuning_exercise.md — reworded, not rewritten. Numbering note:
+       shares '05' with the new notebook until the lesson is renumbered — see
+       L4.6."
   scripts:
-    - "hypertune.py  — migrated (C1), and re-pointed at the expensive regime."
-    - "visualize.py  — `plot_grid` and `plot_categories` are dead in L4; drop."
+    - "hypertune.py  — migrated (C1), and re-pointed at the expensive regime
+       (L4.Q6, unaffected by D19's revision)."
+    - "visualize.py  — `parallel_plot` already updated for D21 (takes a
+       dataframe, not an `analysis` object). `plot_grid` and `plot_categories`
+       are still dead in L4; drop per L4.5."
   why_this_split: >
-    Today the lesson is two unrelated halves that happen to share a folder:
-    two notebooks about ray, then two notebooks about transfer learning, with
-    no argument connecting them. The connection D9 was reaching for is
-    **cost** — transfer learning is what makes a trial cheap, and a cheap trial
-    is what makes search teachable. Ordering it as cheap-search (01) ->
-    expensive-search (02) -> where-the-cheapness-came-from (03) makes that one
-    argument instead of two topics.
+    D19's revision makes this simpler than the superseded version, not more
+    complex: L4 is the ray-and-search lesson, full stop, with two datasets
+    (a cheap head search on flowers, an expensive pixel/GRU search via script)
+    and now two *kinds* of search (numeric hyperparameters in 01, architecture
+    choice in 05). Transfer learning stays exactly where it already is,
+    unconnected — which the owner has explicitly accepted as the state of
+    things for now (see D19's `the_l2_musing_not_acted_on`).
+  superseded_arc:
+    note: kept for the record, not current
+    text: >
+      superseded: "03_finetune_vs_frozen.ipynb — NEW, replacing 03 + 04.
+      Fine-tune resnet18 against a head on the cache: cost per epoch, cost per
+      trial, and data efficiency on a 10-per-class subset. 74 cells -> ~30."
+      and "04_schedulers.ipynb — OPTIONAL, see L4.Q2." Both cancelled by D19's
+      revision; L4.Q2's scheduler question is now unmoored from a make_room
+      payment and reverts to "no" pending Q6.
 
 # -----------------------------------------------------------------------------
 make_room:
   status: >
-    This discharges masterplan `cuts.phase_2.l2_accounting.still_owed` — the
-    L4 collapse D9 promised and lesson2.yml recorded as outstanding.
+    **REVISED 2026-08-01, and this is the honest version: make_room is NOT
+    satisfied by this plan.** The version below this note discharged
+    `cuts.phase_2.l2_accounting.still_owed` via the 03+04 collapse; D19's
+    revision cancels that collapse, so the debt is **not paid**. This is an
+    explicit owner override of the make_room principle ("This refactor is a
+    shift in abstraction, not an addition to the syllabus... every phase that
+    adds material must name what it cuts"), made the same way the L2/L4
+    duplication itself was — knowingly, not by omission. Do not read this
+    silence as an oversight in a later pass.
   adds:
     - "the cost-per-trial table + the three regimes (C3) — ~4 cells in 01"
     - "the ray-overhead measurement (C4) — ~3 cells in 01"
     - "the encoder as a search dimension (see exercises E2) — ~2 cells"
-    - "04_schedulers.ipynb — ~20 cells, OPTIONAL and separately accounted"
+    - >
+      **05_architecture_search.ipynb — NEW, ~25-35 cells (L4.7), pure
+      addition, no offsetting cut.** This is the material the owner actually
+      asked for in this pass.
   cuts:
-    - "03_minimal_transfer_learning (29 cells) + 04_transfer_learning_with_resnet
-       (45 cells) -> one notebook of ~30. Net **-44 cells**, and the D9 payment."
-    - "03's hand-written training loop (cells 13-16, `train`/`test`/
-       `train_model` + a TemporaryDirectory best-model dance) — it exists
-       because the notebook wanted to run on colab without mltrainer. The
-       course has had one trainer since L1; two is a maintenance trap of
-       exactly the kind lesson2.yml C10 describes."
-    - "03's `get_hymenoptera()` + `ImageFolder` + `visualize_model` (cells 5,
-       8, 18) — D20."
-    - "04's `AugmentPreprocessor` + the `flowersfactory.settings.img_size`
-       dance (cells 6-21, ~10 cells) — augmentation on a cache is
-       `GaussianNoise`, which L2 already teaches, and the pixel path uses
-       torchvision transforms in the collate_fn as L2's `02_pretrained`
-       already does."
     - "01's `get_data` FileLock ceremony (cells 11-12). Measured: loading the
        cache inside a trial takes **0.06 s** because Arrow is memory-mapped, so
        there is nothing to lock and nothing to race. The paragraph explaining
@@ -389,10 +513,16 @@ make_room:
        03's loop: mltrainer is the trainer, and P0.6 fixed the reason people
        hand-rolled around it."
     - "`visualize.py` `plot_grid` + `plot_categories` — dead code."
+  not_this_pass:
+    - >
+      **03_minimal_transfer_learning + 04_transfer_learning_with_resnet stay
+      at their combined 74 cells.** No collapse, no cut. See D19/D20.
+    - "04_schedulers.ipynb — cancelled along with the collapse that was going
+       to pay for it (superseded, was L4.4)."
   net: >
-    L4 goes from 172 notebook cells to roughly 110 (~130 with the optional
-    scheduler notebook), and the lesson gains a measured argument it did not
-    have.
+    L4 gains a genuinely new notebook and cuts only the small things inside 01
+    that were already broken (C1/C2/C4/C5) or dead. The lesson's cell count
+    goes up, not down — the honest opposite of the superseded version's claim.
   not_cut:
     - "the search-algorithm tour itself. Random / grid / bayes / hyperband /
        hyperopt with a contour and a parallel plot each is the core of goals
@@ -404,6 +534,7 @@ make_room:
     - "05_hypertuning_exercise.md's scientific-method and reporting sections.
        They are the best-written prose in the lesson and they are
        dataset-agnostic."
+    - "03/04 in their entirety — see D19/D20, not this pass."
 
 # -----------------------------------------------------------------------------
 current_state:
@@ -464,9 +595,10 @@ current_state:
       (24-28).
     mads_datasets: cell 5 (the cache path, not an import)
     change: >
-      cells 20-28 are the content that survives, as one comparison against the
-      cache instead of two runs against each other. Everything above them is
-      replaced by the L2 loaders. See L4.3.
+      **NONE — D19 revision, D20 deferred, 2026-08-01.** Owner: leave this
+      notebook for now. The collapse into `03_finetune_vs_frozen.ipynb`
+      described below is cancelled; `get_hymenoptera()` stays; nothing in this
+      notebook is touched by this plan.
 
   - notebook: 04_transfer_learning_with_resnet.ipynb
     cells: 45
@@ -481,13 +613,13 @@ current_state:
       with `ReportTypes.TENSORBOARD`, `trainer.loop()` (34-43).
     mads_datasets: cells 1 (pip), 4 (factory + streamers)
     change: >
-      folded into 03. The parts worth keeping are the `.fc` surgery (27-32) —
-      which is goals 4.8/4.9 and has no equivalent anywhere else in the course
-      — and the "this will be very slow without acceleration" warning, which
-      becomes a measured number instead of a warning.
+      **NONE — D19 revision, 2026-08-01.** Owner: leave this notebook for now.
+      It does not fold into anything; its `.fc` surgery, its FLOWERS factory
+      import, and its `ReportTypes.TENSORBOARD` all stay as they are.
     note: >
-      it is also the last `ReportTypes.TENSORBOARD` in a taught notebook
-      (conventions §5 / D10).
+      still the last `ReportTypes.TENSORBOARD` in a taught notebook
+      (conventions §5 / D10) — untouched, so this stays true. The mads_datasets
+      site in cell 4 also stays open on the kill list; not this pass.
 
   - script: hypertune.py
     lines: 131
@@ -637,20 +769,32 @@ tasks:
   - id: L4.0
     title: Unblock ray — the C1 fix
     effort: S (notebooks) + S-but-elsewhere (mltrainer release)
-    status: BLOCKER, and it is independent of everything else in this plan
+    status: >
+      MOSTLY DONE. (a) is done — `01_hypertuner.ipynb` cell 16 now calls
+      `tune.report`, with a markdown cell above it explaining `tune` vs
+      `train`. (b) is split across two releases: `RayReporter.report` and
+      `settings.check_path` shipped in mltrainer **0.3.5**; a second race in
+      `dir_add_timestamp` (C5b), found only by testing several parallel trials
+      rather than one, is fixed in source and version-bumped to **0.3.6** but
+      **not yet built or published**. The course pin is still
+      `mltrainer[tune]>=0.3.5`, which is insufficient — do not mark this task
+      done until 0.3.6 is out and the pin moves.
     detail: >
-      (a) `ray.train.report` -> `tune.report` in 01_hypertuner's trainable.
+      (a) `ray.train.report` -> `tune.report` in 01_hypertuner's trainable —
+          DONE.
       (b) `mltrainer.trainer.RayReporter.report` -> `ray.tune.report`, plus
-          `exist_ok=True` in `settings.check_path` (C5), released, and the
-          course floor bumped. Same shape as P0.6: another repo, a release, a
-          floor bump, and every timing claim downstream depends on it.
+          `exist_ok=True` in `settings.check_path` (C5) AND in
+          `dir_add_timestamp` (C5b). Same shape as P0.6: another repo, a
+          release, a floor bump, and every timing claim downstream depends on
+          it. First half released (0.3.5); second half awaiting the owner's
+          build+publish step (0.3.6 is version-bumped and source-fixed).
       (c) decide L4.Q4 first — if the course stops using `ReportTypes.RAY`, (b)
           becomes optional for L4 (but is still a bug worth fixing).
     touches: [01_hypertuner.ipynb, hypertune.py, ../../mltrainer]
     verify: >
-      a 2-trial `tune.Tuner` run that completes and returns a results df with
-      the reported metrics in it. The minimal reproduction is in this plan's
-      C1 and takes 30 seconds to run.
+      not a 2-trial run — C5b only showed up at higher concurrency. Verified
+      2026-08-01 against mltrainer's editable source with 6 *parallel* trials
+      through `tune.Tuner`, all completing with `result.error is None`.
 
   - id: L4.1
     title: Rebuild 01_hypertuner on the cache
@@ -683,37 +827,97 @@ tasks:
     touches: [02_ray.ipynb, hypertune.py]
 
   - id: L4.3
-    title: NEW — 03_finetune_vs_frozen.ipynb, replacing 03 and 04
+    status: >
+      **CANCELLED 2026-08-01 — D19 revision.** 03 and 04 stay untouched; see
+      D19, D20. Full original task text preserved below for the record.
+    title: "superseded: NEW — 03_finetune_vs_frozen.ipynb, replacing 03 and 04"
     effort: M
     depends_on: [L4.Q7]
     detail: >
-      One task (flowers), one encoder (resnet18, C6), three configurations:
-      fine-tune everything, freeze and train `fc`, and the cached head from L2.
-      Keep 04's `.fc` surgery cells (goals 4.8/4.9) — reading `in_features` off
-      a downloaded model and swapping the layer is the manual skill the cache
-      hides. Report cost per epoch, cost per trial and accuracy in one table,
-      then repeat on a 10-image-per-class subset for the data-efficiency axis.
-      One trainer (mltrainer), one tracker (MLflow, conventions §5).
+      superseded: "One task (flowers), one encoder (resnet18, C6), three
+      configurations: fine-tune everything, freeze and train `fc`, and the
+      cached head from L2. Keep 04's `.fc` surgery cells (goals 4.8/4.9) —
+      reading `in_features` off a downloaded model and swapping the layer is
+      the manual skill the cache hides. Report cost per epoch, cost per trial
+      and accuracy in one table, then repeat on a 10-image-per-class subset for
+      the data-efficiency axis. One trainer (mltrainer), one tracker (MLflow,
+      conventions §5)."
     the_sentence_the_notebook_exists_for: >
-      "frozen features and fine-tuning are the same operation at different
-      budgets — the encoder is either a fixed cost you pay once or a variable
-      cost you pay per trial, and which one you choose is decided by how many
-      trials you intend to run."
-    touches: [03_minimal_transfer_learning.ipynb, 04_transfer_learning_with_resnet.ipynb]
-    killlist_rows: L4 rows 2 and 3
+      superseded: "frozen features and fine-tuning are the same operation at
+      different budgets — the encoder is either a fixed cost you pay once or a
+      variable cost you pay per trial, and which one you choose is decided by
+      how many trials you intend to run." (Still true, and still worth saying
+      — just not the content of a new notebook right now. Could land as a
+      single markdown paragraph in 05_architecture_search instead, cheaply.)
+    touches: []
+    killlist_rows: L4 rows 2 and 3 — **stay open**, not touched this pass.
+
+  - id: L4.7
+    title: NEW — 05_architecture_search.ipynb, ray x vectormesh building blocks
+    status: proposed 2026-08-01, per the owner's direction (D19). Not built yet.
+    effort: M
+    depends_on: [L4.1 for the shared trainable/cache-loading pattern]
+    detail: >
+      `01_hypertuner` already sketches a searchable head
+      (`vectormesh_usage.planned`: `Serial([GaussianNoise, Projection,
+      *NeuralNet layers])`, width and depth searchable). This notebook adds a
+      third axis: **which components**, not just how many of them.
+      `build_model(config)` dispatches on a categorical `config["arch"]`:
+        - `"mlp"` — the existing `Serial([Projection, *NeuralNet*depth])`
+          baseline.
+        - `"moe"` — `Serial([Projection, MoE(experts=[NeuralNet(units, units)
+          for _ in range(config["num_experts"])], hidden_size=units,
+          out_size=units), NeuralNet(units, K)])`. Verified signature:
+          `MoE(experts: list[Module], hidden_size: int, out_size: int)`,
+          routes per-position via a softmax gate over experts — accepts
+          `(B, D)` directly, no reshape needed.
+        - `"highway"` — `Serial([Projection, Highway(transform=NeuralNet(units,
+          units), hidden_size=units), NeuralNet(units, K)])`. Verified:
+          `Highway(transform: Module, hidden_size: int)` requires `transform`
+          to be dimension-preserving (`hidden_size -> hidden_size`), which
+          `NeuralNet(units, units)` satisfies.
+      Search space: `arch: tune.choice(["mlp", "moe", "highway"])`,
+      `hidden_size: tune.randint(32, 512)`, `depth: tune.randint(1, 4)` (mlp
+      only), `num_experts: tune.randint(2, 6)` (moe only) — ray samples the
+      full config every trial and `build_model` ignores the fields that don't
+      apply to the sampled `arch`. `tune.Tuner` throughout (D21) — no `tune.run`.
+    what_it_teaches: >
+      "architecture" is a hyperparameter like any other once trials are cheap
+      (1.2 s, C3) — the same composition-over-configuration principle L2's
+      `Serial`/`Parallel` pipelines already demonstrate, now searched instead
+      of hand-picked. Expected finding worth checking rather than assuming:
+      does MoE or Highway actually beat the plain MLP on a 1280-dim, 102-class
+      head, or does it just cost more router/gate parameters for the same
+      accuracy? Report params alongside accuracy, the way L2's comparison
+      table does — parameter count and compute are not the same axis there
+      either.
+    dataset: flowers cache (`pttrn-io/oxford-flowers-mobilenet_v2_1.0_224`,
+      same as 01_hypertuner)
+    touches: []
+    new_file: notebooks/4_tuning_networks/05_architecture_search.ipynb
+    verified_2026_08_01: >
+      `vectormesh.components.MoE.__init__(experts, hidden_size, out_size)` and
+      `.Highway.__init__(transform, hidden_size)` signatures confirmed by
+      reading source (`vectormesh 0.4.1`). Not yet built or executed — this is
+      a content plan, unlike lesson3.yml's TimesFM notebook which was built and
+      passes notebooktester.
 
   - id: L4.4
-    title: (optional) 04_schedulers.ipynb
+    status: >
+      **CANCELLED 2026-08-01 — D19 revision.** Its make_room justification
+      (paid for by the L4.3 collapse) no longer holds, since L4.3 is cancelled.
+    title: "superseded: (optional) 04_schedulers.ipynb"
     effort: M
-    status: proposed — L4.Q2
     detail: >
-      Goals 4.5/4.6 have no notebook. On the cache, a scheduler comparison
-      (none / StepLR / ReduceLROnPlateau / cosine warm-up) over identical seeds
-      is ~10 runs at 1.2 s. The recognition half of 4.5 — "how do you *see* that
-      you need one" — is a loss-curve reading exercise, which is cheap to
-      generate and currently taught nowhere.
-    make_room_note: paid for by the L4.3 collapse; do not add it and skip the
-      collapse.
+      superseded: "Goals 4.5/4.6 have no notebook. On the cache, a scheduler
+      comparison (none / StepLR / ReduceLROnPlateau / cosine warm-up) over
+      identical seeds is ~10 runs at 1.2 s. The recognition half of 4.5 — 'how
+      do you *see* that you need one' — is a loss-curve reading exercise,
+      which is cheap to generate and currently taught nowhere."
+    make_room_note: >
+      superseded: "paid for by the L4.3 collapse; do not add it and skip the
+      collapse." — the collapse is skipped, so per its own rule this stays
+      cancelled unless make_room is settled some other way.
 
   - id: L4.5
     title: Reword 05_hypertuning_exercise.md and clean visualize.py
@@ -728,11 +932,16 @@ tasks:
   - id: L4.6
     title: Renumber, fix les4.md, run everything, tick the kill list
     effort: S
-    depends_on: [L4.1, L4.2, L4.3, L4.5]
+    depends_on: [L4.1, L4.2, L4.5, L4.7]
     detail: >
-      les4.md's three wrong notebook names and the missing 4.1; the three L4
-      kill-list rows plus the `hypertune.py` row from the §2 callout go green.
-      Per R8, all of L4 or none of it.
+      les4.md's three wrong notebook names and the missing 4.1. Only the
+      `01_hypertuner` / `hypertune.py` kill-list rows can go green this pass —
+      rows 2 and 3 (03, 04) are explicitly **not** touched (D19/D20) and stay
+      open. That is a deliberate, narrower reading of R8's "whole lesson or
+      none of it": the rule is about not shipping a lesson where two notebooks
+      *disagree* about how data is loaded, and 03/04 do not disagree with
+      anything — they are simply unchanged. R8 is not violated by leaving a
+      site untouched, only by leaving one half-migrated.
 
 # -----------------------------------------------------------------------------
 exercises:
@@ -771,15 +980,23 @@ exercises:
         usually the representation, not the head — and it makes "some
         dimensions are not sampleable at notebook cost" concrete.
     - id: E3
+      status: >
+        NEEDS A NEW HOME — 2026-08-01. `03_finetune_vs_frozen.ipynb` is
+        cancelled (D19). The arithmetic below is still worth doing; it just
+        has nowhere built to live. Cheapest fix: a markdown+code pair at the
+        end of `05_architecture_search.ipynb`, using that notebook's own
+        measured trial cost instead of a dedicated comparison notebook.
       type: cost accounting
-      where: 03_finetune_vs_frozen.ipynb
+      where: "superseded: 03_finetune_vs_frozen.ipynb"
       title: Find the crossover, again
       detail: >
         L2's `03_mlflow` E3 found that caching pays for itself after ~1.4
         trials against a from-scratch CNN. Do the same arithmetic against
         *fine-tuning*: one encoding pass vs one fine-tune epoch per trial. At
         what trial count does frozen win, and what does that number do when you
-        swap resnet18 for mobilenet_v2 (C6)?
+        swap resnet18 for mobilenet_v2 (C6)? The measured numbers already exist
+        (runtime_budget.pixels_and_finetuning) — what's missing is the notebook
+        cell that does the arithmetic in front of the student.
     - id: E4
       type: honesty check
       where: 02_ray.ipynb
@@ -816,11 +1033,16 @@ runtime_budget:
     mobilenet_v2_frozen_forward: 0.85 s/batch -> 106 s to encode 4000
     mobilenet_v2_finetune_step: 21.18 s/batch -> 44 min/epoch (24.9x, C6)
   whole_lesson_estimate: >
-    01 ~4-6 min (five searches at 24-32 samples), 02 ~1 min (reads logs written
-    outside), 03 ~8-12 min (dominated by the two fine-tuning runs, which is the
-    point of the notebook), 04 ~2 min if it exists. Call it **15-20 minutes**,
-    against Q5's still-unset budget. The expensive script is explicitly outside
-    that number, which is why it is a script.
+    **REVISED 2026-08-01 — 03/04 are out of scope (D19), 05 is new and
+    unmeasured.** 01 ~4-6 min (five searches at 24-32 samples), 02 ~1 min
+    (reads logs written outside), 05_architecture_search unmeasured — a rough
+    guess at 3 categorical arms x similar sample counts to 01 is another
+    ~4-6 min, to be measured once it's built. 03/04 keep whatever their current
+    (unmeasured, unchanged) runtime is. The expensive script stays explicitly
+    outside these numbers, which is why it is a script.
+    superseded: "01 ~4-6 min..., 03 ~8-12 min (dominated by the two
+    fine-tuning runs, which is the point of the notebook), 04 ~2 min if it
+    exists. Call it 15-20 minutes" — described the cancelled 03_finetune_vs_frozen.
   caveats: >
     5 epochs, no tuning, one seed, CPU only, and the accuracy numbers move
     several points between runs because nothing seeds the head init. They are
@@ -837,11 +1059,15 @@ depends_on:
     - P2.2 **no longer blocking**, provisional on L4.Q1 (C8)
     - R8   whole lesson or none
   other_plans:
-    - lesson2.yml — L2.5's open handover; this plan is the answer, and it
-      discharges `cuts.phase_2.l2_accounting.still_owed`
-    - lesson3.yml — L3.Q1 only matters here if L4.Q1 keeps sequences (C8);
-      L3.Q4 (whose metrics?) applies unchanged
-    - lesson5.yml — not written; L5 still inherits the P2.2 pick
+    - >
+      lesson2.yml — L2.5's open handover. **This plan does NOT close it** — see
+      D19's revision and make_room.status. The L2/L4 duplication stays exactly
+      as lesson2.yml recorded it on 2026-07-31.
+    - lesson3.yml — L3.Q1 answered 2026-08-01 (WISDM, D22) but L4/01 already
+      left the blocked group before that, so it never mattered here (C8);
+      L3.Q4 (whose metrics — vectormesh's, per the owner) applies unchanged
+    - lesson5.yml — built 2026-08-01 (scotus, D17); L5's GESTURES site
+      inherited WISDM too, independent of L4
   vectormesh_version: ">=0.4.1 — nothing new required"
   mltrainer_version: >
     **>0.3.4 required** if `ReportTypes.RAY` stays: C1 (`ray.train.report`) and
@@ -860,6 +1086,9 @@ depends_on:
 open_questions:
 
   - id: L4.Q1
+    status: >
+      **ANSWERED 2026-08-01 by the owner, directly**: "tune the heads on e.g.
+      the flowers vectorcache" — confirms the recommendation below.
     blocking: L4.1 only
     question: >
       Does 01_hypertuner abandon sequence models and search a head on the image
@@ -945,7 +1174,11 @@ open_questions:
       fine-tuning search would be more dramatic and roughly 5x slower again.
 
   - id: L4.Q7
-    blocking: L4.3
+    status: >
+      MOOT 2026-08-01 — its blocker, L4.3, is cancelled (D19), and D20 answers
+      the underlying question anyway: neither the subset nor a second dataset,
+      hymenoptera stays. Kept for the record in case L4.3 is revived later.
+    blocking: L4.3 (cancelled)
     question: >
       Small-data transfer learning on a flowers subset (D20), or a genuinely
       small second dataset?
@@ -956,3 +1189,22 @@ open_questions:
       transfer learning is actually for. If the subset feels artificial when
       built, revisit — the masterplan's shortlist (sasha/dog-food,
       Javtor/rock-paper-scissors) is still there and both are parquet-native.
+
+  - id: L4.Q8
+    new: 2026-08-01
+    blocking: no — explicitly deferred by the owner
+    question: >
+      Should the transfer-learning material (03, 04) move to L2 entirely,
+      resolving the L2/L4 duplication D9 first raised — rather than staying
+      duplicated indefinitely?
+    context: >
+      the owner raised this in the same message as D19/D20: "essentially the
+      transferlearning should go to lesson 2, I think?" — then immediately
+      said to leave it for now. This is a live idea with real support (L2's
+      `02_pretrained` already makes most of the frozen-vs-hand-rolled argument;
+      D9 originally proposed the opposite direction — pulling transfer
+      learning *up* into L2 — for the same reason), not a rejected one.
+    do_not: >
+      act on this without the owner revisiting it. It is recorded here so the
+      next planning pass does not have to rediscover it, and so nobody
+      "helpfully" moves 03/04 without being asked.

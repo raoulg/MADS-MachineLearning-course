@@ -1274,52 +1274,89 @@ open_questions:
       reflects practice.
 
   - id: L3.Q3
+    status: >
+      ANSWERED 2026-08-01 by the owner, and as a **general principle**, not an
+      L3-only exemption: "use a VectorCache IF it helps — reduces compute,
+      makes training easier, or improves performance. The reason we work with
+      caches is because it is smart, not because we are mandated." For
+      timeseries specifically: (a) there is no good general-purpose vectorizer
+      today, and (b) caching does not save time or space here (C9, C10, C11).
+      So L3 does not get a cache, and this is now the standing test to apply
+      before adding a `VectorCache` to *any* lesson.
+    to_be_added_to: masterplan.yml principles (a phase_2 exit-criterion reword)
+      and planning/conventions.md
     question: >
       phase_2's exit criterion says "each of L1..L5 has at least one notebook
       that trains on a VectorCache". L3 has no expensive encoding in phase_2,
       so a cache here would be ceremony (see vectormesh_usage). Does L3 get an
       exemption until phase_3, or does the criterion get reworded?
-    recommendation: >
-      reword it — "every lesson loads from the hub, and trains on a cache
-      wherever encoding is expensive enough to be worth caching". The current
-      wording rewards the machinery instead of the reason for it, and R6
-      already warns about caches hiding what they are for.
     strengthened_2026_08_01: >
-      the measurements now argue this harder than the plan first did. In this
-      modality a cache is **40x larger than the data it derives from** (C9), and
-      training on the cached vectors scored **worse than training on the raw
-      values** (C10, C11). So an L3 cache would not merely be ceremony — it
-      would be a worked example of the pattern applied where it does not pay,
-      presented as if it did. Keep the criterion's intent, drop its literalism.
+      the measurements argue this harder than the recommendation first did. In
+      this modality a cache is **40x larger than the data it derives from**
+      (C9), and training on the cached vectors scored **worse than training on
+      the raw values** (C10, C11). An L3 cache would not merely be ceremony —
+      it would be a worked example of the pattern applied where it does not
+      pay, presented as if it did.
+    reworded_criterion: >
+      "every lesson loads from the hub, and trains on a cache wherever
+      encoding is expensive enough that caching reduces compute, eases
+      training, or improves performance — not because a cache is mandated."
 
   - id: L3.Q6
-    new: 2026-08-01
-    question: >
-      Does the TSFM material (E6 / C10) live in L3, or wait for phase_3?
+    status: >
+      ANSWERED 2026-08-01 — the owner asked for a new notebook now: "make a
+      new notebook showcasing the timesfm material, I will check it."
+    built: >
+      `notebooks/3_recurrent_networks/05_foundation_models.ipynb` — 17 cells,
+      standalone (does not depend on the not-yet-built 01-04 refactor).
+      Covers: pedestrian_counts load + windowing, naive/seasonal-naive/linear
+      baselines, TimesFM zero-shot (C10's headline result), the frozen-encoder
+      attempt and its diagnosis (mean-pool vs last-patch vs embedding+raw vs
+      raw-alone — C11), the storage-expansion rule of thumb (C9), and the
+      pretraining-corpus contamination check (D16) via `list_repo_files`
+      against `Salesforce/lotsa_data` and `autogluon/chronos_datasets`.
+      **Passes notebooktester, 39s** (TimesFM already in the local HF cache
+      from today's measurements — a cold run pays the 925 MB download once).
+    question: Does the TSFM material (E6 / C10) live in L3, or wait for phase_3?
     the_case_for_L3_now: >
-      it costs one extra section, needs no new dependency, and it is the
+      it costs one extra notebook, needs no new dependency, and it is the
       strongest demonstration of the course's north star that exists anywhere
       in the material — a downloaded model beating everything trained, measured
       on the student's own laptop, right after they watched a GRU lose to a
       linear layer.
     the_case_for_waiting: >
       925 MB download, and phase_3 is where P3.1/P3.2/P3.3 give it a proper
-      home. Putting it in L3 risks the lesson becoming four topics, which is
-      the exact failure mode D9 flagged for L2.
-    recommendation: >
-      a **short** version in L3 as E6 (an exercise, not a taught section, so it
-      is skippable and the download is opt-in), and the full three-point curve
-      plus the contamination check in P3.3. That keeps the punchline where the
-      setup is, without spending taught minutes L3 does not have.
+      home. The compromise the owner picked: a standalone notebook now, so it
+      is skippable/deferrable without depending on the rest of L3's refactor;
+      phase_3 gets the full three-point curve and the GiftEval clean-benchmark
+      follow-up.
+    still_open: >
+      whether this notebook gets a number in the taught sequence (currently
+      `05_`, after the not-yet-built 04) or stays a clearly-marked "extra" once
+      L3.1-L3.4 are actually built and the numbering is real.
 
   - id: L3.Q4
+    status: >
+      ANSWERED 2026-08-01 by the owner: "for now, prefer vectormesh if they
+      have the same capabilities" — with the stated direction that mltrainer's
+      `Trainer` may eventually be folded into vectormesh too, so this is not
+      meant as a permanent two-library split, it is the interim rule while that
+      migration hasn't happened.
     question: >
       `MASE`/`MAE` exist in both `mltrainer.metrics` and
       `vectormesh.components.metrics`. Which does the course teach?
+    resolution: >
+      L3 imports `MASE`/`MAE` from `vectormesh.components.metrics`, not
+      `mltrainer.metrics`, wherever both exist. Checked 2026-08-01: both
+      expose the same interface (`MASE(train, horizon)`, `_naive_predict` =
+      last-`horizon`-observed) and vectormesh's already handles a DataLoader
+      correctly (same fix as C6). `Trainer` itself stays `mltrainer.Trainer`
+      until/unless it moves.
     why_it_matters: >
       small, but it is exactly the kind of thing that makes eight lessons drift
-      into eight dialects — the problem phase_0 exists to prevent. Belongs in
-      conventions.md, not in this plan.
+      into eight dialects — the problem phase_0 exists to prevent.
+    to_be_added_to: planning/conventions.md, as a standing rule for every
+      lesson, not just L3.
 
   - id: L3.Q5
     question: >
