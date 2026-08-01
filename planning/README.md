@@ -33,35 +33,54 @@ lesson boundary at `2_convolutions/01_losses.ipynb` all along; fixing that incon
 what motivated D9.
 
 **The L2/L4 duplication is deliberate, and it stays for now.** Nothing has been removed from
-lesson 4 — `03_minimal_transfer_learning` and `04_transfer_learning_with_resnet` are untouched
-— so transfer learning currently exists in both places. Sequencing decided by the owner on
-2026-07-31: **build L2 first, then decide what L4 drops, having seen the built L2 rather than a
-plan.** The plan for that drop now exists ([lesson4.yml](lesson4.yml), written 2026-08-01 at the
-owner's instruction), but it is a plan: **do not "tidy up" the overlap until D19 is made and
-`03_finetune_vs_frozen` is built.**
+lesson 4 — `03_minimal_transfer_learning` and `04_transfer_learning_with_resnet` are untouched,
+and **this is now the settled state, not a pending call**. The owner decided on 2026-08-01
+(**D19**) not to collapse them: "leave them, add new notebooks besides those." So transfer
+learning stays duplicated between L2 and L4 indefinitely, on purpose — see
+[lesson4.yml](lesson4.yml) D19 and masterplan `cuts.phase_2.l2_accounting.still_owed`. The owner
+separately floated moving transfer learning to L2 entirely, which would resolve this a different
+way, but explicitly deferred it (lesson4.yml L4.Q8) — **do not act on either without being asked.**
 
-**Lesson 4 is planned, not built** ([lesson4.yml](lesson4.yml)), and it found that **lesson 4
-does not run at all right now** — `ray.train.report` raises inside a Tune function on ray 2.55,
-so every trial in `01_hypertuner` errors, and `hypertune.py` fails the same way through
-mltrainer's `ReportTypes.RAY`. That is masterplan **P0.7**, a P0.6-class upstream fix, and it is
-almost certainly one of the five long-standing notebooktester failures. **`01_hypertuner`'s own
-fix (`tune.report`) is applied.** The mltrainer half shipped in **two parts**: `RayReporter` and
-one mkdir race are fixed and published as **mltrainer 0.3.5**; a *second*, separate mkdir race
-(`Trainer.dir_add_timestamp`) was found only by testing several ray trials in parallel rather
-than one at a time, and is fixed in source and version-bumped to **0.3.6** but **not yet built or
-published**. The course pin (`mltrainer[tune]>=0.3.5`) must move to `>=0.3.6` once it is —
-**P0.7 does not close until then.**
-The lesson's own thesis is now measured rather than assumed: a 5-epoch trial costs **1.2 s** on
-the flowers cache, **159 s** on pixels, and fine-tuning resnet18 costs **135 s per epoch** — so
-hypertuning becomes teachable exactly where D9 said it would. The surprise is the other
-direction: **ray's per-trial process overhead (~2-3 s) is larger than the trial it schedules**,
-which turns "what is ray for?" into a measurement with a boundary. Three decisions wait on the
-owner (**D19-D21**: the handover itself, hymenoptera dying without a replacement, and
-`tune.Tuner` over `tune.run`).
+**Lesson 4's direction: go deeper into ray, not sideways into cost-accounting.** Two things are
+now decided and built:
 
-One knock-on worth knowing: **L4 has left the gestures blocked group**. If its search runs on an
-image cache it has no GESTURES site at all, so **L3.Q1 now decides for L3 and L5 only** — which
-is why lesson4.yml could be written before that pick.
+- **D21 — `tune.run` removed, `tune.Tuner` in.** All five searches in `01_hypertuner.ipynb`
+  (random, grid, bayes, hyperband, hyperopt) migrated from `tune.run` to
+  `tune.Tuner(...).fit()` + `ResultGrid`. `visualize.py`'s `parallel_plot` now takes a dataframe
+  directly instead of an `analysis` object. **Verified: full notebook re-executed via
+  notebooktester after the migration, passes in 66s.**
+- **D19 — a new notebook, not a collapsed one.** `01_hypertuner` keeps searching a head on the
+  flowers cache (unaffected by the direction change — it already matched what the owner wants).
+  New: **`05_architecture_search.ipynb`** (planned, not yet built) — ray searches *which
+  vectormesh building blocks* compose the head (plain MLP vs `MoE` vs `Highway`-wrapped),
+  alongside hidden_size/depth, on the same flowers cache. Component signatures verified against
+  vectormesh 0.4.1 source. Content plan in lesson4.yml L4.7.
+
+`03_finetune_vs_frozen.ipynb` and the optional `04_schedulers.ipynb` are **cancelled**, along
+with the make_room payment they would have made — L4 now adds a notebook with no offsetting cut,
+an explicit owner-sanctioned exception (lesson4.yml `make_room.status`). **D20 (hymenoptera) is
+deferred**, not decided: the notebook that uses it is untouched anyway.
+
+Still true: **lesson 4 did not run at all before today** — `ray.train.report` raised inside a
+Tune function on ray 2.55, so every trial in `01_hypertuner` errored, and `hypertune.py` failed
+the same way through mltrainer's `ReportTypes.RAY`. That is masterplan **P0.7**. The mltrainer
+half shipped in **two parts**: `RayReporter` and one mkdir race are fixed and published as
+**mltrainer 0.3.5**; a *second* mkdir race (`Trainer.dir_add_timestamp`) is fixed in source and
+version-bumped to **0.3.6** but **not yet built or published**.
+**Known issue right now: `pyproject.toml` was bumped to `mltrainer[tune]>=0.3.6` ahead of that
+publish, so a fresh `uv sync`/`uv run` fails to resolve** (0.3.6 does not exist on PyPI yet;
+`uv.lock` is still on 0.3.5). `uv run --frozen` works around it using the existing lock. This
+needs either the 0.3.6 publish to land, or the pin to drop back to `>=0.3.5` until it does.
+
+The lesson's own thesis is measured: a 5-epoch trial costs **1.2 s** on the flowers cache,
+**159 s** on pixels, and fine-tuning resnet18 costs **135 s per epoch** — so hypertuning becomes
+teachable exactly where D9 said it would. The surprise: **ray's per-trial process overhead
+(~2-3 s) is larger than the trial it schedules**, which turns "what is ray for?" into a
+measurement with a boundary.
+
+One knock-on worth knowing: **L4 has left the gestures blocked group**. Its search runs on an
+image cache, so it has no GESTURES site at all — **L3.Q1 decided for L3 and L5 only**, and both
+are now resolved to `monster-monash/WISDM` (**D22**).
 
 **Lesson 3 is planned, not built** ([lesson3.yml](lesson3.yml), written 2026-07-31 ahead of
 lesson4 at the owner's instruction, revised 2026-08-01 after measuring five candidate series
@@ -101,6 +120,19 @@ in `chronos_datasets`; TimesFM's card documents no corpus at all. `Salesforce/Gi
 Sunspot is not discarded — it becomes exercise E4, carrying the two things pedestrian cannot:
 3.240 NaNs all sitting before 1849, and a dominant cycle ~32× longer than any window the
 lesson uses.
+
+**One L3 notebook is built and executed**, ahead of the rest of the lesson refactor:
+[`05_foundation_models.ipynb`](../notebooks/3_recurrent_networks/05_foundation_models.ipynb),
+at the owner's direct request. Standalone (does not depend on the not-yet-built 01-04), 17
+cells, **passes notebooktester in 39s**. Walks through the TimesFM zero-shot win, the
+frozen-encoder loss and its diagnosis, the storage-expansion rule of thumb, and the
+pretraining-corpus contamination check — see lesson3.yml **L3.Q6**.
+
+**Two general principles settled 2026-08-01, not just for L3** (lesson3.yml **L3.Q3/L3.Q4**,
+now in [conventions.md](conventions.md) §1a/§5a): a `VectorCache` is used *if it helps* —
+reduces compute, eases training, improves performance — never because it's mandated; and
+`vectormesh.components.metrics` is preferred over `mltrainer.metrics` wherever the two overlap,
+as an interim step toward `Trainer` itself eventually folding into vectormesh.
 
 **Lesson 5 is planned, and its two new notebooks are built and executed**
 ([lesson5.yml](lesson5.yml), written 2026-08-01; notebooks the same day). It carries **D17**,

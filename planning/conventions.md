@@ -120,6 +120,15 @@ TENSORBOARD stays available as the zero-setup local option and is what `06_exerc
 but it is not what notebooks *teach*. `ReportTypes.TOML` rides on backlog B1; do not add new
 uses.
 
+### 5a. Metrics: vectormesh over mltrainer
+
+`MASE`/`MAE`/`Accuracy` exist in both `mltrainer.metrics` and `vectormesh.components.metrics`.
+**Prefer vectormesh's, wherever the two have the same capability** (owner, 2026-08-01). This
+is an interim rule, not a permanent split: the stated direction is that `mltrainer.Trainer`
+may eventually fold into vectormesh too, so "which library" is expected to keep resolving
+toward vectormesh over time, not stay a two-library situation forever. `Trainer` itself stays
+`mltrainer.Trainer` until/unless that happens — this rule is about metrics only, for now.
+
 ## 6. Shapes
 
 Every notebook names the rung it is standing on, using the vocabulary in
