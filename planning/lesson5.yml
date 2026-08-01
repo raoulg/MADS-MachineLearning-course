@@ -1089,6 +1089,12 @@ tasks:
   - id: L5.4
     title: NEW — 05_long_documents.ipynb
     effort: L
+    status: >
+      BUILT 2026-08-01 (19 cells) on the 600/300 subset, with a build-or-load
+      `get_cache` helper — the published full cache (L5.3) swaps in as a
+      `snapshot_download` branch when it exists. Ships E1-E4 as written below.
+      Executed top to bottom on build day (see runtime_budget.as_built); the
+      whole-lesson notebooktester sweep remains L5.9's job.
     detail: >
       The centrepiece (D18). Structure it as the continuation of
       01_tokenization's cliffhanger: your document is 6.496 tokens, your
@@ -1129,6 +1135,9 @@ tasks:
   - id: L5.4b
     title: NEW — legal_patterns.py, the designed stream for US opinions
     effort: S
+    status: >
+      DONE 2026-08-01 — `notebooks/5_attention/legal_patterns.py`, imported and
+      exercised by 06_composition (58 features fit on the 600-doc subset).
     detail: >
       vectormesh ships `build_legal_reference_pattern` / `harmonize_legal_
       reference` for **Dutch** notarial deeds ("artikel 7:2 Burgerlijk
@@ -1151,6 +1160,14 @@ tasks:
   - id: L5.4c
     title: NEW — 06_composition.ipynb
     effort: L
+    status: >
+      BUILT 2026-08-01 (26 cells) and executed top to bottom, zero errors. All
+      six configurations run at three seeds inside the notebook and reproduce
+      C10's tables exactly, including the ablation overturn (fused 0.609 ->
+      embed-only same-shape 0.624) and the §6.4 misalignment demo (chunk counts
+      double under context_size=256, concatenation still runs clean). E6-E8
+      ship as written below. The whole-lesson notebooktester sweep remains
+      L5.9's job.
     detail: >
       D23. The notebook the course has never been able to teach, because
       vectormesh's own version of it runs on an undistributable cache.
@@ -1417,6 +1434,15 @@ runtime_budget:
       once the cache is downloaded, 05_long_documents is a couple of minutes:
       seven configurations at full scale is roughly 8x the subset numbers, so
       2-3 minutes of training plus the download. Well inside laptop_feasible.
+  as_built: >
+    both new notebooks EXECUTED end to end 2026-08-01 via nbconvert, zero
+    errors, on the 600/300 caches. With the embedding caches on disk each
+    notebook is a minute or two of wall-clock (05: 4 configs x 3 seeds at
+    ~2s/run; 06: 6 configs x 3 seeds at ~3s/run, plus the 12s regex caches);
+    a cold start adds the one-time ~4-minute embedding build on MPS. Every
+    table in both notebooks reproduced the planning probes (C9, C10) to the
+    third decimal — the runs are deterministic given the seed, which is itself
+    worth a sentence when teaching.
   publish_estimate:
     status: extrapolated from the measured 80 chunks/s, not yet run
     train: 5.000 docs x 18.3 chunks = ~91.600 chunks -> **~19 min** on MPS, ~140 MB

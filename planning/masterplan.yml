@@ -67,6 +67,17 @@ principles:
       Expensive encoding happens once, by whoever has the hardware, and is
       published as an artefact. Everything the student iterates on is a small
       head on frozen vectors, minutes on a laptop CPU. (vectormesh docs 1.1)
+    caveat_added_2026_08_01: >
+      **only where a cache actually helps.** Owner: "use a VectorCache IF it
+      helps reducing compute / makes it easier to train / improves
+      performance. The reason we work with caches is because it is smart, not
+      because we are mandated." L3's timeseries lane is the concrete
+      counter-case: no good general-purpose vectorizer exists yet, and
+      measured caching there **cost** time and space rather than saving it
+      (lesson3.yml C9-C11 — a cache is 40x larger than the raw window, and a
+      linear model on raw values beat a head on cached TimesFM embeddings).
+      So this principle is a default to apply, not a requirement to satisfy in
+      every lesson — see the reworded phase_2 exit criterion below.
   - id: tensor_ladder_is_the_spine
     text: >
       (D) -> (C,D) -> (B,D) -> (B,C,D) -> (B,K) becomes shared course notation,
@@ -619,6 +630,72 @@ decisions:
     date: 2026-08-01
     planned_in: planning/lesson5.yml (C1, C9, D18)
 
+  - id: D19
+    answers: >
+      the L4 handover D9/L2.5 left open — "what does L4 keep, now that L2 owns
+      the frozen-encoder story?"
+    decision: >
+      **L4 stays the ray-hypertuning lesson and goes deeper, rather than
+      pivoting to a cost-accounting/transfer-learning lesson.** Owner: "focus
+      on learning to use ray to hypertune... tune the heads on e.g. the
+      flowers vectorcache... try multiple architectures from vectormesh (MoE,
+      gates, highway, but also simpler architectures) and use ray to automate
+      adding building blocks into the model." `01_hypertuner` searches the
+      head on the flowers cache (unchanged from the original proposal); a new
+      `05_architecture_search.ipynb` searches *which vectormesh building
+      blocks* compose the head (MoE / Highway / plain MLP), alongside
+      hidden_size/depth.
+    what_it_explicitly_does_not_do: >
+      collapse `03_minimal_transfer_learning` +
+      `04_transfer_learning_with_resnet` into one comparison, as an earlier
+      draft of this decision proposed. "Leave them, add new notebooks besides
+      those." Consequence: the L2/L4 transfer-learning duplication is not
+      resolved by this decision — see `cuts.phase_2.l2_accounting.still_owed`,
+      which this decision closes *without paying*.
+    a_related_idea_not_acted_on: >
+      the owner also floated moving transfer learning to L2 entirely, which
+      would resolve the duplication a different way, then explicitly deferred
+      it: "just leave the notebook for now." Live, not decided — lesson4.yml
+      L4.Q8.
+    made_by: owner, 2026-08-01
+    date: 2026-08-01
+    planned_in: planning/lesson4.yml (D19, make_room, L4.7)
+
+  - id: D20
+    status: DEFERRED — not decided
+    answers: >
+      dataset_migration.hymenoptera / masterplan P2.2-adjacent question:
+      "find a hymenoptera mirror on the hub or substitute a small 2-3 class
+      set. Decide in lesson4.yml."
+    decision: >
+      **Not decided this pass.** Owner: "hymenoptera — it's a nice dataset,
+      especially because it shows how SMALL you can go. Just leave the
+      notebook for now, and focus on the new nb." `03_minimal_transfer_learning`
+      and its `get_hymenoptera()` downloader are untouched; no replacement is
+      chosen or ruled out.
+    date: 2026-08-01
+    planned_in: planning/lesson4.yml (D20)
+
+  - id: D21
+    answers: "`tune.run` or `tune.Tuner`, in `01_hypertuner.ipynb`?"
+    decision: >
+      **`tune.Tuner` + `tune.report`.** Owner: "if tune.run is legacy, remove
+      it and go for the new api." `tune.run` is Ray's legacy API — its own
+      signature carries seven deprecated parameters.
+    executed: >
+      not just decided — done. All five `tune.run` call sites (random, grid,
+      bayes, hyperband, hyperopt) migrated to `tune.Tuner(...).fit()`,
+      returning a `ResultGrid`; downstream `.results_df` /
+      `.get_best_config()` / `.best_result[...]` usage updated to
+      `.get_dataframe()` / `.get_best_result().config` / `.metrics[...]`.
+      `visualize.py`'s `parallel_plot` changed to take a dataframe directly
+      instead of an `analysis`-shaped object. **Verified: full notebook
+      re-executed via notebooktester after the migration, passes in 66s, all
+      five searches complete.**
+    made_by: owner, 2026-08-01
+    date: 2026-08-01
+    planned_in: planning/lesson4.yml (D21)
+
   - id: D23
     title: L5 gains a composition notebook — assemble, then ablate
     answers: >
@@ -654,8 +731,10 @@ decisions:
   - id: D22
     answers: P2.2, and lesson3.yml L3.Q1
     note_on_the_id: >
-      D19-D21 are reserved by lesson4.yml's three *proposed* decisions, which
-      are still open. This one is made, so it takes the next free id.
+      written when D19-D21 were still lesson4.yml's three *proposed*
+      decisions and this one had already been made, so it took the next free
+      id. D19-D21 are now decided too (see above) — the numbering is simply
+      out of chronological order, which is fine, ids are not meant to sort.
     decision: >
       **`monster-monash/WISDM` replaces the FBK smartwatch gestures dataset.**
       17.166 x 3 x 100 (five seconds at 20 Hz), 6 classes, 36 participants,
@@ -726,8 +805,10 @@ cuts:
       aggregator ablation this line used to name went to L1 instead)
     cuts:
       - >
-        L4/03 + L4/04 stop being two transfer-learning notebooks and become one
-        fine-tune-vs-frozen comparison
+        superseded 2026-08-01 (D19): "L4/03 + L4/04 stop being two
+        transfer-learning notebooks and become one fine-tune-vs-frozen
+        comparison" — rejected by the owner; see `l2_accounting.still_owed`.
+        L4/03 + L4/04 are unchanged.
       - >
         L5/05_imdb_preprocessing's hand-rolled tokenisation shrinks — the
         Vectorizer does it, and tokenisation is taught once in L5/04
@@ -758,22 +839,27 @@ cuts:
         (see planning/README.md). That is the notebook's worth of payment this
         ledger was waiting for; the "still_owed" entry that stood here is gone.
       still_owed: >
-        The other half — the L4 collapse (D9 / L2.5). Nothing has been removed
-        from L4, so transfer learning is currently duplicated between L2 and
-        L4. **This is deliberate**: the owner sequenced it as build-L2-first,
-        decide-L4-after-reviewing-it (2026-07-31). Do not tidy the overlap away
-        and do not open lesson4.yml until that call is made.
-      accounted_2026_08_01: >
-        planning/lesson4.yml now carries the ledger entry this row was waiting
-        for, written at the owner's instruction ahead of the handover call.
-        The payment is **-44 cells**: `03_minimal_transfer_learning` (29) and
-        `04_transfer_learning_with_resnet` (45) collapse into one
-        `03_finetune_vs_frozen` of ~30, plus the hand-rolled training loop, the
-        `get_hymenoptera` downloader, `AugmentPreprocessor` and the FileLock
-        ceremony. L4 goes from 172 notebook cells to ~110.
-        **The debt is planned, not paid** — nothing is removed from L4 until
-        D19 is made and L4.3 is built, so the duplication stands for now and is
-        still deliberate.
+        **CLOSED, but not by payment — by an explicit owner decision not to
+        pay it (D19, 2026-08-01).** lesson4.yml originally proposed collapsing
+        `03_minimal_transfer_learning` + `04_transfer_learning_with_resnet`
+        into one `03_finetune_vs_frozen` notebook, which would have discharged
+        this debt (-44 cells). The owner rejected that direction: L4 stays the
+        ray-hypertuning lesson and gains a *new* notebook
+        (`05_architecture_search.ipynb`, searching vectormesh building blocks
+        — MoE, Highway, plain MLP — via ray) instead of collapsing the
+        transfer-learning pair. "Leave them, add new notebooks besides those."
+        **So the L2/L4 transfer-learning duplication stands, indefinitely, on
+        purpose** — not pending a future call, but as the accepted state.
+        The owner floated, in the same breath, that transfer learning might
+        eventually move to L2 entirely ("essentially the transferlearning
+        should go to lesson 2, I think?"), which would resolve this a
+        different way — but explicitly did not act on it. See lesson4.yml D19,
+        D20, L4.Q8.
+      make_room_exception: >
+        this row is now the second explicit, named exception to the make_room
+        principle (the first being the duplication's original sequencing). L4
+        adds a full new notebook with no offsetting cut — see lesson4.yml
+        make_room.status. Recorded here so it reads as a decision, not a gap.
     l5_accounting:
       status: >
         FILLED IN 2026-08-01 by planning/lesson5.yml § make_room, and unlike L2
@@ -1312,7 +1398,18 @@ phases:
 
       - id: P0.7
         title: Fix mltrainer's ray reporting — `ReportTypes.RAY` is broken
-        status: OPEN, found 2026-08-01 while writing planning/lesson4.yml (C1, C5)
+        status: >
+          PARTIALLY FIXED. `RayReporter.report` (ray.tune.report) and
+          `TrainerSettings.check_path`'s mkdir race are fixed and published as
+          mltrainer 0.3.5, 2026-08-01. Verifying end-to-end with several
+          *parallel* trials (not just one at a time) found a **second, separate
+          mkdir race** in `Trainer.dir_add_timestamp` (trainer.py:34) — same bug
+          shape, different function, not caught by testing each fix alone.
+          Fixed in source and verified against 6 concurrent ray trials
+          completing cleanly, version bumped to 0.3.6, **not yet built or
+          published** — that is the owner's step, same as 0.3.5. The course
+          pin (`mltrainer[tune]>=0.3.5`) is insufficient until 0.3.6 ships;
+          bump it then.
         severity: >
           blocker for L4, and it is a live breakage rather than a refactor
           consequence. Same shape as P0.6: another repo, one line, a release,
@@ -1552,11 +1649,14 @@ phases:
         zero mads_datasets imports in the repo, every replacement run at least
         once, and only then the dependency is dropped from pyproject.toml (D2)
       - >
-        each of L1..L5 has at least one notebook that trains on a VectorCache —
-        **needs rewording**, see lesson3.yml L3.Q3: L3 has no expensive encoding
-        in phase_2, so a cache there is ceremony. Proposed: "every lesson loads
-        from the hub, and trains on a cache wherever encoding is expensive
-        enough to be worth caching".
+        **REWORDED 2026-08-01, confirmed by the owner** (lesson3.yml L3.Q3):
+        "every lesson loads from the hub, and trains on a cache wherever
+        encoding is expensive enough that caching reduces compute, eases
+        training, or improves performance — not because a cache is mandated."
+        L3 is the concrete case this exists for: no good general-purpose
+        timeseries vectorizer exists yet, and caching there measurably cost
+        time and space rather than saving it (lesson3.yml C9-C11). See
+        embed_once_reuse_many's caveat, above.
       - every cache a student needs is on the hub with a filled-in dataset card
       - "[x] one aggregator ablation exists as a graded exercise — MET by
          L1/07_vectors E1 (mean vs masked mean), 2026-07-31. See D18: this was
