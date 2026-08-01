@@ -3,6 +3,7 @@ from typing import Dict, Tuple, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from loguru import logger
 from tqdm import tqdm
@@ -62,7 +63,6 @@ def plot_categories(
         plt.show()
 
 
-def parallel_plot(analysis, columns: list[str]):
-    plot = analysis.results_df
-    p = plot[columns].reset_index()
+def parallel_plot(df: pd.DataFrame, columns: list[str]):
+    p = df[columns].reset_index()
     return px.parallel_coordinates(p, color="accuracy")
