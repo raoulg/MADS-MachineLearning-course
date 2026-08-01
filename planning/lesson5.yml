@@ -763,6 +763,14 @@ learning_goals_delta:
         can choose an aggregator with an argument, and knows that mean vs
         attention over chunks is the designed/learned line in the same place it
         appeared for regex-vs-embeddings (L1) and fourier-vs-patches (L3).
+    - id: 5.x-d
+      text: >
+        can fuse two representations of the same document at two altitudes
+        (after aggregation, per chunk), swap routing components (Gate ->
+        Highway -> MoE) in one Serial slot, and — the actual skill — ablate
+        one variable at a time before believing a comparison table. Knows that
+        a pipeline that "wins" may be winning on its parameter count, not its
+        idea (C10).
   retired:
     - id: 5.12
       was: >

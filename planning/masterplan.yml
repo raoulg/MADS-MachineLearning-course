@@ -619,6 +619,38 @@ decisions:
     date: 2026-08-01
     planned_in: planning/lesson5.yml (C1, C9, D18)
 
+  - id: D23
+    title: L5 gains a composition notebook — assemble, then ablate
+    answers: >
+      "create new notebooks that more fully embrace the capabilities of
+      vectormesh (eg with the MoE or pretrained models that vectorize the
+      texts and combine that with regex)" (owner, 2026-08-01).
+    decision: >
+      **L5 gets `06_composition.ipynb`** and stays at 8 notebooks instead of
+      shrinking to 7. It teaches the composition half of vectormesh that no
+      course notebook touches — `Parallel`, `Concatenate2D/3D`,
+      `CollateParallel`, `Gate -> Highway -> MoE` — on two representations of
+      the same SCOTUS opinion: the frozen granite embedding and a designed,
+      chunk-aligned US-legal regex stream (`legal_patterns.py`, written for
+      this; vectormesh only ships the Dutch one). This is the distributable
+      twin of vectormesh's own notebooks 2-3, which run on the
+      non-distributable `aktes` cache.
+    measured_before_deciding: >
+      the fusion pipeline that first appeared to win (0.609 vs 0.584 accuracy
+      at a fifth of the parameters) turned out to owe its win to a Projection
+      bottleneck, not to the regex stream or the MoE — the one-variable
+      ablation (same shape, embed only) scores 0.624. And accuracy vs macro-F1
+      rank the wide head and the bottleneck **in opposite orders**. The
+      notebook is therefore built around the ablation discipline, with the
+      negative result as its centrepiece — the fourth consecutive "the
+      expensive component did not earn its place" (D9, D15, D18). Full tables
+      in lesson5.yml C10.
+    cost: L5 breaks even on cells instead of paying a surplus; the shrink
+      lever, if ever needed, is lesson5.yml L5.Q6.
+    made_by: owner, 2026-08-01
+    date: 2026-08-01
+    planned_in: planning/lesson5.yml (C10, D23)
+
   - id: D22
     answers: P2.2, and lesson3.yml L3.Q1
     note_on_the_id: >
