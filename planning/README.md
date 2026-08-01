@@ -5,7 +5,7 @@ correct it when a notebook disagrees.
 
 | file | what it is |
 |---|---|
-| [masterplan.yml](masterplan.yml) | principles, decisions D1-D18, 7 phases, cuts register, risks, backlog |
+| [masterplan.yml](masterplan.yml) | principles, decisions D1-D23, 7 phases, cuts register, risks, backlog |
 | [conventions.md](conventions.md) | cache layout, naming, dataloading, tracking, shape vocabulary (P0.1) |
 | [../notebooks/1_pytorch_intro/tensor-ladder.md](../notebooks/1_pytorch_intro/tensor-ladder.md) | shape vs meaning, and the four rungs (P0.2) |
 | [mads_datasets_killlist.md](mads_datasets_killlist.md) | the 17 import sites, their replacements, and whether each has been **run** |
@@ -44,13 +44,20 @@ owner's instruction), but it is a plan: **do not "tidy up" the overlap until D19
 does not run at all right now** — `ray.train.report` raises inside a Tune function on ray 2.55,
 so every trial in `01_hypertuner` errors, and `hypertune.py` fails the same way through
 mltrainer's `ReportTypes.RAY`. That is masterplan **P0.7**, a P0.6-class upstream fix, and it is
-almost certainly one of the five long-standing notebooktester failures. The lesson's own thesis
-is now measured rather than assumed: a 5-epoch trial costs **1.2 s** on the flowers cache,
-**159 s** on pixels, and fine-tuning resnet18 costs **135 s per epoch** — so hypertuning becomes
-teachable exactly where D9 said it would. The surprise is the other direction: **ray's per-trial
-process overhead (~2-3 s) is larger than the trial it schedules**, which turns "what is ray for?"
-into a measurement with a boundary. Three decisions wait on the owner (**D19-D21**: the handover
-itself, hymenoptera dying without a replacement, and `tune.Tuner` over `tune.run`).
+almost certainly one of the five long-standing notebooktester failures. **`01_hypertuner`'s own
+fix (`tune.report`) is applied.** The mltrainer half shipped in **two parts**: `RayReporter` and
+one mkdir race are fixed and published as **mltrainer 0.3.5**; a *second*, separate mkdir race
+(`Trainer.dir_add_timestamp`) was found only by testing several ray trials in parallel rather
+than one at a time, and is fixed in source and version-bumped to **0.3.6** but **not yet built or
+published**. The course pin (`mltrainer[tune]>=0.3.5`) must move to `>=0.3.6` once it is —
+**P0.7 does not close until then.**
+The lesson's own thesis is now measured rather than assumed: a 5-epoch trial costs **1.2 s** on
+the flowers cache, **159 s** on pixels, and fine-tuning resnet18 costs **135 s per epoch** — so
+hypertuning becomes teachable exactly where D9 said it would. The surprise is the other
+direction: **ray's per-trial process overhead (~2-3 s) is larger than the trial it schedules**,
+which turns "what is ray for?" into a measurement with a boundary. Three decisions wait on the
+owner (**D19-D21**: the handover itself, hymenoptera dying without a replacement, and
+`tune.Tuner` over `tune.run`).
 
 One knock-on worth knowing: **L4 has left the gestures blocked group**. If its search runs on an
 image cache it has no GESTURES site at all, so **L3.Q1 now decides for L3 and L5 only** — which
@@ -95,28 +102,40 @@ Sunspot is not discarded — it becomes exercise E4, carrying the two things ped
 3.240 NaNs all sitting before 1849, and a dominant cycle ~32× longer than any window the
 lesson uses.
 
-**Lesson 5 is planned, not built** ([lesson5.yml](lesson5.yml), written 2026-08-01). It
-carries **D17** and **D18**, and both came out of the same measurement.
+**Lesson 5 is planned, and its two new notebooks are built and executed**
+([lesson5.yml](lesson5.yml), written 2026-08-01; notebooks the same day). It carries **D17**,
+**D18** and **D23**.
 
-- **IMDB leaves lesson 5.** It cannot teach chunking, because it does not chunk: **86% of
-  reviews are a single 512-token chunk** (read straight out of the published cache; confirmed
-  by tokenising 2.000 fresh reviews, median 227 tokens). The replacement is a long-document
-  corpus — recommended `coastalcph/lex_glue` config `scotus`, CC-BY-4.0, parquet-native,
-  13 classes, **median 6.496 tokens and 18.3 chunks per document**. The pick between `scotus`
-  and the multi-label `ecthr_a` is **L5.Q1**.
-- **P2.6 was already built — in lesson 1.** `07_vectors.ipynb` does chunking, `FixedPadding`,
-  `MaskedMeanAggregator` and the aggregator ablation. So L1 keeps chunking-as-mechanics and
-  L5 takes chunking-as-a-decision: *the context window is a budget, measure what truncation
-  costs you.* The phase_2 exit criterion about an aggregator ablation is ticked at L1.
-- Measured on a 600/300-document SCOTUS subset over three seeds: **truncating to the first
-  chunk costs ~4 accuracy points and ~6 macro-F1 points**, the curve flattens by C=4, and the
-  **learned aggregators do not beat a plain mean** (attention ties; the RNN aggregator loses
-  with 7× the parameters). Third lesson in a row where the expensive component fails to earn
-  its place — after L2's CNN and L3's GRU.
+- **IMDB leaves lesson 5** (**D17**, dataset `scotus` confirmed by the owner). It cannot teach
+  chunking, because it does not chunk: **86% of reviews are a single 512-token chunk**. The
+  replacement — `coastalcph/lex_glue` config `scotus`, CC-BY-4.0, parquet-native, 13
+  imbalanced classes — has **median 6.496 tokens and 18.3 chunks per document**.
+- **P2.6 was already built — in lesson 1.** So L1 keeps chunking-as-mechanics and L5 takes
+  chunking-as-a-decision (**D18**): *the context window is a budget, measure what truncation
+  costs you.* The phase_2 aggregator-ablation exit criterion is ticked at L1.
+- **[`05_long_documents.ipynb`](../notebooks/5_attention/05_long_documents.ipynb)** — built,
+  runs green, three seeds per configuration *inside the notebook*: truncation costs ~4
+  accuracy points, the curve flattens by C=4, and the learned aggregators (attention,
+  a 1M-parameter TransformerBlock) do not beat a plain mean.
+- **[`06_composition.ipynb`](../notebooks/5_attention/06_composition.ipynb)** (**D23**, at the
+  owner's request) — built, runs green. The composition half of vectormesh the course never
+  taught (`Parallel`, `Concatenate2D/3D`, `CollateParallel`, `Gate → Highway → MoE`), on two
+  streams: the granite embedding and a **designed US-legal regex stream**
+  ([`legal_patterns.py`](../notebooks/5_attention/legal_patterns.py), new — vectormesh only
+  ships the Dutch one; 58 chunk-aligned features, 0 alignment mismatches over 900 docs). Its
+  centrepiece is a **measured negative result**: chunk-level fusion appears to win (0.609 vs
+  0.584) until the one-variable ablation shows the win came from a Projection bottleneck, not
+  the regex or the MoE (same shape, no regex: **0.624**). Accuracy and macro-F1 rank the wide
+  head and the bottleneck in opposite orders, which hands the metrics notebook its opening
+  problem. It also ships the best deliberate bug in the course so far: a regex cache built
+  with the wrong `context_size` **concatenates cleanly and silently means nothing** — shape
+  contracts catch rank errors, not semantic misalignment.
 
-L5 also pays for itself under make_room without needing a decision: two notebooks collapse
-into one and the metrics notebook stops needing Fashion-MNIST, so it goes **8 notebooks → 7,
-roughly −64 cells and +29**. Three of its five kill-list rows close by *deletion*.
+With D23, L5 **breaks even** under make_room instead of paying a surplus (8 notebooks in,
+8 out; roughly −64 cells, +59). The shrink lever, if ever needed, is L5.Q6 (fold
+`03_transformer` into `05_long_documents`). Three of its five kill-list rows still close by
+*deletion* — the old `05_imdb_preprocessing`/`06_imdb_attention` are deleted in the L5.2/L5.9
+pass, so the directory temporarily holds both numbering generations.
 
 Done:
 
