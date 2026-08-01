@@ -39,7 +39,7 @@ dependencies = [
     "torch-geometric>=2.6.1",
     "torch-tb-profiler>=0.4.3",
     "tomlserializer>=0.2.0",
-    "mltrainer[tune]>=0.3.4",
+    "mltrainer[tune]>=0.3.5",
     "flax>=0.12.2",
     "vectormesh>=0.4.1",
 ]
