@@ -31,6 +31,20 @@ download separate; otherwise let `datasets` use its own default (`~/.cache/huggi
 which is shared across lessons and therefore downloads Fashion-MNIST once for the whole
 course.
 
+### 1a. When a lesson gets a cache at all
+
+**Use a `VectorCache` if it helps — reduces compute, makes training easier, or improves
+performance. Not because a cache is mandated.** (Owner, 2026-08-01.) The reason the course
+works with caches is that they are the smart move for expensive, reusable encoders — not a
+box every lesson has to tick.
+
+L3 (timeseries) is the standing counter-example: there is no good general-purpose timeseries
+vectorizer yet, and measured caching there cost time and space rather than saving it — a
+cached window is **40x larger** than the raw window it came from, and a plain linear model on
+raw values beat a head trained on cached TimesFM embeddings (lesson3.yml C9-C11). Before
+adding a cache to a lesson, check: does the encoder *compress* the input (images, text — the
+pattern works) or *expand* it (this modality, today — it doesn't)?
+
 ## 2. How a cache is named
 
 `VectorCache.create` builds the folder name itself:
