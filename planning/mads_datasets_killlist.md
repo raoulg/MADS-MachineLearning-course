@@ -28,7 +28,7 @@ mechanical:
 | B | `factory.create_datastreamer(...)` → `train.stream()` | `DataLoader(dataset, collate_fn=Collate(...))`, **num_workers=0** (masterplan D7) | 6 sites |
 | C | `mads_datasets.base.BaseDatastreamer` used *directly* as teaching material | **deleted, not relocated** (masterplan D5). `DataLoader`, plus `load_dataset(..., streaming=True)` where the does-not-fit-in-RAM point needs making. Goal 1.5 is **kept** — only the implementation changes (D6) | L1/03, L3/03 |
 | D | `datatools.window(...)` | **moves into vectormesh** (D5) — it is the `(C, D)`-producing operation the library is built around, and VM.1 needs it anyway. The L3 notebook still hand-rolls it first, then imports the library version | L3/03, L3/04, L5/03 |
-| E | `datatools.get_file(...)` | `huggingface_hub.hf_hub_download`, or `urllib` for a one-off URL | L5/08 |
+| E | `datatools.get_file(...)` | `urllib.request.urlretrieve` — **verified 2026-08-01: the UCI URL still returns 200**, as does the newer `.../static/public/264/eeg+eye+state.zip`. No mirror needed (masterplan P2.3 resolved to "inline") | L5/08 |
 
 ### The mltrainer preprocessors map 1:1 onto vectormesh Collate
 
@@ -107,7 +107,7 @@ batch.
 > | Site | Status |
 > |---|---|
 > | `2_convolutions/03_mlflow.py` | ✅ migrated (row above) |
-> | `4_tuning_networks/hypertune.py` | ⬜ add to the L4 section |
+> | `4_tuning_networks/hypertune.py` | ⬜ **now a proper row in the L4 section** (2026-08-01) |
 > | `6_unsupervised/src/settings.py` | ⬜ add to an L6 section, which does not exist yet |
 >
 > So the real count is **17 sites, not 14**, and the two open ones must be green before
@@ -118,28 +118,34 @@ batch.
 
 | Site | Uses | Replacement | Status |
 |---|---|---|---|
-| `03_basemodels.ipynb` cell 4 | SUNSPOTS factory + `download_data()` | fetch the SILSO monthly txt directly (urllib + pandas). **Not** Monash — tested: its `sunspot` config is the *daily* series (73.864 points from 1818) and it is script-based, so `load_dataset` fails on datasets 5.0. Monash becomes the exercise catalog instead. See masterplan P2.1 | ⬜ |
+| `03_basemodels.ipynb` cell 4 | SUNSPOTS factory + `download_data()` | **Monash daily**, per masterplan **D13** (2026-07-31) — this row previously said "not Monash, keep SILSO monthly", which the owner reversed. It loads on datasets 5.0 from `refs/convert/parquet`, but only with explicit `data_files`; the exact snippet is in lesson3.yml C1. Also: drop the pre-1849 NaN head, and ignore the split names — they are nested prefixes of one series (C2, C3). SILSO monthly is the fallback. The load moves to `01_windowing` (task L3.1) | ⬜ |
 | `03_basemodels.ipynb` cell 16 | `datatools.window`, `factory.settings.window_size` | problem D — hand-roll the windowing; `window_size` becomes an explicit notebook variable instead of a hidden factory setting, which is an improvement | ⬜ |
 | `03_basemodels.ipynb` cell 20 | `class SunspotDataset(DatasetProtocol)` | a plain `torch.utils.data.Dataset`, or build the windows into an HF `Dataset` | ⬜ |
 | `03_basemodels.ipynb` cell 47 | `BaseDatastreamer` in type hints of the naive-baseline class | mechanical: retype to `DataLoader` | ⬜ |
-| `04_excercise.ipynb` cell 0, 2 | `datatools`, GESTURES factory + streamers | **blocked** — needs the GESTURES replacement decision (masterplan P2.2) | ⬜ |
+| `04_excercise.ipynb` cell 0, 2 | `datatools`, GESTURES factory + streamers | **UNBLOCKED 2026-08-01 — `monster-monash/WISDM`** (masterplan **D22**). Two `hf_hub_download` calls + `np.load`, permute `(n,3,100)`→`(n,100,3)`, `TensorDataset` + `DataLoader(num_workers=0)`. `PaddedPreprocessor` goes (fixed length now); `input_size=3` unchanged, `output_size` 20→6. Add the fold-vs-random split cell — 0.902 vs 0.761 — which is the leakage artefact for goal 3.3 | ⬜ |
 
 ### Lesson 4 — tuning networks
 
 | Site | Uses | Replacement | Status |
 |---|---|---|---|
-| `01_hypertuner.ipynb` cell 12 | GESTURES factory + streamers, inside the ray trainable | **blocked** on P2.2. Note: the factory call is inside the tune function, so it runs per trial — a cached dataset fixes a real inefficiency here, not just an import | ⬜ |
-| `03_minimal_transfer_learning.ipynb` cell 5 | `Path.home()/".cache/mads_datasets/hymenoptera_data"` — reads a directory that mads_datasets happened to fill | no import to remove, but the path is a dependency in disguise: it silently assumes another notebook ran. Replace with an explicit hub dataset (masterplan lists dog-food / rock-paper-scissors as substitutes) | ⬜ |
-| `04_transfer_learning_with_resnet.ipynb` cell 1, 4 | `!pip install mads_datasets`, FLOWERS factory + streamers | `nkirschi/oxford-flowers`; fix the colab pip line too | ⬜ |
+| `01_hypertuner.ipynb` cell 12 | GESTURES factory + streamers, inside the ray trainable | **no longer blocked** (lesson4.yml C8): if the search moves onto the published flowers cache per P2.5, this site loses its dataset entirely rather than swapping it. The FileLock goes with it — a cache loads in **0.06 s** inside a fresh worker, because Arrow is memory-mapped, so there is nothing to lock. Provisional on lesson4.yml L4.Q1 | ⬜ |
+| `03_minimal_transfer_learning.ipynb` cell 5 | `Path.home()/".cache/mads_datasets/hymenoptera_data"` — reads a directory that mads_datasets happened to fill | **the notebook goes** (lesson4.yml D20/L4.3): 03 and 04 collapse into one fine-tune-vs-frozen notebook, and hymenoptera dies without a replacement — small-data becomes a `.select()` on the flowers cache. So there is nothing to migrate here, only to delete | ⬜ |
+| `04_transfer_learning_with_resnet.ipynb` cell 1, 4 | `!pip install mads_datasets`, FLOWERS factory + streamers | `nkirschi/oxford-flowers` — copy L2's loader, do not improvise one (the train split is sorted by label, lesson2.yml C4). Fix the colab pip line too. The surviving cells are the `.fc` surgery (27-32), which move into the merged notebook | ⬜ |
+| `hypertune.py` — from the §2 callout box, now listed properly | GESTURES factory + `PaddedPreprocessor` inside the trainable, with a FileLock | dataset per lesson4.yml L4.Q6 (recommendation: the pixel CNN from `2_convolutions/cnn.py`, i.e. the search that does *not* fit in a notebook). **Also blocked on P0.7** — `ReportTypes.RAY` raises, so this script cannot complete a trial today, migrated or not | ⬜ |
+
+> **L4 does not run today, and not because of `mads_datasets`.** `ray.train.report` now raises
+> inside a Tune function (ray 2.55), so every trial in `01_hypertuner` errors and `hypertune.py`
+> fails through mltrainer's `ReportTypes.RAY`. See masterplan **P0.7** and lesson4.yml C1. Fix
+> that before touching these rows, or you will be migrating a notebook you cannot run.
 
 ### Lesson 5 — attention
 
 | Site | Uses | Replacement | Status |
 |---|---|---|---|
-| `03_Attention_gestures.ipynb` cell 0, 2 | `datatools`, GESTURES factory + streamers | **blocked** on P2.2 | ⬜ |
-| `05_imdb_preprocessing.ipynb` cell 2 | IMDB factory → `create_dataset()` | `stanfordnlp/imdb` (already proven in L1/05) | ⬜ |
-| `06_imdb_attention.ipynb` cell 0, ~36 | IMDB factory → streamers | same | ⬜ |
-| `07_metric.ipynb` cell 4 | FASHION factory → `create_dataset()` | `zalando-datasets/fashion_mnist` | ⬜ |
+| `03_Attention_gestures.ipynb` cell 0, 2 | `datatools`, GESTURES factory + streamers | **UNBLOCKED 2026-08-01 — `monster-monash/WISDM`** (masterplan **D22**), same edit as L3/04 and done in the same pass. Note for this notebook: WISDM's fixed 100-step sequences are a *shorter* attention problem than the ragged FBK ones, which is fine — 04's job is GRU-vs-AttentionGRU, and raggedness moves to 05's chunk counts | ⬜ |
+| `05_imdb_preprocessing.ipynb` cell 2 | IMDB factory → `create_dataset()` | ~~`stanfordnlp/imdb`~~ → **closes by deletion**: masterplan **D17** takes IMDB out of L5 (it does not chunk — 86% of reviews are one chunk), and the notebook's surviving half (the normaliser, goal 5.11) folds into `01_tokenization` with the messy review kept as a string literal. See lesson5.yml L5.2 | ⬜ |
+| `06_imdb_attention.ipynb` cell 0, ~36 | IMDB factory → streamers | **closes by deletion** — the notebook goes (D18 / lesson5.yml C6: its tokenizer is taught in 01, its `Preprocessor` is a verbatim copy of 05's, and its GRU-vs-attention comparison is the third time the lesson asks that question). Replaced by `05_long_documents.ipynb` on a long-document cache | ⬜ |
+| `07_metric.ipynb` cell 4 | FASHION factory → `create_dataset()` | **closes by deletion** — the metrics notebook moves onto the lesson's own 13-class imbalanced corpus, so it no longer needs an image classifier to measure (lesson5.yml C8, L5.5). Cheapest kind of row: no replacement dataset at all | ⬜ |
 | `08_excercise.ipynb` cell 1, 17 | `datatools.get_file` for the UCI EEG `.arff`; markdown telling students to study mads_datasets source and build their own datafactory | problem E; and **rewrite the markdown exercise** — "implement your own datafactory" becomes "implement your own `BaseVectorizer`", which is a strictly better exercise and points at code we still ship | ⬜ |
 
 ---
@@ -152,10 +158,16 @@ lesson where two notebooks disagree about how data is loaded.
 1. **L1** — 6 sites, all drop-in except problem C. Unblocks phase_1.
 2. **L2** — 2 sites, both FASHION. Trivial once L1 is done.
 3. **L5** — 5 sites; 3 are drop-in (IMDB, FASHION), 2 blocked on gestures.
-4. **L4** — 3 sites; the hymenoptera path is the interesting one.
+4. **L4** — 4 sites (the `hypertune.py` row moved out of the callout box). Two of them are
+   deletions rather than migrations. **Do P0.7 first**: the lesson cannot be run, so a
+   migration here cannot be marked ✅ under the D2 rule.
 5. **L3** — 5 sites, the most design work (windowing, DatasetProtocol) and one blocked.
-6. **Blocked group** — L3/04, L4/01, L5/03 all fall out of one decision (P2.2). Do them in
-   a single pass, on the same day, with the same dataset.
+6. **Blocked group** — ~~L3/04, L4/01, L5/03~~ **L3/04 and L5/03** fall out of one decision
+   (P2.2). Do them in a single pass, on the same day, with the same dataset.
+   **L4/01 left the group on 2026-08-01** (lesson4.yml C8): if its search runs on an image
+   cache it has no gestures site to migrate, which is also why lesson4.yml could be written
+   before the P2.2 pick. Provisional on L4.Q1 — if the owner keeps a sequence model in L4,
+   the group goes back to three.
 
 ## 4. Definition of done (the dependency drop)
 

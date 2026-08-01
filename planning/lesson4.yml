@@ -44,7 +44,8 @@ meta:
     The owner held this plan on 2026-07-31 ("build L2 first, decide L4 after
     reviewing it" — lesson2.yml L2.5, planning/README.md). It is being written
     on 2026-08-01 at the owner's explicit instruction to proceed despite the
-    open blockers (the gestures pick L3.Q1, and the L4-handover call itself),
+    open blockers (the gestures pick L3.Q1 — since **answered 2026-08-01 as
+    WISDM, D22** — and the L4-handover call itself),
     with the understanding that the affected sections get revised rather than
     re-derived once those land. The sections that depend on an unmade decision
     are marked `provisional:` and carry the alternative.

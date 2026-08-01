@@ -12,13 +12,15 @@
 
 meta:
   title: VectorMesh integration into the MADS Machine Learning course
-  version: 0.3.0
+  version: 0.4.0
   status: >
-    phase_0 done except P0.3; **phase_1 implemented** (L1 green, 8/8 notebooks
-    run). Q1/Q2/Q3 answered (see decisions). Q4-Q8 open — Q8 now blocks the
-    only remaining phase_1 exit criterion.
+    phase_0 done; **phase_1 implemented and verified** (L1 9/9, L2 3/3, caches
+    published — P0.3/Q8 closed 2026-07-31). phase_2 in progress: L1 and L2
+    built, **L3 and L5 planned** (planning/lesson3.yml, planning/lesson5.yml),
+    L4 deliberately untouched pending the D9 handover call. Q1/Q2/Q3/Q8
+    answered; Q4-Q7 open.
   created: 2026-07-30
-  updated: 2026-07-30
+  updated: 2026-08-01
   owner: R. Grouls
   branch: vectormesh
   repos:
@@ -429,6 +431,236 @@ decisions:
       - notebooks/2_convolutions/02_pretrained.ipynb — CACHE_REPO
     date: 2026-07-31
 
+  - id: D13
+    answers: >
+      the contradiction between P2.1 ("keep SILSO monthly, Monash for the
+      exercises") and dataset_migration.SUNSPOTS.plan ("go Monash daily as the
+      primary series"). Both were in this file; only one can be true.
+    decision: >
+      **Monash daily is the primary series.** SILSO monthly survives only as a
+      named fallback — one urllib call, no mads_datasets either way — if the
+      daily series ever proves too slow on CPU. P2.1 is rewritten to match.
+    loader: >
+      the `refs/convert/parquet` branch does load on datasets 5.0, but *only*
+      with explicit `data_files`. Passing the config name raises
+      "BuilderConfig 'sunspot' not found. Available: ['default']", because the
+      converted branch carries folders, not configs. The working form is in
+      lesson3.yml C1 and is copy-pasted, not improvised.
+    measured_when_deciding: >
+      73.924 raw points, of which **3.240 are NaN and every one of them is
+      before 1848-12-22** — leaving 62.617 clean daily points to 2020-05-31.
+      Load 1.8s warm, windowing 0.01s, 30 MB windowed, ~50k training windows.
+      See lesson3.yml C1-C4 for the two traps this dataset carries (its three
+      "splits" are nested prefixes of one series; the NaN head) and for the
+      measured spectrum that replaces the "annual and ~11-year cycles" guess
+      in dataset_migration.SUNSPOTS below.
+    consequences_accepted: >
+      window/horizon are renumbered — 26/3 months becomes 120/30 days, with
+      the horizon read off Monash's own split offsets rather than invented —
+      and every score in 03_basemodels changes.
+    made_by: owner, 2026-07-31
+    date: 2026-07-31
+
+  - id: D14
+    supersedes: D13's choice of *series* — not its catalog, loader or licence work
+    answers: >
+      "maybe sunspots isn't the best dataset — if the pattern isn't there we
+      can't learn it. Switch to something that better showcases probabilistic
+      deep learning with autoformers?"
+    decision: >
+      **`pedestrian_counts` is the taught series for L3; sunspot is demoted to
+      a three-cell aside.** Same Monash catalog, same parquet-branch loader —
+      a config string, not a mechanism change.
+    the_diagnosis: >
+      sunspot is not noise: 53.7% of its variance is in the 8-14 year band. The
+      problem is that this band has a period of ~3.900 days while the window is
+      120, so the model is *structurally blind* to what dominates the series.
+      What remains in reach is short-range autocorrelation, which a linear map
+      captures optimally — so "linear ties the GRU" meant "the pattern in reach
+      is linear", not "there is no pattern".
+    why_pedestrian: >
+      the periodicity is **inside the window** (median 59% of variance at 24h,
+      24 steps inside a 168-step window), the values are **counts** so a
+      probabilistic head is visibly needed, there are **66 series** so
+      cross-series learning and `item_id` mean something, and a zero-parameter
+      **seasonal naive scores 0.271** — which gives goal 3.11 real teeth.
+    not_a_reason: >
+      "a dataset where the GRU finally beats a linear model." Four were tested
+      (sunspot, pedestrian, traffic_hourly, us_births) and the ranking never
+      moved — see D15. That was not the goal of the switch.
+    made_by: owner, 2026-08-01
+    date: 2026-08-01
+    planned_in: planning/lesson3.yml (C7-C11, D14)
+
+  - id: D15
+    title: What L3 actually teaches about architectures — three measured results
+    status: >
+      not a choice so much as a finding, recorded as a decision because it
+      changes what several lessons claim. All measured 2026-07-31/08-01 on CPU;
+      full protocol and caveats in planning/lesson3.yml C7, C10, C11.
+    result_1_linear_beats_the_gru: >
+      on all four candidate series, at ~100x less compute. On pedestrian at 15
+      epochs: linear 0.199, GRU 0.242 (MAE ratios vs naive); on us_births a
+      zero-parameter seasonal naive beats every trained model by 3x. This is
+      the LTSF-Linear result reproduced, and today's 03_basemodels arc implies
+      the opposite.
+    result_2_the_downloaded_model_wins: >
+      **TimesFM 2.5 zero-shot scores 0.140 against the best trained model's
+      0.216**, with no training and no new dependency — `TimesFm2_5Model` and
+      `TimesFm2_5ModelForPrediction` are in the installed transformers 5.12.1.
+      This is the north star demonstrated rather than asserted, and it arrives
+      right after the student's GRU has lost to a linear layer.
+    result_3_the_frozen_feature_pattern_has_a_boundary: >
+      the course's central pattern — freeze an encoder, cache the vectors,
+      train a head — **loses here**: 0.499 against 0.216 for a linear layer on
+      raw values. Two hypotheses were tested and both falsified (the aggregator;
+      instance normalisation). Handing the head the embedding *in addition to*
+      the raw window is still worse than the raw window alone.
+      Rule of thumb it yields, and it is checkable before building anything:
+      **if the encoder expands the data it is re-encoding, not extracting.**
+      Images compress ~100x and the pattern works; a 512-step window expands
+      **40x** into 16x1280 and it does not.
+    consequences:
+      - "R2 (the course becomes API-calling) gains its best counterexample:
+         here the API call wins and the student still has to explain why, and
+         when the pattern that carries L1/L2 stops working."
+      - "phase_2 exit criterion 'each of L1..L5 trains on a VectorCache' should
+         be reworded rather than satisfied literally — see lesson3.yml L3.Q3."
+      - "P3.3 survives and improves: the middle point of its three-point curve
+         losing is better teaching than all three lining up."
+    date: 2026-08-01
+
+  - id: D16
+    title: Check the pretraining corpus before quoting a zero-shot number
+    finding: >
+      `pedestrian_counts`, `sunspot_with_missing`, `traffic_hourly` and
+      `us_births` are all configs of **`Salesforce/lotsa_data`** (Moirai's
+      pretraining corpus, apache-2.0, 170 configs), and
+      `monash_pedestrian_counts` is a config of **`autogluon/chronos_datasets`**.
+      TimesFM 2.5's model card documents no corpus at all.
+    consequence: >
+      the zero-shot number in D15 may be partly memorisation, and for the model
+      actually measured we cannot tell. Report it with the caveat attached; do
+      not quietly drop it, and do not quote it bare.
+    the_teaching_point: >
+      before quoting any foundation model's zero-shot score, check whether the
+      test set is in its pretraining corpus — one `list_repo_files` call, and
+      the answer is often yes. This is the same habit as cache_is_a_contract
+      (read the metadata before writing model code), and it transfers to every
+      foundation model the students will meet, in every modality.
+    where_to_get_a_clean_number: >
+      **`Salesforce/GiftEval`** — apache-2.0, parquet-native (no R9 problem),
+      1.6 GB, 28 configs including ett1, ett2, electricity, solar, jena_weather,
+      m4_*, LOOP_SEATTLE, SZ_TAXI. Built for foundation-model evaluation with
+      probabilistic metrics (CRPS), which is exactly what P3.1 needs. This is
+      the answer to "are there better timeseries benchmarks" — there are, and
+      this is the current one.
+    date: 2026-08-01
+
+  - id: D17
+    title: L5 drops IMDB for a long-document corpus
+    answers: >
+      "we already use imdb in lesson 1 as a demo, so maybe something more
+      challenging?" (owner, 2026-08-01) — and, independently, the measurement
+      that says the same thing.
+    decision: >
+      **IMDB leaves lesson 5.** L1/07_vectors keeps it; L5's text corpus becomes
+      a long-document one, recommended `coastalcph/lex_glue` config **`scotus`**
+      (US Supreme Court opinions, 13 issue areas, CC-BY-4.0, parquet-native).
+      IMDB survives in L5 only as a *string literal* — the `<br />`-ridden
+      review that motivates a normaliser (goal 5.11).
+    the_measurement_that_forces_it: >
+      **IMDB does not chunk.** Read straight out of the published cache: 86.0%
+      of reviews are a single 512-token chunk, 11.5% are two. Confirmed by
+      tokenising 2.000 fresh reviews — median 227 tokens, p90 584, mean 1.15
+      chunks. So the `(B, C, D)` axis L5 was assigned to teach is `(B, 1, D)`
+      for six documents in seven. SCOTUS measured on the same tokenizer: median
+      **6.496** tokens, mean **18.3 chunks/document**, 96% multi-chunk.
+    do_not: >
+      shrink the encoder's context window to make IMDB chunk (measured: 88.5%
+      multi-chunk at max_length=128). That is staging a scenario to keep a demo
+      alive — the D8 mistake — and it costs a fresh 2h/split cache to produce
+      worse data than a real long-document corpus gives for free.
+    made_by: >
+      owner, 2026-08-01 — direction and dataset both. **`scotus` confirmed**
+      (lesson5.yml L5.Q1): the LexGLUE family carries short *and* long tasks,
+      long documents are worth having in their own right, and the labels are
+      imbalanced. `ecthr_a` stays measured in the plan as the multi-label
+      alternative, not as a pending decision.
+    date: 2026-08-01
+    planned_in: planning/lesson5.yml (C2, D17)
+
+  - id: D18
+    title: P2.6 is rewritten — L1 already built it
+    finding: >
+      P2.6 ("L5 — chunking as the answer to the context window ... aggregator
+      ablation on cached IMDB") **describes `1_pytorch_intro/07_vectors.ipynb`**,
+      which shipped 2026-07-31. That notebook reads `chunk_sizes` from the
+      metadata, collates with `FixedPadding`, names `(B, C, D)`, aggregates with
+      `MaskedMeanAggregator` and ships the aggregator ablation as its exercise
+      E1. Executing P2.6 as written would re-teach lesson 1 with a new dataset.
+    decision: >
+      **L1 owns chunking-as-mechanics; L5 owns chunking-as-a-decision.** P2.6
+      becomes: *the context window is a budget — measure what truncation costs
+      you.* The ladder is first-chunk-only (= truncation) -> mean -> attention
+      -> the student's own TransformerBlock, over the same cache with one
+      component swapped.
+      Consequence for phase_2's exit criteria: "one aggregator ablation exists
+      as a graded exercise" is **already satisfied**, by L1, and is ticked
+      there.
+    measured_before_deciding: >
+      on a 600/300-document SCOTUS subset over three seeds: truncation 0.546
+      accuracy / 0.343 macro-F1 versus 0.582-0.596 / 0.376-0.417 for every
+      multi-chunk configuration — a stable gap. But the curve flattens by C=4,
+      and **the learned aggregators do not beat a plain mean** (attention ties
+      it; the RNN aggregator loses with 7x the parameters). Same shape as D9's
+      L2 result and D15's L3 result: the expensive component has to earn its
+      place, and here it does not. Full table in lesson5.yml C9.
+    date: 2026-08-01
+    planned_in: planning/lesson5.yml (C1, C9, D18)
+
+  - id: D22
+    answers: P2.2, and lesson3.yml L3.Q1
+    note_on_the_id: >
+      D19-D21 are reserved by lesson4.yml's three *proposed* decisions, which
+      are still open. This one is made, so it takes the next free id.
+    decision: >
+      **`monster-monash/WISDM` replaces the FBK smartwatch gestures dataset.**
+      17.166 x 3 x 100 (five seconds at 20 Hz), 6 classes, 36 participants,
+      20.6 MB, fetched with two `hf_hub_download` calls — so R9's script
+      problem does not apply. This closes the last dataset gap in the plan.
+    why_a_replacement_was_needed: >
+      D1/licence_audit: FBK states research-and-academic use only and is silent
+      on redistribution, so the existing data could not be republished. The
+      course was never attached to that specific dataset; the criterion was
+      pedagogical.
+    verified: >
+      download + load 1.8s; GRU(3->64) 2.7s/epoch on CPU; **0.902** after 3
+      epochs on a random split and **0.761** on the dataset's own fold 0. The
+      card states "WISDM is split based on subjects" and the repo ships
+      `test_indices_fold_0..4.txt`, so that 14-point gap is a genuine subject
+      leak — which turns goal 3.3 (data leakage) from an assertion into a
+      measurement the student runs themselves.
+    why_it_won: >
+      3 channels keeps `input_size=3` unchanged, confining the edit to the
+      loading cells in both lessons; smallest credible download; and it is the
+      only candidate shipping the folds that make the leakage lesson free.
+      Runner-up `UCIActivity` (9 channels, 47.5 MB, 0.932) has no fold indices;
+      `Skoda` is the only true gesture set but is 339 MB and single-subject, so
+      it has no subject split at all; PAMAP2 and Opportunity are 1.6-2.8 GB.
+    accepted_costs: >
+      6 classes instead of 20, so it is an easier problem; fixed-length windows, so the variable-length
+      padding lesson leaves L3 (it lands in L5 on chunk counts, where
+      raggedness is intrinsic — lesson3.yml L3.Q2, lesson5.yml); and a stated
+      licence of "other", which is fine for students to download and use but
+      means **no derived cache gets published from it** without checking (R7).
+    scope: >
+      L3/04 and L5/03. **Not** L4/01 — lesson4.yml moved that search onto an
+      image cache, so L4 left the blocked group before this was decided.
+    made_by: owner, 2026-08-01
+    date: 2026-08-01
+    planned_in: planning/lesson3.yml (D22, L3.5, datasets.GESTURES)
+
 # -----------------------------------------------------------------------------
 # What each addition displaces. Enforced by the make_room principle: a phase
 # that adds material without a row here is not ready to start.
@@ -458,7 +690,8 @@ cuts:
     status: agreed
   - phase: phase_2
     adds: a frozen-encoder counterpart in L2; hypertuning on caches in L4;
-      chunking + aggregator ablation in L5
+      the truncation-cost ladder on long documents in L5 (D18 — the chunking +
+      aggregator ablation this line used to name went to L1 instead)
     cuts:
       - >
         L4/03 + L4/04 stop being two transfer-learning notebooks and become one
@@ -487,23 +720,84 @@ cuts:
           trimmed to a sentence — D10 settled that argument, so the notebook no
           longer needs to have it
         - 02_convolutions' commented-out FLOWERS variant, and its second report type
+      paid_2026_07_31: >
+        L2.1 landed — `01_losses.ipynb` (40 cells) moved to L1 as `05_losses`,
+        which is where les1.md already mapped goal 1.9. Both lessons renumbered
+        (see planning/README.md). That is the notebook's worth of payment this
+        ledger was waiting for; the "still_owed" entry that stood here is gone.
       still_owed: >
-        Roughly a notebook's worth. The intended payment was L2.1 — moving
-        `01_losses.ipynb` (40 cells) out to L1, where les1.md already maps goal
-        1.9 to it. That did not happen (see lesson2.yml L2.1), so **until Q3 is
-        answered and the move is made, L2 is one notebook heavier than it was.**
-        Do not treat L2 as closed on this criterion.
+        The other half — the L4 collapse (D9 / L2.5). Nothing has been removed
+        from L4, so transfer learning is currently duplicated between L2 and
+        L4. **This is deliberate**: the owner sequenced it as build-L2-first,
+        decide-L4-after-reviewing-it (2026-07-31). Do not tidy the overlap away
+        and do not open lesson4.yml until that call is made.
+      accounted_2026_08_01: >
+        planning/lesson4.yml now carries the ledger entry this row was waiting
+        for, written at the owner's instruction ahead of the handover call.
+        The payment is **-44 cells**: `03_minimal_transfer_learning` (29) and
+        `04_transfer_learning_with_resnet` (45) collapse into one
+        `03_finetune_vs_frozen` of ~30, plus the hand-rolled training loop, the
+        `get_hymenoptera` downloader, `AugmentPreprocessor` and the FileLock
+        ceremony. L4 goes from 172 notebook cells to ~110.
+        **The debt is planned, not paid** — nothing is removed from L4 until
+        D19 is made and L4.3 is built, so the duplication stands for now and is
+        still deliberate.
+    l5_accounting:
+      status: >
+        FILLED IN 2026-08-01 by planning/lesson5.yml § make_room, and unlike L2
+        it pays in advance: L5 removes more than it adds, because two notebooks
+        collapse into one (D18) and a second modality leaves the lesson.
+      added:
+        - "05_long_documents.ipynb — NEW, ~25 cells (the P2.6 rewrite, D18)"
+        - "~4 cells in 01_tokenization on the encoder's context window"
+      cut:
+        - >
+          06_imdb_attention.ipynb — all 29 cells. Its BPE tokenizer is taught in
+          01, its `Preprocessor` class is a verbatim copy of the one in
+          05_imdb_preprocessing, and its GRU-vs-attention comparison is the
+          third place the lesson asks that question.
+        - >
+          05_imdb_preprocessing cells 18-25 — the hand-written `Preprocessor`,
+          its dummy corpus and the DataLoader wiring (kill-list problem B;
+          `Collate(padder=DynamicPadding())` is the same function with a shape
+          contract). The normaliser half survives into 01_tokenization.
+        - >
+          07_metric cells 3-12 and 28-30 — the FASHION factory, the
+          `DummyPreprocessor`, the is-it-a-four relabelling and two CNN runs.
+          ~13 cells whose only job is to manufacture an imbalanced classifier;
+          the lesson's own 13-class corpus is already imbalanced.
+        - >
+          01_reweighing cells 11-13 — a WordLevel tokenizer trained *before*
+          tokenization is taught. Moves to 01_tokenization, which becomes the
+          lesson's first notebook.
+      net: "~-64 cells, +29; 8 notebooks -> 7"
       note: >
-        the other half of the intended payment is the L4 collapse (D9), which
-        is L2.5 and also still open. Both are cheap; neither is done.
+        three of the five L5 kill-list rows therefore close by **deletion**
+        rather than by dataset swap, which is cheaper than the table assumed.
   - phase: phase_3
     adds: probabilistic forecasting; fourier features; TSFM encoders
     cuts:
       - >
-        TBD — this is the phase most at risk of violating make_room. Candidates
-        are folding L3/02_1d_convolutions into the windowing notebook, and
-        trimming L3/03_basemodels' model zoo.
-    status: open — blocks phase_3 approval
+        FILLED IN 2026-07-31 by planning/lesson3.yml § make_room, and it is
+        cheaper than feared: the dataset swap deletes 03_basemodels' data
+        plumbing outright. Going: the mads_datasets factory and its hidden
+        `window_size` setting (cells 4-6, 16, 30-31); `SunspotDataset(Dataset
+        Protocol)` and its dummy-data tests (19-28, ten cells replaced by two
+        lines of TensorDataset); the streamer section (29-36), now owned by
+        L1/03_dataloader after D8; and the MASE-as-a-class dunder tour (46-49),
+        which is L0 material. 83 cells -> ~50.
+      - >
+        NOT the folding of 02_1d_convolutions into the windowing notebook —
+        that was the earlier guess and lesson3.yml argues the other way. 02 is
+        8 cells today (a section, not a notebook) and it is where the measured
+        spectrum and the receptive-field arithmetic belong, which is the
+        cheapest possible on-ramp to P3.2. It grows rather than disappears.
+    still_open: >
+      what phase_3's *new* notebooks (P3.1 probabilistic, P3.3 TSFM) displace.
+      L3 has room for one of them out of the cuts above; the second needs its
+      own row.
+    status: partially agreed — the L3 refactor pays for itself; the two new
+      phase_3 notebooks still need an accounting
   - phase: phase_5
     adds: SSL (contrastive, then predictive); publish-your-own-cache capstone
     cuts:
@@ -581,6 +875,12 @@ lesson_inventory:
       chunking story. Keep the hand-rolled attention (02_transformer), then
       run TransformerBlock over cached chunk vectors and compare aggregators.
     phase: 2
+    planned: >
+      planning/lesson5.yml, 2026-08-01. Contributed D17 (IMDB leaves L5 for a
+      long-document corpus) and D18 (P2.6 rewritten — L1 already built it),
+      plus the phase_2 `l5_accounting` row above. Note the naming collision
+      this file invites: **`phase_5` is the SSL/capstone phase and concerns L6,
+      not lesson 5.** Lesson 5 lives in phase_2.
 
   - id: L6
     dir: notebooks/6_unsupervised
@@ -703,9 +1003,10 @@ dataset_migration:
     - name: SUNSPOTS
       used_by: [L3]
       candidate: >
-        two datasets, not one — SILSO monthly direct from sidc.be for the taught
-        notebook, Monash TSF for the exercises and phase_3. See notes.
-      confidence: tested 2026-07-30, both findings verified by loading
+        SETTLED by D13 — Monash TSF daily is the primary series; SILSO monthly
+        from sidc.be is the fallback. An earlier draft of this row had it the
+        other way round and disagreed with P2.1; both now say the same thing.
+      confidence: tested 2026-07-30 and re-measured 2026-07-31 by loading
       notes: >
         CORRECTED. Two things I got wrong when I first wrote this row:
 
@@ -728,16 +1029,46 @@ dataset_migration:
         phase_3 wants, it arrives in the GluonTS convention those models expect,
         and it opens the other ~29 Monash series for exercises. Refactoring the
         window/horizon numbers is accepted as part of the deal, and is an
-        improvement rather than a cost — daily data has structure (annual and
-        ~11-year solar cycles) that monthly aggregation smooths away, which is
-        exactly what a Fourier basis is for.
+        improvement rather than a cost.
         Keep monthly SILSO as the fallback if the daily series turns out too
         slow on CPU; it is one urllib call and needs no mads_datasets either.
+      measured_2026_07_31: >
+        CORRECTS the "annual and ~11-year solar cycles" claim this row used to
+        make. Power spectrum of the clean series, share of total variance:
+        8-14 years **53.7%** (the solar cycle), 20-40 days **11.4%** (solar
+        rotation, ~27 days), 300-430 days **1.3%** — i.e. there is no annual
+        seasonality at all; the sun does not care about Earth's orbit. What
+        monthly aggregation destroys is the rotation band, which is a ninth of
+        the variance and is the scale a 120-day window can actually see. The
+        argument for daily gets more specific rather than weaker, and P3.2 gets
+        a real target frequency instead of a decorative one.
+        Two further findings, both now teaching material (lesson3.yml C2, C3):
+        the three "splits" are **nested prefixes** of one series (train 73.864,
+        validation +30, test +30 — verified elementwise), so using them as
+        train/valid/test is total leakage; and **3.240 values are NaN**, every
+        one of them before 1848-12-22, leaving 62.617 clean points.
       opens_up: [probabilistic forecasting, TSFM encoders, fourier features]
       licence_note: SILSO is CC BY-NC 4.0 — redistribution for non-commercial
         use with attribution, so a course mirror is likely fine; Monash is CC-BY-4.0.
     - name: GESTURES
       used_by: [L3, L4, L5]
+      shortlist_done: >
+        2026-07-31 — the full `monster-monash` org (29 datasets) was enumerated
+        and four candidates measured with a GRU baseline. Written up in
+        planning/lesson3.yml § datasets.GESTURES. Headlines: **WISDM**
+        (17166 x 3 x 100, 6 classes, 20.6 MB, 2.7s/epoch CPU, 0.902 after 3
+        epochs) is the recommendation; UCIActivity (9 channels, 47.5 MB, 0.932)
+        is the runner-up; **Skoda** is the only true gesture set (11 arm
+        gestures, 60 sensors) but is 339 MB and single-subject; PAMAP2 and
+        Opportunity are 1.6-2.8 GB and out.
+        Two things the earlier rows did not say: every MONSTER dataset is
+        stated licence **"other"**, i.e. unspecified — fine to read in a
+        notebook, not fine to republish a derived cache (R7) — and every
+        candidate is **fixed-length**, so the variable-length/padding lesson
+        that the current dataset carries has nowhere to live in L3 (lesson3.yml
+        L3.Q2 proposes moving it to L5, where chunk counts genuinely vary).
+        The remaining work is the decision itself, and it must be applied to
+        L3/04, L4/01 and L5/03 in one pass.
       candidates:
         - id: monster-monash/PAMAP2
           confidence: verified to exist; script-based (see R9)
@@ -841,7 +1172,14 @@ phases:
         deliverable: notebooks/1_pytorch_intro/tensor-ladder.md [done]
       - id: P0.3
         title: Cache distribution via the hub
-        status: documented, not yet exercised
+        status: >
+          DONE 2026-07-31. Three caches published under pttrn-io and round-tripped
+          from a clean local_dir: imdb-granite-embedding-small-english-r2 (25k+25k
+          rows, `text` kept for error analysis), fashion-mnist-mobilenet_v2_1.0_224
+          and oxford-flowers-mobilenet_v2_1.0_224 (4k+1k each, ~2s to download and
+          load). Publishing is now `make publish-all` via scripts/publish_cache.py,
+          which derives the repo id from the cache's own metadata.json and generates
+          the dataset card with source + encoder revisions resolved.
         detail: >
           Decided in D3: hub, under the pttrn-io org, one dataset repo per
           (dataset x encoder). The how-to is written
@@ -849,18 +1187,24 @@ phases:
           actually publish the first cache and prove the round trip.
         deliverable: docs/publishing-caches-to-huggingface.md [done]
         remaining:
-          - "[x] account vs organisation — DONE 2026-07-31, D12: the pttrn-io
-             org exists and is empty"
-          - "[ ] publish the IMDB granite cache as the pilot — needs `hf auth
-             login` first; the CLI is currently not logged in on this machine"
-          - "[ ] load it from a clean machine / fresh HF cache and time the
-             download"
-          - "[ ] standardise the loader snippet that every notebook copies"
+          - "[x] account vs organisation — D12, the pttrn-io org"
+          - "[x] publish the IMDB granite cache as the pilot"
+          - "[x] publish the L2 image caches (fashion + flowers, mobilenet_v2)"
+          - "[x] load from a clean local_dir and time it — ~2s per image split,
+             ~4s per IMDB split"
+          - "[x] standardise the loader snippet — scripts/publish_cache.py writes
+             it into every generated dataset card"
         depends_on: [Q5]
-        blocks: >
-          phase_1's last exit criterion, and the default download path in
-          L1/07_vectors + L2/02_pretrained — both currently fall back to
-          building a cache locally (~2h/split on CPU), which no student will do.
+        bug_found_and_fixed: >
+          the loader in both notebooks passed the *local* tag to allow_patterns
+          ("imdb_train/*") where the repo holds "train/*". snapshot_download does
+          not raise on a zero-file match — it prints "Fetching 0 files" and
+          returns — so the subsequent VectorCache.load failed and the bare except
+          treated it as an unpublished cache, silently starting a multi-hour
+          rebuild. Fixed in L1/07_vectors and L2/02_pretrained: derive the split
+          from the tag, assert the folder exists, and keep VectorCache.load
+          outside the try so a broken artefact raises instead of rebuilding.
+          Written up in docs/publishing-caches-to-huggingface.md §6.
       - id: P0.4
         status: >
           DONE 2026-07-30 — `datasets>=4.0` and `huggingface-hub>=0.30` are now
@@ -934,6 +1278,48 @@ phases:
           same cache, same head: current code vs fixed, and check that the
           validation F1 changes. If it does not, valid_steps was 1.
 
+      - id: P0.7
+        title: Fix mltrainer's ray reporting — `ReportTypes.RAY` is broken
+        status: OPEN, found 2026-08-01 while writing planning/lesson4.yml (C1, C5)
+        severity: >
+          blocker for L4, and it is a live breakage rather than a refactor
+          consequence. Same shape as P0.6: another repo, one line, a release,
+          a floor bump — and until it lands, `hypertune.py` (the reference
+          implementation the graded exercise tells students to copy) cannot
+          complete a single trial.
+        effort: S
+        repo: raoulg/mltrainer
+        detail: >
+          `RayReporter.report` (src/mltrainer/trainer.py:73) calls
+          `ray.train.report`, which **raises** when called inside a function
+          passed to Ray Tune (verified on ray 2.55.1):
+            DeprecationWarning: `ray.train.report` is deprecated when running
+            in a function passed to Ray Tune. Please use the equivalent
+            `ray.tune` API instead. (ray-project/ray#49454)
+          The same call sits in `4_tuning_networks/01_hypertuner.ipynb` cell 16,
+          where it is a one-word notebook fix.
+          Second, smaller bug in the same release:
+          `TrainerSettings.check_path` (settings.py:53) is a check-then-create,
+          so two ray workers constructing settings with the same fresh `logdir`
+          race and the loser dies with `FileExistsError`. Needs
+          `mkdir(parents=True, exist_ok=True)`.
+        fix: "`self._ray.tune.report({...})`, plus `exist_ok=True`."
+        why_it_hid: >
+          with torch loaded in the worker, the raise is followed by a SIGSEGV in
+          torch's thread-local teardown, so ray reports only "worker crashed
+          unexpectedly" and the actual message never reaches the driver. The
+          pure-python reproduction in lesson4.yml C1 is what surfaces it.
+        alternative: >
+          lesson4.yml L4.Q4 — the course could stop using `ReportTypes.RAY` and
+          call `tune.report` by hand in the trainable, which makes L4
+          independent of a release. Cheaper, but it costs the
+          one-Trainer-everywhere consistency and brings back a hand-rolled
+          training loop this refactor is cutting. Recommendation: fix the
+          library; it is broken for every user, not only for this course.
+        verify: >
+          a 2-trial `tune.Tuner` run using `ReportTypes.RAY` that completes and
+          returns the reported metrics. Reproduction script is 20 lines.
+
   - id: phase_1
     name: Use VectorCache consistently where it already works
     goal: the "simplest" phase — HF datasets for drop-in cases, and the
@@ -1003,11 +1389,11 @@ phases:
       - "[x] every notebook in L1 runs end to end, with no mads_datasets import
          — 8/8 green 2026-07-30, `grep mads_datasets notebooks/1_pytorch_intro`
          returns nothing"
-      - "[ ] the first cache is published on the hub and loads from a fresh HF
-         cache — BLOCKED on P0.3/Q8. This is the last open criterion.
-         06_vectors falls back to a local cache, then to building one, and the
-         build is ~2h/split on CPU, so a student cannot currently run its second
-         half."
+      - "[x] the first cache is published on the hub and loads from a fresh HF
+         cache — DONE 2026-07-31.
+         pttrn-io/imdb-granite-embedding-small-english-r2, verified by loading
+         both splits into an empty local_dir (~4s each). 07_vectors no longer
+         falls back to the ~2h/split CPU build."
       - "[x] the ladder cheatsheet is referenced, not re-explained, in L1"
       - "[x] the kill list (P0.5) shows a tested replacement for every L1 site"
 
@@ -1019,17 +1405,37 @@ phases:
     depends_on: [phase_1]
     tasks:
       - id: P2.1
-        title: SUNSPOTS — keep SILSO monthly, add Monash as the exercise catalog
+        title: L3's series — Monash pedestrian_counts, sunspot as an aside
+        superseded_again_by: >
+          D14 (2026-08-01). The series is **pedestrian_counts**, not sunspot;
+          window/horizon become 168/24 hours. Everything below about the loader,
+          the parquet branch and the hand-rolled windowing still stands — it is
+          the same catalog and the same mechanism, so only the config string and
+          the numbers change. Sunspot survives as exercise E4, carrying the
+          missing-data and out-of-reach-cycle lessons pedestrian cannot.
         detail: >
-          REVISED after testing (see dataset_migration.SUNSPOTS). Fetch the
-          SILSO monthly txt directly instead of via mads_datasets, keep the
-          hand-rolled windowing and the existing window/horizon numbers. Then
-          add the Monash parquet branch as a second, *optional* loader for
-          exercises — different frequency, GluonTS row format, and the gateway
-          to phase_3.
-        touches: [notebooks/3_recurrent_networks/03_basemodels.ipynb]
+          REWRITTEN by D13. Load the Monash daily series from the
+          `refs/convert/parquet` branch with explicit `data_files`, drop the
+          pre-1849 NaN head, split in time, and window it by hand — the
+          hand-rolled windowing stays, only its numbers change (120/30 days).
+          SILSO monthly is the fallback, not the default. Planned cell by cell
+          in planning/lesson3.yml (L3.1, L3.2).
+        touches: [notebooks/3_recurrent_networks/03_basemodels.ipynb,
+          notebooks/3_recurrent_networks/01_windowing.ipynb]
+        superseded_text: >
+          this task used to say "keep SILSO monthly, add Monash as the exercise
+          catalog", which contradicted dataset_migration.SUNSPOTS.plan three
+          screens below it. D13 settles it the other way.
       - id: P2.2
         title: GESTURES replacement
+        status: >
+          **DECIDED 2026-08-01 — `monster-monash/WISDM` (D22).** The shortlist
+          and tested baseline this task asked for were delivered 2026-07-31 (see
+          dataset_migration.GESTURES.shortlist_done); the owner picked WISDM on
+          08-01. What remains is execution, not selection: a **two**-notebook
+          edit (L3/04 and L5/03) in one pass — L4/01 left the blocked group when
+          lesson4.yml moved its search onto an image cache.
+          This was the last open dataset gap in the plan.
         detail: >
           self-publishing is off the table (licence_audit), so this is a real
           selection job: shortlist hub-native multivariate sensor datasets with
@@ -1042,6 +1448,13 @@ phases:
         deliverable: a shortlist with measured sizes + one tested baseline
       - id: P2.3
         title: EEG exercise dataset — mirror or inline the download
+        status: >
+          RESOLVED to **inline**, 2026-08-01. Both URLs verified live today
+          (HTTP 200): the original
+          `archive.ics.uci.edu/ml/machine-learning-databases/00264/EEG%20Eye%20State.arff`
+          and the newer `.../static/public/264/eeg+eye+state.zip`. So this is
+          three lines of `urllib.request.urlretrieve` and no new artefact —
+          no mirror to pttrn-io needed.
         detail: source identified as UCI dataset 264 (CC BY 4.0). Either mirror
           the .arff to pttrn-io or replace `datatools.get_file` with urllib.
         touches: [notebooks/5_attention/08_excercise.ipynb]
@@ -1054,23 +1467,68 @@ phases:
           has hand-rolled convolutions, which is the strongest possible moment.
       - id: P2.5
         title: L4 — hypertune heads on a cache instead of models on raw data
+        status: >
+          PLANNED 2026-08-01 in planning/lesson4.yml, cell by cell, with the
+          economics measured rather than assumed. The task's premise holds and
+          then some: a 5-epoch trial costs **1.2 s** on the flowers cache
+          against **159 s** for the same trial on pixels and **135 s per epoch**
+          to fine-tune resnet18 (CPU). A 24-trial ray search over the head is
+          85 s wall clock.
+          Two things the task did not anticipate. **Ray's own per-trial process
+          overhead (~2-3 s) is larger than the trial it schedules**, which turns
+          goal 4.3 ("what is ray for?") into a measurement with a boundary
+          instead of a slogan — new material, and the best thing in the lesson.
+          And the notebook does not run at all right now (P0.7).
+          Blocked on P0.7 and on three owner decisions (lesson4.yml D19-D21).
         detail: ray/hypertuner search over head architecture + aggregator +
           GaussianNoise sigma on a fixed cache; recast 03/04 transfer-learning
           notebooks as fine-tune vs frozen-features (cost, data efficiency).
+        correction: >
+          "aggregator" does not apply here — an image is one vector, so there is
+          no chunk axis to aggregate over (lesson2.yml vectormesh_usage). The
+          searchable dimensions are head width and depth, GaussianNoise sigma,
+          learning rate, and — the interesting one — the *encoder*, which is the
+          only dimension that costs a caching pass to sample rather than a
+          second (lesson4.yml E2).
       - id: P2.6
-        title: L5 — chunking as the answer to the context window
-        detail: keep hand-rolled attention; then Vectorizer (chunked) ->
-          FixedPadding/DynamicPadding -> aggregator ablation (mean / masked
-          mean / attention / RNN) on cached IMDB. Merges 05/06 into the
-          vector-level story and directly reuses vectormesh's notebook-1
-          question about 3D tensors with varying chunk counts.
+        title: L5 — the context window is a budget
+        status: >
+          REWRITTEN by D18 (2026-08-01). The original text — "chunked
+          Vectorizer -> FixedPadding/DynamicPadding -> aggregator ablation on
+          cached IMDB" — turned out to describe L1/07_vectors, which shipped on
+          07-31. Planned cell by cell in planning/lesson5.yml.
+        detail: >
+          Keep the hand-rolled attention (02_reweighing, 03_transformer). Then,
+          on a **long-document** cache (D17 — IMDB does not chunk; 86% of its
+          reviews are one chunk), walk the ladder that only exists once
+          documents are long: first-chunk-only (= truncation) -> mean over
+          chunks -> AttentionAggregator -> the student's own TransformerBlock
+          over the chunk axis. Report score, parameters, seconds and *how much
+          of the document each rung reads*.
+          05_imdb_preprocessing + 06_imdb_attention collapse into this one
+          notebook; 07_metric moves onto the same corpus and loses its
+          Fashion-MNIST scaffolding.
+        touches: [L5]
+        superseded_text: >
+          "...aggregator ablation (mean / masked mean / attention / RNN) on
+          cached IMDB. Merges 05/06 into the vector-level story and directly
+          reuses vectormesh's notebook-1 question about 3D tensors with varying
+          chunk counts." The 3D-tensor question is still asked — on chunk
+          counts that vary from 1 to 237 instead of from 1 to 2.
     exit_criteria:
       - >
         zero mads_datasets imports in the repo, every replacement run at least
         once, and only then the dependency is dropped from pyproject.toml (D2)
-      - each of L1..L5 has at least one notebook that trains on a VectorCache
+      - >
+        each of L1..L5 has at least one notebook that trains on a VectorCache —
+        **needs rewording**, see lesson3.yml L3.Q3: L3 has no expensive encoding
+        in phase_2, so a cache there is ceremony. Proposed: "every lesson loads
+        from the hub, and trains on a cache wherever encoding is expensive
+        enough to be worth caching".
       - every cache a student needs is on the hub with a filled-in dataset card
-      - one aggregator ablation exists as a graded exercise
+      - "[x] one aggregator ablation exists as a graded exercise — MET by
+         L1/07_vectors E1 (mean vs masked mean), 2026-07-31. See D18: this was
+         written expecting L5 to supply it, and L1 got there first."
 
   - id: phase_3
     name: New datasets unlock new architectures
@@ -1138,6 +1596,28 @@ phases:
             fits the compute budget (Q5).
       - id: P3.3
         title: Timeseries foundation models as frozen vectorizers
+        status: >
+          PILOTED 2026-08-01, and it changed shape — see D15/D16 and
+          planning/lesson3.yml C9-C11. Three things are now measured rather
+          than assumed:
+          (1) `google/timesfm-2.5-200m-transformers` loads on the **installed**
+              transformers 5.12.1 with no new dependency, 199M params, 925 MB,
+              **162 windows/s on CPU**; `TimesFm2_5Model` returns
+              `last_hidden_state` (B, 16, 1280) plus loc/scale — a `(C, D)`
+              vectorizer that is also natively probabilistic.
+          (2) zero-shot **wins outright** (0.140 vs 0.216 for the best trained
+              model) — the north star, demonstrated.
+          (3) the frozen-embedding + head route **loses** (0.499), and the
+              storage ratio predicts it: a 40x expansion rather than the ~100x
+              compression images give. So the notebook's middle point is a
+              failure to diagnose, not a win to admire — which is better
+              material, and it needs saying in the plan so nobody "fixes" it.
+          Also: `ibm-granite/granite-timeseries-patchtst` hardcodes 7 input
+          channels and raises on univariate input; `autogluon/chronos-bolt-small`
+          loads via AutoModel as a bare T5Model, which is a trap — its patching
+          and quantile head live in the `chronos-forecasting` package.
+          Add D16's contamination check as the fourth beat of the notebook, and
+          take the honest zero-shot number on a GiftEval series.
         detail: >
           The timeseries lane gets the *same* treatment as text and images:
           download a pretrained encoder like a resnet, run it once, cache the
@@ -1377,6 +1857,24 @@ risks:
       the kill list (P0.5) is the single source of truth; do not start a cohort
       with a lesson in a mixed state — migrate a whole lesson or none of it.
     severity: medium
+  - id: R10
+    risk: >
+      **Framework API churn breaks a lesson silently between cohorts.** Found
+      2026-08-01: `ray.train.report` started raising inside Tune functions, so
+      L4 and `hypertune.py` stopped working (P0.7) with no code change on our
+      side. `datasets` 5.0 dropping script-based loading (R9) is the same story
+      in another library. The failure mode is what makes it a risk rather than
+      a chore: ray reported "worker crashed unexpectedly (SIGSEGV)" and the
+      actual deprecation message never reached the driver, so the breakage
+      looks like a hardware or environment problem.
+    mitigation: >
+      pin ray as well as vectormesh/mltrainer per cohort; run notebooktester
+      over **every** lesson before a cohort starts, not only over the lessons
+      being edited — the 5 known failures in lessons 0, 4 and 7 sat unexplained
+      for two weeks and one of them was this; and when a worker dies without a
+      message, reproduce the trial in pure python before debugging the
+      environment.
+    severity: medium
 
 # -----------------------------------------------------------------------------
 # Answer these before per-lesson plans get written. Q1-Q3 block phase_1.
@@ -1412,6 +1910,30 @@ next_deliverables:
     - planning/lesson1.yml                       # L1 plan, incl. 3 corrections to this file
     - planning/lesson2.yml                       # L2 plan, implements D9
     - notebooks/1_pytorch_intro/05_classfication.ipynb  # mads_datasets + unused TOMLSerializer removed
+    - planning/lesson3.yml                       # L3 plan; contributed D13 and C1-C6
+    - planning/lesson5.yml                       # L5 plan; contributed D17, D18 and the phase_2 l5_accounting row
+    - planning/lesson4.yml                       # L4 plan; proposes D19-D21, found P0.7, discharges the l2_accounting debt
+  planning_resumed: 2026-07-31
+  order_changed: >
+    lesson3.yml was written **before** lesson4.yml, reversing the order in
+    `deferred_until_L1_L2_are_built`, at the owner's instruction. The L4
+    handover (D9 / L2.5) therefore stays open and the L2/L4 transfer-learning
+    duplication stays deliberate — see planning/README.md. lesson3.yml does not
+    touch L4, with one unavoidable exception: its gestures decision (L3.Q1)
+    decides for L4/01_hypertuner and L5/03 as well, because it is one dataset
+    used by three lessons.
+  l4_written_anyway: >
+    2026-08-01, at the owner's instruction: write lesson4.yml now and adjust it
+    later, rather than wait for the handover call (D9 / L2.5) and the gestures
+    pick (L3.Q1) that were holding it. Two things came out of doing that early.
+    (1) The plan is **not** actually blocked by L3.Q1 — if L4's search moves
+    onto an image cache, L4 stops using GESTURES at all and leaves the P2.2
+    blocked group (lesson4.yml C8). (2) It found P0.7: `ray.train.report` now
+    raises inside a Tune function, so **L4 does not run today** and neither
+    does `hypertune.py`, via mltrainer's `ReportTypes.RAY`. That is a live
+    breakage in the shipped library, found only because the plan was written.
+    The three decisions the plan proposes (D19-D21) are the owner's to make and
+    are deliberately left in lesson4.yml rather than promoted here.
   planning_paused: 2026-07-30
   rationale: >
     Planning stops here and execution starts on L1 + L2. The reason is
@@ -1422,9 +1944,9 @@ next_deliverables:
     speculation into arithmetic. Writing lesson3/4/5 first would be planning
     against numbers we do not have.
   deferred_until_L1_L2_are_built:
-    - planning/lesson4.yml    # D9's handover — decide it against real L2 material
-    - planning/lesson3.yml    # the dataset-gap lesson
-    - planning/lesson5.yml
+    - planning/lesson4.yml    # DONE 2026-08-01, last of the four — see l4_written_anyway
+    - planning/lesson3.yml    # DONE 2026-07-31, ahead of lesson4 — see order_changed
+    - planning/lesson5.yml    # DONE 2026-08-01, also ahead of lesson4 — L4 stays untouched
     - planning/conventions.md # P0.1/P0.2; partly settled already by D3, D7, D10
   start_with: >
     P0.6 (the mltrainer iterator fix) — it lives in another repo, it blocks the
