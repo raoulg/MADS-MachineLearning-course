@@ -1,4 +1,4 @@
-from typing import List, Optional, Union, Tuple
+from typing import List, Optional, Sequence, Union, Tuple
 import numpy as np
 from elfarol.agents import Agent, BaseAgent
 import elfarol.hypotheses as hypt
@@ -32,7 +32,7 @@ class MoodyAgent(Agent):
             float: prediction for upcoming week
         """
         model = self._getmodel(hist)
-        self.log.append(str(model.__name__))
+        self.log.append(str(getattr(model, "__name__", str(model))))
         yhat = model(hist)
         return yhat
 
@@ -42,7 +42,7 @@ class MoodyAgent(Agent):
 
 
 class BaseExperiment:
-    def __init__(self, agents: List[BaseAgent], hist: List[int] = [100]) -> None:
+    def __init__(self, agents: Sequence[BaseAgent], hist: List[int] = [100]) -> None:
         self.agents = agents
         self.hist = hist
 
@@ -61,7 +61,7 @@ class BaseExperiment:
 
 
 class Experiment(BaseExperiment):
-    def __init__(self, agents: List[BaseAgent], hist: List[int] = [100]) -> None:
+    def __init__(self, agents: Sequence[BaseAgent], hist: List[int] = [100]) -> None:
         super().__init__(agents=agents, hist=hist)
 
     def line(self):
@@ -77,7 +77,7 @@ class Experiment(BaseExperiment):
         types = []
         for agent in self.agents:
             for model in agent.hypotheses.models:
-                types.append(model.__name__)
+                types.append(getattr(model, "__name__", str(model)))
         c = Counter(types)
         plt.figure(figsize=figsize)
         sns.barplot(x=list(c.keys()), y=list(c.values()))
