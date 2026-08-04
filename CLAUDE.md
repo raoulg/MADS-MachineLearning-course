@@ -35,13 +35,18 @@ uv run notebooktester notebooks/ -t 300 -pb
 
 ## planning/ is the source of truth
 
-`planning/masterplan.yml` holds the principles, the numbered decisions (D1, D2, …) and
-the `cuts` register; `planning/lesson<N>.yml` holds the per-lesson detail. Read the
-relevant plan before changing a lesson.
+`planning/main_principles.md` holds the principles, the numbered decisions (D1, D2, …),
+the measured evidence they rest on, and the `cuts` register; `planning/lesson<N>.yml`
+holds the per-lesson detail. Read the relevant plan before changing a lesson.
 
 Two standing rules from that directory:
 
-- **The notebook wins.** When a plan contradicts the actual cells, fix the plan.
+- **Reality beats description; intent beats artifact.** When the plan *describes* the
+  code and the cells disagree, the cells are right — fix the plan. When the plan
+  *prescribes* a change the cells have not caught up with, the plan is right — change the
+  cells. A refactor plan is meant to contradict the notebooks. Facts (shapes, row counts,
+  accuracies) are settled by the code; decisions are settled by the plan, until the plan
+  is explicitly revised.
 - **Verify before asserting.** Several plan items were wrong until tested — check the
   dataset, the shape, the licence, rather than assuming.
 
