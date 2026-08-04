@@ -2597,7 +2597,7 @@ requires-dist = [
     { name = "torch-geometric", specifier = ">=2.6.1" },
     { name = "torch-tb-profiler", specifier = ">=0.4.3" },
     { name = "torchinfo", specifier = ">=1.8.0" },
-    { name = "vectormesh", specifier = ">=0.4.4" },
+    { name = "vectormesh", specifier = ">=0.5.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -5770,12 +5770,13 @@ wheels = [
 
 [[package]]
 name = "vectormesh"
-version = "0.4.4"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beartype" },
     { name = "datasets" },
     { name = "fastmcp" },
+    { name = "huggingface-hub" },
     { name = "jaxtyping" },
     { name = "loguru" },
     { name = "mltrainer" },
@@ -5789,9 +5790,9 @@ dependencies = [
     { name = "torch" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/33/8d9fff8645ea3c9179a493688f23cbbaca40811219422170258d8b3f28e3/vectormesh-0.4.4.tar.gz", hash = "sha256:ed408d11040ed235585bb0b4c1b1fc7eaf3c9d69abbdcc04cef96f67e355445d", size = 52361682, upload-time = "2026-08-03T09:17:41.978Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a5/09/e50668cb9875c75095d4e4b7e93fe0e90204fe441daa97544cb14aacb212/vectormesh-0.5.0.tar.gz", hash = "sha256:a36bac9394c37987059b3ec5c613ed986f7b6a0d7615353aa7a8c419fb820e2b", size = 124310, upload-time = "2026-08-04T20:01:06.312Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/fc/e62cdef78e25c8680525aff2a1f21e1539aee6740729fbb47170df425fd3/vectormesh-0.4.4-py3-none-any.whl", hash = "sha256:8c8aeac8e3b28abfba15c4b20f1c4e08af5369ca25995772ce83bd4e31a6d265", size = 39373, upload-time = "2026-08-03T09:16:03.537Z" },
+    { url = "https://files.pythonhosted.org/packages/07/9a/3370940da1c8d12bfcccf3087527fb4c357d622fdc92bfe11db406088912/vectormesh-0.5.0-py3-none-any.whl", hash = "sha256:8eb9857370991f5b2cb6c9ec42634668ba04da078a8e54040a8b1c4d3801d274", size = 42470, upload-time = "2026-08-04T20:01:07.266Z" },
 ]
 
 [[package]]
