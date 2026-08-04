@@ -122,7 +122,7 @@ Sunspot is not discarded — it becomes exercise E4, carrying the two things ped
 lesson uses.
 
 **One L3 notebook is built and executed**, ahead of the rest of the lesson refactor:
-[`05_foundation_models.ipynb`](../notebooks/3_recurrent_networks/05_foundation_models.ipynb),
+[`07_foundation_models.ipynb`](../notebooks/3_recurrent_networks/07_foundation_models.ipynb),
 at the owner's direct request. Standalone (does not depend on the not-yet-built 01-04), 17
 cells, **passes notebooktester in 39s**. Walks through the TimesFM zero-shot win, the
 frozen-encoder loss and its diagnosis, the storage-expansion rule of thumb, and the
