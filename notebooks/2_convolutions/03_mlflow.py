@@ -146,7 +146,7 @@ def objective(params):
             model=model,
             settings=settings,
             loss_fn=torch.nn.CrossEntropyLoss(),
-            optimizer=optim.Adam,  # type: ignore
+            optimizer=optim.Adam,
             traindataloader=trainloader,
             validdataloader=validloader,
             scheduler=optim.lr_scheduler.ReduceLROnPlateau,
