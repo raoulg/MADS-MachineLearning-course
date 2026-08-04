@@ -1,0 +1,110 @@
+lesson: 2
+title: "Building the cache you handed out, and tracking what you tried"
+status: specified
+depends_on: [lesson1]
+
+premise: >
+  D9. L1 consumes a cache someone else built. L2 is where students become the person who
+  builds it: choose an encoder, run it, measure what it cost, publish the artefact, and
+  track the experiments that follow. The old L2 (convolutions / pretrained / mlflow) is
+  partly absorbed by L1 and partly promoted here.
+
+  This is also the lesson that draws the boundary honestly. Vectorizing is not free and
+  not always right; a student who has only seen L1 will over-apply it. L2 shows the cost
+  side and the failure cases.
+
+learning_goals:
+  - Run an ImageVectorizer and state what the encoding cost was, in images/second.
+  - Choose an encoder deliberately and defend the choice from the measured accuracy gap.
+  - Publish a VectorCache as a documented artefact (metadata, dataset card, source_idx).
+  - Track experiments in mlflow and compare runs that differ in one variable.
+  - Say when NOT to cache, and show a case where end-to-end training is the right answer.
+
+absorbed_from_old_l2:
+  - 2_convolutions/02_pretrained.ipynb  -> most of it moves INTO lesson1/01_the_cache
+  - 2_convolutions/03_mlflow.ipynb      -> becomes 03_tracking here, retargeted
+  - 2_convolutions/01_convolutions.ipynb -> nonlinearity half moves to lesson1/02, the
+                                            train-a-CNN-from-scratch half lands in 04 here
+                                            as the honest counter-example
+
+notebooks:
+
+  - file: 01_building_a_cache.ipynb
+    title: "Being the person with the hardware"
+    content: >
+      ImageVectorizer end to end on a dataset with no published cache. The LOAD REPORT
+      digression (UNEXPECTED classifier weights are the desired outcome; MISSING is the
+      alarming one). Measure throughput. remove_columns to drop raw pixels. Attach
+      source_idx so a vector can be traced back to its image. Write metadata and read it
+      back.
+    hardware_policy: >
+      D13. The notebook builds a ~200-row cache, which finishes on ANY machine. Building
+      something publishable is framed as an optional extension for students who have the
+      hardware, run via `make build-lesson1`-style batch commands rather than in a
+      notebook. Never put a twenty-minute encoding pass in a cell — a notebook that looks
+      hung is a notebook students abandon.
+    reuses: scripts/build_cache.py  # the notebook shows one pair; the script does the batch
+    exercises:
+      - Encode 200 images with dinov2-small and with resnet-18. Report images/second for each and the ratio of encode time to head-training time.
+      - Extrapolate from your own throughput how long the full published eurosat cache took to build. Compare with the instructor's 90 seconds and explain the gap.
+      - Explain why VectorCache.create computes its own map fingerprint instead of letting datasets pickle-hash the vectorizer.
+    optional_extension:
+      title: "Publish something nobody has"
+      content: >
+        For students with a GPU or Apple silicon: pick a dataset with no cache on
+        hf.co/pttrn-io, build it, write the card, publish it, and hand it to a classmate
+        who then trains a head on it without touching an encoder. This is the artefact-as-
+        deliverable idea made real, and it is the one part of the course where the
+        hardware asymmetry is the assignment rather than an obstacle.
+
+  - file: 02_choosing_an_encoder.ipynb
+    title: "The only decision that moved the metric"
+    content: >
+      L1's search found the encoder axis dominates. This notebook takes that seriously:
+      encoder size vs accuracy vs one-time cost, in-domain vs out-of-domain. EuroSAT
+      (satellite, 0.9447) against DTD (textures, 0.7849) with the same encoder is the
+      cleanest illustration that "out of domain" is a measurable quantity, not a vibe.
+      Feature-space augmentation (GaussianNoise) as the cache-compatible answer to
+      pixel-space augmentation, with the train/eval determinism assertion.
+    verified: true   # ceilings in main_principles.md §3.2
+    exercises:
+      - Predict the difficulty ordering of eurosat / resisc45 / dtd from what the encoder was trained on, then check against the published ceilings.
+      - Tune GaussianNoise sigma on 200 DTD rows and on the full set. Where does it earn its keep?
+
+  - file: 03_tracking.ipynb
+    title: "mlflow, and what tracking is for"
+    replaces: 2_convolutions/03_mlflow.ipynb
+    content: >
+      Keep the existing notebook's spine, swap its hyperopt section for the ray Tuner the
+      students already met in L1, and point the comparison at the L1/L2 caches. The real
+      content is not the API: it is that a run is only worth logging if you can say which
+      single variable it changed, and that a result you cannot reproduce from the log is
+      not a result.
+    note: >
+      Keep the mlflow-vs-tensorboard framing short. Both are already wired through
+      mltrainer's ReportTypes; the lesson is the discipline, not the dashboard.
+
+  - file: 04_when_not_to_cache.ipynb
+    title: "The counter-example"
+    content: >
+      The honest boundary. Train a small CNN from scratch on the same dataset and lose
+      badly to the frozen-encoder head -- then find the regime where the CNN wins or where
+      caching is simply unavailable: a domain with no relevant pretrained encoder, data
+      that changes every day so the cache is stale on arrival, or a task needing
+      pixel-level output rather than a per-image vector. Forward-reference L3 (time
+      series) as the case the course actually spends a lesson on.
+    rationale: >
+      main_principles.md §1.2. Without this notebook, L1 teaches a hammer. This is the
+      only place in the image lessons where end-to-end training is defended rather than
+      dismissed, and it inherits the CNN code from the old 01_convolutions.
+
+open_questions:
+  - >
+    Does the CNN-from-scratch arm in 04 actually lose on eurosat, and by how much? Not yet
+    measured. If it loses by 30 points the notebook writes itself; if it is close, the
+    framing needs rethinking. Measure before writing.
+  - >
+    EuroSAT ships 7 corruption splits (contrast, gaussian_noise, impulse_noise,
+    jpeg_compression, motion_blur, pixelate, spatter), 2700 rows each. A head trained on
+    clean vectors evaluated against corrupted ones is a cheap, striking robustness
+    exercise -- and it needs no new dataset, only more encoding. Worth a cache.

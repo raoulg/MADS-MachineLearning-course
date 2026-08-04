@@ -1,0 +1,351 @@
+lesson: 1
+title: "Representations, heads, and searching the space between them"
+status: specified          # specified | in_progress | done
+depends_on: [P1, P2, P3, P4, P5]   # see main_principles.md §4
+
+premise: >
+  The old L1 taught torch bottom-up: tensors, dataloaders, a net, a loss, MNIST. It
+  worked, but it spent five notebooks getting to a model that a modern practitioner
+  would not build. The new L1 starts one level up: download a cache someone else paid
+  to compute, train a head on it in two seconds, and spend the saved time on the
+  question that actually matters — which representation, and which composition on top.
+
+  Everything a student needs from the old lesson (shapes, a loss, an optimizer, a
+  training loop) still gets taught. It gets taught *when it is needed*, against data
+  that is already interesting.
+
+learning_goals:
+  - Explain why encoding is separated from training, in cost terms, with numbers.
+  - Load a VectorCache from the hub and read its metadata before writing model code.
+  - State what a frozen encoder does: sigma(Wx + b) and sigma(W * x) are the same idea.
+  - Show that a stack of linear layers without a nonlinearity collapses to one layer.
+  - Train a head with mltrainer and pick a loss/metric that matches the task.
+  - Run a ray.tune TPE search over an architecture space and read the result honestly.
+  - Recognise that added head capacity, and naive fusion, usually LOSE. Measure, don't assume.
+
+datasets:
+  demo:
+    name: eurosat
+    source: tanganke/eurosat
+    classes: 10
+    measured_ceiling: 0.9447    # dinov2-small, 2000 train, 2-line head
+    why: >
+      Impressive without being a lookup. Satellite imagery is far enough from web
+      images that the encoder is visibly working, close enough that it works well.
+  exercises:
+    name: dtd
+    source: tanganke/dtd
+    classes: 47
+    measured_ceiling: 0.7849
+    why: >
+      Textures are genuinely out-of-domain for an object-centric encoder. ~20 points of
+      headroom means an exercise can actually move a number.
+  demo_cell_only:
+    name: oxford-flowers
+    caches_published: [dinov2-small, resnet-18, mobilenet_v2_1.0_224]
+    why: >
+      Saturated (0.9932; 1-NN with zero training = 0.9910). Useless as a task, perfect
+      as the single cell that makes the thesis undeniable. See main_principles.md §3.1.
+
+prerequisites_blocking:
+  - P1: VectorCache.from_hub() — notebooks must not open-code snapshot_download.
+  - P2: get_or_create_cache promoted out of notebooks/5_attention/ into vectormesh.
+  - P3: VectorCache.join(other, on="source_idx") — needed by notebook 04's fusion arm.
+  - P6: Concatenate2D binding-axis fix, else raw-width fusion is impossible.
+  - P5: vectormesh release + floor bump in pyproject.toml.
+prerequisites_done:
+  - P4: >
+      eurosat + dtd caches published 2026-08-04, 3 encoders each:
+      pttrn-io/{eurosat,dtd}-{dinov2-small,resnet-18,mobilenet_v2_1.0_224}
+
+hardware_policy:            # D13, main_principles.md §3.7
+  default: >
+    Every notebook in this lesson DOWNLOADS a published cache. No notebook runs an
+    encoder over a full dataset. This is not a concession to weak hardware — it is the
+    architecture the lesson is teaching.
+  opt_in: >
+    §1.4 encodes ~200 images so the cost is felt, not described. That is ~2.5 s on a fast
+    CPU and ~20 s on a slow VM: everyone can run it. The full build stays in
+    `make build-lesson1`, for whoever has the hardware and wants to publish something new.
+  say_out_loud: >
+    Students on a CPU-only VM are not doing a reduced version of this course. Encoding is
+    the part you buy; heading is the part you think about. Do not apologise for the split
+    — it is the same asymmetry that exists in industry.
+
+notebooks:
+
+  - file: 01_the_cache.ipynb
+    title: "Why you should not run the encoder twice"
+    replaces: [01_tensors, 02_datagenerators, 05_classification, 07_vectors, 2_convolutions/02_pretrained]
+    runtime_target_s: 60
+    sections:
+      - id: 1.1
+        title: "The hook"
+        content: >
+          Load the published flowers dinov2 cache. Do 1-nearest-neighbour on the raw
+          vectors — no training, no model, just cosine similarity. Get 0.991 on 102
+          classes. Then say plainly: the representation is doing the work, and someone
+          else already paid for it.
+        verified: true      # measured, main_principles.md §3.1
+      - id: 1.2
+        title: "What a cache is"
+        content: >
+          VectorCache.from_hub. The folder layout. metadata.json as the public API:
+          model_tag, hidden_size, tensordtype, and (for text, later) context_size /
+          stride / chunk_sizes. Rule stated once and repeated all course: read the
+          metadata before you write model code, because it tells you the shapes you
+          are about to receive.
+      - id: 1.3
+        title: "Tensors, as they actually turn up"
+        content: >
+          Not a tour of the torch API — the tensor facts needed to hold a cache row:
+          shape, dtype, device, and indexing. Then the rank ladder for images, which
+          is short: (D) one item -> (B, D) a batch -> (B, K) logits. Introduce the
+          jaxtyping/beartype shape contract here and note that a rank error is the
+          framework telling you which rung you are on.
+        note: >
+          The full 1D/2D/3D ladder (chunked documents) is deferred to L5 where chunking
+          actually appears. Do not front-load it.
+      - id: 1.4
+        title: "The economics, with a stopwatch"
+        content: >
+          Time the encoder over ~200 EuroSAT images on YOUR machine — deliberately small
+          so it completes on a CPU-only VM. Time the head over the whole cache. Put the
+          two numbers side by side and multiply the encoder cost by the number of
+          experiments you will run this week.
+        measured_reference: >
+          200 images, Apple silicon: dinov2-small 81 img/s CPU / 245 img/s MPS;
+          resnet-18 95 / 481. Students on older hardware should expect 10-30 img/s, which
+          is exactly the point — have them extrapolate the full build from their own
+          number rather than quoting the instructor's.
+        note: >
+          Ask the class to compare their img/s figures. The spread across the room IS the
+          lesson: the cache is what makes the course hardware-independent.
+      - id: 1.5
+        title: "Representation quality dominates"
+        content: >
+          Same rows, same head, three encoders. Flowers: dinov2 0.9932 / mobilenet
+          0.9082 / resnet-18 0.9025. This is the number to remember when notebook 04
+          finds that architecture changes nothing.
+        verified: true
+    exercises:
+      - Read the metadata of a cache you did not build and predict the head's input width before running anything.
+      - Recover the original image behind a cache row via source_idx (pass the pinned revision — the cache was shuffled, so source_idx is not the row number).
+
+  - file: 02_nonlinearity.ipynb
+    title: "sigma(Wx + b) and sigma(W * x)"
+    replaces: [04_neuralnets, 2_convolutions/01_convolutions]
+    runtime_target_s: 90
+    rationale: >
+      D7. The old course taught dense nets in L1 and convolutions in L2 as if they were
+      different animals. They are the same construction: a linear operator, a bias, a
+      nonlinearity. Convolution is the linear operator with weight sharing and locality.
+      Teaching them together is shorter AND more correct, and it explains what the
+      frozen encoder from notebook 01 is actually made of.
+    sections:
+      - id: 2.1
+        title: "Linear layers collapse"
+        content: >
+          Stack five nn.Linear with no activation. Multiply the weight matrices by hand.
+          Assert torch.allclose(stacked(x), single_matrix @ x). Depth without
+          nonlinearity buys exactly nothing — shown, not asserted.
+        cell_sketch: |
+          W = layers[-1].weight
+          for layer in reversed(layers[:-1]):
+              W = W @ layer.weight
+          assert torch.allclose(stack(x), x @ W.T, atol=1e-5)
+      - id: 2.2
+        title: "Convolution is a matrix multiply"
+        content: >
+          Build a small 1D conv, then write out its Toeplitz matrix explicitly and show
+          conv1d(x, w) == T @ x. Weight sharing and locality are constraints ON the
+          matrix, not a different kind of operation. Extend to 2D by picture, not by
+          another proof.
+      - id: 2.3
+        title: "So what is the nonlinearity for"
+        content: >
+          Re-run 2.1 with a GELU inserted; the collapse identity now fails. Fit a
+          function no linear map can fit. Survey activations (sigmoid/tanh/ReLU/GELU)
+          briefly — dying ReLU, saturation — but keep the focus on: this is the one
+          ingredient that makes depth mean something.
+      - id: 2.4
+        title: "Reading the encoder"
+        content: >
+          Print the module tree of dinov2-small / resnet-18. Point at the repeated
+          conv -> norm -> activation motif. Close the loop: the 384 numbers in your
+          cache are the output of ~12 stacked applications of this notebook's two lines.
+    exercises:
+      - Break the Toeplitz equivalence by changing stride or padding; explain the shape change before running it.
+      - Replace GELU with the identity in a trained head and measure what happens.
+
+  - file: 03_training.ipynb
+    title: "Loss, optimizer, and the loop"
+    replaces: [03_dataloader, 06_losses, parts of 05_classification]
+    runtime_target_s: 120
+    sections:
+      - id: 3.1
+        title: "From cache rows to batches"
+        content: >
+          OneHot, Collate(padder=torch.stack) because image vectors are 1D per item,
+          DataLoader. Compressed from the old hand-rolled-dataloader notebook: show the
+          collate function's job (list of items -> (X, y)) in ten lines, then use the
+          library. The hand-rolled iterator and the streaming case move to legacy.
+      - id: 3.2
+        title: "Losses"
+        content: >
+          Keep the old 06_losses treatment, retargeted: MSE/MAE for regression,
+          CrossEntropy for single-label, BCEWithLogits for multi-label. Anchor on why
+          the EuroSAT task takes CrossEntropy + Accuracy, and flag that L5's legal task
+          takes BCE + F1 because a document carries several labels.
+      - id: 3.3
+        title: "Optimizer and the loop"
+        content: >
+          Write the loop by hand once (zero_grad / forward / loss / backward / step),
+          then hand it to mltrainer.Trainer. Keep the by-hand version — it is short and
+          it is the last time they will see it.
+      - id: 3.4
+        title: "The baseline"
+        content: >
+          Serial([NeuralNet(hidden_size, n_classes)]) on EuroSAT. Record the number.
+          State explicitly that this is the number every later architecture must beat,
+          and that it is harder to beat than it looks.
+    params:
+      - EPOCHS = param(20, test=1)
+    exercises:
+      - Swap CrossEntropy for BCEWithLogits on a single-label task and explain the metric change.
+      - Shrink the training set to 100 rows. Which moves more: the loss curve or the gap between train and valid?
+
+  - file: 04_search.ipynb
+    dataset: dtd          # NOT eurosat -- see main_principles.md §3.4b
+    dataset_rationale: >
+      EuroSAT's encoder spread is only 2.4 points (0.9502 / 0.9380 / 0.9258), so a search
+      there is flat on every axis including the one that is supposed to matter. DTD spreads
+      14.4 points across the same three encoders and has ~20 points of headroom. Run the
+      search where the result is legible; keep EuroSAT for notebooks 01-03 where the point
+      is only that the approach works.
+    title: "Searching architectures instead of guessing them"
+    replaces: [old double for-loop exercises, 2_convolutions/03_mlflow hyperopt section]
+    runtime_target_s: 300
+    rationale: >
+      D5 + D6. The moment a training run costs two seconds, hand-tuning is indefensible.
+      Ray is introduced as a tool here and explained as algorithms in L4 — TPE only, via
+      HyperOptSearch, no zoo.
+    api_note: >
+      ray 2.55.1. Use tune.Tuner + tune.TuneConfig + tune.RunConfig — all three live
+      under ray.tune, no ray.train import. tune.run still exists but is legacy; the old
+      4_tuning_networks/hypertune.py uses it and is being replaced (see cuts).
+    sections:
+      - id: 4.1
+        title: "The search space"
+        content: >
+          One config dict covering: encoder (a categorical over the published caches),
+          head width, depth, GaussianNoise sigma, lr. The encoder axis is the point —
+          it is the only axis measured to move the metric more than a point.
+        cell_sketch: |
+          param_space = {
+              "encoder": tune.choice(["dinov2-small", "resnet-18"]),
+              "width":   tune.choice([0, 128, 512]),   # 0 = no hidden layer
+              "sigma":   tune.uniform(0.0, 0.4),
+              "lr":      tune.loguniform(1e-4, 3e-3),
+          }
+          tuner = tune.Tuner(
+              trainable,
+              param_space=param_space,
+              tune_config=tune.TuneConfig(
+                  metric="Accuracy", mode="max",
+                  search_alg=HyperOptSearch(), num_samples=param(24, test=2),
+              ),
+              run_config=tune.RunConfig(storage_path=...),
+          )
+      - id: 4.2
+        title: "Reading the result"
+        content: >
+          Plot accuracy against each axis. Expect: encoder separates cleanly into two
+          bands; width/depth/sigma look like noise inside a band. Say out loud what that
+          means — the search rediscovered the two-line baseline, and the leverage was
+          upstream in the encoder all along.
+        expected_outcome_verified: true   # main_principles.md §3.3, §3.5
+      - id: 4.3
+        title: "The fusion arm"
+        content: >
+          Add a two-encoder branch via VectorCache.join + CollateParallel + Parallel +
+          Concatenate2D. Have students predict whether fusing a strong and a weak
+          encoder beats the strong one alone. It does not — measured, 5 setups out of 5,
+          and the penalty grows as the training set shrinks.
+        verified: true    # main_principles.md §3.4
+        teaching_note: >
+          D10 + §1.4. Frame this as a HYPOTHESIS the student tests, not as a result we
+          announce. Have them predict the sign before running it. Our measurement says the
+          baseline wins on these encoder pairs and these datasets — but that is contingent,
+          and the notebook must say so. No free lunch: sometimes fusion wins, and a student
+          who learns "fusion is bad" has learned the wrong thing as surely as one who
+          learns "fusion is good".
+
+          What the section is really for: showing that an appealing idea can be built and
+          killed in two seconds, and that "nice idea, simpler won" is a complete result
+          worth writing down. Do not present fusion as an upgrade, and do not present the
+          negative result as a law.
+        caveat: >
+          CollateParallel takes exactly two columns. Three-way fusion needs a library
+          change; out of scope for L1.
+    params:
+      - N_TRIALS = param(24, test=2)
+      - EPOCHS = param(15, test=1)
+    open_question:
+      - >
+        Fusion was measured with a 128-wide bottleneck per branch. Fusing raw widths, or
+        gating the weak stream (Highway) instead of concatenating it, has not been
+        measured. If it turns out a gated fusion DOES win, 4.3 becomes a much better
+        section — worth one afternoon before the notebook is written.
+
+  - file: 05_exercises.ipynb
+    title: "Your own search, and a negative result you produced yourself"
+    dataset: dtd    # 04 demonstrates the search; 05 is where they drive it
+    replaces: [09_exercises, 2_convolutions/04_exercises.md]
+    content: >
+      Notebook 04 runs one search and reads it. Here students design their own search space
+      and defend it. The deliverable is a short report that must contain at least one
+      negative result they produced and are willing to stand behind -- the habit this whole
+      lesson exists to build.
+    exercises:
+      - Establish the two-line baseline on DTD and report it BEFORE searching. A search without a baseline is unreadable.
+      - Design and run a TPE search. Did anything beat the baseline? By how much?
+      - Rerun the winning config with three seeds and report the spread. Most "wins" at this scale are inside seed noise -- check whether yours is.
+      - Argue from the cache metadata which encoder should win on textures, then check. dinov2-small beats resnet-18 by 14 points here; predict the sign and the rough size first.
+      - Ablation: does GaussianNoise still help once the training set is full-size? (It was worth +0.4 pt on DTD -- decide whether that is real.)
+
+legacy_moves:
+  target_dir: notebooks/legacy/
+  policy: >
+    D8. Move, do not delete, until the replacement notebook has been RUN. Then delete.
+  files:
+    - notebooks/1_pytorch_intro/02_datagenerators.ipynb
+    - notebooks/1_pytorch_intro/03_dataloader.ipynb      # after 03_training absorbs §3.1
+    - notebooks/1_pytorch_intro/05_classification.ipynb
+    - notebooks/1_pytorch_intro/08_extra_autograd.ipynb  # keep as optional self-study
+    - notebooks/1_pytorch_intro/09_exercises.ipynb
+    - notebooks/2_convolutions/01_convolutions.ipynb
+    - notebooks/2_convolutions/03_mlflow.ipynb           # -> L2, see lesson2.yml
+  keep_in_place:
+    - notebooks/1_pytorch_intro/tensor-ladder.md   # round-1 work, still correct, referenced by 01 §1.3
+  salvage:
+    - from: 1_pytorch_intro/01_tensors.ipynb
+      take: "§1.8 shape-and-meaning + the jaxtyping/beartype contract cells"
+      into: 01_the_cache.ipynb §1.3
+    - from: 1_pytorch_intro/07_vectors.ipynb
+      take: "the cache/metadata treatment and the regex-vs-embedding framing"
+      into: "01_the_cache.ipynb §1.2 (image version); the text/regex version belongs in L5"
+    - from: 2_convolutions/02_pretrained.ipynb
+      take: "LOAD REPORT explanation, GaussianNoise train/eval determinism check"
+      into: "01_the_cache.ipynb §1.2 and 04_search.ipynb §4.1"
+
+risks:
+  - risk: "EuroSAT at 0.9447 has only ~5 points of headroom; a search may look flat there too."
+    mitigation: "That is the intended lesson in 04. DTD (0.7849) carries the exercises where headroom is needed."
+  - risk: "Students conclude 'architecture never matters' and stop thinking."
+    mitigation: >
+      Say the scope out loud: this holds for a small head on a strong FROZEN encoder.
+      L3 (time series, no encoder to freeze) and L6 (making the representation itself)
+      are where architecture earns its keep. Forward-reference both from 04.2.
+  - risk: "Encoding cost is invisible to students because the instructor paid it."
+    mitigation: "§1.4 makes them run the encoder over 200 images so the number is theirs."
