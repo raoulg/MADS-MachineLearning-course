@@ -65,7 +65,7 @@ def train(config: Dict):
     if torch.backends.mps.is_available() and torch.backends.mps.is_built():
         device = torch.device("mps")
     else:
-        device = "cpu"  # type: ignore
+        device = "cpu"
     logger.info(f"Using {device}")
     if device != "cpu":
         logger.warning(
@@ -76,7 +76,7 @@ def train(config: Dict):
         model=model,
         settings=trainersettings,
         loss_fn=torch.nn.CrossEntropyLoss(),
-        optimizer=torch.optim.Adam,  # type: ignore
+        optimizer=torch.optim.Adam,
         traindataloader=train.stream(),
         validdataloader=valid.stream(),
         scheduler=torch.optim.lr_scheduler.ReduceLROnPlateau,
