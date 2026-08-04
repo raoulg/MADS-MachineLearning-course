@@ -1,6 +1,9 @@
 # import torch
+from typing import cast
+
 import torch
 from loguru import logger
+from mads_datasets.base import DatasetProtocol
 from torchvision import datasets
 from torchvision.transforms import ToTensor
 
@@ -49,8 +52,10 @@ def main():
     )
 
     logger.info("creating datastreamers")
-    trainstreamer = VAEstreamer(training_data, batchsize=presets.batchsize).stream()
-    teststreamer = VAEstreamer(test_data, batchsize=32).stream()
+    trainstreamer = VAEstreamer(
+        cast(DatasetProtocol, training_data), batchsize=presets.batchsize
+    ).stream()
+    teststreamer = VAEstreamer(cast(DatasetProtocol, test_data), batchsize=32).stream()
 
     X1, X2 = next(trainstreamer)
 

@@ -37,7 +37,7 @@ def main():
 
     dd, ii = kdtree.query(other.detach().numpy(), k=9)
 
-    closest = img[ii[0]]  # type: ignore
+    closest = img[ii[0]]
     logger.info(f"closest items for label {y}")
     imgpath = presets.imgpath / Path(f"closest-label-{y}.png")
     plot_grid(closest, imgpath, title=f"Label {y}")
