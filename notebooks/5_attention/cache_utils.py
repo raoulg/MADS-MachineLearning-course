@@ -29,6 +29,7 @@ file-cache layer, which is redundant with `VectorCache`'s folder-based artefact 
 anyway — the whole reason this course caches on disk is that `VectorCache` is the artefact of
 record, not `datasets`' opaque hash-named files underneath it.
 """
+
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -81,7 +82,7 @@ def get_or_create_cache(
     hits = sorted(cache_dir.glob(f"*_{tag}_{column}"))
     if hits:
         cache = VectorCache.load(hits[-1])
-        stored = cache.metadata.get(column, {}).get("model_tag")
+        stored = (cache.metadata or {}).get(column, {}).get("model_tag")
         wanted = getattr(vectorizer, "model_name", None)
         if stored and wanted and stored != wanted:
             raise VectorMeshError(
@@ -93,8 +94,11 @@ def get_or_create_cache(
         return cache
 
     logger.info(f"no cache for {tag}_{column}, building")
-    built = dataset() if callable(dataset) else dataset
+    built = dataset if isinstance(dataset, Dataset) else dataset()
     return VectorCache.create(
-        cache_dir=cache_dir, vectorizer=vectorizer, dataset=built,
-        dataset_tag=tag, remove_columns=remove_columns,
+        cache_dir=cache_dir,
+        vectorizer=vectorizer,
+        dataset=built,
+        dataset_tag=tag,
+        remove_columns=remove_columns,
     )
