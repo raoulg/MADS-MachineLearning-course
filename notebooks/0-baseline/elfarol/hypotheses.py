@@ -48,7 +48,7 @@ class Hypotheses:
                     np.random.choice(
                         np.arange(0, len(self._all_h)), size=n, replace=False
                     )
-                )  # type: ignore
+                )
             elif isinstance(n, int) and n == 0:
                 # if 0, pick the last one
                 idx = [-1]
@@ -75,7 +75,10 @@ class Hypotheses:
         return len(self.models)
 
     def __repr__(self):
-        names = [x.__name__[1:] for i, x in enumerate(self.models)]
+        names = [
+            str(x.__name__)[1:] if hasattr(x, "__name__") else str(x)
+            for x in self.models
+        ]
         return f"Hypotheses(models={names})"
 
     def _random(self, hist: List[int]) -> float:
