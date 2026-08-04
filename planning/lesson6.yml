@@ -1,0 +1,37 @@
+lesson: 6
+title: "Self-supervised — where the representation comes from"
+status: mostly_done       # rebuilt in round 1
+round: 1
+
+premise: >
+  L1 hands students a representation and shows that it dominates every other choice. The
+  obvious next question -- where did that representation come from, and could I make one
+  for a domain that has none? -- is this lesson. In the round-2 structure L6 is the payoff
+  for L1's central claim, not a standalone topic.
+
+current_notebooks:
+  - 01_selfsupervised.ipynb
+  - 02_patch_tokens.ipynb
+  - 03_ijepa.ipynb
+
+round2_changes:
+  - id: L6.1
+    change: >
+      Open by naming the debt: L1 asserted the encoder is the whole game and never said
+      how one is built. Close it here. One paragraph, but it makes the course a single
+      argument instead of seven topics.
+  - id: L6.2
+    change: >
+      Cross-reference L2's out-of-domain measurement. DTD at 0.7849 with an object-centric
+      encoder is precisely the situation where you would train your own representation,
+      and the students will have produced that number themselves in L2.
+  - id: L6.3
+    change: >
+      Keep the round-1 measured results: patch-level SSL 0.787 vs 0.358 per-patch on
+      EuroSAT (patch-level beats image-level), and MoCo's -25 pt patch-localization
+      weakness. Note that EuroSAT now also appears in L1/L2 as the demo dataset -- that is
+      a feature, since students meet the same data at three levels of abstraction, but the
+      splits and subsample sizes must be stated so the numbers are comparable.
+
+no_action:
+  - Notebooks were rebuilt in round 1 and have been run.

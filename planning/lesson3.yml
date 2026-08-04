@@ -1,0 +1,40 @@
+lesson: 3
+title: "Time series — the lesson that does not vectorize"
+status: mostly_done       # rebuilt in round 1; this round changes little
+round: 1
+
+premise: >
+  main_principles.md §1.2. L3 is deliberately the counterweight to L1. There is no
+  general-purpose frozen encoder for an arbitrary time series, so windowing and
+  end-to-end training are correct here. Its pedagogical job in round 2 is to stop
+  students from over-applying the cache idea.
+
+current_notebooks:
+  - 01_windowing.ipynb
+  - 02_basemodels.ipynb
+  - 03_probabilistic.ipynb
+  - 04_composition.ipynb
+  - 05_nbeats.ipynb
+  - 06_exercise.ipynb
+  - 07_foundation_models.ipynb
+
+round2_changes:
+  - id: L3.1
+    change: >
+      Add an explicit callback to L1 in 01_windowing: one paragraph naming why there is no
+      cache to download here, and what would have to be true for one to exist. Students
+      arriving from a cache-first L1 need the boundary stated, not implied.
+  - id: L3.2
+    change: >
+      07_foundation_models is where the boundary gets interesting: a time-series
+      foundation model IS a frozen encoder, so the cache idea partly returns. Make that
+      tension explicit rather than leaving the two lessons silently inconsistent.
+  - id: L3.3
+    change: >
+      Keep the measured result that a linear model beat N-BEATS on both pedestrian_counts
+      and ETTh1. It is the same shape of lesson as L1's "the baseline wins" and the two
+      should be cross-referenced -- this course's spine is "measure, don't assume", and it
+      lands harder when students meet it twice in different modalities.
+
+no_action:
+  - Notebooks were rebuilt in round 1 and have been run. Do not touch the cells without a reason.

@@ -1,0 +1,49 @@
+lesson: 5
+title: "Attention, and text that does not fit in the context window"
+status: partially_done    # round 1 rebuilt most of it; some old notebooks remain
+round: 1_and_3
+
+premise: >
+  L5 is where the full tensor ladder finally earns its keep. L1 deliberately teaches only
+  the short image ladder -- (D) -> (B, D) -> (B, K) -- because images give one vector per
+  item. Text does not: a long document overflows a 512-token context window and becomes a
+  (chunks, dim) matrix, which is where padding, masking and aggregation become real
+  decisions rather than vocabulary.
+
+current_notebooks:
+  round1_rebuilt: [02_transformer, 03_Attention_gestures, 05_long_documents, 06_composition, 07_metric, 08_excercise]
+  older: [01_reweighing, 04_tokenization, 05_imdb_preprocessing, 06_imdb_attention]
+  note: >
+    Two pairs share a number (05_imdb_preprocessing / 05_long_documents, and
+    06_composition / 06_imdb_attention). Resolve the numbering; a lesson with two
+    notebook 05s is a lesson nobody can follow.
+
+round2_changes:
+  - id: L5.1
+    change: >
+      Introduce the 2D/3D rungs of the tensor ladder HERE, deferred from L1 §1.3. FixedPadding
+      vs DynamicPadding as a genuine trade-off, MaskedMeanAggregator and why a plain mean
+      shrinks short documents toward the origin.
+  - id: L5.2
+    change: >
+      Move the regex-vs-embedding material out of the old L1 07_vectors and into this
+      lesson, where it belongs: two representations of the same document, one
+      interpretable and one learned, fused with Parallel + Concatenate2D. This is the
+      fusion story done properly -- unlike L1's two-image-encoder case, the two streams
+      here genuinely carry different information.
+    cross_ref: >
+      main_principles.md §3.4 -- L1 measures fusion LOSING with two redundant image
+      encoders. If it wins here with complementary streams, that contrast is the whole
+      point and should be stated explicitly in both lessons. MEASURE IT; do not assume
+      it wins just because the streams look different.
+  - id: L5.3
+    change: "cache_utils.py moves into vectormesh (P2). Update the imports in 05_long_documents and 06_composition."
+  - id: L5.4
+    change: "Fold 01_reweighing / 04_tokenization into the rebuilt spine or move to legacy; decide by reading them."
+
+open_questions:
+  - >
+    Does embedding + regex fusion beat embedding alone on the legal or IMDB task? The
+    round-1 notebooks assert the design is interesting but the ablation is left to the
+    student. Given L1 now teaches that fusion usually loses, L5 needs its own measured
+    number rather than an implication.
