@@ -41,16 +41,17 @@ dependencies = [
     "tomlserializer>=0.2.0",
     "mltrainer[tune]>=0.3.6",
     "flax>=0.12.2",
-    "vectormesh>=0.4.1",
+    "vectormesh>=0.4.4",
 ]
 
 [dependency-groups]
 dev = [
     "isort>=5.13.2",
     "mypy>=1.14.1",
-    "notebooktester>=0.2.1",
+    "notebooktester>=0.3.6",
     "pyright>=1.1.392",
     "ruff>=0.15.16",
+    "ty>=0.0.65",
 ]
 
 [tool.uv.sources]
@@ -59,4 +60,7 @@ dev = [
 executionEnvironments = [
   { root = "notebooks/8_extras/swarms" }
 ]
+
+[tool.ty.environment]
+extra-paths = ["notebooks/0-baseline", "notebooks/2_convolutions", "notebooks/3_recurrent_networks", "notebooks/4_tuning_networks", "notebooks/5_attention"]
 
