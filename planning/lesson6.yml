@@ -1,0 +1,594 @@
+# =============================================================================
+# Lesson 6 — self-supervised learning
+#
+# Written AFTER the notebooks, not before. Lessons 1-5 were planned then built;
+# this one was built then planned, because the owner asked for working code
+# first and because almost every number below had to be measured before it could
+# be claimed. The corrections section is therefore unusually long and unusually
+# load-bearing: five of them overturned something this plan would otherwise have
+# asserted.
+# =============================================================================
+
+meta:
+  lesson: L6
+  dir: notebooks/6_unsupervised
+  status: >
+    Three notebooks built. 01 and 02 are run and green with outputs stored; 03
+    passes notebooktester in test mode and awaits a full run by the owner (the
+    searches cost ~1h and the owner asked to control that). The existing
+    src/*.py scripts are UNTOUCHED — this lesson is extended, not replaced.
+  created: 2026-08-03
+  updated: 2026-08-03
+  phase: phase_5
+  goal: >
+    Close the loop. Lessons 1-5 consume frozen encoders someone else trained;
+    here the student trains one, and learns why the loss cannot tell them
+    whether it worked.
+  sequencing_note: >
+    **`phase_5` is the SSL phase and concerns lesson 6.** Lesson 5 lives in
+    phase_2. The collision is inherited from masterplan and is noted here
+    because this file is where it is most confusing.
+
+# -----------------------------------------------------------------------------
+# Measured findings that changed the plan. Every one of these was a guess first.
+# -----------------------------------------------------------------------------
+corrections:
+
+  - id: C1
+    title: MNIST cannot show that self-supervision does anything
+    measured: >
+      linear probe on RAW PIXELS 0.869; the same probe on a RANDOM untrained CNN
+      0.877. The random network adds nothing, because MNIST is close to linearly
+      separable in pixel space.
+    consequence: >
+      any SSL result on MNIST is measured against a floor that already sits at
+      the ceiling. The owner's instinct ("MNIST is linear separable, so the
+      neural networks are essentially overkill") is exactly right and is now a
+      number.
+    also: >
+      the honest floor is **a linear probe on raw pixels**, not a random network.
+      Both appear in 01 for that reason.
+
+  - id: C2
+    title: EuroSAT is the dataset, and the headroom is why
+    measured: |
+      dataset         cls  rawpix  randCNN     SSL   gain    time
+      MNIST            10   0.869    0.877   0.956  +0.086   177s
+      FashionMNIST     10   0.845    0.780   0.802  -0.044   184s
+      CIFAR10          10   0.340    0.444   0.484  +0.145   634s
+      EuroSAT          10   0.335    0.687   0.791  +0.456   170s
+    why_eurosat: >
+      biggest measured gain by a factor of three; 64x64 aerial tiles, 16.200
+      training images, 10 classes including **Forest**; runs floors-and-probes
+      in 170s on CPU. And it is the domain the owner works in at provincie
+      Utrecht, so 02 rehearses on public data what their team does on private
+      data.
+    two_floors_not_one: >
+      raw pixels 0.335 -> random conv features 0.687 -> trained SSL 0.791. The
+      middle floor is the demanding one, and it teaches that *architecture*
+      buys a lot before *learning* buys anything.
+
+  - id: C3
+    title: EuroSAT's test split is ordered by class — and it bit
+    measured: >
+      the first 2.000 rows of `blanchon/EuroSAT_RGB`'s test split contain only 4
+      of the 10 classes ({0: 596, 1: 608, 2: 573, 3: 223}).
+    what_went_wrong: >
+      the first headroom run sliced the test split WITHOUT shuffling, so every
+      EuroSAT number was scored against a 4-class subset: raw pixels looked like
+      **0.157** instead of 0.335, and SSL like **0.842** instead of 0.791. The
+      gain was reported as +0.685 when it is +0.456. Nothing errored; the shapes
+      were all correct.
+    consequence: >
+      the corrected numbers are in C2 and in the notebook. The mistake itself is
+      now a callout box in 02 — "whenever you slice a split, check what is
+      actually in your slice" — which is worth more than the tidy version.
+
+  - id: C4
+    title: Fashion-MNIST is a measured negative result, and it stays
+    measured: >
+      SSL 0.802 against a raw-pixel floor of 0.845. The self-supervised encoder
+      is **worse than logistic regression on the pixels** — while `repstd` is a
+      healthy 0.0816, so it did not collapse. The optimisation worked perfectly.
+    diagnosis: >
+      RandomResizedCrop(0.4-1.0) + 20 degree rotation train the model to ignore
+      silhouette, aspect ratio and orientation — precisely what separates a
+      shirt from a pullover from a coat. Right for aerial tiles (a rotated field
+      is still a field), wrong for garments.
+    the_lesson: >
+      `designed_vs_learned` pointed at augmentation: **choosing augmentations is
+      choosing what to destroy**, and it is the one part of an SSL pipeline no
+      amount of compute can fix.
+    lineage: >
+      the fifth consecutive "the expensive component did not earn its place"
+      (D9, D15, D18, D23, and now this). Except here it inverts: the *cheap*
+      component (one stop-gradient) is what matters.
+
+  - id: C5
+    title: The collapse ablations reach the BEST loss and the WORST representation
+    measured: |
+      config              loss     repstd   probe    (healthy repstd = 0.088)
+      SimSiam            -0.993    0.0579   0.650
+      BYOL (EMA)         -0.993    0.0598   0.740
+      InfoNCE + EMA      +2.206    0.0873   0.791
+      -- no stop-grad    -1.000    0.0140   0.540
+      -- no predictor    -1.000    0.0006   0.483
+      random encoder        --     0.0060   0.687
+    the_teaching_point: >
+      the two ablations hit the theoretical minimum of the loss and produce
+      encoders **worse than an untrained network**. A loss curve cannot see
+      this. That is why `RepresentationStd` exists and why it is logged beside
+      every loss in this lesson.
+
+  - id: C6
+    title: SimSiam scores below the random floor here — and that is a budget artefact
+    measured: SimSiam 0.650 against a random-encoder floor of 0.687.
+    do_not_conclude: >
+      that SimSiam is a weak method. Published ImageNet linear probe is ~71.3%,
+      alongside MoCo v2's ~71.1%. Three hundred steps on a laptop is not a fair
+      test of the non-contrastive branch, which is known to need careful
+      schedules. The notebook says so explicitly.
+    what_it_does_show: >
+      InfoNCE is the branch that works *easily* at student budget, because its
+      negatives are an explicit repulsive force rather than an emergent one.
+      That is why the MoCo family is the worked example.
+
+  - id: C7
+    title: Segmentation is what happens when you do not aggregate
+    measured: >
+      same frozen DINOv2, same composites: **pooled 0.315, per-patch 0.798**.
+      The pooled vector scores the same on every quadrant, because one 384-dim
+      vector cannot say which of four land types is in the top left.
+    why_it_matters_structurally: >
+      `(B, C, D)` is already the course's spine — L5 spent a notebook on text
+      chunks. An image's patches are the same rung. Aggregate C -> classification;
+      keep C -> segmentation. Segmentation stops being a new architecture family
+      and becomes a one-line pipeline change.
+
+  - id: C8
+    title: A frozen MoCo encoder localises 25 points worse than a supervised one
+    measured: |
+      encoder                geometry    mean     min     max  spread
+      DINOv2-small                2x2   0.783   0.775   0.789   0.013
+      ResNet50 / ImageNet         2x2   0.748   0.735   0.771   0.036
+      MoCo / Sentinel-2           2x2   0.509   0.489   0.529   0.040
+      DINOv2-small                3x3   0.825   0.820   0.830   0.010
+      ResNet50 / ImageNet         3x3   0.740   0.729   0.746   0.017
+      MoCo / Sentinel-2           3x3   0.487   0.480   0.495   0.015
+    protocol: >
+      two geometries x three seeds, hardened deliberately because the owner may
+      make a pretraining decision on it. The two ResNets share grid, cell count
+      and dimensionality, so that row is a fair fight; DINOv2 is at a finer grid
+      and is NOT directly comparable.
+    the_gap_is_real: 24-25 points, against a maximum spread of 0.040 anywhere.
+    the_rule_it_yields: >
+      **the level your objective operates at is the level your features are good
+      at.** MoCo's objective is image-level: make two crops agree. To satisfy it
+      the network must discard where-things-are, since that is what differs
+      between crops. DINOv2 is also self-supervised and localises fine, because
+      iBOT adds a *patch-level* term. So the rule is not supervised-vs-self-
+      supervised; it is about the level of the objective.
+    caveat_that_must_travel_with_it: >
+      this is a **frozen linear probe** result. MoCo's famous detection and
+      segmentation results were obtained by **fine-tuning**. Both can be true:
+      weak frozen patch features, strong fine-tuning initialisation.
+    why_it_matters_here: >
+      the owner's provincie Utrecht model is a MoCo ResNet pretrained on 1M
+      aerial images — exactly this combination. See open_questions L6.Q1.
+
+  - id: C9
+    title: Boundary cells confounded the first encoder comparison by 26 points
+    what_went_wrong: >
+      cells straddling a composite boundary genuinely contain two land types.
+      Scoring them measures the geometry, not the encoder. Excluding them moved
+      ResNet50/ImageNet from 0.506 to **0.769** and MoCo from 0.418 to 0.507.
+    consequence: >
+      the first table understated one encoder by 26 points and would have
+      supported the opposite conclusion about DINOv2's lead. All numbers in C8
+      exclude straddling cells.
+
+  - id: C10
+    title: I-JEPA collapses at laptop budget — the prediction is UNTESTED, not falsified
+    measured: |
+      I-JEPA   600 steps: loss 0.5408 -> 0.0007, repstd 0.0153 (healthy 0.072)
+               per-patch 0.403, whole-tile 0.610  -- both BELOW a random ViT
+      InfoNCE  600 steps: loss 4.6788 -> 1.9538, repstd 0.0703  (healthy)
+               per-patch 0.425, whole-tile 0.698
+      random ViT floor:   per-patch 0.412, whole-tile 0.650
+    diagnosis: >
+      `F.layer_norm` maps a constant token to a fixed vector, so a collapsed
+      encoder produces a trivially predictable target and the loss goes to zero
+      without anything being learnt. A momentum ramp (0.996 -> 0.9999) did not
+      prevent it.
+    do_not_conclude: >
+      that patch-level objectives are worse. C8's prediction is not tested by
+      this — we failed to train a working patch-level encoder at 600 steps, which
+      is a statement about the budget. 03 exists to search for a configuration
+      that does not collapse.
+    also_measured: >
+      this small ViT is much weaker than 01's CNN (0.698 vs 0.791 whole-tile on
+      the same data). ViTs need more data and steps than convnets; the whole
+      experiment is budget-limited.
+
+  - id: C11
+    title: ray raises on duplicated metric/mode for the scheduler, tolerates it for the searcher
+    measured: >
+      `TuneConfig(metric=..., mode=...)` together with
+      `AsyncHyperBandScheduler(metric=..., mode=...)` raises ValueError before
+      any trial runs. The same duplication on `HyperOptSearch` does NOT raise.
+    consequence_for_this_lesson: >
+      03 sets metric/mode in `TuneConfig` only, matching
+      `4_tuning_networks/01_hypertuner.ipynb`, which is the correct pattern.
+    consequence_elsewhere: >
+      `5_attention/05_long_documents.ipynb` carries the duplication on its
+      searcher AND has its scheduler commented out, so it runs green today and
+      is one uncommented line from failing. Flagged, not edited — see L6.Q5.
+    plus: >
+      C11-of-lesson5 (RAY_ENABLE_UV_RUN_RUNTIME_ENV=0 before importing ray)
+      applies here too and is in the notebook.
+
+  - id: C12
+    title: The `Siamese` block does not cover I-JEPA, and saying so is worth more than pretending
+    finding: >
+      `Siamese(online, momentum, predictor, stopgrad)` covers SimCLR, MoCo,
+      BYOL, SimSiam and DINO. It cannot express I-JEPA, because the predictor
+      signatures differ in kind:
+        BYOL/SimSiam:  vector -> vector
+        I-JEPA:        context + POSITION -> representation at that position
+      There is nowhere in the signature to put "which position".
+    decision: >
+      I-JEPA is built as a sibling in 03 rather than forced into the block.
+      Naming precisely where an abstraction stops is a teaching goal, not an
+      admission of failure.
+
+# -----------------------------------------------------------------------------
+decisions:
+
+  - id: D25
+    answers: masterplan Q4
+    decision: >
+      **Lesson 6 is extended, not replaced, and no `9_selfsupervised` is
+      created.** The notebooks are added alongside the existing `src/*.py`
+      scripts and `Makefile`; nothing in them is deleted or rewritten.
+    made_by: owner, 2026-08-03 ("extend 6"; "dont replace the scripts, just add
+      the notebooks next to the existing lesson")
+    rationale: >
+      reconstruction -> contrastive -> predictive is one ladder of "what signal
+      do we learn from?", and les6.md already promises siamese networks (6.7,
+      6.8) and JEPA (6.10). Extending pays an existing debt rather than adding
+      syllabus.
+    consequence: >
+      the autoencoder rung lives only in the scripts, so the notebook sequence
+      starts at rung 2. Accepted; see L6.Q4.
+
+  - id: L6.D1
+    title: EuroSAT everywhere, no new dataset dependency
+    decision: >
+      EuroSAT is the lesson's dataset. Fashion-MNIST appears only as the
+      counter-example in 01 (C4) and is already a course dataset. **No
+      segmentation-mask dataset is added** — LoveDA and OpenEarthMap were
+      checked and every hub copy is a low-download community mirror (risk R3).
+      Composites built from EuroSAT tiles supply per-region ground truth by
+      construction.
+    made_by: owner, 2026-08-03 ("i also lean to using eurosat when possible, no
+      new dataset dependency")
+
+  - id: L6.D2
+    title: Train a small I-JEPA rather than download a pretrained one
+    decision: >
+      `facebook/ijepa_vith14_1k` is **2.52 GB** (ViT-H/14) and
+      `ijepa_vitg16_22k` is 4.05 GB; there is no small or base checkpoint. Too
+      large for a lesson dependency, so 03 trains its own and uses a ray search
+      to look for a non-collapsing configuration.
+    made_by: owner, 2026-08-03 ("ijepa with 2.5gb is really big, so i would in
+      this situation opt for the exemption on the rule, and try to get it to work")
+    accepted_cost: >
+      a laptop-scale I-JEPA may simply not beat the contrastive baseline. 03 is
+      written so that either outcome reads correctly.
+
+  - id: L6.D3
+    title: The search is scored on a probe, not on the loss — and both are shown
+    decision: >
+      03 runs the SAME ray search twice: once scored on training loss, once on a
+      linear probe. Minimising the loss selects *for* collapse (C5, C10), so the
+      wrong search is run deliberately and its result shown.
+    made_by: >
+      owner's suggestion, 2026-08-03 ("wouldnt that be nice to do with ray, eg
+      find optimal momentum for a given architecture & dataset? Guessing this
+      will be a recurring problem for students to understand")
+    what_it_buys: >
+      two lessons. (1) a search is only as good as its objective — TPE is not
+      wrong when it finds a dead encoder, it found what it was asked for. (2)
+      **self-supervision removes labels from training, not from model
+      selection**: the probe needs labels, so you can pretrain on a million
+      unlabelled tiles and still need a few hundred labelled ones to know which
+      run worked.
+
+  - id: L6.D4
+    title: PatchImageVectorizer is a class, not a `pool="none"` flag
+    decision: >
+      `VectorCache.get_dtensor` reads the cached tensor's rank off the RETURN
+      ANNOTATION of `__call__` (cache.py:303). A runtime flag cannot change an
+      annotation, so `pool="none"` would return rank-2 data while the annotation
+      promised rank-1: `jaxtyped` would raise and the metadata would record the
+      wrong `tensordtype`. A sibling class keeps the shape contract honest.
+    made_by: owner, 2026-08-03 ("perfectly fine to create a new class, in the
+      spirit of vectormesh")
+    shipped_in: vectormesh 0.4.4
+
+# -----------------------------------------------------------------------------
+proposed_arc:
+  today: >
+    `src/autoencoder.py`, `show_vae.py`, `vae_embeddings.py`,
+    `query_embeddings.py`, `settings.py` + a Makefile. MNIST VAE, TensorBoard
+    projector for embedding retrieval, hand-rolled `VAEstreamer`. No notebooks.
+  notebooks:
+    - id: "01_selfsupervised.ipynb"
+      state: built, run, outputs stored. 34 cells, ~15 min at full settings.
+      arc: >
+        two views -> the naive loss -> it collapses in 30s -> an instrument
+        (`RepresentationStd`) -> the `Siamese` block -> five configs of one
+        object -> did the space organise? -> the Fashion-MNIST counter-example
+        -> drops into `mltrainer.Trainer` unchanged.
+      teaches: [6.7, 6.8, "designed_vs_learned via augmentation"]
+    - id: "02_patch_tokens.ipynb"
+      state: built, run, outputs stored. 22 cells, ~3 min.
+      arc: >
+        what pooling throws away (`ImageVectorizer` vs `PatchImageVectorizer`
+        side by side) -> composites with ground truth by construction -> pooled
+        0.315 vs per-patch 0.798 -> predicted class maps -> the CNN has a grid
+        too -> three encoders, and the MoCo result.
+      teaches: ["(B,C,D) as a shared rung", "segmentation = do not aggregate", C8]
+    - id: "03_ijepa.ipynb"
+      state: >
+        built, passes notebooktester (2:17 in test mode). **Not yet run at full
+        settings** — ~1h, and the owner asked to control that.
+      arc: >
+        where `Siamese` stops (C12) -> masking as the view-maker -> the
+        position-conditioned predictor -> it collapses -> two ray searches, one
+        wrong on purpose -> train the winner -> test C8's prediction.
+      teaches: [6.10, "a loss that lies", "SSL still needs labels to select models"]
+  net: "0 notebooks -> 3 notebooks; 0 scripts removed"
+  what_stays_hand_rolled: >
+    the `Siamese` block is built in 01 before `vectormesh.components.Siamese` is
+    imported; the ViT, mask sampler and predictor are all written out in 03.
+    `handroll_once_then_reuse` applies: the library version is met *after* the
+    hand-rolled one, never instead of it.
+
+# -----------------------------------------------------------------------------
+make_room:
+  status: >
+    **DEFERRED BY THE OWNER, deliberately, and this is the record of that.**
+    2026-08-03: "Dont make room yet, we will do that at the end when the new
+    material is there. Put that in the guidelines please." Re-confirmed the same
+    day: "make room, yes, but it has to wait."
+  what_this_means: >
+    L6 currently adds three notebooks and cuts nothing. That is a known,
+    owner-sanctioned violation of the `make_room` principle, held open on
+    purpose until the material is finished — not an oversight, and not a
+    precedent for other lessons.
+  when_it_comes_due: >
+    once 03 has had a full run and the lesson is stable. At that point this
+    section must be filled in like every other lesson's.
+  candidates_when_it_does:
+    - >
+      `src/vae_embeddings.py` + `src/query_embeddings.py` (~100 lines) are a
+      VectorCache + cosine similarity, which L1/07_vectors now teaches properly.
+    - >
+      the TensorBoard `embed`/`query`/`tb` Makefile targets — D10 settled MLflow
+      as the single tracker.
+    - >
+      `VAEstreamer` — D5 deleted `BaseDatastreamer`; this is the last hand-rolled
+      streamer in the course.
+    - >
+      local torchvision MNIST in `data/` — every other lesson loads from the hub.
+  not_cut:
+    - >
+      the VAE itself. It is the reconstruction rung of the ladder and goals
+      6.1-6.6, 6.11, 6.12 depend on it.
+
+# -----------------------------------------------------------------------------
+current_state:
+  - >
+    L6 is the least-migrated lesson in the course: hand-rolled streamer,
+    torchvision MNIST on local disk, TensorBoard for tracking, a Makefile +
+    PYTHONPATH script pipeline, and no notebooks. None of that is changed by
+    this plan (D25).
+  - >
+    les6.md promises siamese networks (6.7, 6.8) and JEPA (6.10) and has an
+    EMPTY code column for all three. The lesson lectures them and ships nothing.
+    The three notebooks close that.
+
+learning_goals_delta:
+  file: references/leerdoelen/les6.md
+  unchanged:
+    - "6.1-6.6, 6.9, 6.11, 6.12 — autoencoder, latent space, anomaly detection. Still the scripts."
+  gains:
+    - "6.7 (elements of a siamese network) — now `01`, and the code column can point at it"
+    - "6.8 (when to use siamese networks) — now `01` section 5, five configs of one block"
+    - "6.10 (motivation for JEPA vs autoencoders) — now `03`, and it is the contrast the goal asks for: pixel space vs representation space"
+  strengthened:
+    - >
+      6.4 (latent space as a half-product for other models) — the linear probe
+      protocol makes this measurable rather than asserted.
+  new_candidates:
+    - >
+      "the student can tell a collapsed representation from a healthy one, and
+      knows why the loss cannot" — no current goal covers this and all three
+      notebooks teach it.
+    - >
+      "the student knows that self-supervised model selection still needs
+      labels" (L6.D3).
+
+# -----------------------------------------------------------------------------
+datasets:
+  - name: EuroSAT
+    id: blanchon/EuroSAT_RGB
+    shape: 16.200 train / 5.400 test / 5.400 val, 64x64 RGB, 10 classes
+    licence: check before republishing any derived cache
+    traps:
+      - "**the test split is ordered by class** — shuffle before slicing (C3)"
+    why: C2
+  - name: Fashion-MNIST
+    id: torchvision FashionMNIST (already a course dataset)
+    role: the augmentation counter-example only (C4)
+  - name: torchgeo/resnet50_sentinel2_rgb_moco
+    role: a real MoCo pretrained on Sentinel-2, the same sensor as EuroSAT
+    note: >
+      a plain resnet50 state dict — loads into `torchvision.models.resnet50()`
+      with 318 keys and ZERO unexpected, so **no torchgeo dependency**.
+  - name: ibm-nasa-geospatial/Prithvi-EO-2.0-300M
+    verdict: REJECTED — expects 6-band HLS imagery and ships a custom
+      `prithvi_mae.py` under `terratorch`. Feeding it RGB would be a band
+      mismatch dressed up as a comparison.
+  - name: GeoJEPA
+    verdict: >
+      searched the hub, **does not exist** as a downloadable checkpoint. Raised
+      by the owner from memory; recorded so it is not searched for again.
+
+# -----------------------------------------------------------------------------
+vectormesh_usage:
+  version_check: ">=0.4.4 — all three additions below shipped in it"
+  added_by_this_lesson:
+    - "`PatchImageVectorizer` — (C, D) per image instead of (D). L6.D4."
+    - "`Siamese` — in `components/pipelines.py`, directly under `Parallel`."
+    - "`RepresentationStd` — in `components/metrics.py`, deliberately NOT a `Metric` subclass."
+  design_notes:
+    - >
+      `Siamese` is `Parallel` with the branches' weights coupled and a gradient
+      gate on one side. Placing it in the same file, under `Parallel`, is the
+      explanation.
+    - >
+      the EMA update lives inside `forward()`, not in the training loop, because
+      `mltrainer.Trainer.trainbatches` has **no per-step hook**. Verified: SSL
+      drops into the existing Trainer with zero library changes, because
+      `_to_device` already handles tuple inputs and metrics are called as
+      `m(y, yhat)`.
+    - >
+      `RepresentationStd` overrides `__call__` because `Metric` assumes a
+      `(y, yhat)` pair of tensors and moves both to a device, while this is a
+      property of a representation alone.
+  known_gap:
+    - >
+      `PatchImageVectorizer` wraps a model **by hub name only**. A local
+      checkpoint (the owner's Utrecht MoCo, the torchgeo weights) has no hub id,
+      so 02's ResNet comparison takes a manual path. See L6.Q1.
+  shapes_taught:
+    - "(B, C, D) where C is image patches — the same rung L5 taught with text chunks"
+    - "aggregate C -> classification; keep C -> segmentation"
+
+# -----------------------------------------------------------------------------
+tasks:
+  - id: L6.1
+    title: 01_selfsupervised.ipynb
+    status: DONE — built, run, 34 cells, outputs stored
+  - id: L6.2
+    title: 02_patch_tokens.ipynb
+    status: DONE — built, run, 22 cells, on vectormesh 0.4.4
+  - id: L6.3
+    title: 03_ijepa.ipynb
+    status: >
+      BUILT + TESTED, awaiting a full run. Uses `param(full, test=...)`
+      throughout so notebooktester runs it in ~2 min.
+    owner_action: run it at full settings (~1h) and record the outcome here
+  - id: L6.4
+    title: Update les6.md's code column for 6.7, 6.8, 6.10
+    status: TODO
+  - id: L6.5
+    title: ModulePatchVectorizer — let a local checkpoint into the cache
+    status: PROPOSED, not built. See L6.Q1.
+  - id: L6.6
+    title: make_room accounting
+    status: DEFERRED by the owner until the material is finished
+  - id: L6.7
+    title: Capstone — publish your own cache (masterplan P5.3)
+    status: NOT STARTED. The pieces exist (a trained encoder, a vectorizer
+      protocol); what is missing is the wrap-your-encoder-as-a-BaseVectorizer
+      adapter (masterplan VM.4).
+
+# -----------------------------------------------------------------------------
+runtime_budget:
+  measured:
+    01_selfsupervised: "~15 min full (the five-config table is ~10 of it)"
+    02_patch_tokens: "~3 min full"
+    03_ijepa: "~1h full (two 16-trial searches dominate); 2:17 under notebooktester"
+  the_param_convention: >
+    every expensive constant in 03 is `param(full, test=...)`, documented in
+    CLAUDE.md. It is not only a speed-up: the cheap run caught two real bugs
+    before a full run could waste an hour on them — a NaN probe that would have
+    failed 40 minutes in, and a silent one where the search ranked configs by
+    their *initial* loss and would have produced a plausible, meaningless table.
+  if_it_has_to_shrink: >
+    03's `N_TRIALS` 16 -> 8 and `SEARCH_STEPS` 400 -> 300 roughly halves it. The
+    two searches still diverge, with less confidence in the winner.
+
+# -----------------------------------------------------------------------------
+depends_on:
+  masterplan: [D25, "P5.1", "P5.2", "P5.3", "Q4 (answered by D25)"]
+  vectormesh_version: ">=0.4.4"
+  mltrainer_version: ">=0.3.6"
+  other_plans:
+    - "lesson5.yml — (B, C, D) and the aggregator vocabulary are assumed known"
+    - "lesson4.yml — ray/TPE/ASHA is reused, not re-derived (D24's precedent)"
+
+# -----------------------------------------------------------------------------
+open_questions:
+
+  - id: L6.Q1
+    question: >
+      How does a LOCAL checkpoint get into a VectorCache? The owner's Utrecht
+      model is a MoCo ResNet pretrained on 1M aerial images — a state dict with
+      no hub id, which `PatchImageVectorizer` cannot wrap.
+    proposal: >
+      a sibling `ModulePatchVectorizer(module=..., transform=..., label=...)`
+      that fingerprints by **sha256 of the state dict** rather than by name.
+      This also closes an acknowledged blind spot in
+      `BaseVectorizer.fingerprint_fields`: "a locally mutated or fine-tuned
+      model reusing the same tag is not distinguishable here."
+    sub_questions:
+      - "should the hash cover buffers as well as parameters? (BatchNorm stats differ after fine-tuning — probably yes)"
+      - "should `transform` be in the fingerprint? (resize/normalisation change the vectors — probably yes)"
+    status: awaiting owner
+
+  - id: L6.Q2
+    question: Does the ray search in 03 find a configuration that does not collapse?
+    status: >
+      UNKNOWN. Deliberately not run — the owner asked to control the expensive
+      runs. If the answer is no, that is a publishable result for the lesson,
+      not a broken notebook, and the pretrained-I-JEPA route (rejected in L6.D2
+      on size) becomes the only way to test C8's prediction.
+
+  - id: L6.Q3
+    question: >
+      Is the Utrecht MoCo model actually suitable for the tree-finding task, given C8?
+    what_is_known: >
+      C8 predicts a frozen MoCo ResNet will localise ~25 points worse than a
+      generic ImageNet one. But that is a *frozen probe* result, and MoCo's
+      strong dense-task results were all fine-tuned.
+    cheap_next_step: >
+      run the Utrecht checkpoint through 02's per-patch comparison — a ~3 minute
+      experiment that says whether the freeze-and-probe workflow is viable for
+      it at all. If not, the next pretraining run wants a patch-level objective
+      (DenseCL, PixPro, I-JEPA).
+    status: awaiting the model
+
+  - id: L6.Q4
+    question: >
+      Should the reconstruction rung get a notebook, so the ladder starts where
+      the lesson starts?
+    context: >
+      the ladder is reconstruction -> contrastive -> predictive. Rungs 2 and 3
+      are notebooks; rung 1 is only the scripts (D25). A student working through
+      the notebooks begins at step 2.
+    status: >
+      raised twice, deferred twice. Lowest-stakes item in this plan. Doing
+      nothing is a defensible answer as long as the lecture covers it.
+
+  - id: L6.Q5
+    question: >
+      Should `5_attention/05_long_documents.ipynb` be fixed pre-emptively?
+    context: >
+      it carries C11's duplication on its searcher and has its scheduler
+      commented out, so it runs green today and is one uncommented line from a
+      confusing failure.
+    status: flagged, not edited — out of this lesson's scope

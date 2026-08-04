@@ -728,6 +728,36 @@ decisions:
     date: 2026-08-01
     planned_in: planning/lesson5.yml (C10, D23)
 
+  - id: D25
+    answers: Q4
+    title: Lesson 6 is extended, not replaced — and no 9_selfsupervised
+    decision: >
+      **The SSL material extends `notebooks/6_unsupervised`.** Three notebooks
+      are added *alongside* the existing `src/*.py` scripts and Makefile;
+      nothing in them is deleted or rewritten. No `9_selfsupervised` directory
+      is created.
+    made_by: >
+      owner, 2026-08-03 — "extend 6", and separately "dont replace the scripts,
+      just add the notebooks next to the existing lesson".
+    rationale: >
+      reconstruction -> contrastive -> predictive is one ladder of "what signal
+      do we learn from?", and les6.md **already** promises siamese networks
+      (goals 6.7, 6.8) and JEPA (6.10) with an empty code column for all three.
+      So this pays an existing debt rather than adding syllabus.
+    consequence_accepted: >
+      the reconstruction rung lives only in the scripts, so the notebook
+      sequence starts at rung 2. Raised twice, deferred twice — lesson6.yml
+      L6.Q4.
+    make_room_note: >
+      **L6 adds three notebooks and cuts nothing, on purpose.** The owner
+      deferred the accounting until the material is finished ("Dont make room
+      yet, we will do that at the end when the new material is there";
+      re-confirmed "make room, yes, but it has to wait"). This is the third
+      explicit, owner-sanctioned exception to `make_room` — recorded so it reads
+      as a decision, not a gap. Candidates are listed in lesson6.yml.
+    date: 2026-08-03
+    planned_in: planning/lesson6.yml (D25, C1-C12, L6.Q1-Q5)
+
   - id: D22
     answers: P2.2, and lesson3.yml L3.Q1
     note_on_the_id: >
@@ -917,10 +947,30 @@ cuts:
     status: partially agreed — the L3 refactor pays for itself; the two new
       phase_3 notebooks still need an accounting
   - phase: phase_5
-    adds: SSL (contrastive, then predictive); publish-your-own-cache capstone
+    adds: >
+      SSL (contrastive, then predictive) — three notebooks in
+      notebooks/6_unsupervised: 01_selfsupervised, 02_patch_tokens, 03_ijepa.
+      Publish-your-own-cache capstone still to come.
     cuts:
-      - TBD — depends on Q4 (extend L6 vs new lesson) and Q6 (still 8 lessons)
-    status: open — blocks phase_5 approval
+      - >
+        **NONE YET, deliberately.** Deferred by the owner 2026-08-03 until the
+        material is finished: "Dont make room yet, we will do that at the end
+        when the new material is there", re-confirmed as "make room, yes, but it
+        has to wait".
+    status: >
+      DEFERRED, not open. Q4 is answered (D25), so the dependency this row
+      carried is gone; what remains is an accounting the owner has explicitly
+      postponed. **It no longer blocks phase_5 — phase_5 shipped three notebooks
+      without it, knowingly.** This is the third named exception to make_room,
+      after L2's ledger and L4's.
+    when_it_comes_due: >
+      once 03_ijepa has had a full run and the lesson is stable.
+    candidates: >
+      listed in lesson6.yml § make_room — the vae_embeddings/query_embeddings
+      scripts (~100 lines that L1/07_vectors now teaches properly), the
+      TensorBoard Makefile targets (D10 settled MLflow), `VAEstreamer` (D5
+      deleted BaseDatastreamer), and local torchvision MNIST. The VAE itself is
+      explicitly not a candidate — goals 6.1-6.6/6.11/6.12 depend on it.
 
 non_goals:
   - Rewriting the course into a vectormesh tutorial; the course keeps its own
@@ -2021,8 +2071,7 @@ open_questions:
   - id: Q8
     status: answered — see D12
   - id: Q4
-    question: Do the SSL lessons extend 6_unsupervised, or become a new
-      9_selfsupervised (leaving L6 as the classic autoencoder lesson)?
+    status: answered — see D25
   - id: Q5
     question: What is the per-lesson compute budget you want to guarantee
       (e.g. "every notebook under 10 minutes on an M1 CPU")? Everything in

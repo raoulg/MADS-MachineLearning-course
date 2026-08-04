@@ -1307,7 +1307,7 @@ open_questions:
       ANSWERED 2026-08-01 — the owner asked for a new notebook now: "make a
       new notebook showcasing the timesfm material, I will check it."
     built: >
-      `notebooks/3_recurrent_networks/05_foundation_models.ipynb` — 17 cells,
+      `notebooks/3_recurrent_networks/07_foundation_models.ipynb` — 17 cells,
       standalone (does not depend on the not-yet-built 01-04 refactor).
       Covers: pedestrian_counts load + windowing, naive/seasonal-naive/linear
       baselines, TimesFM zero-shot (C10's headline result), the frozen-encoder
