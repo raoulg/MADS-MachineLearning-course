@@ -1,10 +1,9 @@
 lesson: 2
 title: "Time series: a different kind of data"
-status: specified   # redo, 2026-08-05 — see `redo` below. Most of the actual notebook
-                     # content already exists and has been run (round-1 3_recurrent_networks
-                     # rebuild, folder renamed notebooks/2_timeseries/ 2026-08-05). This plan
-                     # is a resequence + one dataset swap + one notebook split + one new
-                     # notebook, not a from-scratch build. See main_principles.md D14–D17.
+status: done   # redo built and RUN 2026-08-05 -- see `redo` below. All nine notebooks
+               # (01-09) executed via `jupyter nbconvert --execute` (full param() values)
+               # and pass `uv run notebooktester notebooks/2_timeseries/ -t 300 -pb -f`
+               # (test mode) as a whole-folder run: 9 passed, 0 failed, ~40s.
 depends_on: [lesson1]
 
 redo: >
@@ -169,141 +168,177 @@ notebooks:
 
   - file: 03_decomposition_and_nbeats.ipynb
     title: "Putting the decomposition inside the architecture"
-    status: promote_and_extend
-    moved_from: notebooks/2_timeseries/05_nbeats.ipynb   # was notebook 5, becomes notebook 3
+    status: done
+    moved_from: notebooks/2_timeseries/05_nbeats.ipynb   # was notebook 5, now notebook 3
     content: >
-      Existing content, reordered earlier and extended. Keeps: a series with something for
-      a Fourier basis to find (pedestrian_counts, FFT plot with 12h/24h markers already
-      built), "a basis is a fixed set of shapes, the network picks the mix", the N-BEATS
-      block and stack, baselines first (naive/linear beat N-BEATS — keep this, it is the
-      same honest result as notebook 02 and main_principles.md §1.2), then "ask the model
-      what it thinks the series is made of" (interpretable stack, trend+seasonality
-      readout).
-    extension: >
-      New: after the existing ETTh1 contrast ("the same architecture on a series with no
-      daily cycle"), add sunspot as a second, different kind of contrast — not "no cycle"
-      but "a cycle that doesn't sit at a fixed period." Fit the same fixed-period
-      seasonality basis to it, show the fit degrading relative to pedestrian_counts, and
-      ask students to say why before revealing the cycle-length variance. This is the
-      "not everything cyclic is seasonal" exercise from the planning conversation, made
-      concrete rather than asserted.
-    verified: true   # pedestrian FFT peaks, ETTh1 contrast, and the naive/linear-beats-NBEATS
-                      # result are all already measured in the existing notebook.
-    open_question: >
-      Whether sunspot becomes a full §5.x section or a guided exercise at the end. A full
-      section costs another dataset load + basis fit in the runtime budget; an exercise
-      keeps runtime down and makes the prediction ("will the fit be as tight as
-      pedestrian's? why not?") the student's to make first. Leaning exercise — matches how
-      L1 posed fusion as a hypothesis (D10) rather than a demonstration.
+      Existing content, reordered earlier, headings renumbered 5.x -> 3.x. Keeps: a series
+      with something for a Fourier basis to find (pedestrian_counts, FFT plot with 12h/24h
+      markers), "a basis is a fixed set of shapes, the network picks the mix", the N-BEATS
+      block and stack, baselines first (naive/linear beat N-BEATS — main_principles.md
+      §1.2), "ask the model what it thinks the series is made of" (interpretable stack),
+      and the ETTh1 "no daily cycle" contrast.
+    extension_built: >
+      §3.7 "A cycle that is not a season: sunspots" — resolved the open_question below in
+      favour of a full section, not an exercise, once the multi-scale framing (Schwabe +
+      Gleissberg, see main_principles.md §3.8) gave it a real result to report rather than
+      just a contrast. Fits the whole 203-year series directly (theta as a free
+      `nn.Parameter`, no MLP — one series has nothing to generalise a theta-producing
+      network across), citing MADS-DAV's `03.2-statistics-of-time.ipynb`, which hands the
+      topic forward explicitly. Measured: trend+Schwabe(11yr) R²=0.467; +Gleissberg(87yr)
+      R²=0.510; capacity-matched control (more harmonics, same period, same param count)
+      R²=0.467 — confirms the gain is the new period, not more parameters. Suess/de Vries
+      (~210yr) named as unresolvable at 0.97 repeats in the data.
+    verified: true
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05.
 
   - file: 04_probabilistic.ipynb
     title: "The line is not the answer"
-    status: retarget_dataset
-    moved_from: notebooks/2_timeseries/03_probabilistic.ipynb   # was notebook 3, becomes notebook 4
+    status: done
+    moved_from: notebooks/2_timeseries/03_probabilistic.ipynb   # was notebook 3, now notebook 4
     content: >
-      Existing content, dataset swapped. Keeps: the width is real and not the model's
-      fault, CRPS as one number that scores a distribution, the free baseline named again,
-      a Gaussian head trained with NLL, calibration checked (not assumed), a quantile head
-      dropping the Gaussian assumption, the linear-model control, and the Autoformer/
-      PatchTST comparison.
+      Existing content, dataset swapped, headings renumbered 3.x -> 4.x. Keeps: the width
+      is real and not the model's fault, CRPS as one number that scores a distribution,
+      the free baseline named again, a Gaussian head trained with NLL, calibration checked
+      (not assumed), a quantile head dropping the Gaussian assumption, the linear-model
+      control, and the Autoformer/PatchTST comparison.
     dataset_change: >
       D15 / main_principles.md §3.8. ETTh1 -> australian_electricity_demand throughout.
-      Every number in this notebook needs re-measuring against the new series before it is
-      run again — none of the existing ETTh1 figures (Gaussian NLL, CRPS, calibration plot)
-      carry over. This is real implementation work, not a find-and-replace.
-    open_question: >
-      Whether to keep one ETTh1 cell as an explicit "and here is the harder, real-world
-      case" coda, now that the main notebook uses a calmer series. Not decided — costs one
-      more model fit, buys a direct callback to notebook 02's ETTh1 baseline and to the
-      literature.
+      New loader `australian_electricity.py`: unlike `ett.py`'s month-scale rolling-eval
+      boundaries, this dataset's train/val/test rows differ by only 60 steps, so it splits
+      by calendar time instead (last year test, year before val, ~11.2yr train) — documented
+      in the module why `ett.py`'s trick does not transfer. W,H rescaled to DAY=48 (four
+      days history, one day horizon, same physical span as the hourly W=96,H=24
+      elsewhere). Autoformer's decomposition kernel and PatchTST's patch geometry rescaled
+      to match (patch count held at 11, same as the W=96 case).
+    resolved: >
+      Every number re-measured, not carried over. Two findings changed shape from the
+      ETTh1 version rather than just changing value: the free baseline (`naive +
+      residuals`) is now clearly LAST (CRPS 0.44 vs 0.21-0.24 trained), not "competitive,
+      not last" as on ETTh1 — written up as a second, dataset-dependent finding, not
+      patched to match the old claim. GRU+gaussian calibration is close on 5/6 levels,
+      over-covered only at 80% (82%), replacing the old "curve sits above the diagonal,
+      close to 90%" claim, which does not hold here. `linear + quantiles` is the outright
+      best CRPS (0.2062) and worst-calibrated (|80-cov|=0.241) — same shape of result as
+      before, sharper.
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05.
 
   - file: 05_gates_highways_moe.ipynb
     title: "Gate, highway, or route: one idea from three papers"
-    status: new_split
+    status: done
     split_from: notebooks/2_timeseries/04_composition.ipynb section 4.6 "The routing family"
     content: >
-      Cite the sources directly rather than presenting the mechanism as free-floating:
-      the GRU/LSTM gate (Cho et al. 2014 / Hochreiter & Schmidhuber 1997), Highway Networks
-      (Srivastava, Greff & Schmidhuber 2015), and sparse mixture-of-experts / Switch
-      Transformer as the same "learned keep-or-replace" idea scaled to routing between
-      whole sub-networks. Build a Gate, a Highway block, and a small MoE with
-      vectormesh Serial/Parallel, on the same windowed series notebook 02 already
-      established (ETTh1, so results are directly comparable to the existing baseline
-      table).
+      Not a literal extraction of §4.6 (that section was tightly coupled to
+      `04_composition`'s `ChunkFusion`/patch-feature machinery and its specific "loses on
+      four patches" result) — a self-contained rebuild on the same ETTh1 window
+      `02_basemodels` established, so results are directly comparable to that notebook's
+      table. Cites the GRU/LSTM gate (Cho et al. 2014; Hochreiter & Schmidhuber 1997),
+      Highway Networks (Srivastava, Greff & Schmidhuber 2015), and dense/sparse
+      mixture-of-experts (Jacobs & Jordan 1991; Shazeer et al. 2017) as one idea at
+      increasing resolution.
     framing: >
-      D16. Explicit in the notebook: this is a general-purpose composition primitive, not
-      a time-series trick — it is introduced here because the lesson has a running example
-      ready, the same way L1 introduced ray.tune where a two-second training run made it
-      obviously worth the investment. One callback sentence to L1's fusion notebook
-      (D10/§3.4c): "this is another way two streams can combine besides concatenation."
-    exercises:
-      - Predict whether a Highway block beats a plain two-layer MLP on the ETTh1 baseline before running it, then measure.
-      - Turn a gate off (force it to always pass the input through) and confirm the block collapses to the identity plus residual, the way notebook 03's block collapse argument predicts.
-    open_question: >
-      What happens to the REST of 04_composition.ipynb (hand-crafted features vs learned
-      representation, fusion altitude, the "why the features had nothing to add" finding)?
-      That content is real, measured, and good — but it's not part of the buildup this
-      redo specifies. Recommend: demote to an optional appendix notebook (parallel to L1's
-      01c pattern), not delete — it is a second, different-modality case of L1's
-      no-free-lunch finding (D10) and worth keeping findable. Not decided; flagging rather
-      than cutting unilaterally.
+      D16. Explicit in the notebook: general-purpose composition primitive, not a
+      time-series trick — introduced here because the lesson has a running example ready,
+      the way L1 introduced ray.tune where a two-second run made it obviously worth it.
+      Callback to L1's fusion notebook (D10/§3.4c): "another way two streams can combine
+      besides concatenation."
+    measured: >
+      3 seeds, `EPOCHS=10`. `+ Gate` (0.1715 MAE, 11,928 params) ties its capacity-matched
+      control `deeper MLP, no gate` (0.1716 MAE, identical param count) almost exactly —
+      the control confirms the gate mechanism itself bought nothing beyond its parameter
+      budget here. `+ Highway` is the worst trained model (0.1871, worse than plain
+      `linear`) at 9x the linear model's parameters. `+ MoE` costs 3x `plain MLP`'s
+      parameters and scores worse. Same shape of result as `04_composition`'s own routing
+      experiment (now `09_composition_extra`), reached from a different window — not a
+      dataset-specific fluke.
+    verified: true
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05.
 
   - file: 06_search.ipynb
     title: "Searching architectures, twice"
-    status: new
+    status: done
     content: >
-      D17. Mirrors L1 notebook 04's shape exactly, in a second modality: one param_space
-      dict, ray.tune + HyperOptSearch (TPE), read the result the same way — which axis
-      actually moved the metric. Candidate search space: basis (generic vs interpretable
-      N-BEATS stack from notebook 03), gate on/off and highway depth (from notebook 05),
-      window size, lr. Log to mlflow the same way L1 notebook 04 §4.2's round3_addendum
-      does (one summary row per search, not per trial).
-    open_question: >
-      Which dataset. Needs the same check L1 did before committing (main_principles.md
-      §3.4b): does the search space actually spread on this series, or is it flat like
-      EuroSAT was? Untested — pedestrian_counts is the natural candidate (real headroom
-      over the naive baseline per notebook 02's shape), but this needs measuring, not
-      assuming, before the notebook is written. Flagged explicitly per the "verify before
-      asserting" standing rule — this is exactly the kind of claim that was wrong before in
-      this course (§3.4b, EuroSAT).
+      D17. Mirrors L1 notebook 04's shape: one param_space dict, ray.tune + HyperOptSearch
+      (TPE), read the result the same way — which axis actually moved the metric. Search
+      space: mechanism (plain/gate/highway/moe, from notebook 05), hidden width, n_experts
+      (moe only), lr, on pedestrian_counts (W=168,H=24, matching notebook 03) rather than
+      notebook 05's ETTh1 window, so the router has a real daily cycle to work with. Logs
+      one mlflow summary row per search, matching L1 notebook 04 §4.2's convention.
+    resolved: >
+      Dataset question (below) resolved by running the search itself rather than a
+      pre-check: pedestrian_counts, measured. 24 trials, 105s. Best trial is `plain`
+      (0.2624 MAE, hidden=128), beating the hidden=64 baseline (0.2805 +/- 0.0021) by more
+      than 2 std — but still no gate; `gate`'s best (0.2635) is close but does not win.
+      Third measured case of the same finding, after `04_composition`'s four-patch window
+      and `05_gates_highways_moe`'s ETTh1 window: a real cycle to route on still did not
+      make gating earn its parameters here. Written up honestly rather than left as a
+      dangling implication from the notebook's own framing.
     params:
       - N_TRIALS = param(24, test=2)
       - EPOCHS = param(15, test=1)
+    run: jupyter nbconvert --execute (full, 24 real trials) + notebooktester -f (test) — both green, 2026-08-05.
 
   - file: 07_exercise.ipynb
     title: "Your own series, your own negative result"
-    status: retarget
+    status: done
     moved_from: notebooks/2_timeseries/06_exercise.ipynb
+    found_stale: >
+      06_exercise.ipynb was NOT round-1 time series content — it was leftover
+      gesture-classification RNN exercise material (`mads_datasets`, `rnn_models.BaseRNN`,
+      MNIST comparisons), never actually rebuilt despite the old lesson3.yml's
+      `status: mostly_done` claiming otherwise. This is the one place in the redo where
+      "hallucinated planning" (the user's original framing) turned out to be real: not
+      opus-authored prose, but a status field asserting a rebuild that never happened.
+      Replaced outright rather than "retargeted."
     content: >
-      Retarget to the new sequence: establish a baseline (02's habit) on a series of the
-      student's choice from the Monash archive, decompose it, try N-BEATS, say whether
-      probabilistic forecasting is worth it here, and try one gated architecture. Same
-      "must contain a negative result" deliverable requirement as L1 notebook 05.
+      Establish a baseline (02's habit) on a series of the student's choice from the
+      Monash archive, decompose it, try N-BEATS, judge whether probabilistic forecasting
+      is worth it, try one gated architecture against its capacity-matched control. Same
+      "must contain a negative result" deliverable requirement as L1 notebook 05. Worked
+      end to end on `traffic_hourly` (deliberately the noisiest series characterised in
+      main_principles.md §3.8, spectral top-5/total 0.38) as a running template: seasonal
+      naive MASE 0.978, linear only marginally ahead at 0.935.
+    verified: true
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05.
 
   - file: 08_foundation_models.ipynb
     title: "Foundation models, and how to decide whether to believe one"
-    status: keep_and_renumber
-    moved_from: notebooks/2_timeseries/07_foundation_models.ipynb   # was notebook 7, becomes notebook 8
+    status: done
+    moved_from: notebooks/2_timeseries/07_foundation_models.ipynb   # was notebook 7, now notebook 8
     content: >
-      Existing, real, measured content — no change proposed. Baselines at a longer window,
-      TimesFM zero-shot, the contamination check that has to come before the celebration,
-      a result contamination cannot explain away, and the closing rule (does the encoder
-      compress or expand). This is the deliberate tension flagged in the old lesson3.yml
-      (L3.2): a time-series foundation model IS a frozen encoder, so L1's idea partly
-      returns right at the end of the one lesson built to argue it doesn't apply. Keep that
-      tension explicit rather than letting the two lessons read as silently inconsistent.
+      Existing, real, measured content — no change beyond renumbering 6.x -> 8.x headers
+      (no stale cross-references found). Baselines at a longer window, TimesFM zero-shot,
+      the contamination check that has to come before the celebration, a result
+      contamination cannot explain away, and the closing rule (does the encoder compress
+      or expand). This is the deliberate tension the old lesson3.yml flagged (L3.2, now
+      folded into this file's history): a time-series foundation model IS a frozen
+      encoder, so L1's idea partly returns right at the end of the one lesson built to
+      argue it doesn't apply.
     verified: true
+    run: notebooktester -f (test mode) — green, 2026-08-05. Full run unnecessary, no code changed.
+
+  - file: 09_composition_extra.ipynb
+    title: "Composition: a representation you designed, next to one the model learned"
+    status: done
+    moved_from: notebooks/2_timeseries/04_composition.ipynb
+    content: >
+      D16's open_question resolved: demoted to an optional appendix (parallel to L1's 01c
+      pattern), not deleted and not folded into 05. Marked explicitly in-notebook as
+      optional/not part of the graded 01-08 sequence, with a note explaining why (its §4.6
+      routing experiment moved to 05 with proper citations; the rest — hand-crafted
+      features vs. a learned representation, fusion altitude, the three ablations that
+      catch a false positive — is a real, measured, second no-free-lunch case worth
+      keeping findable).
+    verified: true
+    run: notebooktester -f (test mode) — green, 2026-08-05. Content unchanged beyond the
+      appendix banner, so no full re-run was needed.
 
 migration_from_round1:
   policy: >
     Physical rename executed 2026-08-05: notebooks/3_recurrent_networks/ ->
-    notebooks/2_timeseries/ (git mv, history preserved). Individual notebook files inside
-    keep their round-1 filenames for now; the resequencing above (particularly moving
-    05_nbeats before 03_probabilistic, and splitting 04_composition) is planned but NOT
-    yet executed at the file level — that is real authoring work (reordering cells,
-    re-running against the new dataset, writing two new notebooks), tracked here the same
-    way lesson1.yml distinguished "specified" from "done." A notebook counts as done when
-    it has been run (CLAUDE.md), not when this plan says where it goes.
+    notebooks/2_timeseries/ (git mv, history preserved). All nine notebooks now match the
+    target order and have been executed both in full (`jupyter nbconvert --execute`) and
+    in test mode (`notebooktester -f`) — this redo is `status: done`, not `specified`,
+    per CLAUDE.md's "a notebook counts as done when it has been run."
   folder_renames_done:
     - notebooks/3_recurrent_networks/ -> notebooks/2_timeseries/
     - notebooks/4_tuning_networks/ -> notebooks/3_tuning_networks/
@@ -316,31 +351,14 @@ migration_from_round1:
   pyproject_updated: >
     [tool.ty.environment] extra-paths in pyproject.toml updated to match (2_convolutions and
     3_recurrent_networks/4_tuning_networks/5_attention entries replaced).
-  file_level_todo:
-    - Rename 05_nbeats.ipynb -> 03_decomposition_and_nbeats.ipynb, renumber 03_probabilistic
-      -> 04, add the sunspot section/exercise.
-    - Rename 03_probabilistic.ipynb -> 04_probabilistic.ipynb, re-measure every number
-      against australian_electricity_demand.
-    - Split 04_composition.ipynb §4.6 into new 05_gates_highways_moe.ipynb; decide the fate
-      of the rest of 04_composition.ipynb (open_question above).
-    - Write 06_search.ipynb from scratch, after measuring which dataset actually spreads
-      (open_question above).
-    - Renumber 06_exercise.ipynb -> 07, 07_foundation_models.ipynb -> 08.
-    - Update ett.py / ts_features.py imports across whatever moves.
-    - Add a sunspot loader alongside the existing pedestrian_counts loader in
-      03_decomposition_and_nbeats.ipynb (same Monash parquet-convert pattern as ett.py).
-    - Run `uv run notebooktester notebooks/2_timeseries/ -t 300 -pb` once the above lands.
-
-open_questions:
-  - >
-    Fate of 04_composition.ipynb's non-gating content (hand-crafted features vs learned
-    representation, fusion altitude) — see notebook 05's open_question above.
-  - >
-    Whether sunspot gets a full section or an exercise in notebook 03 — see that notebook's
-    open_question above.
-  - >
-    Whether notebook 04 keeps an ETTh1 coda after the australian_electricity_demand switch
-    — see that notebook's open_question above.
-  - >
-    Which dataset notebook 06's search actually runs on — needs the same "does this axis
-    spread" check L1 did (§3.4b) before it is written, not assumed.
+  file_level_done:
+    - "05_nbeats.ipynb -> 03_decomposition_and_nbeats.ipynb, renumbered, sunspot §3.7 added."
+    - "03_probabilistic.ipynb -> 04_probabilistic.ipynb, retargeted, every number re-measured."
+    - "04_composition.ipynb §4.6 -> new 05_gates_highways_moe.ipynb; remainder ->
+       09_composition_extra.ipynb (optional appendix)."
+    - "06_search.ipynb written from scratch; dataset question resolved by running the
+       search (pedestrian_counts, real spread found)."
+    - "06_exercise.ipynb (stale legacy RNN content) replaced outright by 07_exercise.ipynb."
+    - "07_foundation_models.ipynb -> 08_foundation_models.ipynb, renumbered."
+    - "australian_electricity.py added alongside ett.py / ts_features.py."
+    - "uv run notebooktester notebooks/2_timeseries/ -t 300 -pb -f: 9 passed, 0 failed."
