@@ -70,70 +70,79 @@ learning_goals:
     result the way L1 taught — which axis moved the metric, and by how much.
 
 datasets:
+  # D18, 2026-08-05: consolidated from five datasets (ETTh1, pedestrian_counts, sunspot,
+  # australian_electricity_demand, traffic_hourly) to three, on direct user feedback that
+  # five across nine notebooks was real sprawl and ETTh1's six-covariate domain added
+  # confusion an unfamiliar dataset didn't need to. ETTh1 dropped from the graded sequence
+  # entirely; kept only in 09_composition_extra (optional appendix), documented below.
+  spine:
+    name: sunspot (daily)
+    source: Monash-University/monash_tsf, config sunspot; loaded via sunspot_daily.py
+    used_in: [01_windowing, 02_basemodels, 03_decomposition_and_nbeats (§3.6 contrast),
+              08_foundation_models]
+    continuity: >
+      Students have already met sunspots, in MADS-DAV (03.2-statistics-of-time.ipynb):
+      statsmodels seasonal_decompose fails on it there, and DAV's own closing notes hand
+      the topic forward explicitly ("In the course on Machine Learning we will go much
+      deeper into this topic").
+    why: >
+      Replaces ETTh1 as the windowing/baseline spine. Same pedagogical role — a series
+      where the "obvious" season is not the strong baseline — without ETTh1's unfamiliar
+      six-covariate electricity-transformer domain. Verified, not assumed:
+        - Real gaps only pre-1849 (3240 of the first ~11,300 days). `sunspot_daily.py`
+          starts at 1848-12-22: 62,617 consecutive daily points, no missing days.
+        - A genuine ~27-day quasi-period (solar synodic rotation), distinct from any
+          calendar season: ACF has a local maximum at lag 26-28 days (0.77, above its
+          lag-14 and lag-60 neighbours, 0.68 and 0.70); the spectrum's short-period peaks
+          cluster at 26.8-28.2 days. Day-to-day persistence is still far stronger
+          (acf(1d)=0.96) — naive beats seasonal-naive(27d), the same shape of result
+          ETTh1 gave, now on a series with no covariates to explain away.
+        - The single largest peak in the *entire* daily-resolution spectrum (measured
+          over the 151-year training span) sits at ~11 years (3951 days) — the Schwabe
+          cycle is visible even at daily resolution, ~160x the power of the 27-day
+          rotation peak. An 81-day window cannot reach it; that gap is what
+          `03_decomposition_and_nbeats` §3.7's yearly zoom-out exists to close.
   decomposition_demo:
     name: pedestrian_counts
     source: Monash-University/monash_tsf, config pedestrian_counts
+    used_in: [03_decomposition_and_nbeats (primary demo), 06_search]
     why: >
-      Already in use (05_nbeats.ipynb, existing FFT cell). Hourly Melbourne footfall,
-      66 series, clean 12h/24h spectral peaks — spectral top-5/total = 0.81, the highest
-      of every series checked. See main_principles.md §3.8. The daily cycle a fixed-period
-      seasonal basis is built for.
-  decomposition_contrast:
-    name: sunspot
-    source: Monash-University/monash_tsf, config sunspot
-    added: true    # not used in the round-1 notebooks; new for this redo
-    continuity: >
-      Students have already met sunspots, in MADS-DAV (03.2-statistics-of-time.ipynb):
-      statsmodels seasonal_decompose fails on it (trend absorbs a >100yr cycle,
-      seasonality catches some faster structure, the residual keeps distinct sine-wave
-      patterns), a Fourier-transform reconstruction is shown overfitting on a subset, and
-      DAV's own closing suggestions for improving it include "finding a way to model the
-      very long (+100 year) cycle" and explicitly hands the topic forward: "In the course
-      on Machine Learning we will go much deeper into this topic, but we will also let the
-      neural networks figure out what the best filters are." This notebook is that
-      hand-off — pick the dataset back up and answer DAV's own open question with N-BEATS.
-    why: >
-      Daily, single series, 1818–2020, 203 years (confirmed loadable, 73924 points,
-      CC-BY-4.0). Three known solar cycles sit in this record at very different
-      timescales, and the 203-year span resolves them unevenly — verified by resampling to
-      yearly means and counting repeats, not assumed:
-        - Schwabe, ~11yr: 18.5 repeats in the data. Plenty to fit a fixed-period basis
-          confidently — this is the "clean win" register, same as pedestrian_counts.
-        - Gleissberg, ~87yr (amplitude modulation of the Schwabe cycle): 2.3 repeats. A
-          rolling 11yr-max envelope over the yearly series visibly rises and falls at
-          roughly this scale (227 -> 182 -> 110 -> 142 -> 174 -> 191 -> 269 -> 220 -> 174,
-          sampled every 20 years) — real, visible, but two-and-a-bit repeats is not enough
-          to pin the period down precisely.
-        - Suess/de Vries, ~210yr: 0.97 repeats. Named in the literature, not resolvable
-          from this dataset at all — not even one full cycle.
-      D-note (redo of the original framing): rather than posing this purely as "a
-      fixed-period basis fails here," per the planning conversation the notebook adds a
-      SECOND basis period (~87yr) alongside the Schwabe (~11yr) one and shows the fit
-      improve — a real, usable multi-scale decomposition, addressing DAV's own suggested
-      improvement — and then names the ~210yr cycle as the case genuinely out of reach
-      given the data span, turning "how much data would you need" into the concrete
-      takeaway rather than "this doesn't work." See main_principles.md §3.8.
-  probabilistic:
+      Hourly Melbourne footfall, 66 series, clean 12h/24h spectral peaks — spectral
+      top-5/total = 0.81, the highest of every series checked (main_principles.md §3.8).
+      The daily cycle a fixed-period seasonal basis is built for; the contrast case for
+      sunspot's absence of one.
+  probabilistic_and_gating:
     name: australian_electricity_demand
     source: Monash-University/monash_tsf, config australian_electricity_demand
-    replaces: ETTh1 (round-1 03_probabilistic.ipynb)
+    used_in: [04_probabilistic, 05_gates_highways_moe]
     why: >
-      D15. Not because ETTh1 measured noisier — it didn't, §3.8 — but because ETTh1's
-      difficulty is regime drift between train/val/test spans, a confound that makes a
-      first calibration lesson harder to read, not easier. australian_electricity_demand
-      has 3x tighter CoV (0.20 vs 0.62), a clean half-hourly daily+weekly pattern, 5 long
-      series (13+ years each, half-hourly), and is a real Monash/CC-BY-4.0 benchmark, not a
-      dataset built to look clean.
-  literature_and_hard_case:
+      D15. Not because ETTh1 measured noisier — it didn't — but because ETTh1's
+      difficulty was regime drift between train/val/test spans, a confound that made a
+      first calibration lesson harder to read, not easier. 3x tighter CoV than ETTh1
+      (0.20 vs 0.62), a clean half-hourly daily+weekly pattern, 5 long series (13+ years
+      each), real Monash/CC-BY-4.0 benchmark, not a dataset built to look clean. Reused
+      in 05 (D16's gating notebook) for continuity and because it gives the mechanism a
+      real chance: real daily+weekly structure to route on, unlike a flat window.
+  contamination_check:
+    name: sunspot (verified in Salesforce/lotsa_data)
+    why: >
+      `08_foundation_models`'s whole point is "check the pretraining corpus before
+      believing a zero-shot number" — this only works if the series is plausibly
+      contaminated. Verified by listing `Salesforce/lotsa_data`'s files: a
+      `sunspot_with_missing` config exists there, confirming the same risk ETTh1 carried
+      transfers to sunspot. If it had NOT been there, the notebook would need a different
+      structure (an honest, uncontaminated benchmark) — checked before writing, not
+      assumed to transfer.
+  deferred_exception:
     name: ETTh1
-    source: ETDataset/ett (existing ett.py loader, kept as-is)
+    source: ETDataset/ett (ett.py, kept for its window_index utility import elsewhere)
     role: >
-      Stays in 01_windowing and 02_basemodels — the literature-comparable series
-      (Informer/Autoformer/FEDformer/DLinear/PatchTST all report on it) and the case where
-      "the naive baseline wins" is a genuinely hard result to argue with, because the
-      series' difficulty is structural (regime drift) rather than a modelling gap. No
-      longer the probabilistic notebook's primary dataset (D15), but referenced there as
-      the harder companion case if the notebook has room for it.
+      Kept ONLY in `09_composition_extra` (optional appendix, not in the graded 01-08
+      sequence), because that notebook's `ts_features.py` dependency hardcodes spectral
+      band boundaries (`p<6h`...`p>=36h`) and ACF lags to an hourly cadence — retargeting
+      it means redesigning the feature set for daily resolution, not swapping a loader.
+      Tracked as follow-up work (see notebook 09's own banner), not rushed to hit the
+      three-dataset target at the cost of an unverified rewrite.
 
 notebooks:
 

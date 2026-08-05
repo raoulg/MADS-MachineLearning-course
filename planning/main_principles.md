@@ -131,9 +131,11 @@ The habit is transferable and the verdict is not. Grade the habit.
 | **D12** | Caches are joined on `source_idx`, with an explicit alignment assertion. | Row order happens to match today; relying on that silently is how you get a model trained on mismatched pairs. |
 | **D13** | **No notebook builds a full cache.** Every notebook downloads a published one. Building is taught on a ~200-image subsample that finishes on any hardware, and the full build lives in `make build-lesson1`. | Student hardware ranges from new MacBooks to CPU-only VMs. See §3.7. |
 | **D14** | **L2 is redefined as time series**, absorbing the round-1 `3_recurrent_networks` rebuild (renamed `2_timeseries`). D9's "build your own cache" L2 is cut outright, not deferred. | §1.2 already named time series as the counterweight to L1; there is no reason to spend a lesson number on cache-mechanics students already practised in L1. See `cuts` and §6. |
-| **D15** | The probabilistic-forecasting notebook moves off ETTh1-only onto **australian_electricity_demand** (Monash, CC-BY-4.0). | Not because ETTh1 is noisier point-to-point — measured, it is not (§3.8) — but because its difficulty is regime drift/non-stationarity, which is a harder, more confounded story to teach calibration on than a clean high-SNR series. ETTh1 stays in the lesson elsewhere (windowing, base models) as the literature-comparable, harder case. |
-| **D16** | Gating (Gate/Highway/MoE) is split into its **own** L2 notebook, framed as general-purpose composition inspired by the GRU/Highway/MoE papers — not a time-series-only trick. | It was buried inside the old `04_composition.ipynb` §4.6 alongside unrelated feature-engineering content. Splitting it lets the notebook cite its sources properly and lets the closing search notebook (D17) treat "gate: yes/no" as a clean, nameable axis. |
+| **D15** | The probabilistic-forecasting notebook moves off ETTh1-only onto **australian_electricity_demand** (Monash, CC-BY-4.0). | Not because ETTh1 is noisier point-to-point — measured, it is not (§3.8) — but because its difficulty is regime drift/non-stationarity, which is a harder, more confounded story to teach calibration on than a clean high-SNR series. ~~ETTh1 stays in the lesson elsewhere as the literature-comparable, harder case~~ — **superseded by D18**: ETTh1 was dropped from the graded sequence entirely. |
+| **D16** | Gating (Gate/Highway/MoE) is split into its **own** L2 notebook, framed as general-purpose composition inspired by the GRU/Highway/MoE papers — not a time-series-only trick. | It was buried inside the old `04_composition.ipynb` §4.6 alongside unrelated feature-engineering content. Splitting it lets the notebook cite its sources properly and lets the closing search notebook (D17) treat "gate: yes/no" as a clean, nameable axis. Retargeted to `australian_electricity_demand` by D18 — see §3.9. |
 | **D17** | L2 closes with a ray.tune search notebook, mirroring L1 notebook 04 — search over basis choice, gate on/off, highway depth. | D5's "one search tool, used properly" only pays off if students exercise it twice in different modalities, not once and never again. |
+| **D18** | L2 consolidated from **five** datasets (ETTh1, pedestrian_counts, sunspot, australian_electricity_demand, traffic_hourly) to **three** (sunspot, pedestrian_counts, australian_electricity_demand). ETTh1 dropped from the graded sequence entirely, kept only in the optional appendix `09_composition_extra`. | Direct user feedback, 2026-08-05: five datasets across nine notebooks was real sprawl, and ETTh1's six-covariate electricity-transformer domain added confusion an unfamiliar dataset didn't need to, on top of the dataset count itself. Daily sunspot counts take over ETTh1's structural role (§3.9) — a series where the naive baseline is hard to beat — while being a series students already met in MADS-DAV. |
+| **D19** | Every epoch count in L2 must be justified by a checked convergence curve or a multi-seed, multi-epoch-count sweep — not copied from another notebook. | Direct user challenge, 2026-08-05, after the `EPOCHS=1` bug (§4a) was fixed by simply picking a different number: "why would 8 epochs be enough? who says it doesn't need 100?" Caught a real error doing this — an initial 3-seed check of `05_gates_highways_moe` at one epoch count found Gate beating its capacity-matched control; a proper 5-seed, 3-epoch-count check found that result was noise (§3.9). Both the wrong finding and the correction are on the record in the notebook, not silently fixed. |
 
 ---
 
@@ -442,6 +444,58 @@ real, usable multi-scale decomposition that answers DAV's own suggested improvem
 names the ~210yr cycle as the case genuinely out of reach given the data span. "How much
 data would you need" becomes the concrete takeaway in place of "this doesn't work." See
 `lesson2.yml` for how this is used.
+
+### 3.9 D18 consolidation — sunspot's daily rotation, and a correction caught mid-build
+
+D18 (§2) drops ETTh1 from L2's graded sequence and moves daily sunspot counts into its
+structural role. Two things had to be verified before that swap was defensible, and one
+mistake was made and caught while building it — recorded here rather than silently fixed,
+per the standing rule.
+
+**The clean daily tail, and a real rotation period.** `sunspot_daily.py` starts at
+1848-12-22 (the last date with a missing day anywhere ahead of it) — 62,617 consecutive
+daily points, 171.4 years. Autocorrelation on that span has a local maximum at lag 26-28
+days (0.77, above its lag-14 and lag-60 neighbours, 0.68 and 0.70); the FFT's short-period
+peaks cluster at 26.8-28.2 days. This is the Sun's ~27-day synodic rotation — a genuine
+physical quasi-period, distinct from any calendar season, checked rather than assumed.
+Day-to-day persistence is still much stronger (acf(1d)=0.96), so naive still beats
+seasonal-naive(27d) — the same shape of result ETTh1 gave (§3.8), now without ETTh1's
+six-covariate domain. Separately, the single largest peak in the *entire* daily spectrum
+(measured over the 151-year training span) sits at ~11 years — the Schwabe cycle is
+visible even at daily resolution, ~160x the power of the 27-day peak, and far too slow for
+any window this lesson's windowing notebooks hold — which is exactly why the yearly
+zoom-out in §3.7 exists as a second look at the same series.
+
+**The `03_decomposition_and_nbeats` §3.6 contrast does not reproduce ETTh1's data-scarcity
+flip.** ETTh1's version had N-BEATS beating linear because ETTh1's window only produced
+~1,400 training windows — too few for the linear layer's parameters to fit without
+overfitting. Sunspot at the same `W=168,H=24` window produces ~9,187 windows, and linear
+wins outright, same as pedestrian. The seasonality/trend ratio still drops honestly (1.071
+pedestrian → 0.608 sunspot) and the headroom over naive still shrinks (77% → 19%,
+explained by sunspot's high `acf(1d)`) — but "N-BEATS wins when data is scarce" is no
+longer demonstrated anywhere in the lesson's graded sequence. The rewritten notebook
+reports what is actually true rather than forcing the old flip onto new numbers.
+
+**A wrong finding, caught by checking harder — D19.** Building `05_gates_highways_moe` on
+`australian_electricity_demand`, a first check (3 seeds, one epoch count) found `Gate`
+beating its capacity-matched `deeper` control by a real-looking margin (0.157 vs 0.176). A
+follow-up check (5 seeds, three epoch counts: 50/90/130) found `Gate` and `deeper`
+statistically indistinguishable at every one of them — the first result was noise from an
+under-sampled check, exactly the trap this course's own "3 seeds lied" finding (§3.4c)
+warns about. The corrected, honest result: `deeper` and `gate` tie (0.159 vs 0.160 at
+`EPOCHS=90`), `highway` and `moe` cost 1.8x and 2.1x the parameters without a margin that
+clears their own seed noise — the same null result ETTh1's version gave, on a series that
+should have given gating a better chance. Both the wrong number and the correction are
+written into the notebook's §5.2, not silently replaced.
+
+**Contamination check, verified not assumed.** `08_foundation_models`'s procedure only
+works if the series is plausibly in a foundation model's pretraining mixture.
+`Salesforce/lotsa_data`'s file listing contains a `sunspot_with_missing` config, confirming
+the same contamination risk ETTh1 carried transfers to sunspot. The frozen-encoder
+collapse (§8.4) replicates qualitatively with real sunspot numbers: mean-pooled embedding
+MAE ratio 1.855 (worse than naive), last-patch 1.910 (worse still), embedding+raw 0.925
+(worse than raw alone at 0.796) — same three-hypothesis elimination, same conclusion, new
+series.
 
 ## 4. Blocking prerequisites
 
