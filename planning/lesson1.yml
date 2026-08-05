@@ -1,6 +1,12 @@
 lesson: 1
 title: "Representations, heads, and searching the space between them"
-status: specified          # specified | in_progress | done
+status: done               # specified | in_progress | done
+# Built and RUN 2026-08-04, vectormesh 0.5.0 / mltrainer 0.3.6 / ray 2.55.1.
+# `uv run notebooktester notebooks/1_pytorch_intro/ -t 300 -pb`: 5 passed, 0 failed, 29s.
+# All five also executed at full param() values with outputs saved.
+# P2 (get_or_create_cache -> vectormesh) never landed and turned out not to be needed:
+# D13 means no L1 notebook builds a cache, so nothing imports the helper. It is still
+# owed to lesson 2, which is where building is taught.
 depends_on: [P1, P2, P3, P4, P5]   # see main_principles.md §4
 
 premise: >
@@ -155,12 +161,17 @@ notebooks:
               W = W @ layer.weight
           assert torch.allclose(stack(x), x @ W.T, atol=1e-5)
       - id: 2.2
-        title: "Convolution is a matrix multiply"
+        title: "Convolution is the same construction"
         content: >
-          Build a small 1D conv, then write out its Toeplitz matrix explicitly and show
-          conv1d(x, w) == T @ x. Weight sharing and locality are constraints ON the
-          matrix, not a different kind of operation. Extend to 2D by picture, not by
-          another proof.
+          A conv layer is a linear operator too — weight sharing and locality are
+          constraints on which linear maps it can express, not a different kind of
+          operation. Show it the same way 2.1 does: stack two convs with no activation
+          between them and the pair collapses into one conv. Same story as the dense
+          case, so the same nonlinearity argument applies.
+        note: >
+          No Toeplitz matrix, no allclose proof of conv1d(x, w) == T @ x. The section
+          exists to set up 2.3 (linear vs nonlinear) and to justify D7's merge of dense
+          and conv, not to prove linearity — which nobody in the room is disputing.
       - id: 2.3
         title: "So what is the nonlinearity for"
         content: >
@@ -175,7 +186,7 @@ notebooks:
           conv -> norm -> activation motif. Close the loop: the 384 numbers in your
           cache are the output of ~12 stacked applications of this notebook's two lines.
     exercises:
-      - Break the Toeplitz equivalence by changing stride or padding; explain the shape change before running it.
+      - Predict the output shape of a conv before running it, for two choices of stride and padding.
       - Replace GELU with the identity in a trained head and measure what happens.
 
   - file: 03_training.ipynb
@@ -270,33 +281,44 @@ notebooks:
         content: >
           Add a two-encoder branch via VectorCache.join + CollateParallel + Parallel +
           Concatenate2D. Have students predict whether fusing a strong and a weak
-          encoder beats the strong one alone. It does not — measured, 5 setups out of 5,
-          and the penalty grows as the training set shrinks.
-        verified: true    # main_principles.md §3.4
+          encoder beats the strong one alone, then measure it over several seeds.
+          Measured answer (§3.4c, 8 seeds): raw-width fusion is +0.43 pt at 0.9 sigma —
+          a WASH, not a loss, and it costs 3x the parameters and 5x the seed variance.
+          The 128-bottleneck variant of §3.4 does lose (-2.4 pt); the bottleneck was the
+          culprit, not the fusion.
+        verified: true    # main_principles.md §3.4c
         teaching_note: >
           D10 + §1.4. Frame this as a HYPOTHESIS the student tests, not as a result we
-          announce. Have them predict the sign before running it. Our measurement says the
-          baseline wins on these encoder pairs and these datasets — but that is contingent,
-          and the notebook must say so. No free lunch: sometimes fusion wins, and a student
-          who learns "fusion is bad" has learned the wrong thing as surely as one who
-          learns "fusion is good".
+          announce. Have them predict the sign before running it, then measure over seeds.
+          The notebook must NOT say "the baseline wins" — §3.4c says it does not. It says
+          the two are indistinguishable, and that the fusion pays 3x parameters and 5x
+          variance for the privilege. "No measurable difference, at a cost" is the result.
 
-          What the section is really for: showing that an appealing idea can be built and
-          killed in two seconds, and that "nice idea, simpler won" is a complete result
-          worth writing down. Do not present fusion as an upgrade, and do not present the
-          negative result as a law.
+          This section is also where the course admits it got this wrong itself: the
+          earlier 5-out-of-5 loss was a bottleneck artefact over-generalised into a verdict,
+          and a 3-seed run of the new experiment reported +0.83 pt where 8 seeds report
+          +0.33. Both mistakes are on the page, because they are the lesson. A student who
+          learns "fusion is bad" has learned the wrong thing as surely as one who learns
+          "fusion is good"; what they should learn is to check the seed spread before
+          believing either.
         caveat: >
           CollateParallel takes exactly two columns. Three-way fusion needs a library
           change; out of scope for L1.
     params:
       - N_TRIALS = param(24, test=2)
       - EPOCHS = param(15, test=1)
-    open_question:
+    resolved_question:
       - >
-        Fusion was measured with a 128-wide bottleneck per branch. Fusing raw widths, or
-        gating the weak stream (Highway) instead of concatenating it, has not been
-        measured. If it turns out a gated fusion DOES win, 4.3 becomes a much better
-        section — worth one afternoon before the notebook is written.
+        CLOSED 2026-08-04, see main_principles.md §3.4c. Raw-width fusion and
+        projected-weak-stream fusion were both measured over 8 seeds: each is a wash
+        (+0.4 / +0.3 pt, ~1 sigma, 7/8 seeds) rather than the loss the 128-bottleneck
+        setup showed. 4.3 is indeed a better section for it — the result is now "no
+        measurable gain at 3x the parameters and 5x the variance", which teaches the
+        seed-noise habit as well as the fusion question.
+
+        Still unmeasured: true cross-stream gating (Highway gates one tensor, so gating
+        stream B by stream A needs a library change). Out of scope for L1, same as the
+        three-way CollateParallel limit.
 
   - file: 05_exercises.ipynb
     title: "Your own search, and a negative result you produced yourself"
@@ -326,6 +348,20 @@ legacy_moves:
     - notebooks/1_pytorch_intro/09_exercises.ipynb
     - notebooks/2_convolutions/01_convolutions.ipynb
     - notebooks/2_convolutions/03_mlflow.ipynb           # -> L2, see lesson2.yml
+    # added during implementation 2026-08-04: this list contradicted the `replaces:`
+    # fields above, which name all four of these as superseded. Leaving them in place
+    # would put 01_tensors next to 01_the_cache and 04_neuralnets next to 04_search --
+    # duplicate numbering in the folder students open first. Moved, not deleted (D8).
+    - notebooks/1_pytorch_intro/01_tensors.ipynb         # -> 01_the_cache §1.3 + tensor-ladder.md
+    - notebooks/1_pytorch_intro/04_neuralnets.ipynb      # -> 02_nonlinearity
+    - notebooks/1_pytorch_intro/06_losses.ipynb          # -> 03_training §3.2
+    - notebooks/1_pytorch_intro/07_vectors.ipynb         # -> 01_the_cache §1.2; text half to L5
+  not_moved:
+    - path: notebooks/2_convolutions/02_pretrained.ipynb
+      why: >
+        Named in 01_the_cache's `replaces:` and in `salvage:`, but it lives in L2 and D9
+        makes L2 "produce a cache". Whether it is replaced or rewritten is lesson2.yml's
+        call, not L1's. Left in place deliberately.
   keep_in_place:
     - notebooks/1_pytorch_intro/tensor-ladder.md   # round-1 work, still correct, referenced by 01 §1.3
   salvage:
