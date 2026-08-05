@@ -1,37 +1,33 @@
 lesson: 6
-title: "Self-supervised — where the representation comes from"
-status: mostly_done       # rebuilt in round 1
-round: 1
+title: "Graphs"
+status: needs_review      # untouched by round 1 apart from two notebooks
+round: 3
 
 premise: >
-  L1 hands students a representation and shows that it dominates every other choice. The
-  obvious next question -- where did that representation come from, and could I make one
-  for a domain that has none? -- is this lesson. In the round-2 structure L6 is the payoff
-  for L1's central claim, not a standalone topic.
+  The second lesson in the course where vectorization does not apply (main_principles.md
+  §1.2): the signal is the structure, and there is no per-node encoder to freeze. Like L2
+  (time series), its round-2 job is to mark the boundary of the L1 idea rather than to
+  adopt it.
 
 current_notebooks:
-  - 01_selfsupervised.ipynb
-  - 02_patch_tokens.ipynb
-  - 03_ijepa.ipynb
+  - 01_intro.ipynb                 # untouched since before round 1
+  - 02_clusters_in_graphs.ipynb    # touched in round 1
+  - 03_gnn.ipynb                   # touched in round 1
 
-round2_changes:
+round3_changes:
   - id: L6.1
-    change: >
-      Open by naming the debt: L1 asserted the encoder is the whole game and never said
-      how one is built. Close it here. One paragraph, but it makes the course a single
-      argument instead of seven topics.
+    change: "Review 01_intro against the rest of the course; it is the oldest notebook in the repo."
   - id: L6.2
     change: >
-      Cross-reference L2's out-of-domain measurement. DTD at 0.7849 with an object-centric
-      encoder is precisely the situation where you would train your own representation,
-      and the students will have produced that number themselves in L2.
+      State the boundary explicitly, as L2 does: a node embedding IS a vector, so students
+      will ask why there is no cache. The answer -- that node embeddings are learned
+      jointly with the task and depend on the graph, so they cannot be frozen and shipped
+      the way an image encoder can -- is worth a paragraph rather than a silence.
   - id: L6.3
-    change: >
-      Keep the round-1 measured results: patch-level SSL 0.787 vs 0.358 per-patch on
-      EuroSAT (patch-level beats image-level), and MoCo's -25 pt patch-localization
-      weakness. Note that EuroSAT now also appears in L1/L2 as the demo dataset -- that is
-      a feature, since students meet the same data at three levels of abstraction, but the
-      splits and subsample sizes must be stated so the numbers are comparable.
+    change: "Check torch-geometric still installs cleanly on py3.13 / ARM before committing to keeping this lesson as-is."
 
-no_action:
-  - Notebooks were rebuilt in round 1 and have been run.
+open_questions:
+  - >
+    Is L6 still earning its place? It is the least connected lesson in the course and
+    carries a heavyweight dependency (torch-geometric). Not a decision for this round, but
+    it should be made deliberately rather than by inertia.

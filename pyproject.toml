@@ -62,5 +62,5 @@ executionEnvironments = [
 ]
 
 [tool.ty.environment]
-extra-paths = ["notebooks/0-baseline", "notebooks/2_convolutions", "notebooks/3_recurrent_networks", "notebooks/4_tuning_networks", "notebooks/5_attention"]
+extra-paths = ["notebooks/0-baseline", "notebooks/2_timeseries", "notebooks/3_tuning_networks", "notebooks/4_attention"]
 

@@ -1,110 +1,346 @@
 lesson: 2
-title: "Building the cache you handed out, and tracking what you tried"
-status: specified
+title: "Time series: a different kind of data"
+status: specified   # redo, 2026-08-05 — see `redo` below. Most of the actual notebook
+                     # content already exists and has been run (round-1 3_recurrent_networks
+                     # rebuild, folder renamed notebooks/2_timeseries/ 2026-08-05). This plan
+                     # is a resequence + one dataset swap + one notebook split + one new
+                     # notebook, not a from-scratch build. See main_principles.md D14–D17.
 depends_on: [lesson1]
 
-premise: >
-  D9. L1 consumes a cache someone else built. L2 is where students become the person who
-  builds it: choose an encoder, run it, measure what it cost, publish the artefact, and
-  track the experiments that follow. The old L2 (convolutions / pretrained / mlflow) is
-  partly absorbed by L1 and partly promoted here.
+redo: >
+  This replaces the round-2 lesson2.yml ("produce a cache and track experiments"), which
+  was cut outright — see main_principles.md D9 (superseded) and the `cuts` register. Ray
+  and mlflow both landed inside L1 itself (notebook 01 §1.5, notebook 04) before that
+  lesson was ever built, so it was redundant on arrival. `notebooks/2_convolutions/`
+  (02_pretrained.ipynb, 04_exercises.md, and their support files) moved to
+  `notebooks/legacy/`.
 
-  This is also the lesson that draws the boundary honestly. Vectorizing is not free and
-  not always right; a student who has only seen L1 will over-apply it. L2 shows the cost
-  side and the failure cases.
+  L2 is redefined as time series, absorbing the round-1 `3_recurrent_networks` rebuild
+  (folder renamed `notebooks/2_timeseries/` 2026-08-05, D14). That content is real, was
+  measured, and has been run — it is not what "hallucinated planning" referred to. What
+  this redo changes is the *order* (decomposition/N-BEATS moves in front of probabilistic,
+  matching the buildup below), *one dataset* (D15), and *splits one section into its own
+  notebook* (D16), and *adds one notebook* (D17, ray search) that did not exist before.
+
+premise: >
+  L1's idea — freeze a pretrained encoder, train a cheap head on the vectors — does not
+  apply here. main_principles.md §1.2: there is no general-purpose vectorizer for an
+  arbitrary time series worth freezing, confirmed by measurement (a linear model beat
+  N-BEATS on both pedestrian_counts and ETTh1, notebook 02). Windowing and end-to-end
+  training are the correct default, and L2's job is to make students feel *why*, not just
+  state it.
+
+  What time series does have, instead of a frozen representation, is **structure you can
+  name before you fit anything**: a trend, a repeating daily or weekly shape, a level of
+  spread around the point forecast that no amount of extra depth will remove. The buildup
+  follows that structure outward:
+
+  1. **A different kind of data** (01, 02) — no cache to download, and a cheap baseline
+     that is hard to beat, exactly like L1's own "baseline wins" lesson, in a different
+     modality.
+  2. **Decomposition, and N-BEATS putting it inside the architecture** (03) — trend and
+     seasonality are not just an EDA step, they can be the model's own basis functions.
+  3. **Probabilistic forecasting** (04) — the point forecast was never the whole answer;
+     score and calibrate the distribution around it.
+  4. **Gates, highways, and mixtures of experts** (05) — a general composition primitive
+     inspired by GRU/LSTM/Highway/MoE, deliberately not time-series-specific, introduced
+     here because this lesson has a running example ready to carry it.
+  5. **Search** (06) — the same ray.tune TPE search L1 taught, run a second time in a
+     different modality, over architecture axes students now understand well enough to
+     have opinions about before the search confirms or corrects them.
+
+  L1 asked "which representation, and which head." L2 has no representation to pick — so
+  it asks "which decomposition, which uncertainty, which routing," and ends the same way
+  L1 did: search it, don't guess it.
 
 learning_goals:
-  - Run an ImageVectorizer and state what the encoding cost was, in images/second.
-  - Choose an encoder deliberately and defend the choice from the measured accuracy gap.
-  - Publish a VectorCache as a documented artefact (metadata, dataset card, source_idx).
-  - Track experiments in mlflow and compare runs that differ in one variable.
-  - Say when NOT to cache, and show a case where end-to-end training is the right answer.
+  - State why there is no general-purpose frozen encoder for an arbitrary time series, and
+    what would have to be true of a series for one to exist (forward-reference notebook 08).
+  - Window a raw series without leaking test information into the training statistics
+    (split first, normalise on train stats only).
+  - Read a naive/seasonal-naive baseline as the number every later model must beat, and
+    explain why MASE, not raw MAE, is the metric that makes that comparison honest.
+  - Decompose a series into trend and seasonal components, and explain what N-BEATS's basis
+    stacks are actually fitting.
+  - Tell a fixed-period season from a quasi-periodic cycle, and say what happens to a
+    fixed-period basis fitted to the wrong kind.
+  - Score a probabilistic forecast with CRPS, and distinguish "wide" from "calibrated."
+  - Explain the gate/highway/MoE family as one idea (a learned "keep, replace, or route")
+    traced to its sources, and compose one with vectormesh Serial/Parallel.
+  - Run a ray.tune TPE search over an architecture space in a second modality, and read the
+    result the way L1 taught — which axis moved the metric, and by how much.
 
-absorbed_from_old_l2:
-  - 2_convolutions/02_pretrained.ipynb  -> most of it moves INTO lesson1/01_the_cache
-  - 2_convolutions/03_mlflow.ipynb      -> becomes 03_tracking here, retargeted
-  - 2_convolutions/01_convolutions.ipynb -> nonlinearity half moves to lesson1/02, the
-                                            train-a-CNN-from-scratch half lands in 04 here
-                                            as the honest counter-example
+datasets:
+  decomposition_demo:
+    name: pedestrian_counts
+    source: Monash-University/monash_tsf, config pedestrian_counts
+    why: >
+      Already in use (05_nbeats.ipynb, existing FFT cell). Hourly Melbourne footfall,
+      66 series, clean 12h/24h spectral peaks — spectral top-5/total = 0.81, the highest
+      of every series checked. See main_principles.md §3.8. The daily cycle a fixed-period
+      seasonal basis is built for.
+  decomposition_contrast:
+    name: sunspot
+    source: Monash-University/monash_tsf, config sunspot
+    added: true    # not used in the round-1 notebooks; new for this redo
+    continuity: >
+      Students have already met sunspots, in MADS-DAV (03.2-statistics-of-time.ipynb):
+      statsmodels seasonal_decompose fails on it (trend absorbs a >100yr cycle,
+      seasonality catches some faster structure, the residual keeps distinct sine-wave
+      patterns), a Fourier-transform reconstruction is shown overfitting on a subset, and
+      DAV's own closing suggestions for improving it include "finding a way to model the
+      very long (+100 year) cycle" and explicitly hands the topic forward: "In the course
+      on Machine Learning we will go much deeper into this topic, but we will also let the
+      neural networks figure out what the best filters are." This notebook is that
+      hand-off — pick the dataset back up and answer DAV's own open question with N-BEATS.
+    why: >
+      Daily, single series, 1818–2020, 203 years (confirmed loadable, 73924 points,
+      CC-BY-4.0). Three known solar cycles sit in this record at very different
+      timescales, and the 203-year span resolves them unevenly — verified by resampling to
+      yearly means and counting repeats, not assumed:
+        - Schwabe, ~11yr: 18.5 repeats in the data. Plenty to fit a fixed-period basis
+          confidently — this is the "clean win" register, same as pedestrian_counts.
+        - Gleissberg, ~87yr (amplitude modulation of the Schwabe cycle): 2.3 repeats. A
+          rolling 11yr-max envelope over the yearly series visibly rises and falls at
+          roughly this scale (227 -> 182 -> 110 -> 142 -> 174 -> 191 -> 269 -> 220 -> 174,
+          sampled every 20 years) — real, visible, but two-and-a-bit repeats is not enough
+          to pin the period down precisely.
+        - Suess/de Vries, ~210yr: 0.97 repeats. Named in the literature, not resolvable
+          from this dataset at all — not even one full cycle.
+      D-note (redo of the original framing): rather than posing this purely as "a
+      fixed-period basis fails here," per the planning conversation the notebook adds a
+      SECOND basis period (~87yr) alongside the Schwabe (~11yr) one and shows the fit
+      improve — a real, usable multi-scale decomposition, addressing DAV's own suggested
+      improvement — and then names the ~210yr cycle as the case genuinely out of reach
+      given the data span, turning "how much data would you need" into the concrete
+      takeaway rather than "this doesn't work." See main_principles.md §3.8.
+  probabilistic:
+    name: australian_electricity_demand
+    source: Monash-University/monash_tsf, config australian_electricity_demand
+    replaces: ETTh1 (round-1 03_probabilistic.ipynb)
+    why: >
+      D15. Not because ETTh1 measured noisier — it didn't, §3.8 — but because ETTh1's
+      difficulty is regime drift between train/val/test spans, a confound that makes a
+      first calibration lesson harder to read, not easier. australian_electricity_demand
+      has 3x tighter CoV (0.20 vs 0.62), a clean half-hourly daily+weekly pattern, 5 long
+      series (13+ years each, half-hourly), and is a real Monash/CC-BY-4.0 benchmark, not a
+      dataset built to look clean.
+  literature_and_hard_case:
+    name: ETTh1
+    source: ETDataset/ett (existing ett.py loader, kept as-is)
+    role: >
+      Stays in 01_windowing and 02_basemodels — the literature-comparable series
+      (Informer/Autoformer/FEDformer/DLinear/PatchTST all report on it) and the case where
+      "the naive baseline wins" is a genuinely hard result to argue with, because the
+      series' difficulty is structural (regime drift) rather than a modelling gap. No
+      longer the probabilistic notebook's primary dataset (D15), but referenced there as
+      the harder companion case if the notebook has room for it.
 
 notebooks:
 
-  - file: 01_building_a_cache.ipynb
-    title: "Being the person with the hardware"
+  - file: 01_windowing.ipynb
+    title: "The same operation, on a real series"
+    status: keep_as_is
     content: >
-      ImageVectorizer end to end on a dataset with no published cache. The LOAD REPORT
-      digression (UNEXPECTED classifier weights are the desired outcome; MISSING is the
-      alarming one). Measure throughput. remove_columns to drop raw pixels. Attach
-      source_idx so a vector can be traced back to its image. Write metadata and read it
-      back.
-    hardware_policy: >
-      D13. The notebook builds a ~200-row cache, which finishes on ANY machine. Building
-      something publishable is framed as an optional extension for students who have the
-      hardware, run via `make build-lesson1`-style batch commands rather than in a
-      notebook. Never put a twenty-minute encoding pass in a cell — a notebook that looks
-      hung is a notebook students abandon.
-    reuses: scripts/build_cache.py  # the notebook shows one pair; the script does the batch
-    exercises:
-      - Encode 200 images with dinov2-small and with resnet-18. Report images/second for each and the ratio of encode time to head-training time.
-      - Extrapolate from your own throughput how long the full published eurosat cache took to build. Compare with the instructor's 90 seconds and explain the gap.
-      - Explain why VectorCache.create computes its own map fingerprint instead of letting datasets pickle-hash the vectorizer.
-    optional_extension:
-      title: "Publish something nobody has"
-      content: >
-        For students with a GPU or Apple silicon: pick a dataset with no cache on
-        hf.co/pttrn-io, build it, write the card, publish it, and hand it to a classmate
-        who then trains a head on it without touching an encoder. This is the artefact-as-
-        deliverable idea made real, and it is the one part of the course where the
-        hardware asymmetry is the assignment rather than an obstacle.
+      Existing, real, run content — no change proposed. Establishes: the row is the
+      series, why a naive train/test split of *rows* is not a split at all for one long
+      series, split-then-window, normalise on train statistics only, and how much overlap
+      between windows is defensible. ETTh1.
+    reused_from: notebooks/2_timeseries/01_windowing.ipynb   # unchanged
 
-  - file: 02_choosing_an_encoder.ipynb
-    title: "The only decision that moved the metric"
+  - file: 02_basemodels.ipynb
+    title: "Does the expensive model earn its keep?"
+    status: keep_as_is
     content: >
-      L1's search found the encoder axis dominates. This notebook takes that seriously:
-      encoder size vs accuracy vs one-time cost, in-domain vs out-of-domain. EuroSAT
-      (satellite, 0.9447) against DTD (textures, 0.7849) with the same encoder is the
-      cleanest illustration that "out of domain" is a measurable quantity, not a vibe.
-      Feature-space augmentation (GaussianNoise) as the cache-compatible answer to
-      pixel-space augmentation, with the train/eval determinism assertion.
-    verified: true   # ceilings in main_principles.md §3.2
-    exercises:
-      - Predict the difficulty ordering of eurosat / resisc45 / dtd from what the encoder was trained on, then check against the published ceilings.
-      - Tune GaussianNoise sigma on 200 DTD rows and on the full set. Where does it earn its keep?
-
-  - file: 03_tracking.ipynb
-    title: "mlflow, and what tracking is for"
-    replaces: 2_convolutions/03_mlflow.ipynb
-    content: >
-      Keep the existing notebook's spine, swap its hyperopt section for the ray Tuner the
-      students already met in L1, and point the comparison at the L1/L2 caches. The real
-      content is not the API: it is that a run is only worth logging if you can say which
-      single variable it changed, and that a result you cannot reproduce from the log is
-      not a result.
+      Existing, real, measured content. Naive / seasonal-naive baselines, why MASE is the
+      metric that makes "which naive" a real question, then linear / conv / recurrent
+      models measured against them with a cost column. ETTh1. This is where "the baseline
+      wins" — L1's own central finding — recurs in a second modality, before the lesson
+      gets to anything clever. Positioned right after windowing and before decomposition
+      deliberately: N-BEATS in notebook 03 has to beat *this* number, not be presented in a
+      vacuum.
+    reused_from: notebooks/2_timeseries/02_basemodels.ipynb   # unchanged
     note: >
-      Keep the mlflow-vs-tensorboard framing short. Both are already wired through
-      mltrainer's ReportTypes; the lesson is the discipline, not the dashboard.
+      Placement relative to notebook 03 is this redo's call, not something the user
+      specified directly — flagged so it can be pushed back on. The alternative (put
+      decomposition/N-BEATS immediately after windowing, before any baseline table) loses
+      the "beat a stated number" framing but gets to the decomposition idea one notebook
+      sooner.
 
-  - file: 04_when_not_to_cache.ipynb
-    title: "The counter-example"
+  - file: 03_decomposition_and_nbeats.ipynb
+    title: "Putting the decomposition inside the architecture"
+    status: promote_and_extend
+    moved_from: notebooks/2_timeseries/05_nbeats.ipynb   # was notebook 5, becomes notebook 3
     content: >
-      The honest boundary. Train a small CNN from scratch on the same dataset and lose
-      badly to the frozen-encoder head -- then find the regime where the CNN wins or where
-      caching is simply unavailable: a domain with no relevant pretrained encoder, data
-      that changes every day so the cache is stale on arrival, or a task needing
-      pixel-level output rather than a per-image vector. Forward-reference L3 (time
-      series) as the case the course actually spends a lesson on.
-    rationale: >
-      main_principles.md §1.2. Without this notebook, L1 teaches a hammer. This is the
-      only place in the image lessons where end-to-end training is defended rather than
-      dismissed, and it inherits the CNN code from the old 01_convolutions.
+      Existing content, reordered earlier and extended. Keeps: a series with something for
+      a Fourier basis to find (pedestrian_counts, FFT plot with 12h/24h markers already
+      built), "a basis is a fixed set of shapes, the network picks the mix", the N-BEATS
+      block and stack, baselines first (naive/linear beat N-BEATS — keep this, it is the
+      same honest result as notebook 02 and main_principles.md §1.2), then "ask the model
+      what it thinks the series is made of" (interpretable stack, trend+seasonality
+      readout).
+    extension: >
+      New: after the existing ETTh1 contrast ("the same architecture on a series with no
+      daily cycle"), add sunspot as a second, different kind of contrast — not "no cycle"
+      but "a cycle that doesn't sit at a fixed period." Fit the same fixed-period
+      seasonality basis to it, show the fit degrading relative to pedestrian_counts, and
+      ask students to say why before revealing the cycle-length variance. This is the
+      "not everything cyclic is seasonal" exercise from the planning conversation, made
+      concrete rather than asserted.
+    verified: true   # pedestrian FFT peaks, ETTh1 contrast, and the naive/linear-beats-NBEATS
+                      # result are all already measured in the existing notebook.
+    open_question: >
+      Whether sunspot becomes a full §5.x section or a guided exercise at the end. A full
+      section costs another dataset load + basis fit in the runtime budget; an exercise
+      keeps runtime down and makes the prediction ("will the fit be as tight as
+      pedestrian's? why not?") the student's to make first. Leaning exercise — matches how
+      L1 posed fusion as a hypothesis (D10) rather than a demonstration.
+
+  - file: 04_probabilistic.ipynb
+    title: "The line is not the answer"
+    status: retarget_dataset
+    moved_from: notebooks/2_timeseries/03_probabilistic.ipynb   # was notebook 3, becomes notebook 4
+    content: >
+      Existing content, dataset swapped. Keeps: the width is real and not the model's
+      fault, CRPS as one number that scores a distribution, the free baseline named again,
+      a Gaussian head trained with NLL, calibration checked (not assumed), a quantile head
+      dropping the Gaussian assumption, the linear-model control, and the Autoformer/
+      PatchTST comparison.
+    dataset_change: >
+      D15 / main_principles.md §3.8. ETTh1 -> australian_electricity_demand throughout.
+      Every number in this notebook needs re-measuring against the new series before it is
+      run again — none of the existing ETTh1 figures (Gaussian NLL, CRPS, calibration plot)
+      carry over. This is real implementation work, not a find-and-replace.
+    open_question: >
+      Whether to keep one ETTh1 cell as an explicit "and here is the harder, real-world
+      case" coda, now that the main notebook uses a calmer series. Not decided — costs one
+      more model fit, buys a direct callback to notebook 02's ETTh1 baseline and to the
+      literature.
+
+  - file: 05_gates_highways_moe.ipynb
+    title: "Gate, highway, or route: one idea from three papers"
+    status: new_split
+    split_from: notebooks/2_timeseries/04_composition.ipynb section 4.6 "The routing family"
+    content: >
+      Cite the sources directly rather than presenting the mechanism as free-floating:
+      the GRU/LSTM gate (Cho et al. 2014 / Hochreiter & Schmidhuber 1997), Highway Networks
+      (Srivastava, Greff & Schmidhuber 2015), and sparse mixture-of-experts / Switch
+      Transformer as the same "learned keep-or-replace" idea scaled to routing between
+      whole sub-networks. Build a Gate, a Highway block, and a small MoE with
+      vectormesh Serial/Parallel, on the same windowed series notebook 02 already
+      established (ETTh1, so results are directly comparable to the existing baseline
+      table).
+    framing: >
+      D16. Explicit in the notebook: this is a general-purpose composition primitive, not
+      a time-series trick — it is introduced here because the lesson has a running example
+      ready, the same way L1 introduced ray.tune where a two-second training run made it
+      obviously worth the investment. One callback sentence to L1's fusion notebook
+      (D10/§3.4c): "this is another way two streams can combine besides concatenation."
+    exercises:
+      - Predict whether a Highway block beats a plain two-layer MLP on the ETTh1 baseline before running it, then measure.
+      - Turn a gate off (force it to always pass the input through) and confirm the block collapses to the identity plus residual, the way notebook 03's block collapse argument predicts.
+    open_question: >
+      What happens to the REST of 04_composition.ipynb (hand-crafted features vs learned
+      representation, fusion altitude, the "why the features had nothing to add" finding)?
+      That content is real, measured, and good — but it's not part of the buildup this
+      redo specifies. Recommend: demote to an optional appendix notebook (parallel to L1's
+      01c pattern), not delete — it is a second, different-modality case of L1's
+      no-free-lunch finding (D10) and worth keeping findable. Not decided; flagging rather
+      than cutting unilaterally.
+
+  - file: 06_search.ipynb
+    title: "Searching architectures, twice"
+    status: new
+    content: >
+      D17. Mirrors L1 notebook 04's shape exactly, in a second modality: one param_space
+      dict, ray.tune + HyperOptSearch (TPE), read the result the same way — which axis
+      actually moved the metric. Candidate search space: basis (generic vs interpretable
+      N-BEATS stack from notebook 03), gate on/off and highway depth (from notebook 05),
+      window size, lr. Log to mlflow the same way L1 notebook 04 §4.2's round3_addendum
+      does (one summary row per search, not per trial).
+    open_question: >
+      Which dataset. Needs the same check L1 did before committing (main_principles.md
+      §3.4b): does the search space actually spread on this series, or is it flat like
+      EuroSAT was? Untested — pedestrian_counts is the natural candidate (real headroom
+      over the naive baseline per notebook 02's shape), but this needs measuring, not
+      assuming, before the notebook is written. Flagged explicitly per the "verify before
+      asserting" standing rule — this is exactly the kind of claim that was wrong before in
+      this course (§3.4b, EuroSAT).
+    params:
+      - N_TRIALS = param(24, test=2)
+      - EPOCHS = param(15, test=1)
+
+  - file: 07_exercise.ipynb
+    title: "Your own series, your own negative result"
+    status: retarget
+    moved_from: notebooks/2_timeseries/06_exercise.ipynb
+    content: >
+      Retarget to the new sequence: establish a baseline (02's habit) on a series of the
+      student's choice from the Monash archive, decompose it, try N-BEATS, say whether
+      probabilistic forecasting is worth it here, and try one gated architecture. Same
+      "must contain a negative result" deliverable requirement as L1 notebook 05.
+
+  - file: 08_foundation_models.ipynb
+    title: "Foundation models, and how to decide whether to believe one"
+    status: keep_and_renumber
+    moved_from: notebooks/2_timeseries/07_foundation_models.ipynb   # was notebook 7, becomes notebook 8
+    content: >
+      Existing, real, measured content — no change proposed. Baselines at a longer window,
+      TimesFM zero-shot, the contamination check that has to come before the celebration,
+      a result contamination cannot explain away, and the closing rule (does the encoder
+      compress or expand). This is the deliberate tension flagged in the old lesson3.yml
+      (L3.2): a time-series foundation model IS a frozen encoder, so L1's idea partly
+      returns right at the end of the one lesson built to argue it doesn't apply. Keep that
+      tension explicit rather than letting the two lessons read as silently inconsistent.
+    verified: true
+
+migration_from_round1:
+  policy: >
+    Physical rename executed 2026-08-05: notebooks/3_recurrent_networks/ ->
+    notebooks/2_timeseries/ (git mv, history preserved). Individual notebook files inside
+    keep their round-1 filenames for now; the resequencing above (particularly moving
+    05_nbeats before 03_probabilistic, and splitting 04_composition) is planned but NOT
+    yet executed at the file level — that is real authoring work (reordering cells,
+    re-running against the new dataset, writing two new notebooks), tracked here the same
+    way lesson1.yml distinguished "specified" from "done." A notebook counts as done when
+    it has been run (CLAUDE.md), not when this plan says where it goes.
+  folder_renames_done:
+    - notebooks/3_recurrent_networks/ -> notebooks/2_timeseries/
+    - notebooks/4_tuning_networks/ -> notebooks/3_tuning_networks/
+    - notebooks/5_attention/ -> notebooks/4_attention/
+    - notebooks/6_unsupervised/ -> notebooks/5_unsupervised/
+    - notebooks/7_graphs/ -> notebooks/6_graphs/
+    - notebooks/2_convolutions/ -> removed; 02_pretrained.ipynb and 04_exercises.md moved
+      to notebooks/legacy/, remaining support files (cnn.py, Makefile, start/stop_server.sh,
+      two mlflow screenshots) moved to notebooks/legacy/ alongside them.
+  pyproject_updated: >
+    [tool.ty.environment] extra-paths in pyproject.toml updated to match (2_convolutions and
+    3_recurrent_networks/4_tuning_networks/5_attention entries replaced).
+  file_level_todo:
+    - Rename 05_nbeats.ipynb -> 03_decomposition_and_nbeats.ipynb, renumber 03_probabilistic
+      -> 04, add the sunspot section/exercise.
+    - Rename 03_probabilistic.ipynb -> 04_probabilistic.ipynb, re-measure every number
+      against australian_electricity_demand.
+    - Split 04_composition.ipynb §4.6 into new 05_gates_highways_moe.ipynb; decide the fate
+      of the rest of 04_composition.ipynb (open_question above).
+    - Write 06_search.ipynb from scratch, after measuring which dataset actually spreads
+      (open_question above).
+    - Renumber 06_exercise.ipynb -> 07, 07_foundation_models.ipynb -> 08.
+    - Update ett.py / ts_features.py imports across whatever moves.
+    - Add a sunspot loader alongside the existing pedestrian_counts loader in
+      03_decomposition_and_nbeats.ipynb (same Monash parquet-convert pattern as ett.py).
+    - Run `uv run notebooktester notebooks/2_timeseries/ -t 300 -pb` once the above lands.
 
 open_questions:
   - >
-    Does the CNN-from-scratch arm in 04 actually lose on eurosat, and by how much? Not yet
-    measured. If it loses by 30 points the notebook writes itself; if it is close, the
-    framing needs rethinking. Measure before writing.
+    Fate of 04_composition.ipynb's non-gating content (hand-crafted features vs learned
+    representation, fusion altitude) — see notebook 05's open_question above.
   - >
-    EuroSAT ships 7 corruption splits (contrast, gaussian_noise, impulse_noise,
-    jpeg_compression, motion_blur, pixelate, spatter), 2700 rows each. A head trained on
-    clean vectors evaluated against corrupted ones is a cheap, striking robustness
-    exercise -- and it needs no new dataset, only more encoding. Worth a cache.
+    Whether sunspot gets a full section or an exercise in notebook 03 — see that notebook's
+    open_question above.
+  - >
+    Whether notebook 04 keeps an ETTh1 coda after the australian_electricity_demand switch
+    — see that notebook's open_question above.
+  - >
+    Which dataset notebook 06's search actually runs on — needs the same "does this axis
+    spread" check L1 did (§3.4b) before it is written, not assumed.
