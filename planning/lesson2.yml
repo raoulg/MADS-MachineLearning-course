@@ -332,23 +332,54 @@ notebooks:
     content: >
       D17. Mirrors L1 notebook 04's shape: one param_space dict, ray.tune + HyperOptSearch
       (TPE), read the result the same way — which axis actually moved the metric. Search
-      space: mechanism (plain/gate/highway/moe, from notebook 05), hidden width, n_experts
-      (moe only), lr, on pedestrian_counts (W=168,H=24, matching notebook 03) rather than
-      notebook 05's ETTh1 window, so the router has a real daily cycle to work with. Logs
-      one mlflow summary row per search, matching L1 notebook 04 §4.2's convention.
+      space: mechanism (plain/gate/highway/moe/sparse_moe), hidden width, n_experts,
+      expert_hidden, lr, on pedestrian_counts (W=168,H=24, matching notebook 03) rather
+      than notebook 05's window, so the router has a real daily cycle — and 8 pooled
+      count locations — to work with. Logs one mlflow summary row per search, matching L1
+      notebook 04 §4.2's convention.
     resolved: >
-      Dataset question (below) resolved by running the search itself rather than a
-      pre-check: pedestrian_counts, measured. 24 trials, 105s. Best trial is `plain`
-      (0.2624 MAE, hidden=128), beating the hidden=64 baseline (0.2805 +/- 0.0021) by more
-      than 2 std — but still no gate; `gate`'s best (0.2635) is close but does not win.
-      Third measured case of the same finding, after `04_composition`'s four-patch window
-      and `05_gates_highways_moe`'s ETTh1 window: a real cycle to route on still did not
-      make gating earn its parameters here. Written up honestly rather than left as a
-      dangling implication from the notebook's own framing.
+      Dataset question resolved by running the search itself rather than a pre-check:
+      pedestrian_counts, measured. Originally 24 trials over 4 mechanisms (plain/gate/
+      highway/moe): `plain` won (0.2624 MAE, hidden=128). Superseded 2026-08-05 (see
+      `sparse_moe_search_addition` below) by a 30-trial run over the extended 5-mechanism,
+      5-axis space — `gate` (hidden=128, 0.2596) now edges out `plain`'s own best
+      (0.2624) by 0.0028, inside the 2-std noise band that check exists to catch, and
+      every trial here still trains from a single fixed seed (E3 flags this explicitly).
+      Read as: still no clear, checked win for gating on this series, not a reversal of
+      the earlier finding.
+    sparse_moe_search_addition: >
+      2026-08-05, direct user request: "how many experts, and what is the ideal hidden
+      size for the experts... even if it doesn't improve, I think it is a nice thing to
+      have set up... make clear what the tradeoffs are (parameters trained vs used)...
+      the intuition should be about the need for specialisation." `sparse_moe` (k=1)
+      joined the mechanism choices; `n_experts` widened to {2,4,6,8,10,16}; a new
+      `expert_hidden` axis ({16,32,64}) makes each expert a genuine bottleneck 2-layer
+      network (`Linear -> GELU -> Linear`) with its own width, independent of the block's
+      hidden dim, letting the search trade *many small* experts against *few large* ones
+      — the "N=10, but smaller" question directly. `param_counts()` reports (total,
+      active) parameters per trial; `trainable()`'s `tune.report` carries both through to
+      the results dataframe. N_TRIALS bumped 24 -> 30 for the larger space.
+
+      Measured (30 trials, 148s): `sparse_moe` did not win, and did worse than every
+      other mechanism's own worst trial — 4 trials only (fewer than gate/plain's 9 each;
+      HyperOptSearch appears to have deprioritised it early), ranging 0.2793 (best) to
+      0.3644 (worst), wider spread than any other mechanism. Its best config
+      (n_experts=16, expert_hidden=64, hidden=128) is the concrete tradeoff the addition
+      exists to show: **292,008 parameters trained, 43,368 (14.9%) used per input** —
+      real, measured capacity/compute decoupling — that still did not beat dense `moe`'s
+      much smaller 92,576-parameter trial (mae 0.2706, every parameter used every time,
+      no decoupling at all). More capacity, spent more cheaply, was not automatically a
+      *better* capacity here. TPE never got much budget into the "many small experts"
+      corner of the space before moving on, so the specialisation hypothesis (does
+      pooling 8 pedestrian-count locations give a router something real to divide up) is
+      not conclusively settled by this run — E4 (new) asks students to test it on a
+      dataset with more obvious heterogeneity instead of re-spending trials here.
     params:
-      - N_TRIALS = param(24, test=2)
+      - N_TRIALS = param(30, test=2)   # was 24; bumped for the wider 5-axis space
       - EPOCHS = param(15, test=1)
-    run: jupyter nbconvert --execute (full, 24 real trials) + notebooktester -f (test) — both green, 2026-08-05.
+    run: jupyter nbconvert --execute (full, 30 real trials) + notebooktester -f (test) —
+      both green, 2026-08-05 (re-run for the sparse_moe/expert_hidden addition; whole-
+      folder notebooktester over notebooks/2_timeseries/ re-checked: 9 passed).
 
   - file: 07_exercise.ipynb
     title: "Your own series, your own negative result"
