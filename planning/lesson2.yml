@@ -253,12 +253,12 @@ notebooks:
     content: >
       Not a literal extraction of §4.6 (that section was tightly coupled to
       `04_composition`'s `ChunkFusion`/patch-feature machinery and its specific "loses on
-      four patches" result) — a self-contained rebuild on the same ETTh1 window
-      `02_basemodels` established, so results are directly comparable to that notebook's
-      table. Cites the GRU/LSTM gate (Cho et al. 2014; Hochreiter & Schmidhuber 1997),
-      Highway Networks (Srivastava, Greff & Schmidhuber 2015), and dense/sparse
-      mixture-of-experts (Jacobs & Jordan 1991; Shazeer et al. 2017) as one idea at
-      increasing resolution.
+      four patches" result) — a self-contained rebuild on `australian_electricity_demand`
+      (retargeted from ETTh1 by D18), so results are directly comparable to
+      `04_probabilistic`'s table. Cites the GRU/LSTM gate (Cho et al. 2014; Hochreiter &
+      Schmidhuber 1997), Highway Networks (Srivastava, Greff & Schmidhuber 2015), and
+      dense/sparse mixture-of-experts (Jacobs & Jordan 1991; Shazeer et al. 2017) as one
+      idea at increasing resolution.
     framing: >
       D16. Explicit in the notebook: general-purpose composition primitive, not a
       time-series trick — introduced here because the lesson has a running example ready,
@@ -266,16 +266,34 @@ notebooks:
       Callback to L1's fusion notebook (D10/§3.4c): "another way two streams can combine
       besides concatenation."
     measured: >
-      3 seeds, `EPOCHS=10`. `+ Gate` (0.1715 MAE, 11,928 params) ties its capacity-matched
-      control `deeper MLP, no gate` (0.1716 MAE, identical param count) almost exactly —
-      the control confirms the gate mechanism itself bought nothing beyond its parameter
-      budget here. `+ Highway` is the worst trained model (0.1871, worse than plain
-      `linear`) at 9x the linear model's parameters. `+ MoE` costs 3x `plain MLP`'s
-      parameters and scores worse. Same shape of result as `04_composition`'s own routing
-      experiment (now `09_composition_extra`), reached from a different window — not a
-      dataset-specific fluke.
+      D19-corrected numbers (5 seeds, settled at `EPOCHS=90` after checking 30/60/90 —
+      main_principles.md §3.9): `deeper` (0.15879 MAE, 19,632 params) and `gate` (0.16026,
+      19,632 params — its exact capacity-matched control) sit inside each other's seed
+      spread; `plain` is worst (0.17381, 15,472 params); `highway` (0.16155, 28,080
+      params, 1.8x `plain`) and dense `moe` (0.16475, 32,372 params, 2.1x `plain`) cost
+      more and score worse. Same null-result shape as `04_composition`'s own routing
+      experiment (now `09_composition_extra`) and `06_search`'s — reached from a third,
+      different window, not a dataset-specific fluke.
+    sparse_moe_addition: >
+      2026-08-05. §5.1's dense-MoE caveat ("this notebook doesn't test the sparse routing
+      that makes production MoE fast") resolved into a real result, not left standing.
+      `vectormesh` 0.7.0 added `SparseMoE` (top-k routing via real gather/scatter — sort
+      routing assignments by expert id, run each expert only on its own contiguous slice,
+      scatter weighted outputs back; an expert with zero routed examples this batch does
+      zero work, confirmed by a test asserting it gets no gradient). New §5.5 times
+      `SparseMoE` (k=1) against dense `MoE` on a fixed batch of this notebook's own
+      windows, N=4 to N=256 experts: parameter count grows 64x, `SparseMoE`'s forward time
+      grows only 2.0x (0.129 -> 0.262 ms) while dense `MoE` grows 15.2x (0.117 -> 1.783
+      ms) — dense is briefly faster at N=4 (routing overhead exceeds the saving when
+      there's nothing to route around), crosses over by N=16, and is 6.8x slower than
+      sparse by N=256. Does not retest whether routing was worth its parameters on this
+      task (§5.4 already answered a related question for the dense version) — only that
+      the capacity/compute decoupling production MoE papers claim is real and measured
+      here, not asserted.
     verified: true
-    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05.
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green,
+      2026-08-05 (re-run for the SparseMoE addition; whole-folder
+      `notebooktester notebooks/2_timeseries/ -t 300 -pb -f` also re-checked: 9 passed).
 
   - file: 06_search.ipynb
     title: "Searching architectures, twice"

@@ -132,7 +132,11 @@ The habit is transferable and the verdict is not. Grade the habit.
 | **D13** | **No notebook builds a full cache.** Every notebook downloads a published one. Building is taught on a ~200-image subsample that finishes on any hardware, and the full build lives in `make build-lesson1`. | Student hardware ranges from new MacBooks to CPU-only VMs. See §3.7. |
 | **D14** | **L2 is redefined as time series**, absorbing the round-1 `3_recurrent_networks` rebuild (renamed `2_timeseries`). D9's "build your own cache" L2 is cut outright, not deferred. | §1.2 already named time series as the counterweight to L1; there is no reason to spend a lesson number on cache-mechanics students already practised in L1. See `cuts` and §6. |
 | **D15** | The probabilistic-forecasting notebook moves off ETTh1-only onto **australian_electricity_demand** (Monash, CC-BY-4.0). | Not because ETTh1 is noisier point-to-point — measured, it is not (§3.8) — but because its difficulty is regime drift/non-stationarity, which is a harder, more confounded story to teach calibration on than a clean high-SNR series. ~~ETTh1 stays in the lesson elsewhere as the literature-comparable, harder case~~ — **superseded by D18**: ETTh1 was dropped from the graded sequence entirely. |
-| **D16** | Gating (Gate/Highway/MoE) is split into its **own** L2 notebook, framed as general-purpose composition inspired by the GRU/Highway/MoE papers — not a time-series-only trick. | It was buried inside the old `04_composition.ipynb` §4.6 alongside unrelated feature-engineering content. Splitting it lets the notebook cite its sources properly and lets the closing search notebook (D17) treat "gate: yes/no" as a clean, nameable axis. Retargeted to `australian_electricity_demand` by D18 — see §3.9. |
+| **D16** | Gating (Gate/Highway/MoE) is split into its **own** L2 notebook, framed as general-purpose composition inspired by the GRU/Highway/MoE papers — not a time-series-only trick. | It was buried inside the old `04_composition.ipynb` §4.6 alongside unrelated feature-engineering content. Splitting it lets the notebook cite its sources properly and lets the closing search notebook (D17) treat "gate: yes/no" as a clean, nameable axis. Retargeted to `australian_electricity_demand` by D18 — see §3.9. The dense-MoE-only
+gap this left (§1.4's "never present an architecture as correct because the idea is
+elegant" cuts both ways: also don't leave "the real version isn't tested" as a permanent
+caveat) closed 2026-08-05 — `vectormesh` 0.7.0 added `SparseMoE`, measured directly in
+the notebook's new §5.5. See §4b. |
 | **D17** | L2 closes with a ray.tune search notebook, mirroring L1 notebook 04 — search over basis choice, gate on/off, highway depth. | D5's "one search tool, used properly" only pays off if students exercise it twice in different modalities, not once and never again. |
 | **D18** | L2 consolidated from **five** datasets (ETTh1, pedestrian_counts, sunspot, australian_electricity_demand, traffic_hourly) to **three** (sunspot, pedestrian_counts, australian_electricity_demand). ETTh1 dropped from the graded sequence entirely, kept only in the optional appendix `09_composition_extra`. | Direct user feedback, 2026-08-05: five datasets across nine notebooks was real sprawl, and ETTh1's six-covariate electricity-transformer domain added confusion an unfamiliar dataset didn't need to, on top of the dataset count itself. Daily sunspot counts take over ETTh1's structural role (§3.9) — a series where the naive baseline is hard to beat — while being a series students already met in MADS-DAV. |
 | **D19** | Every epoch count in L2 must be justified by a checked convergence curve or a multi-seed, multi-epoch-count sweep — not copied from another notebook. | Direct user challenge, 2026-08-05, after the `EPOCHS=1` bug (§4a) was fixed by simply picking a different number: "why would 8 epochs be enough? who says it doesn't need 100?" Caught a real error doing this — an initial 3-seed check of `05_gates_highways_moe` at one epoch count found Gate beating its capacity-matched control; a proper 5-seed, 3-epoch-count check found that result was noise (§3.9). Both the wrong finding and the correction are on the record in the notebook, not silently fixed. |
@@ -540,6 +544,43 @@ Also fixed at the notebook level, no library change needed (both confirmed by re
 removed; `VectorCache.join()` already validates alignment and raises on mismatch (D12), so
 the notebooks' manual `assert` after `.join()` was re-checking something the library
 guarantees — removed.
+
+## 4b. Round 4 addition (vectormesh 0.7.0) — SparseMoE
+
+`05_gates_highways_moe.ipynb`'s dense `MoE` section carried an honest caveat: it tests
+Jacobs & Jordan's (1991) dense blend, not the sparse top-k routing (Shazeer et al. 2017;
+Switch Transformer, Fedus et al. 2021) that is why production MoE scales — dense MoE runs
+every expert on every input, so it structurally cannot show capacity and compute
+decoupling. Rather than leave the caveat standing, `vectormesh` gained a genuinely sparse
+component and the notebook now measures the claim directly.
+
+| # | Item | Where | Status |
+|---|---|---|---|
+| **P8** | `SparseMoE(experts, hidden_size, out_size, k=1)` — top-`k` routed mixture of experts. Routes via a `Linear` router, then a real gather/scatter: flatten the `(n, k)` routing decisions into `n*k` (example, expert, weight) assignments, sort by expert id so each expert's assignments are one contiguous slice (one `argsort`, not an `O(N)` scan per expert), run each expert only on its own slice, scatter the weighted outputs back with `index_add_`. An expert that received zero examples this batch is absent from the loop entirely — confirmed by a test asserting its parameters get no gradient at all (not a masked-to-zero one). `k=N` is checked to match dense `MoE`'s output exactly (same router/expert weights), tying the new path to the already-trusted one. 10 new tests, `tests/test_gating.py`. | vectormesh | **done** 2026-08-05, released 0.7.0 |
+
+### 4b.1 Sparse vs dense, measured (not just claimed)
+
+Benchmarked on `05_gates_highways_moe.ipynb`'s own data — a batch of 64 of its own
+`(W=192,)` windows, projected to `hidden=64`, `k=1`, 30 reps after 5 warmup calls:
+
+| N experts | sparse ms/fwd | dense ms/fwd | params |
+|---|---|---|---|
+| 4 | 0.129 | 0.117 | 16,900 |
+| 16 | 0.204 | 0.224 | 67,600 |
+| 64 | 0.250 | 0.535 | 270,400 |
+| 256 | 0.262 | 1.783 | 1,081,600 |
+
+From N=4 to N=256, parameters grow 64x. `SparseMoE`'s forward time grows only 2.0x
+(routing overhead — one `argsort` plus a per-active-expert Python loop — not added
+compute, since every example still passes through exactly one expert). Dense `MoE` grows
+15.2x, close to proportional with N as it must be, since it evaluates every expert on
+every example regardless of capacity. Dense is briefly *faster* at N=4 (routing machinery
+costs more than it saves with nothing to route around); the crossover is by N=16, and
+dense is 6.8x slower than sparse by N=256 for identical parameter counts. This is the
+capacity/compute decoupling claim, measured on this course's own data rather than
+asserted from the papers — it does not reopen whether routing earns its parameters *on
+this forecasting task* (§3.9/D19 already answered a related question for dense `MoE`;
+nothing here reruns that check for the routed version).
 
 ### Published caches (hf.co/pttrn-io)
 
