@@ -397,10 +397,37 @@ Ordered. Nothing in L1 can be finished before these land.
 | **P4** | Build + publish **EuroSAT** and **DTD** caches, 3 encoders each, with `source_idx`. | `make build-lesson1` / `make publish-lesson1` | **done** 2026-08-04 |
 | **P6** | Fix `Concatenate2D`'s binding axis (`"batch dim"` → `"batch _"`) so branches of different widths concatenate, as its docstring already promises. §3.5 | vectormesh | **coded**, branch `feat/from-hub-join` |
 | **P7** | sdist shipped 50 MB in 0.4.4, almost all of it `references/` — four copyrighted papers republished on PyPI. Restricted to source/tests/docs: 50 MB → 48 KB. | vectormesh | **coded**, branch `feat/from-hub-join` |
-| **P5** | Release vectormesh 0.5.0 (P1, P3, P6, P7) and bump the floor to `vectormesh>=0.5.0` in the course `pyproject.toml`. | both | **awaiting publish** |
+| **P5** | Release vectormesh 0.5.0 (P1, P3, P6, P7) and bump the floor to `vectormesh>=0.5.0` in the course `pyproject.toml`. | both | **done** 2026-08-04 |
 
 Known API limit, not blocking: `CollateParallel` takes exactly **two** columns. Three-way
 fusion needs a library change; L1 stays at two.
+
+## 4a. Round 3 additions (vectormesh 0.6.0)
+
+Triggered by a detailed review pass on the round-2 notebooks (2026-08-05): tone (several
+passages talked to the *author* about the *previous round* rather than to a student —
+cut), missing visuals in several places, and one real bug (see P7a). vectormesh work
+landed on branch `feat/cache-properties-neuralnet-depth`, merged and **published as
+0.6.0** the same day; the course `pyproject.toml` floor is bumped to match.
+
+| # | Item | Where | Status |
+|---|---|---|---|
+| **P2** | Promote `notebooks/5_attention/cache_utils.py`'s `get_or_create_cache` into vectormesh proper, as `VectorCache.get_or_create`. Flagged in round 2 (§4 above) and not done then because D13 meant nothing in L1 called it. Round 3's optional `01c_build_your_own_cache.ipynb` is the second, decisive reason. Kept deliberately separate from `create()` rather than merged into it: `create()` is `scripts/build_cache.py`'s method and several vectormesh docs/demo notebooks call it expecting an unconditional fresh build; `get_or_create` adds the orthogonal idempotent contract without changing `create()`'s existing meaning for anyone relying on it. | vectormesh | **done** 2026-08-05 |
+| **P6a** | `VectorCache.num_classes` / `VectorCache.dim` properties — shortcuts for `features["label"].num_classes` / `metadata[<col>]["hidden_size"]`, which every L1 notebook re-derived by hand. Both raise `VectorMeshError` on the ambiguous cases (no label column, non-`ClassLabel` label, >1 vector column after a `join()`). | vectormesh | **done** 2026-08-05 |
+| **P7a** | `NeuralNet(hidden_size: int \| list[int], out_size)` — fixes a real bug, not a style preference. `04_search.ipynb` and `05_exercises.ipynb` both built "add a hidden layer" by composing two `NeuralNet`s (`NeuralNet(dim, width)` then `NeuralNet(width, n_classes)`); `NeuralNet` ends in a bare `Linear` with no trailing activation, so that composition puts an unactivated `Linear -> Linear` seam in the middle — exactly the "depth without nonlinearity buys nothing" collapse §1.4/notebook-02 §2.1 proves. A bare int reproduces the old two-layer behaviour bit-for-bit (checked: every `NeuralNet(` call site across every lesson passes a bare int, so this is purely additive); `hidden_size=[dim, w1, ...]` names the whole input→hidden width chain in one call, with a `GELU` between every pair of `Linear`s so the seam cannot happen by construction. Very likely part of why §3.3's "proj→width→head" experiments below lost points — the composition itself was leaking capacity, not only the width choice; not re-measured, flagged for anyone revisiting §3.3. | vectormesh | **done** 2026-08-05 |
+
+All three verified against a real published cache (`pttrn-io/eurosat-dinov2-small`), not
+just synthetic test data, and against the full non-integration vectormesh test suite (86
+passed). `notebooks/5_attention/cache_utils.py` becomes a thin re-export so lesson 5 is
+untouched.
+
+Also fixed at the notebook level, no library change needed (both confirmed by reading
+`vectormesh/components/connectors.py` and `vectormesh/data/cache.py`, not assumed):
+`Concatenate2D` already accepts a raw two-tensor tuple, so `04_search.ipynb`/
+`05_exercises.ipynb`'s `Parallel([nn.Identity(), nn.Identity()])` before it was inert —
+removed; `VectorCache.join()` already validates alignment and raises on mismatch (D12), so
+the notebooks' manual `assert` after `.join()` was re-checking something the library
+guarantees — removed.
 
 ### Published caches (hf.co/pttrn-io)
 
