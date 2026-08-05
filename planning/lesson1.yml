@@ -1,23 +1,28 @@
 lesson: 1
 title: "Representations, heads, and searching the space between them"
 status: done               # specified | in_progress | done
-# Built and RUN 2026-08-04, vectormesh 0.5.0 / mltrainer 0.3.6 / ray 2.55.1.
-# `uv run notebooktester notebooks/1_pytorch_intro/ -t 300 -pb`: 5 passed, 0 failed, 29s.
-# All five also executed at full param() values with outputs saved.
-# P2 (get_or_create_cache -> vectormesh) never landed and turned out not to be needed:
-# D13 means no L1 notebook builds a cache, so nothing imports the helper. It is still
-# owed to lesson 2, which is where building is taught.
-depends_on: [P1, P2, P3, P4, P5]   # see main_principles.md §4
+# Round 2 built and RUN 2026-08-04, vectormesh 0.5.0 / mltrainer 0.3.6 / ray 2.55.1.
+# Round 3 (this revision) built and RUN 2026-08-05, vectormesh 0.6.0 -- see
+# main_principles.md §4a for what 0.6.0 added and why. Two new notebooks: 01b_tensors.ipynb
+# (geometric tensor intuitions, illustrated tensor-ladder.md) and
+# 01c_build_your_own_cache.ipynb (optional, self-study, uses the promoted get_or_create).
+# `uv run notebooktester notebooks/1_pytorch_intro/ -t 300 -pb`: 7 passed, 0 failed, ~30s.
+# All seven also executed at full param() values with outputs saved (nbconvert --execute).
+# P2 (get_or_create_cache -> vectormesh) landed in 0.6.0. D13 still means no *graded* L1
+# notebook builds a cache -- but the new optional 01c does, on a ~100-image subsample, which
+# is the second reason (after lesson 2) this was worth finally promoting.
+depends_on: [P1, P2, P3, P4, P5, P6, P6a, P7a]   # see main_principles.md §4 and §4a
 
 premise: >
-  The old L1 taught torch bottom-up: tensors, dataloaders, a net, a loss, MNIST. It
-  worked, but it spent five notebooks getting to a model that a modern practitioner
-  would not build. The new L1 starts one level up: download a cache someone else paid
-  to compute, train a head on it in two seconds, and spend the saved time on the
-  question that actually matters — which representation, and which composition on top.
+  Training a model on raw data usually means it first learns to see -- edges, textures,
+  objects -- before it learns to decide, and the "learning to see" part is both expensive
+  and mostly independent of the specific task. Split the two: download a representation
+  someone else already spent the compute on, train a head on it in two seconds, and spend
+  the saved time on the question that actually matters -- which representation, and which
+  composition on top.
 
-  Everything a student needs from the old lesson (shapes, a loss, an optimizer, a
-  training loop) still gets taught. It gets taught *when it is needed*, against data
+  Shapes, a loss, an optimizer, a training loop -- all of it still gets taught. It gets
+  taught *when it is needed*, against data
   that is already interesting.
 
 learning_goals:
@@ -53,16 +58,28 @@ datasets:
       Saturated (0.9932; 1-NN with zero training = 0.9910). Useless as a task, perfect
       as the single cell that makes the thesis undeniable. See main_principles.md §3.1.
 
-prerequisites_blocking:
+prerequisites_blocking: []   # all landed; see prerequisites_done
+prerequisites_done:
   - P1: VectorCache.from_hub() — notebooks must not open-code snapshot_download.
-  - P2: get_or_create_cache promoted out of notebooks/5_attention/ into vectormesh.
+  - P2: >
+      get_or_create_cache promoted out of notebooks/5_attention/ into vectormesh, as
+      VectorCache.get_or_create, in 0.6.0. Landed for round 3, not round 2 — see §4a.
   - P3: VectorCache.join(other, on="source_idx") — needed by notebook 04's fusion arm.
   - P6: Concatenate2D binding-axis fix, else raw-width fusion is impossible.
   - P5: vectormesh release + floor bump in pyproject.toml.
-prerequisites_done:
   - P4: >
       eurosat + dtd caches published 2026-08-04, 3 encoders each:
       pttrn-io/{eurosat,dtd}-{dinov2-small,resnet-18,mobilenet_v2_1.0_224}
+  - P6a: >
+      VectorCache.num_classes / .dim properties (0.6.0) — every notebook re-derived
+      features["label"].num_classes / metadata["embed"]["hidden_size"] by hand before this.
+  - P7a: >
+      NeuralNet(hidden_size: int | list[int], out_size) (0.6.0) — fixes a real bug found
+      during round 3 review: notebooks 04/05 built "add a hidden layer" by stacking two
+      NeuralNets, which puts a bare Linear -> Linear seam in the middle (no activation)
+      between them, exactly the collapse notebook 02 §2.1 proves is worthless. A bare int
+      is bit-identical to the old two-layer default; a list names the whole input->hidden
+      width chain in one NeuralNet call instead.
 
 hardware_policy:            # D13, main_principles.md §3.7
   default: >
@@ -93,6 +110,11 @@ notebooks:
           classes. Then say plainly: the representation is doing the work, and someone
           else already paid for it.
         verified: true      # measured, main_principles.md §3.1
+        round3_addendum: >
+          Added a 2D PCA scatterplot (torch.pca_lowrank, not a new sklearn dependency)
+          of a handful of flower classes right after the number — seeing the classes
+          already separated, before any model touches them, lands the claim faster than
+          the accuracy figure alone.
       - id: 1.2
         title: "What a cache is"
         content: >
@@ -101,6 +123,9 @@ notebooks:
           stride / chunk_sizes. Rule stated once and repeated all course: read the
           metadata before you write model code, because it tells you the shapes you
           are about to receive.
+        round3_addendum: >
+          One-line forward pointer to the new optional 01c_build_your_own_cache.ipynb,
+          framed as "if you have the hardware and want to try it".
       - id: 1.3
         title: "Tensors, as they actually turn up"
         content: >
@@ -112,6 +137,11 @@ notebooks:
         note: >
           The full 1D/2D/3D ladder (chunked documents) is deferred to L5 where chunking
           actually appears. Do not front-load it.
+        round3_addendum: >
+          Shrunk further and now points to the new 01b_tensors.ipynb for the illustrated,
+          geometric version (dummy 1D/2D/3D/4D tensors, same shape/different semantics),
+          keeping only the shape-is-not-meaning + jaxtyping-contract material inline.
+          tensor-ladder.md stays as the reference page 01b is the illustrated version of.
       - id: 1.4
         title: "The economics, with a stopwatch"
         content: >
@@ -134,9 +164,60 @@ notebooks:
           0.9082 / resnet-18 0.9025. This is the number to remember when notebook 04
           finds that architecture changes nothing.
         verified: true
+        round3_addendum: >
+          two_line_head's hand-rolled randperm minibatch loop replaced with
+          DataLoader(shuffle=True) (mechanical simplification, DataLoader itself is not
+          a new concept). The printed table replaced with a grouped bar chart. This is
+          also where the "log every run to mlflow" habit starts (plain
+          start_run/log_param/log_metric, not the Trainer wrapper yet — that lands
+          properly in notebook 03), so it gets reinforced by repetition in every later
+          notebook rather than introduced once and forgotten.
     exercises:
       - Read the metadata of a cache you did not build and predict the head's input width before running anything.
       - Recover the original image behind a cache row via source_idx (pass the pinned revision — the cache was shuffled, so source_idx is not the row number).
+
+  - file: 01b_tensors.ipynb
+    title: "Tensors, with pictures"
+    added: round3
+    runtime_target_s: 30
+    rationale: >
+      tensor-ladder.md (round 1) is correct and stays as the reference page, but it is
+      prose and tables only. This notebook is the illustrated version: dummy data for
+      every rank up to 4D, drawn, with the same "same shape, different semantics" point
+      made visually instead of only argued. 01_the_cache.ipynb §1.3 points here instead
+      of re-explaining; §6 of this notebook repeats the 1D/2D pictures with a real
+      downloaded cache, deliberately — repetition at a different level of realism.
+    sections:
+      - id: b.1
+        title: "1D: a vector"
+        content: "One item, one representation, drawn as a single-row heatmap."
+      - id: b.2
+        title: "2D: the same shape, two different pictures"
+        content: >
+          (B, D) a batch of items vs (C, D) one chunked item — two identical (5, 8)
+          heatmaps, unrelated meanings. tensor-ladder.md §4's point, drawn.
+      - id: b.3
+        title: "3D: a stack of the 2D picture, two ways"
+        content: >
+          (H, W, 3) an actual RGB image (three stacked channel planes) vs (B, C, D) a
+          batch of chunked items, drawn with the same small-multiples technique to show
+          the drawing method does not depend on what the grids mean.
+      - id: b.4
+        title: "4D: a stack of the 3D picture"
+        content: >
+          (B, H, W, 3) a batch of images, drawn as thumbnails and as a literal
+          stack-of-cards schematic (matplotlib patches, offset rectangles) for the
+          "stack of cubes" intuition.
+      - id: b.5
+        title: "Recap + real data"
+        content: >
+          Rank/shape/meaning table, then the 1D and 2D pictures repeated with a real
+          downloaded EuroSAT cache row and a real DataLoader batch, so the dummy version
+          and the real one sit side by side.
+    exercises:
+      - Given (32, 500, 3), name two plausible readings and what extra information (not the shape) would disambiguate them.
+      - Try to torch.stack three (C, 8) tensors with different C by hand, read the error, and explain why padding has to exist.
+      - Repeat §6's real-data cells for a different published cache.
 
   - file: 02_nonlinearity.ipynb
     title: "sigma(Wx + b) and sigma(W * x)"
@@ -160,6 +241,12 @@ notebooks:
           for layer in reversed(layers[:-1]):
               W = W @ layer.weight
           assert torch.allclose(stack(x), x @ W.T, atol=1e-5)
+        round3_addendum: >
+          Added a visual companion right after the numeric collapse proof: an XOR-style
+          2D classification demo (four clusters at the corners of a square, diagonal
+          corners sharing a class), a linear boundary vs a GELU-MLP boundary, contour
+          plots. Measured: linear 50.3% (chance), nonlinear 100%. "Approach this more
+          visually" was the single most repeated piece of feedback on this notebook.
       - id: 2.2
         title: "Convolution is the same construction"
         content: >
@@ -172,6 +259,10 @@ notebooks:
           No Toeplitz matrix, no allclose proof of conv1d(x, w) == T @ x. The section
           exists to set up 2.3 (linear vs nonlinear) and to justify D7's merge of dense
           and conv, not to prove linearity — which nobody in the room is disputing.
+        round3_addendum: >
+          One small stem/bar plot added, deliberately minimal per the same steer that
+          says not to build a full receptive-field theory here: which of the 20 input
+          positions feed one output position of the composed 5-tap kernel.
       - id: 2.3
         title: "So what is the nonlinearity for"
         content: >
@@ -179,6 +270,11 @@ notebooks:
           function no linear map can fit. Survey activations (sigmoid/tanh/ReLU/GELU)
           briefly — dying ReLU, saturation — but keep the focus on: this is the one
           ingredient that makes depth mean something.
+        round3_addendum: >
+          sin(3x) target now has noise added (target = sin(3x) + N(0, 0.15)) so there is
+          an actual fitting problem instead of a noiseless curve; the plot shows the
+          noisy points, the true function, and both fits. "Which activation" panel kept
+          unchanged -- flagged as a favourite.
       - id: 2.4
         title: "Reading the encoder"
         content: >
@@ -201,6 +297,13 @@ notebooks:
           DataLoader. Compressed from the old hand-rolled-dataloader notebook: show the
           collate function's job (list of items -> (X, y)) in ten lines, then use the
           library. The hand-rolled iterator and the streaming case move to legacy.
+        round3_addendum: >
+          Backward reference to 01b_tensors.ipynb §2 for the (D) -> (B, D) batching
+          step, instead of re-deriving it. Expanded the one-hot explanation: a
+          classifier outputs a probability distribution over classes, not a single
+          guess, and one-hot is the simplest target distribution (100% on the true
+          class) -- grounds the existing code comment ("CrossEntropyLoss accepts soft
+          targets") in real prose instead of leaving it as a one-liner.
       - id: 3.2
         title: "Losses"
         content: >
@@ -208,12 +311,23 @@ notebooks:
           CrossEntropy for single-label, BCEWithLogits for multi-label. Anchor on why
           the EuroSAT task takes CrossEntropy + Accuracy, and flag that L5's legal task
           takes BCE + F1 because a document carries several labels.
+        round3_addendum: >
+          Expanded rather than split into its own notebook (keeps L1 at 7 notebooks, not
+          8): a new subsection on what a loss is for (the optimizer, must be
+          differentiable) vs what a metric is for (a human, does not need to be), plus
+          real content on MAE, MASE (MAE against a naive baseline -- lesson 3's metric)
+          and F1 (harmonic mean of precision/recall, lesson 5's metric), not just the
+          existing table.
       - id: 3.3
         title: "Optimizer and the loop"
         content: >
           Write the loop by hand once (zero_grad / forward / loss / backward / step),
           then hand it to mltrainer.Trainer. Keep the by-hand version — it is short and
           it is the last time they will see it.
+        round3_addendum: >
+          Added a small mermaid block-and-arrow diagram of the 5-line loop
+          (zero_grad -> forward -> loss -> backward -> step -> next batch) alongside the
+          code, matching tensor-ladder.md's existing use of mermaid in this repo.
       - id: 3.4
         title: "The baseline"
         content: >
@@ -268,6 +382,26 @@ notebooks:
               ),
               run_config=tune.RunConfig(storage_path=...),
           )
+        round3_addendum: >
+          Replaced by widths/n_hidden_layers/hidden_dim, because the `width` sketch above
+          was implemented as stacking two NeuralNets (Linear D->width, GELU, Linear
+          width->width, then a SECOND NeuralNet width->n_classes) -- a bare
+          Linear -> Linear seam with no activation between the two NeuralNets, which is
+          exactly notebook 02 §2.1's collapse. Fixed at the library level (P7a,
+          NeuralNet(hidden_size: int | list[int])) and at the notebook level: param_space
+          now has n_hidden_layers in {0, 1, 2} and hidden_dim in {128, 512}, and the head
+          is one call, NeuralNet([dim, *[hidden_dim]*n_hidden_layers], n_classes).
+          hidden_dim is simply ignored by trainable when n_hidden_layers=0 rather than
+          built as a true conditional hyperopt space -- both options and the tradeoff are
+          stated in-notebook.
+
+          RunConfig(verbose=1), no explicit reporter: this is what actually produces the
+          live Tune Status / Trial Status HTML table 4_tuning_networks/01_hypertuner.ipynb
+          shows (ray auto-detects the Jupyter kernel and picks JupyterNotebookReporter by
+          default). A first pass explicitly constructed JupyterNotebookReporter but left
+          the pre-existing verbose=0 in place, which suppresses all reporting regardless
+          of which reporter is configured -- the table silently never appeared. Caught by
+          comparing against 01_hypertuner.ipynb, not by the notebook erroring.
       - id: 4.2
         title: "Reading the result"
         content: >
@@ -276,10 +410,24 @@ notebooks:
           means — the search rediscovered the two-line baseline, and the leverage was
           upstream in the encoder all along.
         expected_outcome_verified: true   # main_principles.md §3.3, §3.5
+        round3_addendum: >
+          Added a parallel-coordinates-style plot alongside the existing per-axis panels,
+          not instead of them -- shows interactions (e.g. hidden_dim only mattering when
+          n_hidden_layers > 0) that a single-axis view can wash out. Centralised as
+          `plotting.search_parallel_plot` (new: notebooks/1_pytorch_intro/plotting.py),
+          imported by both 04_search.ipynb and 05_exercises.ipynb rather than each
+          notebook carrying its own copy. Uses px.parallel_categories, the style
+          notebooks/5_attention settled on (categorical config values like `encoder` plot
+          natively, no manual code/tickvals mapping) -- not px.parallel_coordinates as in
+          4_tuning_networks/visualize.py, which is numeric-only and predates the
+          categorical case. Also logs a one-row mlflow summary of the search (baseline,
+          best trial, encoder gap) after tuner.fit() completes -- deliberately NOT
+          per-trial (a ray trial is its own process; concurrent writers is not a fight
+          worth having with mlflow's sqlite backend).
       - id: 4.3
         title: "The fusion arm"
         content: >
-          Add a two-encoder branch via VectorCache.join + CollateParallel + Parallel +
+          Add a two-encoder branch via VectorCache.join + CollateParallel +
           Concatenate2D. Have students predict whether fusing a strong and a weak
           encoder beats the strong one alone, then measure it over several seeds.
           Measured answer (§3.4c, 8 seeds): raw-width fusion is +0.43 pt at 0.9 sigma —
@@ -287,6 +435,19 @@ notebooks:
           The 128-bottleneck variant of §3.4 does lose (-2.4 pt); the bottleneck was the
           culprit, not the fusion.
         verified: true    # main_principles.md §3.4c
+        round3_addendum: >
+          Dropped Parallel([nn.Identity(), nn.Identity()]) before Concatenate2D --
+          confirmed by reading vectormesh's connectors.py that Concatenate2D already
+          accepts the raw tuple from CollateParallel directly; Parallel earns its place
+          only when a branch does something, and identity is not something. Also dropped
+          the manual `assert (joined["source_idx"]... ).all()` after join() -- join()
+          already raises on misalignment (checked against cache.py's source), so the
+          notebook was re-checking something the library guarantees. The
+          "until vectormesh 0.5.0 it could not" and "this course got this wrong once
+          already" passages were cut from the STUDENT-FACING text (below) -- they read as
+          the author's diary, not something a student who never saw 0.4.x needs. The
+          teaching_note below is planning-doc-internal and stays, since it is instructor
+          context, not notebook prose.
         teaching_note: >
           D10 + §1.4. Frame this as a HYPOTHESIS the student tests, not as a result we
           announce. Have them predict the sign before running it, then measure over seeds.
@@ -335,6 +496,44 @@ notebooks:
       - Rerun the winning config with three seeds and report the spread. Most "wins" at this scale are inside seed noise -- check whether yours is.
       - Argue from the cache metadata which encoder should win on textures, then check. dinov2-small beats resnet-18 by 14 points here; predict the sign and the rough size first.
       - Ablation: does GaussianNoise still help once the training set is full-size? (It was worth +0.4 pt on DTD -- decide whether that is real.)
+    round3_addendum: >
+      Same NeuralNet(hidden_size=list)/n_hidden_layers+hidden_dim fix, same
+      RunConfig(verbose=1)/no-explicit-reporter fix for the ray status table, and same
+      plotting.search_parallel_plot import for the parallel-categories view as
+      04_search -- see that entry's round3_addendum for why. E2's cold "predict
+      which encoder wins" softened into a guided prediction that points back at notebook
+      01 §1.5's own table (encoder ranking + "width is not quality" already measured on
+      flowers) rather than expecting independent knowledge of three vision encoders'
+      pretraining. E3 now explicitly names knobs beyond the given ones (a Parallel fusion
+      branch, more encoders via hub search, 01c_build_your_own_cache.ipynb for anything
+      not already published) as things a student could add, not just could tune. The
+      deliverable reframed from a written report to a short presentation built from
+      mlflow-logged runs (learning curves, not just final numbers) plus a simple
+      architecture diagram of the winning composition -- same "negative result required"
+      grading criterion, different artefact.
+
+  - file: 01c_build_your_own_cache.ipynb
+    title: "Build your own cache (optional)"
+    added: round3
+    optional: true       # like 08_extra_autograd.ipynb -- self-study, not graded
+    runtime_target_s: 30
+    rationale: >
+      D13 still holds for the graded path: no required L1 notebook builds a cache. This
+      is the escape hatch for students with the hardware (or curiosity) to try it anyway,
+      on a scale (~100 images, param(100, test=16)) that finishes on any machine --
+      matching §1.4's own stopwatch argument rather than contradicting it. Also the
+      second reason (after lesson 2) VectorCache.get_or_create was worth promoting into
+      vectormesh now rather than leaving it lesson-5-only.
+    content: >
+      VectorCache.get_or_create demonstrated end to end: prepare() shuffles-then-selects
+      like scripts/build_cache.py does (same DTD-cache trap notebook 05 walks through),
+      builds a train+test mini-cache, shows the idempotent reuse (run the build cell
+      twice, second call is a glob+load), reads dim/num_classes off the result, and
+      closes with the same 1-NN sanity check notebook 01 §1.1 opened with. Points to
+      scripts/build_cache.py / make build-lesson1 for a real, publishable build.
+    exercises:
+      - Trigger get_or_create's model_tag mismatch guard on purpose (same dataset_tag, different encoder).
+      - Build a mini cache for an encoder or dataset nobody has published yet, and run the 1-NN check on it.
 
 legacy_moves:
   target_dir: notebooks/legacy/
@@ -363,7 +562,9 @@ legacy_moves:
         makes L2 "produce a cache". Whether it is replaced or rewritten is lesson2.yml's
         call, not L1's. Left in place deliberately.
   keep_in_place:
-    - notebooks/1_pytorch_intro/tensor-ladder.md   # round-1 work, still correct, referenced by 01 §1.3
+    - notebooks/1_pytorch_intro/tensor-ladder.md   # round-1 work, still correct; the
+      # reference page 01b_tensors.ipynb (round 3) is the illustrated version of, and
+      # 01_the_cache.ipynb §1.3 still points to both
   salvage:
     - from: 1_pytorch_intro/01_tensors.ipynb
       take: "§1.8 shape-and-meaning + the jaxtyping/beartype contract cells"

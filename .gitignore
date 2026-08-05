@@ -38,5 +38,6 @@ settings.toml
 artefacts/**
 **/tmp/*
 **/assets/*
+**/own_caches/
 # claude code worktrees
 .claude/
