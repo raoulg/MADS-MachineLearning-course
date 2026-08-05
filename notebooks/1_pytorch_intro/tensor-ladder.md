@@ -1,6 +1,6 @@
 # Shape and meaning: the tensor ladder
 
-Shared notation for the whole course. Introduced in `01_tensors.ipynb` §1.8; every lesson after
+Shared notation for the whole course. Introduced in `01_the_cache.ipynb` §1.3; every lesson after
 that **refers** to this page instead of re-explaining it.
 
 The single most useful idea here is that tensors live on **two levels at once**, and that almost

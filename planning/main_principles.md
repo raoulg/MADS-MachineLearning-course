@@ -232,6 +232,84 @@ The weak stream drags the strong one down, and **the penalty grows as data shrin
 This is the teachable result (D10): a second stream must add *complementary* information,
 not just parameters. Do not sell fusion as an upgrade — make students measure it.
 
+### 3.4d The DTD caches are grouped by label — subsampling must shuffle first
+
+Found while building `lesson1.yml` notebook 05's data-size ablation, and it silently
+invalidated the first version of that exercise.
+
+| cache | first 940 train rows contain | why |
+|---|---|---|
+| `eurosat-*` | all 10 of 10 classes | built with `--n-train 6000`, which shuffles before selecting |
+| `dtd-*` | **12 of 47 classes** | built with `--full`, which does not shuffle at all |
+
+So `cache.dataset.select(range(n))` on DTD returns a **class-truncated** subset, not a
+smaller sample of the same task. The failure is silent and looks like a learning curve:
+470/940/1880 rows scored 0.121 / 0.238 / 0.437, which reads as "more data helps" but is
+actually `n/3760` — the model was scoring ~100% on the only classes it had ever seen and 0%
+on the rest. With `.shuffle(seed=0).select(range(n))` the same sizes give **0.694 / 0.753 /
+0.782**, against 0.808 on the full split: a real, boring, correctly-shaped curve.
+
+Two consequences:
+
+- **Any notebook that subsamples a cache must shuffle first.** `lesson1.yml` notebook 05
+  does, and says why — it is a good teaching moment about looking at the data before
+  slicing it.
+- **`make build-lesson1`'s `--full` path should shuffle**, so the artefact does not carry
+  this trap for the next person. Not blocking L1 (the notebooks shuffle at use), but it
+  belongs in lesson 2, which is where cache-building is taught. Logged in `cuts`/L2.
+
+### 3.4e GaussianNoise does nothing measurable on DTD, at any training size
+
+The ablation the above bug was hiding, rerun correctly (dinov2-small, 3 seeds, epochs
+scaled so every size gets comparable gradient steps):
+
+| train rows | sigma=0.0 | sigma=0.3 | Δ | train accuracy |
+|---|---|---|---|---|
+| 470 | 0.6940 | 0.6902 | −0.38 pt | 1.000 |
+| 940 | 0.7527 | 0.7534 | +0.07 pt | 1.000 |
+| 1880 | 0.7819 | 0.7837 | +0.18 pt | 1.000 |
+
+§3.3's "+0.4 pt on DTD" was inside noise and should not have been written as a benefit.
+Note the last column: the head reaches **100% training accuracy at every size**, so it is
+memorising completely, and a regulariser still moves the test number by nothing. That is
+the informative part — the ceiling is set by the frozen representation, not by head
+capacity, so regularising the head cannot reach it. Consistent with §3.3 and §3.6.
+
+### 3.4c Raw-width and projected fusion: a wash, not a loss (the open question, closed)
+
+`lesson1.yml` notebook 04 carried an `open_question`: §3.4's fusion was measured with a
+128-wide bottleneck per branch, and raw-width fusion was *impossible* before the 0.5.0
+`Concatenate2D` fix. Measured now, DTD 47-class, 20 epochs, **8 seeds**, dinov2-small +
+resnet-18:
+
+| setup | mean | std | Δ vs baseline | sigma | beats baseline |
+|---|---|---|---|---|---|
+| **baseline `NeuralNet(384, 47)`** | **0.8098** | 0.0024 | — | — | — |
+| baseline + a hidden layer (2× params) | 0.7579 | 0.0086 | **−5.19 pt** | −15.4 | 0/8 |
+| fusion, raw widths (384+512) | 0.8142 | 0.0126 | +0.43 pt | +0.9 | 7/8 |
+| fusion, weak stream projected to 384 | 0.8132 | 0.0087 | +0.33 pt | +1.0 | 7/8 |
+
+Three things this changes, and one it confirms:
+
+- **Raw-width fusion does not lose.** It wins 7 seeds out of 8, by an amount that is inside
+  its own noise (~1 sigma). The honest verdict is *indistinguishable from the baseline*, at
+  3× the parameters and **4–5× the seed variance** (std 0.013 vs 0.002).
+- **The 128-bottleneck penalty in §3.4 was the bottleneck, not the fusion.** Squeezing a
+  384-wide stream through 128 throws away more than the second stream adds. Written as
+  "fusion loses" this was an over-generalisation of our own measurement — exactly what §1.4
+  warns against, committed here.
+- **3 seeds lied.** The first run of this experiment used 3 seeds and reported +0.83 pt for
+  projected fusion; 8 seeds says +0.33. Neither is wrong; the first was under-powered. This
+  is now a teaching cell in notebook 04, not a footnote.
+- **Confirmed, and harder than before:** added *depth* on a frozen encoder loses badly and
+  unambiguously — 5.2 points at 15 sigma, 0/8 seeds. §3.3's finding survives contact with a
+  proper seed budget; the fusion finding did not.
+
+Consequence for D10 and `lesson1.yml` §4.3: the section still poses fusion as a hypothesis
+the student predicts and tests, but the notebook must **not** report "the baseline wins".
+It reports a wash with a variance cost, which is a more useful result and a better argument
+for measuring rather than believing.
+
 ### 3.4b The encoder axis is not equally sharp on every dataset
 
 Measured on the caches built by `make build-lesson1`, 2-line head:

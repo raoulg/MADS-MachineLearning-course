@@ -25,6 +25,7 @@ data/raw/*.arff
 
 # hypertuning, logs
 **/mlruns/*
+**/ray_results/
 **/models/
 **/modellogs/*
 **/modellog/*
