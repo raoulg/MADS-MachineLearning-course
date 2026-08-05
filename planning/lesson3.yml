@@ -1,40 +1,60 @@
 lesson: 3
-title: "Time series — the lesson that does not vectorize"
-status: mostly_done       # rebuilt in round 1; this round changes little
-round: 1
+title: "How the search algorithms actually work"
+status: needs_rebuild     # untouched by round 1; the most out-of-date lesson in the course
+round: 3
 
 premise: >
-  main_principles.md §1.2. L3 is deliberately the counterweight to L1. There is no
-  general-purpose frozen encoder for an arbitrary time series, so windowing and
-  end-to-end training are correct here. Its pedagogical job in round 2 is to stop
-  students from over-applying the cache idea.
+  D5. L1 uses ray.tune as a tool with one algorithm (TPE via HyperOptSearch) and does not
+  explain it. L3 is where the explanation lives: what a search algorithm is doing, why
+  TPE beats random, what a scheduler buys, and when the whole apparatus is not worth it.
+
+  This lesson is the most stale in the repo. It predates every round-1 change: it uses the
+  legacy tune.run API, mads_datasets, and two transfer-learning notebooks whose content is
+  now the premise of lesson 1.
 
 current_notebooks:
-  - 01_windowing.ipynb
-  - 02_basemodels.ipynb
-  - 03_probabilistic.ipynb
-  - 04_composition.ipynb
-  - 05_nbeats.ipynb
-  - 06_exercise.ipynb
-  - 07_foundation_models.ipynb
+  - file: 01_hypertuner.ipynb
+    verdict: rewrite
+    problems: [legacy tune.run, mads_datasets, algorithm zoo with no through-line]
+  - file: 02_ray.ipynb
+    verdict: keep_and_update
+    problems: [ExperimentAnalysis is the old result API]
+  - file: 03_minimal_transfer_learning.ipynb
+    verdict: cut
+    problems: >
+      Transfer learning is now the premise of L1. A notebook that re-derives it with
+      torchvision transforms and a manual fine-tuning loop teaches the thing the course
+      has already replaced. See cuts register.
+  - file: 04_transfer_learning_with_resnet.ipynb
+    verdict: cut
+    problems: [same as 03, plus mads_datasets]
 
-round2_changes:
+round3_changes:
   - id: L3.1
-    change: >
-      Add an explicit callback to L1 in 01_windowing: one paragraph naming why there is no
-      cache to download here, and what would have to be true for one to exist. Students
-      arriving from a cache-first L1 need the boundary stated, not implied.
+    change: "Migrate to tune.Tuner + tune.TuneConfig + tune.RunConfig (ray 2.55.1, all under ray.tune -- no ray.train import)."
+    verified: true    # API surface checked on the installed version
   - id: L3.2
-    change: >
-      07_foundation_models is where the boundary gets interesting: a time-series
-      foundation model IS a frozen encoder, so the cache idea partly returns. Make that
-      tension explicit rather than leaving the two lessons silently inconsistent.
+    change: "Drop mads_datasets entirely; load from the hub, or reuse an L1 cache so a trial costs seconds and a real search fits in a lesson."
   - id: L3.3
     change: >
-      Keep the measured result that a linear model beat N-BEATS on both pedestrian_counts
-      and ETTh1. It is the same shape of lesson as L1's "the baseline wins" and the two
-      should be cross-referenced -- this course's spine is "measure, don't assume", and it
-      lands harder when students meet it twice in different modalities.
+      Restructure the algorithm zoo around one question -- what does this algorithm know
+      that random search does not? Grid -> random -> TPE -> ASHA scheduler, each
+      motivated by a failure of the previous. Cut BayesOpt or demote it; it carries a
+      dependency (bayesian-optimization==1.5.1, pinned) for one notebook section.
+  - id: L3.4
+    change: >
+      Add the budget question, which the old lesson never asks: with N trials and M
+      epochs, is it better to run 50 trials for 10 epochs or 10 trials for 50? ASHA is the
+      answer to that question, so ask it before showing the answer.
+  - id: L3.5
+    change: >
+      Reuse L1's honest framing. A search over a saturated task finds nothing; a search
+      over the wrong axis finds nothing. Teach reading a flat result as information.
 
-no_action:
-  - Notebooks were rebuilt in round 1 and have been run. Do not touch the cells without a reason.
+dependencies_to_drop:
+  - mads-datasets              # L3 is its last consumer; removing it clears pyproject
+  - bayesian-optimization      # if L3.3 demotes BayesOpt
+  - hyperopt                   # keep -- HyperOptSearch backs TPE in L1 and here
+
+open_questions:
+  - Does anything in 03/04 deserve salvage, or is the L1 premise a strict superset? Read them once before deleting.

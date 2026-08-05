@@ -1,49 +1,40 @@
 lesson: 5
-title: "Attention, and text that does not fit in the context window"
-status: partially_done    # round 1 rebuilt most of it; some old notebooks remain
-round: 1_and_3
+title: "Self-supervised — where the representation comes from"
+status: mostly_done       # rebuilt in round 1
+round: 1
 
 premise: >
-  L5 is where the full tensor ladder finally earns its keep. L1 deliberately teaches only
-  the short image ladder -- (D) -> (B, D) -> (B, K) -- because images give one vector per
-  item. Text does not: a long document overflows a 512-token context window and becomes a
-  (chunks, dim) matrix, which is where padding, masking and aggregation become real
-  decisions rather than vocabulary.
+  L1 hands students a representation and shows that it dominates every other choice. The
+  obvious next question -- where did that representation come from, and could I make one
+  for a domain that has none? -- is this lesson. In the round-2 structure L5 is the payoff
+  for L1's central claim, not a standalone topic.
 
 current_notebooks:
-  round1_rebuilt: [02_transformer, 03_Attention_gestures, 05_long_documents, 06_composition, 07_metric, 08_excercise]
-  older: [01_reweighing, 04_tokenization, 05_imdb_preprocessing, 06_imdb_attention]
-  note: >
-    Two pairs share a number (05_imdb_preprocessing / 05_long_documents, and
-    06_composition / 06_imdb_attention). Resolve the numbering; a lesson with two
-    notebook 05s is a lesson nobody can follow.
+  - 01_selfsupervised.ipynb
+  - 02_patch_tokens.ipynb
+  - 03_ijepa.ipynb
 
 round2_changes:
   - id: L5.1
     change: >
-      Introduce the 2D/3D rungs of the tensor ladder HERE, deferred from L1 §1.3. FixedPadding
-      vs DynamicPadding as a genuine trade-off, MaskedMeanAggregator and why a plain mean
-      shrinks short documents toward the origin.
+      Open by naming the debt: L1 asserted the encoder is the whole game and never said
+      how one is built. Close it here. One paragraph, but it makes the course a single
+      argument instead of seven topics.
   - id: L5.2
     change: >
-      Move the regex-vs-embedding material out of the old L1 07_vectors and into this
-      lesson, where it belongs: two representations of the same document, one
-      interpretable and one learned, fused with Parallel + Concatenate2D. This is the
-      fusion story done properly -- unlike L1's two-image-encoder case, the two streams
-      here genuinely carry different information.
-    cross_ref: >
-      main_principles.md §3.4 -- L1 measures fusion LOSING with two redundant image
-      encoders. If it wins here with complementary streams, that contrast is the whole
-      point and should be stated explicitly in both lessons. MEASURE IT; do not assume
-      it wins just because the streams look different.
+      Cross-reference L1's out-of-domain measurement. DTD at 0.7849 with an object-centric
+      encoder is precisely the situation where you would train your own representation,
+      and the students will have produced that number themselves in L1 (notebook 04_search,
+      main_principles.md §3.2). The old L2 "choosing an encoder" notebook this originally
+      pointed at was cut -- see main_principles.md `cuts` -- once ray/mlflow and the
+      encoder-choice measurement both landed in L1 directly.
   - id: L5.3
-    change: "cache_utils.py moves into vectormesh (P2). Update the imports in 05_long_documents and 06_composition."
-  - id: L5.4
-    change: "Fold 01_reweighing / 04_tokenization into the rebuilt spine or move to legacy; decide by reading them."
+    change: >
+      Keep the round-1 measured results: patch-level SSL 0.787 vs 0.358 per-patch on
+      EuroSAT (patch-level beats image-level), and MoCo's -25 pt patch-localization
+      weakness. Note that EuroSAT now also appears in L1 as the demo dataset -- that is
+      a feature, since students meet the same data at two levels of abstraction, but the
+      splits and subsample sizes must be stated so the numbers are comparable.
 
-open_questions:
-  - >
-    Does embedding + regex fusion beat embedding alone on the legal or IMDB task? The
-    round-1 notebooks assert the design is interesting but the ablation is left to the
-    student. Given L1 now teaches that fusion usually loses, L5 needs its own measured
-    number rather than an implication.
+no_action:
+  - Notebooks were rebuilt in round 1 and have been run.

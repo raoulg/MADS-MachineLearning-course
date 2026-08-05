@@ -67,7 +67,8 @@ def harmonize_scotus(match: tuple) -> str:
     if re.match(r"^\d+\s+u\.\s?s\.\s?c\.", low):
         return "cite:USC"
     m = re.search(
-        r"\d+\s+(u\.\s?s\.|s\.\s?ct\.|l\.\s?ed\.(?:\s?2d)?|f\.\s?[23]d|f\.\s?supp\.)", low
+        r"\d+\s+(u\.\s?s\.|s\.\s?ct\.|l\.\s?ed\.(?:\s?2d)?|f\.\s?[23]d|f\.\s?supp\.)",
+        low,
     )
     if m:
         return "cite:" + re.sub(r"[\s.]", "", m.group(1)).upper()

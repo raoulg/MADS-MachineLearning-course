@@ -18,24 +18,26 @@ lesson.
   actually produced, not recalled. Several decisions in this round reversed once measured;
   see §3.1 and §3.4 for the two that mattered most.
 
-## Round 2 in one paragraph
+## Round 2/3 in one paragraph
 
 Move students up an abstraction level. `vectormesh` makes "encode once, train many cheap
 heads" affordable, so lesson 1 now starts from a published `VectorCache` instead of
-building a CNN on MNIST. Lesson 2 becomes "produce a cache and track experiments". Lessons
-3 and 7 stay un-vectorized on purpose and mark the boundary of the idea.
+building a CNN on MNIST. Lesson 2's original "produce a cache and track experiments" plan
+was cut (D9/D14 in `main_principles.md`) once ray and mlflow both landed inside lesson 1
+itself — redundant before it was ever built. Lesson 2 is now time series, absorbing the
+round-1 `3_recurrent_networks` rebuild (folder renamed `2_timeseries`). Lessons 2 and 6
+stay un-vectorized on purpose and mark the boundary of the idea.
 
 ## Status
 
 | Lesson | Status | Round |
 |---|---|---|
-| L1 | specified, blocked on P1–P6 | 2 |
-| L2 | specified | 2 |
-| L3 | mostly done | 1 |
-| L4 | needs rebuild — most stale lesson in the repo | 3 |
-| L5 | partially done; notebook numbering collides | 1 & 3 |
-| L6 | mostly done | 1 |
-| L7 | needs review | 3 |
+| L1 | **done**, built and run | 2/3 |
+| L2 | specified — redo of the time-series rebuild, see `lesson2.yml` | 1 (content) / 3 (redo) |
+| L3 | needs rebuild — most stale lesson in the repo | 3 |
+| L4 | partially done; notebook numbering collides | 1 & 3 |
+| L5 | mostly done | 1 |
+| L6 | needs review | 3 |
 
 ## Building the lesson-1 caches
 

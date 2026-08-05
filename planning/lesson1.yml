@@ -62,7 +62,7 @@ prerequisites_blocking: []   # all landed; see prerequisites_done
 prerequisites_done:
   - P1: VectorCache.from_hub() — notebooks must not open-code snapshot_download.
   - P2: >
-      get_or_create_cache promoted out of notebooks/5_attention/ into vectormesh, as
+      get_or_create_cache promoted out of notebooks/4_attention/ into vectormesh, as
       VectorCache.get_or_create, in 0.6.0. Landed for round 3, not round 2 — see §4a.
   - P3: VectorCache.join(other, on="source_idx") — needed by notebook 04's fusion arm.
   - P6: Concatenate2D binding-axis fix, else raw-width fusion is impossible.
@@ -135,7 +135,7 @@ notebooks:
           jaxtyping/beartype shape contract here and note that a rank error is the
           framework telling you which rung you are on.
         note: >
-          The full 1D/2D/3D ladder (chunked documents) is deferred to L5 where chunking
+          The full 1D/2D/3D ladder (chunked documents) is deferred to L4 where chunking
           actually appears. Do not front-load it.
         round3_addendum: >
           Shrunk further and now points to the new 01b_tensors.ipynb for the illustrated,
@@ -309,7 +309,7 @@ notebooks:
         content: >
           Keep the old 06_losses treatment, retargeted: MSE/MAE for regression,
           CrossEntropy for single-label, BCEWithLogits for multi-label. Anchor on why
-          the EuroSAT task takes CrossEntropy + Accuracy, and flag that L5's legal task
+          the EuroSAT task takes CrossEntropy + Accuracy, and flag that L4's legal task
           takes BCE + F1 because a document carries several labels.
         round3_addendum: >
           Expanded rather than split into its own notebook (keeps L1 at 7 notebooks, not
@@ -353,12 +353,12 @@ notebooks:
     runtime_target_s: 300
     rationale: >
       D5 + D6. The moment a training run costs two seconds, hand-tuning is indefensible.
-      Ray is introduced as a tool here and explained as algorithms in L4 — TPE only, via
+      Ray is introduced as a tool here and explained as algorithms in L3 — TPE only, via
       HyperOptSearch, no zoo.
     api_note: >
       ray 2.55.1. Use tune.Tuner + tune.TuneConfig + tune.RunConfig — all three live
       under ray.tune, no ray.train import. tune.run still exists but is legacy; the old
-      4_tuning_networks/hypertune.py uses it and is being replaced (see cuts).
+      3_tuning_networks/hypertune.py uses it and is being replaced (see cuts).
     sections:
       - id: 4.1
         title: "The search space"
@@ -396,7 +396,7 @@ notebooks:
           stated in-notebook.
 
           RunConfig(verbose=1), no explicit reporter: this is what actually produces the
-          live Tune Status / Trial Status HTML table 4_tuning_networks/01_hypertuner.ipynb
+          live Tune Status / Trial Status HTML table 3_tuning_networks/01_hypertuner.ipynb
           shows (ray auto-detects the Jupyter kernel and picks JupyterNotebookReporter by
           default). A first pass explicitly constructed JupyterNotebookReporter but left
           the pre-existing verbose=0 in place, which suppresses all reporting regardless
@@ -417,9 +417,9 @@ notebooks:
           `plotting.search_parallel_plot` (new: notebooks/1_pytorch_intro/plotting.py),
           imported by both 04_search.ipynb and 05_exercises.ipynb rather than each
           notebook carrying its own copy. Uses px.parallel_categories, the style
-          notebooks/5_attention settled on (categorical config values like `encoder` plot
+          notebooks/4_attention settled on (categorical config values like `encoder` plot
           natively, no manual code/tickvals mapping) -- not px.parallel_coordinates as in
-          4_tuning_networks/visualize.py, which is numeric-only and predates the
+          3_tuning_networks/visualize.py, which is numeric-only and predates the
           categorical case. Also logs a one-row mlflow summary of the search (baseline,
           best trial, encoder gap) after tuner.fit() completes -- deliberately NOT
           per-trial (a ray trial is its own process; concurrent writers is not a fight
@@ -546,7 +546,6 @@ legacy_moves:
     - notebooks/1_pytorch_intro/08_extra_autograd.ipynb  # keep as optional self-study
     - notebooks/1_pytorch_intro/09_exercises.ipynb
     - notebooks/2_convolutions/01_convolutions.ipynb
-    - notebooks/2_convolutions/03_mlflow.ipynb           # -> L2, see lesson2.yml
     # added during implementation 2026-08-04: this list contradicted the `replaces:`
     # fields above, which name all four of these as superseded. Leaving them in place
     # would put 01_tensors next to 01_the_cache and 04_neuralnets next to 04_search --
@@ -554,13 +553,15 @@ legacy_moves:
     - notebooks/1_pytorch_intro/01_tensors.ipynb         # -> 01_the_cache §1.3 + tensor-ladder.md
     - notebooks/1_pytorch_intro/04_neuralnets.ipynb      # -> 02_nonlinearity
     - notebooks/1_pytorch_intro/06_losses.ipynb          # -> 03_training §3.2
-    - notebooks/1_pytorch_intro/07_vectors.ipynb         # -> 01_the_cache §1.2; text half to L5
-  not_moved:
-    - path: notebooks/2_convolutions/02_pretrained.ipynb
-      why: >
-        Named in 01_the_cache's `replaces:` and in `salvage:`, but it lives in L2 and D9
-        makes L2 "produce a cache". Whether it is replaced or rewritten is lesson2.yml's
-        call, not L1's. Left in place deliberately.
+    - notebooks/1_pytorch_intro/07_vectors.ipynb         # -> 01_the_cache §1.2; text half to L4
+    # added 2026-08-05, redo of the L2 plan: 03_mlflow.ipynb was already here (moved
+    # ahead of this decision). 02_pretrained.ipynb and 04_exercises.md join it now that
+    # the "build-your-own-cache + mlflow" L2 is cut outright -- see main_principles.md
+    # `cuts` and D9 (superseded). notebooks/2_convolutions/ is now empty and removed;
+    # its remaining support files (cnn.py, Makefile, start/stop_server.sh, the two mlflow
+    # screenshots) moved to legacy alongside the notebooks they supported.
+    - notebooks/2_convolutions/02_pretrained.ipynb
+    - notebooks/2_convolutions/04_exercises.md
   keep_in_place:
     - notebooks/1_pytorch_intro/tensor-ladder.md   # round-1 work, still correct; the
       # reference page 01b_tensors.ipynb (round 3) is the illustrated version of, and
@@ -571,7 +572,7 @@ legacy_moves:
       into: 01_the_cache.ipynb §1.3
     - from: 1_pytorch_intro/07_vectors.ipynb
       take: "the cache/metadata treatment and the regex-vs-embedding framing"
-      into: "01_the_cache.ipynb §1.2 (image version); the text/regex version belongs in L5"
+      into: "01_the_cache.ipynb §1.2 (image version); the text/regex version belongs in L4"
     - from: 2_convolutions/02_pretrained.ipynb
       take: "LOAD REPORT explanation, GaussianNoise train/eval determinism check"
       into: "01_the_cache.ipynb §1.2 and 04_search.ipynb §4.1"
@@ -582,7 +583,7 @@ risks:
   - risk: "Students conclude 'architecture never matters' and stop thinking."
     mitigation: >
       Say the scope out loud: this holds for a small head on a strong FROZEN encoder.
-      L3 (time series, no encoder to freeze) and L6 (making the representation itself)
+      L2 (time series, no encoder to freeze) and L5 (making the representation itself)
       are where architecture earns its keep. Forward-reference both from 04.2.
   - risk: "Encoding cost is invisible to students because the instructor paid it."
     mitigation: "§1.4 makes them run the encoder over 200 images so the number is theirs."

@@ -2,9 +2,10 @@ pre-commit:
   commands:
     notebooktester:
       priority: 1
+      output: executing
       files: git ls-files
       glob: '*.ipynb'
-      run: uv run notebooktester {staged_files} -v -t 240 -w 8
+      run: uv run notebooktester {staged_files} -t 240 -w 8 -pb
     clean-jupyter:
       priority: 2
       files: git ls-files

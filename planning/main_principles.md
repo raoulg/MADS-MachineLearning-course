@@ -58,10 +58,10 @@ on weak hardware. A cached encoder does that better, on a real dataset.
 
 Vectorization only pays where a good frozen encoder exists. It does **not** apply to:
 
-- **Time series** (L3) — no general-purpose vectorizer worth freezing; windowing and
+- **Time series** (L2) — no general-purpose vectorizer worth freezing; windowing and
   training end-to-end remains correct. Confirmed by measurement: a linear model beat
   N-BEATS on both pedestrian_counts and ETTh1.
-- **Graphs** (L7) — structure is the signal; there is no per-node encoder to cache.
+- **Graphs** (L6) — structure is the signal; there is no per-node encoder to cache.
 - **Small domain-specific image sets far from web images** — worth *showing* the failure,
   which is what the DTD/EuroSAT accuracy gap gives us (§3.2).
 
@@ -121,15 +121,19 @@ The habit is transferable and the verdict is not. Grade the habit.
 | **D2** | MNIST / Fashion-MNIST is cut as the spine of L1. | Chosen for weak hardware; the cache solves that better on a real dataset. See `cuts`. |
 | **D3** | **EuroSAT** is the demo dataset; **DTD** is the exercise dataset. | Measured: EuroSAT 94.5% (impressive, not saturated), DTD 78.5% (real headroom). §3.2 |
 | **D4** | Flowers is **not** the L1 spine — it is a single demo cell. | Measured saturated: 99.3% trained, **99.1% with 1-NN and no training at all**. §3.1 |
-| **D5** | ray.tune from L1, TPE (`HyperOptSearch`) only. Algorithm zoo stays in L4. | One tool, used properly, beats five tools named. |
+| **D5** | ray.tune from L1, TPE (`HyperOptSearch`) only. Algorithm zoo stays in L3. | One tool, used properly, beats five tools named. |
 | **D6** | The L1 search space includes **encoder choice** alongside width/depth/noise/lr. | Measured: encoder moves accuracy 10–40 pts; head architecture moves it <1 pt and usually downward. §3.3 |
 | **D7** | Nonlinearity is taught once, unifying dense and conv: `σ(Wx + b)` and `σ(W * x)`. | Convolution is a linear operator with weight sharing; the nonlinearity is the shared essential part. Lets L1 absorb the old L2 conv material. |
 | **D8** | Old L1 + L2 notebooks move to `notebooks/legacy/`, not deleted. | Reference during transition; deleted once the replacements have been run. |
-| **D9** | L2 becomes "produce a cache + track experiments" (was: convolutions/pretrained/mlflow). | Clean split: L1 consumes a cache, L2 produces one. |
+| **D9** | ~~L2 becomes "produce a cache + track experiments"~~ — **superseded by D14.** | Ray and mlflow both landed in L1 (notebook 01 §1.5, notebook 04) before this lesson was ever built, so a whole lesson re-teaching them was redundant on arrival. See `cuts`. |
 | **D10** | Two-encoder fusion is taught as a **hypothesis the student tests**, and the notebook is honest that simpler won. | No free lunch. The deliverable is the research habit, not the verdict. See §1.4. |
 | **D11** | `VectorCache.from_hub()` and `get_or_create_cache` move **into vectormesh**. | Blocking prerequisite — see §4. |
 | **D12** | Caches are joined on `source_idx`, with an explicit alignment assertion. | Row order happens to match today; relying on that silently is how you get a model trained on mismatched pairs. |
 | **D13** | **No notebook builds a full cache.** Every notebook downloads a published one. Building is taught on a ~200-image subsample that finishes on any hardware, and the full build lives in `make build-lesson1`. | Student hardware ranges from new MacBooks to CPU-only VMs. See §3.7. |
+| **D14** | **L2 is redefined as time series**, absorbing the round-1 `3_recurrent_networks` rebuild (renamed `2_timeseries`). D9's "build your own cache" L2 is cut outright, not deferred. | §1.2 already named time series as the counterweight to L1; there is no reason to spend a lesson number on cache-mechanics students already practised in L1. See `cuts` and §6. |
+| **D15** | The probabilistic-forecasting notebook moves off ETTh1-only onto **australian_electricity_demand** (Monash, CC-BY-4.0). | Not because ETTh1 is noisier point-to-point — measured, it is not (§3.8) — but because its difficulty is regime drift/non-stationarity, which is a harder, more confounded story to teach calibration on than a clean high-SNR series. ETTh1 stays in the lesson elsewhere (windowing, base models) as the literature-comparable, harder case. |
+| **D16** | Gating (Gate/Highway/MoE) is split into its **own** L2 notebook, framed as general-purpose composition inspired by the GRU/Highway/MoE papers — not a time-series-only trick. | It was buried inside the old `04_composition.ipynb` §4.6 alongside unrelated feature-engineering content. Splitting it lets the notebook cite its sources properly and lets the closing search notebook (D17) treat "gate: yes/no" as a clean, nameable axis. |
+| **D17** | L2 closes with a ray.tune search notebook, mirroring L1 notebook 04 — search over basis choice, gate on/off, highway depth. | D5's "one search tool, used properly" only pays off if students exercise it twice in different modalities, not once and never again. |
 
 ---
 
@@ -256,7 +260,9 @@ Two consequences:
   slicing it.
 - **`make build-lesson1`'s `--full` path should shuffle**, so the artefact does not carry
   this trap for the next person. Not blocking L1 (the notebooks shuffle at use), but it
-  belongs in lesson 2, which is where cache-building is taught. Logged in `cuts`/L2.
+  belongs to `make build-lesson1`/`scripts/build_cache.py` maintenance directly — there is
+  no longer a lesson whose job is cache-building (D14 cuts it). Logged here so whoever next
+  touches `scripts/build_cache.py` finds it.
 
 ### 3.4e GaussianNoise does nothing measurable on DTD, at any training size
 
@@ -385,6 +391,58 @@ an apology. It is the same asymmetry that exists in industry, and it is why the 
 deliverable. Students without a GPU are not doing a reduced version of the course — they
 are doing the part where the thinking is.
 
+### 3.8 ETTh1 is not obviously the noisiest time-series candidate — measured
+
+D15 started from the instructor's impression that ETTh1 (used pervasively in the round-1
+`3_recurrent_networks` build) is "chaotic, noisy" and looked for a calmer alternative for
+the probabilistic-forecasting notebook. Measured before picking one, 2026-08-05, on
+normalised series (z-scored on the full series): seasonal-naive residual RMSE at the
+dataset's own daily period, and the fraction of spectral power in the top-5 FFT bins
+(higher = more of the series' energy sits in a few clean periodic components):
+
+| dataset | source | CoV | seasonal-naive RMSE (period) | spectral top-5/total |
+|---|---|---|---|---|
+| ETTh1 (OT) | `ETDataset/ett` | 0.62 | 0.34 (24h) | 0.77 |
+| pedestrian_counts | Monash | 1.04 | 0.33 (24h) | 0.81 |
+| **australian_electricity_demand** | Monash | **0.20** | 0.48 (48 half-hours) | 0.70 |
+| traffic_hourly | Monash | 1.27 | 0.77 (24h) | 0.38 |
+| solar_10_minutes | Monash | 1.30 | 0.56 (144 steps) | 0.65 |
+| weather | Monash | 3.28 | 1.43 (144 steps) | — |
+
+ETTh1 is not the noisiest of these by either metric — it is smoother point-to-point than
+pedestrian_counts and has a cleaner spectrum than traffic_hourly. Its reputation for being
+hard tracks a different property: known regime drift / non-stationarity between train and
+test spans (the reason linear models like DLinear beat transformer forecasters on it in the
+literature), not instantaneous variance. `australian_electricity_demand` is the genuinely
+calmer series by the metric that matters for a Gaussian/quantile head — CoV three times
+tighter than ETTh1 — while remaining a real Monash benchmark, not a synthetic dataset built
+to look clean. See D15.
+
+`sunspot` (Monash, daily, 1818–2020, single series, 73924 points) was also checked as an
+N-BEATS candidate. Students already met it in MADS-DAV (`03.2-statistics-of-time.ipynb`):
+statsmodels `seasonal_decompose` fails on it there (trend absorbs a >100yr cycle, the
+residual keeps visible sine-wave structure), a Fourier reconstruction is shown overfitting,
+and DAV's own closing notes name "finding a way to model the very long (+100 year) cycle"
+as future work and hand it forward explicitly: "In the course on Machine Learning we will
+go much deeper into this topic." L2 is that hand-off.
+
+Verified by resampling to yearly means and counting how many repeats the 203-year span
+actually contains of each named solar cycle, rather than assuming a fixed-period basis
+simply fails:
+
+| cycle | period | repeats in 203yr | verdict |
+|---|---|---|---|
+| Schwabe | ~11yr | 18.5 | plenty — fits a fixed-period basis confidently, same register as pedestrian_counts |
+| Gleissberg | ~87yr | 2.3 | visible, not pin-downable — an 11yr-rolling-max envelope over the yearly series shows real modulation (227→182→110→142→174→191→269→220→174, sampled every 20yr) but two-and-a-bit repeats won't fix the period precisely |
+| Suess/de Vries | ~210yr | 0.97 | not resolvable at all — under one full cycle |
+
+So rather than posing this purely as "a fixed-period basis fails here," the notebook adds a
+**second** basis period (~87yr) alongside the Schwabe one and shows the fit improve — a
+real, usable multi-scale decomposition that answers DAV's own suggested improvement — then
+names the ~210yr cycle as the case genuinely out of reach given the data span. "How much
+data would you need" becomes the concrete takeaway in place of "this doesn't work." See
+`lesson2.yml` for how this is used.
+
 ## 4. Blocking prerequisites
 
 Ordered. Nothing in L1 can be finished before these land.
@@ -392,7 +450,7 @@ Ordered. Nothing in L1 can be finished before these land.
 | # | Item | Where | Status |
 |---|---|---|---|
 | **P1** | `VectorCache.from_hub(repo, split=...)` — `VectorCache.load()` is local-disk only; every notebook currently open-codes `snapshot_download` + `load`. | vectormesh | **coded**, branch `feat/from-hub-join` |
-| **P2** | Promote `notebooks/5_attention/cache_utils.py` (`get_or_create_cache`, encoder-in-the-tag naming, metadata-mismatch raise, `datasets.disable_caching()`) into vectormesh proper. A course notebook folder is the wrong home for the shared helper. | vectormesh | todo |
+| **P2** | Promote `notebooks/4_attention/cache_utils.py` (`get_or_create_cache`, encoder-in-the-tag naming, metadata-mismatch raise, `datasets.disable_caching()`) into vectormesh proper. A course notebook folder is the wrong home for the shared helper. | vectormesh | todo |
 | **P3** | `VectorCache.join(other, on="source_idx")` — fusion needs two caches as one dataset with two columns; today that is a hand-rolled `add_column` plus a `with_format(None)` dance that silently fails when the format is torch. | vectormesh | **coded**, branch `feat/from-hub-join` (D12) |
 | **P4** | Build + publish **EuroSAT** and **DTD** caches, 3 encoders each, with `source_idx`. | `make build-lesson1` / `make publish-lesson1` | **done** 2026-08-04 |
 | **P6** | Fix `Concatenate2D`'s binding axis (`"batch dim"` → `"batch _"`) so branches of different widths concatenate, as its docstring already promises. §3.5 | vectormesh | **coded**, branch `feat/from-hub-join` |
@@ -412,13 +470,13 @@ landed on branch `feat/cache-properties-neuralnet-depth`, merged and **published
 
 | # | Item | Where | Status |
 |---|---|---|---|
-| **P2** | Promote `notebooks/5_attention/cache_utils.py`'s `get_or_create_cache` into vectormesh proper, as `VectorCache.get_or_create`. Flagged in round 2 (§4 above) and not done then because D13 meant nothing in L1 called it. Round 3's optional `01c_build_your_own_cache.ipynb` is the second, decisive reason. Kept deliberately separate from `create()` rather than merged into it: `create()` is `scripts/build_cache.py`'s method and several vectormesh docs/demo notebooks call it expecting an unconditional fresh build; `get_or_create` adds the orthogonal idempotent contract without changing `create()`'s existing meaning for anyone relying on it. | vectormesh | **done** 2026-08-05 |
+| **P2** | Promote `notebooks/4_attention/cache_utils.py`'s `get_or_create_cache` into vectormesh proper, as `VectorCache.get_or_create`. Flagged in round 2 (§4 above) and not done then because D13 meant nothing in L1 called it. Round 3's optional `01c_build_your_own_cache.ipynb` is the second, decisive reason. Kept deliberately separate from `create()` rather than merged into it: `create()` is `scripts/build_cache.py`'s method and several vectormesh docs/demo notebooks call it expecting an unconditional fresh build; `get_or_create` adds the orthogonal idempotent contract without changing `create()`'s existing meaning for anyone relying on it. | vectormesh | **done** 2026-08-05 |
 | **P6a** | `VectorCache.num_classes` / `VectorCache.dim` properties — shortcuts for `features["label"].num_classes` / `metadata[<col>]["hidden_size"]`, which every L1 notebook re-derived by hand. Both raise `VectorMeshError` on the ambiguous cases (no label column, non-`ClassLabel` label, >1 vector column after a `join()`). | vectormesh | **done** 2026-08-05 |
 | **P7a** | `NeuralNet(hidden_size: int \| list[int], out_size)` — fixes a real bug, not a style preference. `04_search.ipynb` and `05_exercises.ipynb` both built "add a hidden layer" by composing two `NeuralNet`s (`NeuralNet(dim, width)` then `NeuralNet(width, n_classes)`); `NeuralNet` ends in a bare `Linear` with no trailing activation, so that composition puts an unactivated `Linear -> Linear` seam in the middle — exactly the "depth without nonlinearity buys nothing" collapse §1.4/notebook-02 §2.1 proves. A bare int reproduces the old two-layer behaviour bit-for-bit (checked: every `NeuralNet(` call site across every lesson passes a bare int, so this is purely additive); `hidden_size=[dim, w1, ...]` names the whole input→hidden width chain in one call, with a `GELU` between every pair of `Linear`s so the seam cannot happen by construction. Very likely part of why §3.3's "proj→width→head" experiments below lost points — the composition itself was leaking capacity, not only the width choice; not re-measured, flagged for anyone revisiting §3.3. | vectormesh | **done** 2026-08-05 |
 
 All three verified against a real published cache (`pttrn-io/eurosat-dinov2-small`), not
 just synthetic test data, and against the full non-integration vectormesh test suite (86
-passed). `notebooks/5_attention/cache_utils.py` becomes a thin re-export so lesson 5 is
+passed). `notebooks/4_attention/cache_utils.py` becomes a thin re-export so lesson 5 is
 untouched.
 
 Also fixed at the notebook level, no library change needed (both confirmed by reading
@@ -441,7 +499,7 @@ encoder revisions.
 | `dtd-*` | 3760 / 1880 | dinov2-small, resnet-18, mobilenet_v2 | 0.8033 / 0.6589 / — |
 | `oxford-flowers-*` | 4000 / 1000 | dinov2-small, resnet-18, mobilenet_v2 | 0.9932 / 0.9025 / 0.9082 |
 | `fashion-mnist-*` | 4000 / 1000 | dinov2-small, mobilenet_v2 | 0.9113 / 0.8678 |
-| `imdb-granite-…` | text, chunked | granite-embedding-small | L5 |
+| `imdb-granite-…` | text, chunked | granite-embedding-small | L4 |
 
 ---
 
@@ -453,9 +511,10 @@ encoder revisions.
 | Hand-rolled data generators | `1_pytorch_intro/02_datagenerators` | Superseded by `Collate` + `DataLoader`; the streaming case is a legacy note |
 | Hand-rolled dataloader (full notebook) | `1_pytorch_intro/03_dataloader` | Compressed to one section of the L1 training notebook |
 | Double for-loop hyperparameter search | L1/L2 exercises | D5 — replaced by ray.tune from the start |
-| `mads_datasets` | L4 notebooks, `pyproject.toml` | Everything loads from the HF hub now; the dependency is dead weight |
-| `tune.run` legacy API | `4_tuning_networks/hypertune.py` | ray 2.55 ships `tune.Tuner` + `tune.TuneConfig` + `tune.RunConfig`; no `ray.train` import needed |
-| Separate "transfer learning" notebooks | `4_tuning_networks/03`, `04` | Transfer learning *is* the L1 premise now; a whole lesson restating it is redundant |
+| `mads_datasets` | L3 notebooks, `pyproject.toml` | Everything loads from the HF hub now; the dependency is dead weight |
+| `tune.run` legacy API | `3_tuning_networks/hypertune.py` | ray 2.55 ships `tune.Tuner` + `tune.TuneConfig` + `tune.RunConfig`; no `ray.train` import needed |
+| Separate "transfer learning" notebooks | `3_tuning_networks/03`, `04` | Transfer learning *is* the L1 premise now; a whole lesson restating it is redundant |
+| "Build your own cache + mlflow" as L2 (D9) | `lesson2.yml` round 2, `2_convolutions/02_pretrained.ipynb` + `04_exercises.md` | D14 — ray and mlflow both already land in L1 (notebook 01 §1.5, notebook 04) before this lesson would run; a whole lesson re-teaching them is redundant on arrival, not merely stale. `notebooks/2_convolutions/` moved to `legacy/` 2026-08-05 and the now-empty directory removed. |
 
 **Cut, do not stage.** If material no longer reflects practice, remove it — do not invent
 a scenario that keeps old teaching code alive.
@@ -467,13 +526,19 @@ a scenario that keeps old teaching code alive.
 | Lesson | Spine | Vectorized? |
 |---|---|---|
 | L1 | Cache → nonlinearity → training → ray search | yes (EuroSAT / DTD) |
-| L2 | Build your own cache; encoder choice; track it (mlflow) | yes (produces caches) |
-| L3 | Time series — windowing, base models, N-BEATS, foundation models | **no** (D-rationale §1.2) |
-| L4 | The search algorithms themselves; the full ray zoo | yes |
-| L5 | Attention, long documents, chunked text | yes (IMDB / legal) |
-| L6 | Self-supervised — where representations come from | yes |
-| L7 | Graphs | **no** |
+| L2 | Time series — windowing, decomposition + N-BEATS, probabilistic forecasting, gating/highway/MoE, ray search | **no** (D-rationale §1.2) |
+| L3 | The search algorithms themselves; the full ray zoo | yes |
+| L4 | Attention, long documents, chunked text | yes (IMDB / legal) |
+| L5 | Self-supervised — where representations come from | yes |
+| L6 | Graphs | **no** |
 
-Per-lesson detail in `lesson<N>.yml`. L1 is fully specified; L2 is specified to the level
-needed to know what L1 hands over; L3–L7 record only what this round changes, since L3,
-L5 and L6 were rebuilt in round 1 and L4/L7 are round-3 work.
+Folders renamed to match 2026-08-05: `3_recurrent_networks` → `2_timeseries`,
+`4_tuning_networks` → `3_tuning_networks`, `5_attention` → `4_attention`,
+`6_unsupervised` → `5_unsupervised`, `7_graphs` → `6_graphs`. `2_convolutions` removed
+(cut, see `cuts` register above). `pyproject.toml`'s `extra-paths` updated to match.
+
+Per-lesson detail in `lesson<N>.yml`. L1 and L2 are both fully specified — L2 because this
+round rewrites it wholesale (D14–D17), not because it is new: the round-1
+`3_recurrent_networks` rebuild supplies most of its actual notebook content, reordered and
+partly re-targeted. L3–L6 record only what this round changes: L4 and L5 were rebuilt in
+round 1 and need only change notes; L3 and L6 are round-3 rebuild work.
