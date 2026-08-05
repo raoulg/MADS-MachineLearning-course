@@ -189,7 +189,14 @@ notebooks:
       R²=0.467 — confirms the gain is the new period, not more parameters. Suess/de Vries
       (~210yr) named as unresolvable at 0.97 repeats in the data.
     verified: true
-    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05.
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05
+      (re-run after fixing an `EPOCHS=1` override that had been silently clobbering
+      `param(12, test=1)` since this notebook's first commit — see the `resolved` note on
+      `04_probabilistic.ipynb` below for the shared root cause. The sunspot §3.7 numbers
+      above are unaffected — that section fits `theta` directly and never used `EPOCHS`
+      — but the pedestrian/ETTh1 N-BEATS-vs-linear table in §3.4/3.6 was under-trained
+      and has been re-measured; the ranking (linear wins on pedestrian, N-BEATS wins on
+      ETTh1) held, only the specific MAE values moved).
 
   - file: 04_probabilistic.ipynb
     title: "The line is not the answer"
@@ -211,16 +218,24 @@ notebooks:
       elsewhere). Autoformer's decomposition kernel and PatchTST's patch geometry rescaled
       to match (patch count held at 11, same as the W=96 case).
     resolved: >
-      Every number re-measured, not carried over. Two findings changed shape from the
-      ETTh1 version rather than just changing value: the free baseline (`naive +
-      residuals`) is now clearly LAST (CRPS 0.44 vs 0.21-0.24 trained), not "competitive,
-      not last" as on ETTh1 — written up as a second, dataset-dependent finding, not
-      patched to match the old claim. GRU+gaussian calibration is close on 5/6 levels,
-      over-covered only at 80% (82%), replacing the old "curve sits above the diagonal,
-      close to 90%" claim, which does not hold here. `linear + quantiles` is the outright
-      best CRPS (0.2062) and worst-calibrated (|80-cov|=0.241) — same shape of result as
-      before, sharper.
-    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05.
+      Every number re-measured, not carried over. (The first pass through this notebook,
+      dated below, was accidentally still measuring `EPOCHS=1` — a leftover fast-iteration
+      override sat right after the `param(8, test=1)` call and unconditionally clobbered
+      it, so every "full" run had silently trained for one epoch instead of eight. Fixed
+      2026-08-05; the numbers here are the corrected, fully-trained ones.) Two findings
+      changed shape from the ETTh1 version rather than just changing value: the free
+      baseline (`naive + residuals`) is now clearly LAST (CRPS 0.44 vs 0.16-0.21 trained),
+      not "competitive, not last" as on ETTh1 — written up as a second, dataset-dependent
+      finding, not patched to match the old claim. GRU+gaussian calibration is close on
+      4/6 levels; the two off (50%, 90%) are under-covered, not over-covered, and 80%
+      itself — the level the table scores by — comes out fine (78.5%). A third finding
+      only showed up once training actually ran the documented epoch count: `patchtst` is
+      the outright best CRPS (0.1552) and MAE (0.2180), not `linear + quantiles` — the
+      under-trained run had linear on top (0.2062 CRPS) because eight epochs of an
+      attention model hadn't had time to separate from one. `linear + quantiles` is still
+      the worst-calibrated model by far (|80-cov|=0.261).
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05
+      (re-run after the EPOCHS=1 fix; see `resolved` above).
 
   - file: 05_gates_highways_moe.ipynb
     title: "Gate, highway, or route: one idea from three papers"
