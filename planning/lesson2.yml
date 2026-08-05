@@ -3,7 +3,9 @@ title: "Time series: a different kind of data"
 status: done   # redo built and RUN 2026-08-05 -- see `redo` below. All nine notebooks
                # (01-09) executed via `jupyter nbconvert --execute` (full param() values)
                # and pass `uv run notebooktester notebooks/2_timeseries/ -t 300 -pb -f`
-               # (test mode) as a whole-folder run: 9 passed, 0 failed, ~40s.
+               # (test mode) as a whole-folder run: 9 passed, 0 failed.
+               # D20 (2026-08-05, same day): 03 and 06 rebuilt on solar_10_minutes in
+               # place of pedestrian_counts -- re-run, whole folder still 9/9 green.
 depends_on: [lesson1]
 
 redo: >
@@ -75,6 +77,9 @@ datasets:
   # five across nine notebooks was real sprawl and ETTh1's six-covariate domain added
   # confusion an unfamiliar dataset didn't need to. ETTh1 dropped from the graded sequence
   # entirely; kept only in 09_composition_extra (optional appendix), documented below.
+  # D20, same day: pedestrian_counts (one of the surviving three) swapped for
+  # solar_10_minutes in decomposition_demo below, once linear-beats-N-BEATS-everywhere
+  # turned out to be a real gap rather than a settled finding. Still three datasets.
   spine:
     name: sunspot (daily)
     source: Monash-University/monash_tsf, config sunspot; loaded via sunspot_daily.py
@@ -103,14 +108,23 @@ datasets:
           rotation peak. An 81-day window cannot reach it; that gap is what
           `03_decomposition_and_nbeats` §3.7's yearly zoom-out exists to close.
   decomposition_demo:
-    name: pedestrian_counts
-    source: Monash-University/monash_tsf, config pedestrian_counts
+    name: solar_10_minutes
+    source: Monash-University/monash_tsf, config solar_10_minutes; loaded via
+      solar_10_minutes.py
     used_in: [03_decomposition_and_nbeats (primary demo), 06_search]
     why: >
-      Hourly Melbourne footfall, 66 series, clean 12h/24h spectral peaks — spectral
-      top-5/total = 0.81, the highest of every series checked (main_principles.md §3.8).
-      The daily cycle a fixed-period seasonal basis is built for; the contrast case for
-      sunspot's absence of one.
+      D20, 2026-08-05. Replaces `pedestrian_counts` (retired from the graded sequence
+      entirely — no notebook in 01-08 uses it now). `pedestrian_counts` and `sunspot`
+      both went to linear on accuracy (main_principles.md §3.9), leaving `03`'s entire
+      "decomposition inside the architecture" premise without a dataset where it paid
+      off in anything but interpretability — a real gap, flagged by direct user
+      challenge. `solar_10_minutes` (137 sites, 10-minute solar power, CC-BY-4.0) is
+      the one series checked (of five) where N-BEATS's basis decomposition beats a
+      flat linear map with ample data (103,700 windows vs the linear model's own
+      41,616 parameters), because its daily cycle is close to physically deterministic
+      — zero overnight, a smooth hump tracking the sun — rather than a statistical
+      regularity a flat map has to rediscover 144 times over. Full search across five
+      candidates, and why the other four did not work, in main_principles.md D20/§3.10.
   probabilistic_and_gating:
     name: australian_electricity_demand
     source: Monash-University/monash_tsf, config australian_electricity_demand
@@ -180,12 +194,25 @@ notebooks:
     status: done
     moved_from: notebooks/2_timeseries/05_nbeats.ipynb   # was notebook 5, now notebook 3
     content: >
-      Existing content, reordered earlier, headings renumbered 5.x -> 3.x. Keeps: a series
-      with something for a Fourier basis to find (pedestrian_counts, FFT plot with 12h/24h
-      markers), "a basis is a fixed set of shapes, the network picks the mix", the N-BEATS
-      block and stack, baselines first (naive/linear beat N-BEATS — main_principles.md
-      §1.2), "ask the model what it thinks the series is made of" (interpretable stack),
-      and the ETTh1 "no daily cycle" contrast.
+      A series with something for a Fourier basis to find (`solar_10_minutes`, FFT plot
+      with a 24h marker), "a basis is a fixed set of shapes, the network picks the mix",
+      the N-BEATS block and stack, baselines first, "ask the model what it thinks the
+      series is made of" (interpretable stack), and the sunspot "no daily cycle" contrast.
+    dataset_change: >
+      D20, 2026-08-05 (main_principles.md §3.10). `pedestrian_counts` -> `solar_10_minutes`
+      throughout §3.1-3.5; `W,H` rescaled 168,24 -> 288,144 (two days history, one day
+      horizon, at 10-minute resolution); `PERIOD` 24 -> 144; `HARMONICS` 6 -> 10. Direct
+      user challenge: the old dataset left this notebook without a single case where
+      N-BEATS's decomposition won on accuracy anywhere in the graded sequence (linear beat
+      it on both `pedestrian_counts` and `sunspot`). Five Monash candidates were measured
+      looking for a genuine, ample-data win (not a scarcity artefact) — `solar_10_minutes`
+      is the one that produced one: **N-BEATS generic beats linear, 0.2177 vs 0.2523,
+      7x the seed noise, at 103,700 training windows** (2.5x the linear model's own
+      41,616 parameters). Confirmed at 8/12/20 epochs x 5 seeds, gap holds 0.030-0.035
+      throughout (D19 discipline) — table in §3.4. §3.6's sunspot contrast, re-run at the
+      new, larger window, found its own nominal N-BEATS edge (0.3225 vs 0.3270) is *not*
+      a real result (gap smaller than N-BEATS's own std) — a sharper, re-measured version
+      of the earlier "linear wins outright" finding, not a reversal of it.
     extension_built: >
       §3.7 "A cycle that is not a season: sunspots" — resolved the open_question below in
       favour of a full section, not an exercise, once the multi-scale framing (Schwabe +
@@ -196,16 +223,11 @@ notebooks:
       topic forward explicitly. Measured: trend+Schwabe(11yr) R²=0.467; +Gleissberg(87yr)
       R²=0.510; capacity-matched control (more harmonics, same period, same param count)
       R²=0.467 — confirms the gain is the new period, not more parameters. Suess/de Vries
-      (~210yr) named as unresolvable at 0.97 repeats in the data.
+      (~210yr) named as unresolvable at 0.97 repeats in the data. Unaffected by the D20
+      dataset swap — this section fits sunspot directly and never used `pedestrian_counts`.
     verified: true
-    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green, 2026-08-05
-      (re-run after fixing an `EPOCHS=1` override that had been silently clobbering
-      `param(12, test=1)` since this notebook's first commit — see the `resolved` note on
-      `04_probabilistic.ipynb` below for the shared root cause. The sunspot §3.7 numbers
-      above are unaffected — that section fits `theta` directly and never used `EPOCHS`
-      — but the pedestrian/ETTh1 N-BEATS-vs-linear table in §3.4/3.6 was under-trained
-      and has been re-measured; the ranking (linear wins on pedestrian, N-BEATS wins on
-      ETTh1) held, only the specific MAE values moved).
+    run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green,
+      2026-08-05, after the D20 dataset swap.
 
   - file: 04_probabilistic.ipynb
     title: "The line is not the answer"
@@ -333,20 +355,28 @@ notebooks:
       D17. Mirrors L1 notebook 04's shape: one param_space dict, ray.tune + HyperOptSearch
       (TPE), read the result the same way — which axis actually moved the metric. Search
       space: mechanism (plain/gate/highway/moe/sparse_moe), hidden width, n_experts,
-      expert_hidden, lr, on pedestrian_counts (W=168,H=24, matching notebook 03) rather
-      than notebook 05's window, so the router has a real daily cycle — and 8 pooled
-      count locations — to work with. Logs one mlflow summary row per search, matching L1
-      notebook 04 §4.2's convention.
+      expert_hidden, lr, on solar_10_minutes (W=288,H=144, matching notebook 03 post-D20)
+      rather than notebook 05's window, so the router has a real daily cycle — and 20
+      pooled solar sites — to work with. Logs one mlflow summary row per search, matching
+      L1 notebook 04 §4.2's convention.
+    dataset_change: >
+      D20, 2026-08-05 (main_principles.md §3.10). `pedestrian_counts` -> `solar_10_minutes`
+      (same swap as notebook 03, keeping D18's three-dataset count). `W,H` 168,24 ->
+      288,144. `load_pedestrian_windows` -> `load_solar_windows`, now built on the shared
+      `solar_10_minutes.py` loader rather than an inlined, notebook-local one.
     resolved: >
-      Dataset question resolved by running the search itself rather than a pre-check:
-      pedestrian_counts, measured. Originally 24 trials over 4 mechanisms (plain/gate/
-      highway/moe): `plain` won (0.2624 MAE, hidden=128). Superseded 2026-08-05 (see
-      `sparse_moe_search_addition` below) by a 30-trial run over the extended 5-mechanism,
-      5-axis space — `gate` (hidden=128, 0.2596) now edges out `plain`'s own best
-      (0.2624) by 0.0028, inside the 2-std noise band that check exists to catch, and
-      every trial here still trains from a single fixed seed (E3 flags this explicitly).
-      Read as: still no clear, checked win for gating on this series, not a reversal of
-      the earlier finding.
+      Re-run on the new dataset/window, 30 trials over the 5-mechanism, 5-axis space:
+      **`gate` wins clearly** (hidden=128, mae=0.2079) against `plain`'s own best trial
+      (hidden=128, mae=0.2214) — a 0.0135 gap, over 6x the 5-seed baseline's own std
+      (0.0021), and well outside the 2-std band the earlier `pedestrian_counts` run
+      (0.0028 gap, *inside* that band) could not clear. Every routing mechanism's best
+      trial beat `plain`'s best trial here (`highway` 0.2102, `moe` 0.2095, `sparse_moe`
+      0.2099) — the first series in this lesson where that has happened for more than one
+      mechanism at once. Read as: a real, checked routing advantage on this series, a
+      different and more decisive answer from `05`'s electricity window and this
+      notebook's own first pedestrian_counts run — not a contradiction, a third
+      independent data point showing the answer is series-dependent, as §6.2 always said
+      it might be.
     sparse_moe_search_addition: >
       2026-08-05, direct user request: "how many experts, and what is the ideal hidden
       size for the experts... even if it doesn't improve, I think it is a nice thing to
@@ -358,22 +388,12 @@ notebooks:
       hidden dim, letting the search trade *many small* experts against *few large* ones
       — the "N=10, but smaller" question directly. `param_counts()` reports (total,
       active) parameters per trial; `trainable()`'s `tune.report` carries both through to
-      the results dataframe. N_TRIALS bumped 24 -> 30 for the larger space.
-
-      Measured (30 trials, 148s): `sparse_moe` did not win, and did worse than every
-      other mechanism's own worst trial — 4 trials only (fewer than gate/plain's 9 each;
-      HyperOptSearch appears to have deprioritised it early), ranging 0.2793 (best) to
-      0.3644 (worst), wider spread than any other mechanism. Its best config
-      (n_experts=16, expert_hidden=64, hidden=128) is the concrete tradeoff the addition
-      exists to show: **292,008 parameters trained, 43,368 (14.9%) used per input** —
-      real, measured capacity/compute decoupling — that still did not beat dense `moe`'s
-      much smaller 92,576-parameter trial (mae 0.2706, every parameter used every time,
-      no decoupling at all). More capacity, spent more cheaply, was not automatically a
-      *better* capacity here. TPE never got much budget into the "many small experts"
-      corner of the space before moving on, so the specialisation hypothesis (does
-      pooling 8 pedestrian-count locations give a router something real to divide up) is
-      not conclusively settled by this run — E4 (new) asks students to test it on a
-      dataset with more obvious heterogeneity instead of re-spending trials here.
+      the results dataframe. N_TRIALS bumped 24 -> 30 for the larger space. Re-measured on
+      `solar_10_minutes` post-D20: best trial `n_experts=2, expert_hidden=64`, mae=0.2099
+      — statistically tied with dense `moe`'s best (0.2095) — at 44,626 trained parameters
+      and 36,306 (81.4%) active per input, versus dense `moe`'s 106,454 trained == used.
+      2.4x fewer trained parameters for a tied score, on top of the per-input compute
+      saving §6.2 named as the actual bet.
     params:
       - N_TRIALS = param(30, test=2)   # was 24; bumped for the wider 5-axis space
       - EPOCHS = param(15, test=1)

@@ -140,6 +140,7 @@ the notebook's new §5.5. See §4b. |
 | **D17** | L2 closes with a ray.tune search notebook, mirroring L1 notebook 04 — search over basis choice, gate on/off, highway depth. | D5's "one search tool, used properly" only pays off if students exercise it twice in different modalities, not once and never again. |
 | **D18** | L2 consolidated from **five** datasets (ETTh1, pedestrian_counts, sunspot, australian_electricity_demand, traffic_hourly) to **three** (sunspot, pedestrian_counts, australian_electricity_demand). ETTh1 dropped from the graded sequence entirely, kept only in the optional appendix `09_composition_extra`. | Direct user feedback, 2026-08-05: five datasets across nine notebooks was real sprawl, and ETTh1's six-covariate electricity-transformer domain added confusion an unfamiliar dataset didn't need to, on top of the dataset count itself. Daily sunspot counts take over ETTh1's structural role (§3.9) — a series where the naive baseline is hard to beat — while being a series students already met in MADS-DAV. |
 | **D19** | Every epoch count in L2 must be justified by a checked convergence curve or a multi-seed, multi-epoch-count sweep — not copied from another notebook. | Direct user challenge, 2026-08-05, after the `EPOCHS=1` bug (§4a) was fixed by simply picking a different number: "why would 8 epochs be enough? who says it doesn't need 100?" Caught a real error doing this — an initial 3-seed check of `05_gates_highways_moe` at one epoch count found Gate beating its capacity-matched control; a proper 5-seed, 3-epoch-count check found that result was noise (§3.9). Both the wrong finding and the correction are on the record in the notebook, not silently fixed. |
+| **D20** | `pedestrian_counts` is replaced by **`solar_10_minutes`** as `03_decomposition_and_nbeats`'s primary demo and `06_search`'s search dataset. D18's three-dataset count is preserved — the same swap is made in both places, not a fourth dataset added. | Direct user challenge, 2026-08-05: D18 left `03` without a single dataset in the graded sequence where N-BEATS's basis decomposition wins on accuracy (linear won on both `pedestrian_counts` and `sunspot`, §3.9) — a notebook whose whole premise is "the decomposition inside the architecture" never showed that premise earning anything beyond interpretability. The user explicitly rejected re-manufacturing a win via data scarcity (the old ETTh1 story) and asked for a series where N-BEATS wins on its merits, with ample data. Found by searching, not assumed — see §3.10. |
 
 ---
 
@@ -500,6 +501,64 @@ collapse (§8.4) replicates qualitatively with real sunspot numbers: mean-pooled
 MAE ratio 1.855 (worse than naive), last-patch 1.910 (worse still), embedding+raw 0.925
 (worse than raw alone at 0.796) — same three-hypothesis elimination, same conclusion, new
 series.
+
+### 3.10 D20 — a genuine N-BEATS win, found by search rather than assumed away
+
+Direct user challenge, 2026-08-05, to `03_decomposition_and_nbeats` as §3.9 left it: a
+notebook whose entire premise is "put the decomposition inside the architecture" had no
+dataset, anywhere in the graded sequence, where that architecture actually won on accuracy
+— linear beat N-BEATS on both `pedestrian_counts` and `sunspot` (§3.9). The user explicitly
+rejected re-manufacturing a win via data scarcity (the old ETTh1 story, ~1,400 windows,
+really an overfitting story about linear rather than a decomposition story) and asked for a
+series where N-BEATS wins **on its merits**, with enough data that the win cannot be
+dismissed as an artefact.
+
+**Checked, not guessed — every candidate below run at a window count comfortably above the
+linear model's own parameter count, so none of these results can be a scarcity flip:**
+
+| dataset | window (W, H, period) | pooled windows | result |
+|---|---|---|---|
+| `nn5_daily` | 35, 7, 7 (weekly) | 3,394 (8 series) | linear wins: 0.6717 vs generic 0.6995 |
+| `traffic_hourly` | 336, 24, 168 (weekly) | 6,780 (4 series) | linear wins: 0.2787 vs generic 0.3750; seasonal-naive(168)=0.2192 beats both |
+| `london_smart_meters` | 336, 24, 168 (weekly) | 9,093 (4 series) | linear wins: 0.5935 vs generic 0.6529 |
+| `tourism_monthly` | 24, 12, 12 (annual) | 2,420 (20 series) | linear wins clearly: 0.5705 vs generic 0.8211 (generic overfits badly on test: 2.67 vs 1.01) |
+| **`solar_10_minutes`** | 288, 144, 144 (daily) | **103,700 (20 series)** | **N-BEATS generic wins: 0.2177 vs linear 0.2523** |
+
+Solar power is the one series checked where the daily period is close to a physical
+certainty rather than a statistical regularity — exactly zero overnight, a smooth hump
+during the day, governed by the sun's position rather than aggregate human behaviour. That
+is the mechanistic reason a period-144 Fourier basis beats an unconstrained 41,616-parameter
+linear map even with 103,700 training windows (2.5x the linear model's own parameter
+count): `nn.Linear(288,144)` has to learn "step *t* resembles step *t*-144" independently at
+144 different output positions; the seasonality stack cannot help assuming it once, because
+every output is built from one 20-number `theta` reused across a single continuous Fourier
+phase. Full account, with the epoch/seed robustness check (8/12/20 epochs × 5 seeds, gap
+holds at 0.030-0.035 throughout — D19 discipline), in notebook 03 §3.4.
+
+**D20**: `pedestrian_counts` is replaced by `solar_10_minutes` as `03`'s primary demo and
+`06_search`'s search dataset (both notebooks used `pedestrian_counts`; the same swap in
+both keeps D18's three-dataset count rather than adding a fourth). `pedestrian_counts` is
+retired from the graded sequence entirely — no notebook in the current 01-08 list uses it.
+
+**A correction inside the correction: re-measuring §3.9's sunspot contrast at the new,
+larger window.** `03` §3.6 runs the identical architecture "unchanged, at the same W,H"
+the primary demo used — now `W=288,H=144` rather than the old `W=168,H=24`. At this window,
+N-BEATS generic's nominal edge on sunspot (0.3225 vs linear's 0.3270) is **not** a real
+result: the gap (0.0045) is smaller than N-BEATS's own seed-to-seed std (0.0099). This is a
+sharper version of §3.9's finding ("linear wins outright" on sunspot) — the honest read at
+this larger window is a **statistical tie**, not a linear win. Recorded because the window
+changed and the number was re-measured, not carried over from the smaller-window run.
+
+**`06_search`'s result changed shape too, not just its dataset name.** The original
+`pedestrian_counts` search (main_principles.md, superseded) found `gate` edging `plain`'s
+own best trial by 0.0028 — inside the 2-std noise band that check exists to catch, read as
+"no clear win." Re-run on `solar_10_minutes` (30 trials, same 5-mechanism/5-axis space):
+`gate` wins at 0.2079 against `plain`'s own best trial of 0.2214 — a 0.0135 gap, over 6x
+the 5-seed baseline's own std (0.0021) — and **every** routing mechanism's best trial beat
+`plain`'s best trial (`highway` 0.2102, `moe` 0.2095, `sparse_moe` 0.2099), which itself
+had never happened on `05`'s electricity window or the earlier `pedestrian_counts` search.
+`sparse_moe`'s best trial (`n_experts=2`) ties dense `moe` at 2.4x fewer trained parameters
+(44,626 vs 106,454). Full table in notebook 06 §6.3.
 
 ## 4. Blocking prerequisites
 
