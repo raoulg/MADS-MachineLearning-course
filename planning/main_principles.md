@@ -625,6 +625,43 @@ overfitting) — but the val curve visibly bounces epoch-to-epoch by more than t
 between the two models, which is the visual version of exactly why the seed-and-
 epoch-count check right after it exists.
 
+### 4b.4 Extended: `06_search` gains sparse_moe, n_experts, expert_hidden, and the params-trained-vs-used tradeoff
+
+Third direct user request, same session: search over how many experts and how wide each
+expert should be, keep it set up for students to reuse on other datasets even if it
+doesn't win here, and make the trained-vs-used parameter tradeoff and the specialisation
+intuition explicit rather than implicit. `06_search.ipynb`'s existing search (mechanism,
+hidden, n_experts, lr — n_experts already existed but only for dense `moe`, capped at 8)
+gained: `sparse_moe` (k=1) as a mechanism choice; `n_experts` widened to
+`{2,4,6,8,10,16}`; a new `expert_hidden` axis (`{16,32,64}`) that makes each expert a
+genuine bottleneck 2-layer network (`Linear -> GELU -> Linear`) rather than
+`05_gates_highways_moe`'s single-`Linear` experts, so the search can trade many small
+experts against few large ones — the "N=10, but smaller" question directly, not one
+point in that space. `param_counts()` reports (total, active) parameters per trial,
+carried through `tune.report` into the results dataframe. N_TRIALS bumped 24 → 30 for
+the larger space.
+
+Measured, 30 trials, 148s: `sparse_moe` did not win, and did worse than every other
+mechanism's own worst trial — only 4 of 30 trials (HyperOptSearch appears to have
+deprioritised it early), ranging 0.2793 (best) to 0.3644 (worst), the widest spread of
+any mechanism. Its best config (`n_experts=16, expert_hidden=64, hidden=128`) is the
+concrete tradeoff this addition exists to make visible: **292,008 parameters trained,
+43,368 (14.9%) used per input** — real, measured capacity/compute decoupling — that
+still did not beat dense `moe`'s much smaller 92,576-parameter trial (mae 0.2706, every
+parameter used every time). More capacity, spent more cheaply, was not automatically
+*better* capacity here. Separately, the overall search winner shifted from the earlier
+24-trial run's `plain` (0.2624) to `gate` (0.2596) — a 0.0028 edge, smaller than the
+2-std band the baseline check exists to catch, and every trial trains from one fixed
+seed, so this is flagged in-notebook (§6.3, E3) as unresolved rather than as a reversal.
+
+The specialisation question this addition was written to make explicit — does pooling 8
+pedestrian-count locations give a router something real to divide up — is not settled by
+this run: TPE never spent much budget in the "many small experts" corner before moving
+on. A new exercise (E4) asks students to test the hypothesis on a dataset with more
+obvious heterogeneity (their own choice) rather than re-spending trials on this one,
+since the search space itself (mechanism, hidden, n_experts, expert_hidden, lr) is
+written to be reusable as-is.
+
 ### Published caches (hf.co/pttrn-io)
 
 Built and published 2026-08-04, `make build-lesson1 && make publish-lesson1`. Every one
