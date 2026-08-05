@@ -269,31 +269,62 @@ notebooks:
       D19-corrected numbers (5 seeds, settled at `EPOCHS=90` after checking 30/60/90 —
       main_principles.md §3.9): `deeper` (0.15879 MAE, 19,632 params) and `gate` (0.16026,
       19,632 params — its exact capacity-matched control) sit inside each other's seed
-      spread; `plain` is worst (0.17381, 15,472 params); `highway` (0.16155, 28,080
-      params, 1.8x `plain`) and dense `moe` (0.16475, 32,372 params, 2.1x `plain`) cost
-      more and score worse. Same null-result shape as `04_composition`'s own routing
-      experiment (now `09_composition_extra`) and `06_search`'s — reached from a third,
-      different window, not a dataset-specific fluke.
+      spread; `plain` is worst of the original five (0.17381, 15,472 params); `highway`
+      (0.16155, 28,080 params, 1.8x `plain`) and dense `moe` (0.16475, 32,372 params, 2.1x
+      `plain`) cost more and score worse. Same null-result shape as `04_composition`'s own
+      routing experiment (now `09_composition_extra`) and `06_search`'s — reached from a
+      third, different window, not a dataset-specific fluke.
     sparse_moe_addition: >
-      2026-08-05. §5.1's dense-MoE caveat ("this notebook doesn't test the sparse routing
-      that makes production MoE fast") resolved into a real result, not left standing.
-      `vectormesh` 0.7.0 added `SparseMoE` (top-k routing via real gather/scatter — sort
-      routing assignments by expert id, run each expert only on its own contiguous slice,
-      scatter weighted outputs back; an expert with zero routed examples this batch does
-      zero work, confirmed by a test asserting it gets no gradient). New §5.5 times
-      `SparseMoE` (k=1) against dense `MoE` on a fixed batch of this notebook's own
-      windows, N=4 to N=256 experts: parameter count grows 64x, `SparseMoE`'s forward time
-      grows only 2.0x (0.129 -> 0.262 ms) while dense `MoE` grows 15.2x (0.117 -> 1.783
-      ms) — dense is briefly faster at N=4 (routing overhead exceeds the saving when
-      there's nothing to route around), crosses over by N=16, and is 6.8x slower than
-      sparse by N=256. Does not retest whether routing was worth its parameters on this
-      task (§5.4 already answered a related question for the dense version) — only that
-      the capacity/compute decoupling production MoE papers claim is real and measured
-      here, not asserted.
+      2026-08-05, then corrected the same day after direct user pushback (see `redo_2`
+      below). `vectormesh` 0.7.0 added `SparseMoE` (top-k routing via real gather/scatter —
+      sort routing assignments by expert id, run each expert only on its own contiguous
+      slice, scatter weighted outputs back; an expert with zero routed examples this batch
+      does zero work, confirmed by a test asserting it gets no gradient). `sparse_moe (N=4,
+      k=1)` and `sparse_moe (N=64, k=1)` were added as two more trained-and-scored rows in
+      §5.3/5.4's main table (5 seeds, the same settled `EPOCHS=90`, not just a separate
+      speed demo), and §5.2 gained a train/val MAE-vs-epoch plot (seed=0) for `gate` and
+      `deeper` ahead of the existing multi-seed epoch-count table.
+    redo_2: >
+      Direct user challenge, 2026-08-05, to the first version of this addition: (1) "how do
+      you test all architectures, and then fiddle in SparseMoE just to test the speed —
+      wasn't this about seeing if sparse actually gives better performance?" and (2) "why
+      not visualise train/val learning curves like any human would, instead of a table of
+      epoch-count checkpoints?" Both were real gaps in the first pass, fixed rather than
+      argued with:
+        1. `sparse_moe (N=4, k=1)` (matched capacity to dense `moe`) and `sparse_moe
+           (N=64, k=1)` (16x more capacity, same active compute) are now trained and
+           scored in the same 5-seed table as every other mechanism. Result: `sparse_moe
+           (N=4)` scores 0.16960 vs dense `moe`'s 0.16475 — inside both models' seed noise
+           (std 0.0113/0.0101), so routing does not beat blending at matched capacity here.
+           `sparse_moe (N=64)` scores 0.17038 — statistically indistinguishable from the
+           4-expert version, and the worst trained model apart from `plain`. Sixteen times
+           the experts bought nothing on this task.
+        2. Checked *why*, rather than stopping at the null result: for one seed (seed=0,
+           90 epochs), the trained `sparse_moe (N=64)` router used only **15 of its 64
+           experts** on the 361 validation windows — the top expert alone took 42% of
+           them, the top five took 90%. Router collapse: nothing in `SparseMoE` or this
+           notebook's training loop penalises an unbalanced router, so a handful of experts
+           win early and the rest starve. Production Switch/Mixtral implementations add an
+           auxiliary load-balancing loss for exactly this reason; this `SparseMoE` doesn't
+           — named honestly in-notebook (§5.4) as the likely cause, with a new exercise
+           (E6) asking students to add one and re-check.
+        3. §5.2 now opens with an actual train/val MAE-vs-epoch plot (seed=0, `gate` vs
+           `deeper`) before the multi-seed epoch-count table — both curves flatten by ~epoch
+           20-30 with a stable ~0.025 train/val gap (no runaway overfitting), but the val
+           curve visibly bounces epoch-to-epoch by more than the gap between the two
+           models, which is the visual version of why the seed-and-epoch-count table right
+           after it exists at all.
+        4. §5.5 (the timing sweep) is reframed as answering a second, separate question
+           ("is it cheap to scale") rather than standing in for the accuracy question —
+           it still shows the same shape of result (`SparseMoE` 1.9x slower from N=4 to
+           N=256 vs dense `MoE`'s 17.1x, crossover by N=64), now explicitly alongside, not
+           instead of, the real accuracy answer in §5.4.
     verified: true
     run: jupyter nbconvert --execute (full) + notebooktester -f (test) — both green,
-      2026-08-05 (re-run for the SparseMoE addition; whole-folder
-      `notebooktester notebooks/2_timeseries/ -t 300 -pb -f` also re-checked: 9 passed).
+      2026-08-05 (re-run twice: once for the initial SparseMoE speed-only addition, once
+      more for `redo_2`'s accuracy test + learning-curve rebuild). Whole-folder
+      `notebooktester notebooks/2_timeseries/ -t 300 -pb -f` re-checked after each: 9
+      passed both times.
 
   - file: 06_search.ipynb
     title: "Searching architectures, twice"

@@ -570,17 +570,60 @@ Benchmarked on `05_gates_highways_moe.ipynb`'s own data — a batch of 64 of its
 | 64 | 0.250 | 0.535 | 270,400 |
 | 256 | 0.262 | 1.783 | 1,081,600 |
 
-From N=4 to N=256, parameters grow 64x. `SparseMoE`'s forward time grows only 2.0x
+From N=4 to N=256, parameters grow 64x. `SparseMoE`'s forward time grows only ~2x
 (routing overhead — one `argsort` plus a per-active-expert Python loop — not added
 compute, since every example still passes through exactly one expert). Dense `MoE` grows
-15.2x, close to proportional with N as it must be, since it evaluates every expert on
-every example regardless of capacity. Dense is briefly *faster* at N=4 (routing machinery
-costs more than it saves with nothing to route around); the crossover is by N=16, and
-dense is 6.8x slower than sparse by N=256 for identical parameter counts. This is the
-capacity/compute decoupling claim, measured on this course's own data rather than
-asserted from the papers — it does not reopen whether routing earns its parameters *on
-this forecasting task* (§3.9/D19 already answered a related question for dense `MoE`;
-nothing here reruns that check for the routed version).
+~15-17x, close to proportional with N as it must be, since it evaluates every expert on
+every example regardless of capacity. Dense is briefly *faster* at small N (routing
+machinery costs more than it saves with nothing to route around); the crossover is
+around N=16-64, and dense is 6-7x slower than sparse by N=256 for identical parameter
+counts. This is the capacity/compute decoupling claim, measured on this course's own
+data rather than asserted from the papers.
+
+### 4b.2 Corrected: this doesn't answer whether routing forecasts better — that got checked too
+
+The first version of this section stopped at the timing table above and left "does
+sparse routing forecast better" untested — a real gap, caught by direct user pushback
+("wasn't this about seeing if sparse actually gives better performance?"), not by this
+plan's own review. Fixed by adding `sparse_moe (N=4, k=1)` and `sparse_moe (N=64, k=1)`
+as two more trained-and-scored rows in `05_gates_highways_moe.ipynb`'s existing 5-seed,
+`EPOCHS=90` table (§3.9's D19-settled point), not a separate speed-only demo:
+
+| model | val MAE | params | vs dense `moe` |
+|---|---|---|---|
+| dense `moe` (N=4) | 0.16475 ± 0.01009 | 32,372 | — |
+| `sparse_moe` (N=4, k=1) | 0.16960 ± 0.01129 | 32,372 (matched) | inside seed noise, not clearly worse |
+| `sparse_moe` (N=64, k=1) | 0.17038 ± 0.00443 | 285,872 (8.8x moe, 18.5x plain) | indistinguishable from the N=4 sparse row |
+
+Routing does not beat blending at matched capacity here, and 16x more capacity (same
+active compute) bought nothing — both `sparse_moe` rows are the two worst trained models
+in the table apart from `plain` itself. Checked *why*, not just left as a shrug: for one
+seed (seed=0, 90 epochs), the trained 64-expert router used only **15 of 64 experts** on
+the 361 validation windows (top expert 42% of examples, top five 90%) — router collapse,
+a known real failure mode of top-1 routing with no load-balancing auxiliary loss (which
+`SparseMoE` doesn't have, unlike production Switch/Mixtral). Named honestly in the
+notebook (§5.4) as the likely cause, with a new exercise (E6) asking students to add a
+load-balancing loss and re-check.
+
+None of this reopens §4b.1's compute claim — the capacity/compute decoupling is still
+real and still measured. It just means this specific forecasting task's answer to
+"is sparse routing worth it" is no, for a checkable reason, same as every other gating
+mechanism this notebook has tested (D19, §3.9) — one more real negative result, not an
+exception carved out for the newest architecture.
+
+### 4b.3 Also fixed: §5.2's epoch-count table gained an actual learning curve
+
+Second direct user pushback, same session: "normally I would visualise the train-test
+learning curves... why not visualise it like any human would?" `05_gates_highways_moe`
+§5.2 previously only printed mean±std MAE at three fixed epoch counts (30/60/90) — real
+evidence, but not the standard first diagnostic (is it still improving, has it
+plateaued, is train pulling away from val). Added: a train/val MAE-vs-epoch plot
+(seed=0, `gate` and `deeper`, matching `02_basemodels.ipynb`'s own existing
+single-seed-curve convention) ahead of the multi-seed table. Both curves flatten by
+~epoch 20-30 with a stable ~0.025 train/val gap that does not widen (no runaway
+overfitting) — but the val curve visibly bounces epoch-to-epoch by more than the gap
+between the two models, which is the visual version of exactly why the seed-and-
+epoch-count check right after it exists.
 
 ### Published caches (hf.co/pttrn-io)
 
