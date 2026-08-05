@@ -33,7 +33,7 @@ stay un-vectorized on purpose and mark the boundary of the idea.
 | Lesson | Status | Round |
 |---|---|---|
 | L1 | **done**, built and run | 2/3 |
-| L2 | specified — redo of the time-series rebuild, see `lesson2.yml` | 1 (content) / 3 (redo) |
+| L2 | **done** — redo built and run 2026-08-05, see `lesson2.yml` | 1 (content) / 3 (redo) |
 | L3 | needs rebuild — most stale lesson in the repo | 3 |
 | L4 | partially done; notebook numbering collides | 1 & 3 |
 | L5 | mostly done | 1 |
