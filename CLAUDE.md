@@ -35,9 +35,12 @@ uv run notebooktester notebooks/ -t 300 -pb
 
 ## planning/ is the source of truth
 
-`planning/main_principles.md` holds the principles, the numbered decisions (D1, D2, …),
-the measured evidence they rest on, and the `cuts` register; `planning/lesson<N>.yml`
-holds the per-lesson detail. Read the relevant plan before changing a lesson.
+`planning/principles.md` holds the thesis and the standing rules, `planning/curriculum.md`
+the lesson map and each lesson's target, `planning/evidence.md` every measured number the
+decisions rest on, and `planning/cuts.md` what was removed and why. A `planning/lesson<N>.md`
+exists only while that lesson is being rebuilt, and is deleted once it has been run — a
+shipped lesson is described by its notebooks. Read the relevant file before changing a
+lesson.
 
 Two standing rules from that directory:
 
