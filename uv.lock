@@ -2578,7 +2578,7 @@ requires-dist = [
     { name = "torch-geometric", specifier = ">=2.6.1" },
     { name = "torch-tb-profiler", specifier = ">=0.4.3" },
     { name = "torchinfo", specifier = ">=1.8.0" },
-    { name = "vectormesh", specifier = ">=0.7.0" },
+    { name = "vectormesh", specifier = ">=0.9.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -5719,7 +5719,7 @@ wheels = [
 
 [[package]]
 name = "vectormesh"
-version = "0.7.0"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beartype" },
@@ -5728,7 +5728,6 @@ dependencies = [
     { name = "huggingface-hub" },
     { name = "jaxtyping" },
     { name = "loguru" },
-    { name = "mltrainer" },
     { name = "networkx" },
     { name = "numpy" },
     { name = "pillow" },
@@ -5737,11 +5736,12 @@ dependencies = [
     { name = "pyvis" },
     { name = "sentence-transformers" },
     { name = "torch" },
+    { name = "tqdm" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/10/d3/07f9b5e3f1d61de2d195c48929e2f586ad751bf0832e68ffa8512b79bda6/vectormesh-0.7.0.tar.gz", hash = "sha256:f8d203436fb724099ab5822cb0920a03c648968dbbcac02fe5b6314c5fc70357", size = 132949, upload-time = "2026-08-05T17:26:35.183Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/91/08bc5a11ff80eaf1cb00d7d55c1aa8e5adee551874dafda3a3644a2d8c4b/vectormesh-0.9.0.tar.gz", hash = "sha256:698cb2d75c94c8f22653e37107be6f6bfd419dad4765a8beb2ad042e9977d8b2", size = 140334, upload-time = "2026-08-07T15:26:07.071Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/92/30/a9c0fa628ce8b1ac707790b03c93676bc44fd234b0f60949c66876646610/vectormesh-0.7.0-py3-none-any.whl", hash = "sha256:7e673e0428ca592db8531839c2d9a4423ce1d4e55aadd775efa91b1779f79e25", size = 46739, upload-time = "2026-08-05T17:26:33.503Z" },
+    { url = "https://files.pythonhosted.org/packages/1d/e2/1aaec720a48e7d1f67dddd88225fb84a16d50175646a45cacdbdc836ca1e/vectormesh-0.9.0-py3-none-any.whl", hash = "sha256:ebad98db1140c687f25a4260dd95ebcd0bc1b85d41c840e85ec990aa6c881f30", size = 53374, upload-time = "2026-08-07T15:26:05.796Z" },
 ]
 
 [[package]]
