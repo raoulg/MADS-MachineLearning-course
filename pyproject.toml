@@ -38,10 +38,11 @@ dependencies = [
     "torchinfo>=1.8.0",
     "torch-geometric>=2.6.1",
     "torch-tb-profiler>=0.4.3",
+    "torchvision>=0.21.0",
     "tomlserializer>=0.2.0",
     "mltrainer[tune]>=0.3.6",
     "flax>=0.12.2",
-    "vectormesh>=0.9.1",
+    "vectormesh>=0.9.2",
 ]
 
 [dependency-groups]
