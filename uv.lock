@@ -2542,6 +2542,7 @@ dependencies = [
     { name = "torch-geometric" },
     { name = "torch-tb-profiler" },
     { name = "torchinfo" },
+    { name = "torchvision" },
     { name = "vectormesh" },
 ]
 
@@ -2578,7 +2579,8 @@ requires-dist = [
     { name = "torch-geometric", specifier = ">=2.6.1" },
     { name = "torch-tb-profiler", specifier = ">=0.4.3" },
     { name = "torchinfo", specifier = ">=1.8.0" },
-    { name = "vectormesh", specifier = ">=0.9.1" },
+    { name = "torchvision", specifier = ">=0.21.0" },
+    { name = "vectormesh", specifier = ">=0.9.2" },
 ]
 
 [package.metadata.requires-dev]
@@ -5719,7 +5721,7 @@ wheels = [
 
 [[package]]
 name = "vectormesh"
-version = "0.9.1"
+version = "0.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beartype" },
@@ -5739,9 +5741,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/64/f8/b0b7fc3c271ec3f0a6a222a3a2dea56978dbc47f4d5f239cf87248ba3d80/vectormesh-0.9.1.tar.gz", hash = "sha256:62c2b56cf5d71d180cc602dc90564ff69ffa5f8d154f02a7b6cb5f080fab3e82", size = 141979, upload-time = "2026-08-07T17:38:32.066Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/7c/e4bc7a5e299731136a322fab99fcaf94a7935c1b43fd752086f2f7aee63d/vectormesh-0.9.2.tar.gz", hash = "sha256:5aa7812cc8f82a910a2b6d96d03d9bb3eb14ee2bf53438ca8050844314a3b8a2", size = 144102, upload-time = "2026-08-07T19:56:12.585Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/fe/16cc57304c4fbfcb451438a40594ad031ecc607834c52365a5bbe299e977/vectormesh-0.9.1-py3-none-any.whl", hash = "sha256:88e190f0b1557a63f0a6f5f2137568a300962f9a833c6b1ee494f330c5442fe1", size = 54248, upload-time = "2026-08-07T17:38:33.629Z" },
+    { url = "https://files.pythonhosted.org/packages/48/5b/97b40c2f690350895d6d934ab231d60c9dfe9665e01a71fe9477b796df6d/vectormesh-0.9.2-py3-none-any.whl", hash = "sha256:5ca0f5fbcf65e80320523463d39a2ff43e9c2c788da30f0a6fb829f0a74d84e7", size = 55224, upload-time = "2026-08-07T19:56:13.665Z" },
 ]
 
 [[package]]
