@@ -2585,7 +2585,7 @@ requires-dist = [
 dev = [
     { name = "isort", specifier = ">=5.13.2" },
     { name = "mypy", specifier = ">=1.14.1" },
-    { name = "notebooktester", specifier = ">=0.3.7" },
+    { name = "notebooktester", specifier = ">=0.3.8" },
     { name = "pyright", specifier = ">=1.1.392" },
     { name = "ruff", specifier = ">=0.15.16" },
     { name = "ty", specifier = ">=0.0.65" },
@@ -3307,7 +3307,7 @@ wheels = [
 
 [[package]]
 name = "notebooktester"
-version = "0.3.7"
+version = "0.3.8"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "click" },
@@ -3315,9 +3315,9 @@ dependencies = [
     { name = "loguru" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1c/03/1438c4c0325e1422c97082a8a3bbd94117cdc9a1404d78b8c20de60d553d/notebooktester-0.3.7.tar.gz", hash = "sha256:f0e70096fab006f8290da4072956f9a82e98cc1ff1ccd94afd02fb7fd08a4314", size = 93884, upload-time = "2026-08-05T20:40:27.009Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/97/76/499818936f464f30212e476e53cdb2cf7e07cfb02014af91e41ab90d6407/notebooktester-0.3.8.tar.gz", hash = "sha256:5469429a5dfad04fbf9928fdd992bac414ea6f52672913005e6591c6e1197cb7", size = 94618, upload-time = "2026-08-07T19:43:36.879Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ad/a2/d1d4cff9bdce4f9b8cf9497d5e8db0a8c6c111dbc0a2de2baebb8c36306b/notebooktester-0.3.7-py3-none-any.whl", hash = "sha256:e0a51502cbd57d6e9fa181dacd6671b6c24f4c1df05a89db2a5d4bdcb7151d7d", size = 11046, upload-time = "2026-08-05T20:40:30.219Z" },
+    { url = "https://files.pythonhosted.org/packages/8e/32/b72fe810896573220d61284aec192b7aecda321d4cea1e3f8b991ef76f26/notebooktester-0.3.8-py3-none-any.whl", hash = "sha256:cdb695e5b39eb96e1fa79c843e8d0f1c4134daa724fc8330c0ed1b3d7062f517", size = 11183, upload-time = "2026-08-07T19:43:39.769Z" },
 ]
 
 [[package]]
