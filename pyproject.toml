@@ -41,7 +41,7 @@ dependencies = [
     "tomlserializer>=0.2.0",
     "mltrainer[tune]>=0.3.6",
     "flax>=0.12.2",
-    "vectormesh>=0.9.0",
+    "vectormesh>=0.9.1",
 ]
 
 [dependency-groups]
