@@ -52,7 +52,7 @@ raw window 0.796, embedding+raw 0.925, mean-pooled embedding 1.855, all vs naive
 head students trained in L4, on accuracy *and* cost. Runs off a published generation
 cache. This is the notebook that makes the lesson two-modality rather than LLM-only.
 
-### 02 — How do you know it is any good?
+### 02 — How do you know it is any good?  **[BUILT]**
 
 The gap this lesson exists to close. Students experiment with LLMs constantly and judge
 the output by looking at it. Eyeballing is not a metric, and it does not scale past ten
@@ -78,6 +78,14 @@ The arc, cheapest first:
 
 Punchline: **an unvalidated judge is eyeballing with extra steps.** The deliverable is
 not "use LLM-as-judge", it is "measure your judge before you trust it".
+
+Measured against `qwen3.6:35b` via ollama — 200 direct judgements, 119 pairs asked twice:
+kappa 0.939 against ground truth, 2% unparseable (all of them the model answering "Mixed"),
+accuracy 0.966 with the right answer listed first against 0.899 listed second, and **8.4%
+of verdicts flip under a swap**. Verbosity bias came out *undetectable* (judge picked the
+longer review 27.7% against a 29.4% base rate), so the notebook reports it as a confounded
+metric rather than a finding. `build_judgements.py` regenerates in ~4 min; the 33 KB cache
+is committed so students analyse on CPU in a second.
 
 This notebook is also load-bearing for 03: the metric built here is the signal the router
 is trained against.

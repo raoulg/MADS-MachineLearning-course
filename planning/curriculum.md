@@ -218,7 +218,7 @@ a stochastic generator.
 
 ## L7 — Generalists you did not train, and the memory you give them
 
-**Status: new lesson. Build last — see the risk note.**
+**Status: `01_foundation_models` (from L2) and `02_evaluating_generative_output` built and run. `03` routing, `04` index, `05` memory, `06` exercise still to come.**
 
 The arc: you cannot train it, so every bit of leverage is in what you feed it.
 
