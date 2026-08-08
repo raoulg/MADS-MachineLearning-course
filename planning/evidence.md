@@ -450,7 +450,60 @@ here is the label budget plus the plateau, not a transfer failure.
 
 ---
 
-## 12. Published caches (hf.co/pttrn-io)
+## 12. Three scaling axes on a frozen encoder, drawn
+
+DTD (`pttrn-io/dtd-*`), 2820 train / 940 test, 47 classes, 3 seeds, CPU. Measured
+2026-08-08 for L3 `02_scaling_curves`; the notebook reproduces every row.
+
+**Compute.** Epoch count settled first, since every other sweep depends on it:
+
+| epoch | train | test |
+|---|---|---|
+| 1 | 0.7983 | 0.7209 ± 0.0113 |
+| 5 | 0.9797 | **0.7826 ± 0.0039** |
+| 20 | 0.9999 | 0.7840 ± 0.0054 |
+| 80 | 1.0000 | 0.7805 ± 0.0022 |
+
+Test plateaus by epoch 5 and does nothing for the next 75. Train reaches **1.0000** — the
+head memorises completely and the test score is unaffected, because the ceiling is set by
+the representation, not by head capacity. 20 epochs used downstream, justified by this.
+
+**Parameters**, 140x range:
+
+| head | params | accuracy |
+|---|---|---|
+| linear only | 18,095 | 0.7720 ± 0.0025 |
+| baseline 2-layer | 165,935 | 0.7840 ± 0.0054 |
+| hidden 1024 | 442,415 | **0.7876 ± 0.0036** |
+| hidden 256 x2 | 176,431 | **0.7660 ± 0.0087** |
+| hidden 1024 x3 | 2,541,615 | 0.7706 ± 0.0081 |
+
+Bounded and non-monotone. Width buys ~1.5 pt (linear → hidden 1024, several sigma, a real
+effect); depth gives it back — the two deepest models are the two worst. Total span across
+140x parameters: ~2 pt.
+
+**Data**, 20x range: 0.4777 → 0.6110 → 0.7316 → 0.7496 → **0.7840** at 141 / 282 / 705 /
+1410 / 2820 rows. **~30 points**, roughly linear in log(rows) then flattening. An order of
+magnitude more movement than parameters or compute.
+
+**The axis that is not capacity.** Same head, same data, same epochs, different encoder:
+
+| encoder | dim | head params | accuracy |
+|---|---|---|---|
+| dinov2-small | 384 | 165,935 | **0.7840 ± 0.0054** |
+| resnet-18 | 512 | 286,767 | 0.6312 ± 0.0067 |
+| mobilenet_v2 | 1280 | 1,699,887 | 0.6358 ± 0.0027 |
+
+**15.3 points**, free. And the weakest encoder carries the *largest* head — 10x the
+winner's parameters — which rules out capacity as the explanation.
+
+Summary: capacity is not the binding resource, information is. Data adds information, a
+better encoder adds information; parameters and epochs only let you use what you already
+have, and on a frozen representation that runs out almost immediately.
+
+---
+
+## 13. Published caches (hf.co/pttrn-io)
 
 Every one carries `label`, `source_idx`, `embed` and a dataset card pinning the
 source-dataset and encoder revisions.
