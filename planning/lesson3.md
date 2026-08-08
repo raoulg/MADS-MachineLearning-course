@@ -66,11 +66,15 @@ Not a zoo. One question, five answers, each motivated by a failure of the one be
 | grid | nothing | scales exponentially in dimensions |
 | random | nothing, but samples better | wastes budget on bad regions |
 | TPE | a model of the response surface | still runs every trial to completion |
-| **population methods** (PSO, differential evolution, PBT) | keeps a *population*, which TPE does not | needs many parallel workers |
+| **population methods** (PSO, differential evolution) | keeps a *population*, so it explores jointly rather than one point at a time | no model of the surface; spends evaluations to get one |
 | multi-fidelity (ASHA / Hyperband) | when to stop early | can rank on a prefix that misleads |
 
 Population methods come from `8_extras/swarms`, where the optimisers currently sit with no
-lesson to belong to. They are the one family that adds something students have not seen.
+lesson to belong to. They are the one family that adds something students have not seen —
+and on a cache they are entirely practical: a population of 100 is 100 evaluations of a
+two-second trial, which is a couple of minutes on any laptop, no parallel cluster needed.
+(PBT is the exception that genuinely wants concurrent workers, so treat it as a mention
+rather than a section.)
 
 Migrate to `tune.Tuner` + `tune.TuneConfig` + `tune.RunConfig` (ray 2.55, all under
 `ray.tune`, no `ray.train` import). Drop `mads_datasets` — load from the hub or reuse an L1
@@ -84,8 +88,35 @@ Runs already, and already carries the multi-objective material: `param_counts()`
 (14.9%) used per input, which still lost to a dense 92,576-parameter trial
 (`evidence.md` §9).
 
-**To add:** the budget question, asked *before* ASHA is shown as its answer. Fixed compute
+**To add: the budget question**, asked *before* ASHA is shown as its answer. Fixed compute
 — 50 trials × 10 epochs, or 10 × 50?
+
+**To add: the Pareto front as a concept, because it has to be introduced.** Students have
+optimised one number all course. The trade-off game here is accuracy against *cost*, and
+cost is not one thing:
+
+| axis | what it buys you | what it costs |
+|---|---|---|
+| **parameters trained** | capacity | memory, storage, training time |
+| **parameters used per input** | capacity *at inference* | latency, and the cloud bill |
+| **training compute** | a better fit | time before you have anything |
+
+Sparse routing exists precisely because the first two came apart — that is the whole point
+of a mixture of experts, and L7 does the same trick again with whole systems instead of
+expert layers.
+
+The concept to teach: a model is **dominated** if some other model is at least as accurate
+*and* at least as cheap on every axis you care about. Dominated models can be discarded
+outright, with no judgement call. What survives is the **frontier**, where buying accuracy
+always costs something — and on the frontier there is no "best model", only a choice of
+where to sit, decided by a constraint you bring from outside (a latency budget, a memory
+limit, a price per thousand calls).
+
+`06_search`'s own numbers give a clean worked example, and it is a negative one: the
+`sparse_moe` trial that trained 292k parameters and used 43k was beaten on accuracy by a
+dense model with 92k parameters that used all of them. It is cheaper on one axis, more
+expensive on another, and worse on accuracy — so on *this* task it is not on the frontier
+at all. That is what a dominated point looks like, and students should meet one.
 
 ### 05 — Exercise *(update `05_hypertuning_exercise.md`)*
 
@@ -98,6 +129,25 @@ Fix what has rotted: it points at `03_minimal_transfer_learning` (cut), at
 data suggestion at a published cache, and make the deliverable a **capacity curve with a
 control**, not just a heatmap.
 
+## The paper
+
+**Kaplan et al. 2020, *Scaling Laws for Neural Language Models*** — read alongside
+**Hoffmann et al. 2022, *Training Compute-Optimal Large Language Models*** (Chinchilla).
+
+The pairing is the point, and it is the best argument this course has for its own
+standards. Kaplan's scaling law was believed and built on for two years. Hoffmann re-ran
+the experiment with a better design — varying data and parameters together instead of
+holding one near-fixed — and found a substantially different optimum, which changed how
+frontier models were trained. A widely accepted empirical law was wrong because of how the
+experiment was set up, and the correction came from measuring more carefully rather than
+from a new idea.
+
+That is the same failure this lesson teaches at laptop scale, and the same one this repo
+has committed twice (`evidence.md` §7, §11).
+
+Secondary: **Bergstra & Bengio 2012, *Random Search for Hyper-Parameter Optimization***,
+for notebook 03 — the paper behind "grid search loses", and short.
+
 ## Dependencies this clears
 
 L3 holds the last `mads_datasets` consumers in the course. When `01_hypertuner` is
@@ -109,8 +159,10 @@ BayesOpt is demoted. `hyperopt` stays — it backs TPE in L1 and here.
 1. **02 is the only new notebook, and it is the one carrying the lesson's name.** If it
    does not produce a legible curve on cached vectors, the reframe is decoration. Build it
    first, not last.
-2. **Population methods need parallel workers to look good.** On a laptop with four cores,
-   PBT may simply lose to TPE. If it does, that is a reportable result, but check before
-   building a section that assumes a win.
+2. **Population methods must still be measured, not assumed.** They are cheap enough on a
+   cache (a population of 100 is 100 two-second trials), but cheap is not the same as
+   better — check whether PSO or differential evolution actually beats TPE at equal
+   evaluation budget here before writing a section that says it does. Equal budget is the
+   control, exactly as elsewhere.
 3. **The renumbering is cosmetic and the content is not.** `05_gates_highways_moe` and
    `06_search` are measured and running; do not rewrite them to fit a narrative.

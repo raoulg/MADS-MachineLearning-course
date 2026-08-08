@@ -306,6 +306,24 @@ Not graded, kept because it is good material without a lesson-sized job.
 
 ---
 
+## One paper per lesson
+
+Each lesson anchors to a paper students actually read, chosen so the *method* of the paper
+is the lesson's method — not just its topic.
+
+| # | paper | why this one |
+|---|---|---|
+| L1 | Razavian et al. 2014, *CNN Features off-the-shelf: an Astounding Baseline for Recognition* | L1's entire thesis, a decade early: freeze a pretrained net, train a linear classifier on its features, beat purpose-built pipelines. Students meet the idea in its original, surprising form rather than as received wisdom |
+| L2 | Oreshkin et al. 2020, *N-BEATS* — with Zeng et al. 2022, *Are Transformers Effective for Time Series Forecasting?* | The architecture the lesson builds, read against the paper showing a linear layer beats the fancy ones. The pairing is the lesson |
+| L3 | Kaplan et al. 2020, *Scaling Laws for Neural Language Models* — with Hoffmann et al. 2022, *Chinchilla* | A widely believed empirical law, corrected two years later by a better experimental design. The course's own standards at field scale. Secondary: Bergstra & Bengio 2012, *Random Search for Hyper-Parameter Optimization* |
+| L4 | Vaswani et al. 2017, *Attention Is All You Need* | The mechanism notebook 01 builds by hand |
+| L5 | Assran et al. 2023, *I-JEPA* — with Chen et al. 2020, *SimCLR* | The two pretext designs the lesson implements, and the clearest statement of "predict in latent space, not pixels" |
+| L6 | Angelopoulos & Bates 2021, *A Gentle Introduction to Conformal Prediction* — with Gneiting & Raftery 2007 on proper scoring rules | Coverage without distributional assumptions, and why you cannot score a distribution with MAE |
+| L7 | Zheng et al. 2023, *Judging LLM-as-a-Judge* | Position bias, verbosity bias and agreement with humans — measured, by the people who popularised the technique |
+
+The L2 and L3 pairings are deliberate: in both, the second paper corrects or deflates the
+first. That is the shape of the habit this course grades.
+
 ## Renames
 
 | From | To |
