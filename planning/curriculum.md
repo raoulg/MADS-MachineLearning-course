@@ -191,7 +191,7 @@ Full numbers and an 8-cell proposal in `research/embedding_space_measurement.md`
 
 ## L6 — Uncertainty: modelling it, scoring it, deciding with it
 
-**Status: new lesson, assembled mostly from material that was mis-filed elsewhere.**
+**Status: `01_probabilistic` (from L2), `02_conformal` and `03_decisions` built and run. An exercise notebook is still to come.**
 
 A point prediction is an answer to a question nobody asked. This lesson is the competence
 of saying how sure you are, scoring that claim, and then acting on it — and it spans both
