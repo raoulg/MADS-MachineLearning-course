@@ -64,8 +64,8 @@ self-consistency-uitkomst en de kalibratie van de zelfgerapporteerde zekerheid b
 | leerdoel | onderwerp | notebook |
 |---|---|---|
 | 6.1-6.6, 6.13, 6.14 | CRPS, Gaussische en quantile heads, kalibratie | `01_probabilistic` |
-| 6.7, 6.15 | conformal prediction | nog te bouwen |
-| 6.8-6.10, 6.16 | metrics, drempels, kosten, beslissen | nog te bouwen |
+| 6.7, 6.15 | conformal prediction | `02_conformal` |
+| 6.8-6.10, 6.16 | metrics, drempels, kosten, beslissen | `03_decisions` |
 | 6.11, 6.12, 6.17 | sampling als verdeling | nog te bouwen |
 
 De serie die je in les 2 koos is hier de natuurlijke plek om verder te werken: daar
