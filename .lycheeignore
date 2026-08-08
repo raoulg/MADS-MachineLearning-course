@@ -1,0 +1,5 @@
+# Publisher sites that reject automated requests. The links are valid in a browser;
+# they return 403/400 to a link checker, so checking them tells us nothing.
+https://dl\.acm\.org/.*
+https://direct\.mit\.edu/.*
+https://www\.sciencedirect\.com/.*
