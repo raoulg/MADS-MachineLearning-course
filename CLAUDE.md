@@ -44,12 +44,12 @@ lesson.
 
 Two standing rules from that directory:
 
-- **Reality beats description; intent beats artifact.** When the plan *describes* the
-  code and the cells disagree, the cells are right — fix the plan. When the plan
-  *prescribes* a change the cells have not caught up with, the plan is right — change the
-  cells. A refactor plan is meant to contradict the notebooks. Facts (shapes, row counts,
-  accuracies) are settled by the code; decisions are settled by the plan, until the plan
-  is explicitly revised.
+- **intent beats artifact.** When the plan *prescribes* a change the cells have not caught up with, 
+the plan is right — change the cells. A refactor plan is meant to contradict the notebooks. 
+Be aware of outdated plans that are lingering; at some point it is good to check if a plan is still
+valid when a lot of commits have happened in between writing and execution.
+Facts (shapes, row counts, accuracies) are settled by the code; 
+decisions are settled by the plan, until the plan is explicitly revised.
 - **Verify before asserting.** Several plan items were wrong until tested — check the
   dataset, the shape, the licence, rather than assuming.
 

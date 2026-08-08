@@ -102,17 +102,20 @@ The habit is transferable and the verdict is not. Grade the habit.
 
 ## 3. Standing rules
 
-- **Reality beats description; intent beats artifact.** Two different cases, and
-  collapsing them causes damage:
-  - When a plan **describes** what the code does and the cells disagree, the cells are
-    right — fix the plan. A plan that misdescribes the repo is worse than no plan,
-    because it gets trusted.
-  - When a plan **prescribes** a change and the cells have not caught up, the plan is
-    right — change the cells. A refactor plan is *supposed* to contradict the notebooks.
+- **Intent beats artifact.** When a plan **prescribes** a change and the cells have not
+  caught up, the plan is right — change the cells. A refactor plan is *supposed* to
+  contradict the notebooks; that is its job. When a plan merely **describes** what the
+  code does and the cells disagree, the cells are right — fix the plan, because a plan
+  that misdescribes the repo is worse than no plan once it gets trusted.
 
   Rule of thumb: a disagreement about a fact (a shape, a row count, an accuracy, which
   import is used) is settled by the code. A disagreement about a decision is settled by
   the plan, until the decision is revised here.
+
+  **Watch for plans that have gone stale.** A prescription written many commits ago may
+  no longer be the right call — the repo it assumed has moved. Before executing an old
+  plan item, check that it still makes sense; the authority of a plan is not permanent,
+  and re-deciding is cheaper than un-building.
 - **Verify before asserting.** Everything in `evidence.md` is a number that was actually
   produced on this machine, not a recollection. Several decisions reversed once measured.
 - **A notebook counts as done when it has been run**, not when it has been written.

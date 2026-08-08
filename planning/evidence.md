@@ -420,7 +420,37 @@ independently verified.**
 
 ---
 
-## 11. Published caches (hf.co/pttrn-io)
+## 11. A supervised encoder specialises, but only if you train it long enough
+
+EuroSAT at 32x32, small conv encoder (DIM=128), five classes seen / five held out, linear
+probe on each half. 3 seeds, one run per seed probed at checkpoints. Measured 2026-08-08.
+
+| epochs | seen | unseen | gap |
+|---|---|---|---|
+| 4 | 0.8848 ± 0.0009 | 0.8873 ± 0.0021 | **-0.0025 ± 0.0024** |
+| 8 | 0.9102 ± 0.0028 | 0.9036 ± 0.0080 | +0.0066 ± 0.0096 |
+| 16 | 0.9256 ± 0.0021 | 0.9043 ± 0.0046 | +0.0212 ± 0.0066 |
+| 24 | 0.9350 ± 0.0017 | 0.9094 ± 0.0080 | +0.0256 ± 0.0065 |
+| 40 | 0.9455 ± 0.0040 | 0.9128 ± 0.0084 | +0.0326 ± 0.0124 |
+| 60 | 0.9579 ± 0.0037 | 0.9088 ± 0.0010 | **+0.0491 ± 0.0044** |
+
+Seen accuracy climbs the whole way, 0.885 to 0.958. **Unseen accuracy plateaus near 0.91
+after epoch 24.** Past that point every epoch buys accuracy on the training classes and
+nothing on the others — supervised specialisation, visible from outside the model.
+
+**The epoch count changed the sign of the conclusion.** The first draft of L5's opener
+trained for 12 epochs, measured a gap of +0.007 against a seed std of ±0.010, and wrote
+that supervised representations transfer for free. At 60 epochs the gap is +0.049 at
+11 sigma. The 12 was chosen, not justified, and the sweep only happened because the
+instructor challenged it. Both the wrong reading and the correction are in the notebook.
+
+For contrast, on the same data the autoencoder scores ~0.86 on the unseen half having used
+**zero** labels, against supervised's ~0.91 from ~3,100. The case for self-supervision
+here is the label budget plus the plateau, not a transfer failure.
+
+---
+
+## 12. Published caches (hf.co/pttrn-io)
 
 Every one carries `label`, `source_idx`, `embed` and a dataset card pinning the
 source-dataset and encoder revisions.

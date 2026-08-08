@@ -1,56 +1,49 @@
-# Autoencoders
+# Lesson 5 — Self-supervised: where the representation comes from
 
-So far, we have seen supervised methods that use a label.
-However, sometimes you want something more generic than you can create with a label.
+Lesson 1 handed you an encoder and showed it dominates every other choice: the encoder
+moved accuracy 10 to 40 points, the head architecture less than one. It never said where
+such an encoder comes from. That is this lesson.
 
-One approach are autoencoders. These architectures can be used for various purposes:
+| notebook | question |
+|---|---|
+| `01_why_pretext_tasks_work` | Why does training on a task you do not care about produce a representation for tasks you do? |
+| `02_selfsupervised` | Two views of one image, the collapse that idea walks into, and the block that prevents it |
+| `03_patch_tokens` | What pooling throws away, and when you should keep the patch axis |
+| `04_ijepa` | Predicting what you were not shown — and a loss that lies |
 
-- noise reduction / denoising
-- image coloring
-- dimensionality reduction
-- watermark removal
-- anomaly detection
+## The instrument
 
-So, as you can see, a lot of different approaches.
+Every claim in this lesson is measured with a **linear probe**: freeze the encoder, fit a
+linear classifier on its output, report accuracy. Nothing else is trained.
 
-The architecture should also look familiar; it uses a bottleneck, just like we have seen before in the SENet implementation. An autoencoder looks like this:
+The probe is the right instrument *because* it is weak. A deep head could recover class
+structure from almost any representation given enough capacity, and then you would be
+measuring the head. A linear probe can only read structure that is already laid out
+linearly, so it asks the question that matters: did the encoder do the work?
 
-<img src="https://uvadlc-notebooks.readthedocs.io/en/latest/_images/autoencoder_visualization.svg">
+The second instrument is a **collapse detector** — the mean per-dimension standard
+deviation of L2-normalised embeddings. Self-supervised losses have a trivial optimum
+(output the same vector for every input), the loss curve looks *excellent* while it
+happens, and without this instrument you will not notice. `02_selfsupervised` walks into
+that trap deliberately before showing the fix.
 
-The novelty here is: you feed the model *the same* image that went in, as a label!
+## The through-line
 
-Or, with some slight variations:
-- you feed the model the image + random noise as input, and the clean image as output (to learn the model to denoise images)'
-- a black-and-white version as input, and a colored version as output (to learn the model to color images)
-- a watermarked image as input, and a clean version as output
+The pretext task is not a trick for getting labels for free. It is the choice of **what
+the representation is allowed to forget**:
 
-etc.
+- reconstruction forgets almost nothing, so it keeps brightness and texture (`01`)
+- classification forgets everything except the boundaries its labels named (`01`)
+- contrastive learning forgets whatever your augmentation changes — which makes the
+  augmentation a design decision you can get wrong, and measure (`02`)
+- masked prediction in latent space forgets whatever is predictable from context (`04`)
 
-The bottleneck has just $z$ dimensions, where $z$ should be a low number compared to the original dimensionality.
+## Running
 
-How low this is, depends on the task at hand: if you want to detect anomalies, you definitely want $z$ to be very low, such that the model can not learn any of the anomalies (because there is only room for the most essential features).
+Everything runs on CPU from the notebooks themselves; there is nothing to build first.
+Expensive constants use `param(full, test=...)`, so the same notebooks run fast under
+`notebooktester` and at full size for you.
 
-If you want to add color, you dont want to remove so much information from the image that it is impossible for the model to reconstruct the original image, etc.
-
-The low latent dimensionality means the model is forced the throw way anything that is not relevant, and it has to learn how to reconstruct a complete new image, just from a small vector.
-
-# Running experiments
-You should be able to run all experiments with `make run`:
-- go to your shell
-- use `cd` or `z` to go into the directory where you can find the `Makefile`
-- run the `make all` command from the shell
-
-This will run:
-- `make encode` : this learns the embeddings.
-- `make viz` to create some visualisations
-- `make embed` to add some embeddings to tensorboard so you can easily visualize them
-- `make query` for an example to find the 9 neighbors of a random image.
-- `make tb` to fire up tensorboard
-
-The `Makefile` consists just of commands you would otherwise run from the commandline. You can read more
-about them [here](https://opensource.com/article/18/8/what-how-makefile)
-
-
-
-
-
+```bash
+uv run notebooktester notebooks/5_unsupervised -t 300 -pb
+```
