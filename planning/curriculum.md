@@ -45,15 +45,17 @@ Excludes on purpose: the search-algorithm zoo (L3), the 2D/3D rungs of the tenso
 
 ## L2 — Time series
 
-**Status: built and run. This round removes four notebooks.**
+**Status: slimmed from nine notebooks to four, done and run.**
 
-Keep: `01_windowing`, `02_basemodels`, `03_decomposition_and_nbeats`, `06_search`,
-`07_exercise` (renumber to 01–05).
+`01_windowing`, `02_basemodels`, `03_decomposition_and_nbeats`, `04_exercise`.
 
-Move out:
+Moved out:
 
-- `05_gates_highways_moe` → **L3**. Gating is general-purpose composition, not a
-  time-series trick, and L3 needs an architecture family to search over.
+- `05_gates_highways_moe` **and** `06_search` → **L3**. Gating is general-purpose
+  composition, not a time-series trick, and L3 needs an architecture family to search
+  over. The two move together because `06_search` has eight references to `05` and its
+  entire premise is "the same tool on the family notebook 05 measured" — splitting them
+  would force L2 to re-introduce gating and duplicate L3.
 - `04_probabilistic` → **L6**. Quantile heads, CRPS and calibration are a competence in
   their own right, not a time-series footnote.
 - `08_foundation_models` → **L7**. It is the time-series instance of "a generalist you did
@@ -62,9 +64,17 @@ Move out:
   survive the move intact.
 
 Cut: `09_composition_extra` — it exists to keep ETTh1 alive after ETTh1 was dropped from
-the graded sequence. That is staging, not teaching (`cuts.md`).
+the graded sequence. That is staging, not teaching (`cuts.md`). `ts_features.py` went
+with it; `ett.py` became `windowing.py`, holding the two generic helpers every windowing
+notebook imports.
 
-Datasets stay at three: `sunspot`, `solar_10_minutes`, `australian_electricity_demand`.
+Datasets: `sunspot` and `solar_10_minutes`. `australian_electricity_demand` follows the
+gating and probabilistic notebooks into L3 and L6.
+
+L2 no longer runs a ray search of its own. That is deliberate rather than a loss: L1
+searches images, L3 searches this lesson's own composition family on `solar_10_minutes`,
+so students still exercise the habit twice in two modalities — which is the whole reason
+the second search exists.
 
 ---
 
@@ -100,8 +110,9 @@ Target content:
 6. **Reading a flat result as information.**
 
 The search space is a **vectormesh** composition (mechanism, hidden, n_experts,
-expert_hidden, lr), not a hand-rolled GRU — L2's `06_search` space is written to be
-reusable as-is and is the starting point.
+expert_hidden, lr), not a hand-rolled GRU. `05_gates_highways_moe` and `06_search`
+arrive from L2 carrying that space already built and measured; they are the starting
+point, to be renumbered into the rebuilt sequence rather than rewritten from scratch.
 
 Cut: `03_minimal_transfer_learning`, `04_transfer_learning_with_resnet` — transfer
 learning *is* L1's premise. Drop `mads_datasets` and the legacy `tune.run` API; L3 is
