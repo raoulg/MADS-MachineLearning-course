@@ -1,6 +1,6 @@
 """Load-or-build for VectorCache, shared by every notebook in this lesson.
 
-`05_long_documents.ipynb` and `06_composition.ipynb` each grew their own glob-then-load-else-
+`03_long_documents.ipynb` and `04_composition.ipynb` each grew their own glob-then-load-else-
 create closure — three copies of the same fifteen lines by the time 06 was done, the exact
 "every user invents their own tagging helper" drift raoulg/vectormesh#1 warns about. One
 definition, imported by both, the way `2_convolutions/cnn.py` shares the CNN.
