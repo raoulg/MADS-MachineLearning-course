@@ -1,9 +1,14 @@
 # Hypertuning
 ### data
 Pick an image dataset.
-You could pick the flowers, or the ants/bees from notebook [03_minimal_transfer_learning.ipynb](03_minimal_transfer_learning.ipynb), or even another set you like from [torchvision](https://pytorch.org/vision/0.8/datasets.html) or [torchtext](https://pytorch.org/text/stable/datasets.html#imdb).
+Start from a published cache — `pttrn-io/dtd-*` is the one with real headroom (0.80 with
+the strongest encoder, and a 14-point spread between encoders), and a trial costs seconds
+rather than minutes. If you would rather bring your own data, encode it once yourself the
+way `1_pytorch_intro/01c_build_your_own_cache` shows, and search on the cache afterwards.
 
-Keep in mind that your hardware will limit what you can do with the images; so you will either need to settle for smaller images, or preprocess them into a smaller size, or use google colab if the VM is too slow or limited in memory.
+The point of working on a cache is that it removes hardware from the equation: the
+expensive part ran once, and the part you are actually studying — how the score responds
+to capacity — runs on any laptop.
 
 ## Create a model
 We have worked with a few types of layers:
@@ -21,6 +26,12 @@ Show you can
 1. Make a hypothesis based on the theory (use the book)
 1. Design experiments to test your hypothesis
 1. Work iterative: eg start with a small experiment to get a direction, then reduce the search space and run a more extensive experiment
+
+**Your report must contain a capacity curve with a control.** Whatever you conclude helped
+— more width, more depth, a gate, a routed mixture — show the same score against a model
+with the *same parameter count* spent differently. A number without that control is not a
+result, and this lesson is the one where that stops being optional. See notebook 01, where
+a three-seed check found a gain that a five-seed check erased.
 
 Some hyperparameters to consider, ranging from high to low importance:
 - the architecture of the model is the most important. Number of layers, type of layers, skiplayers, etc.
@@ -57,9 +68,11 @@ Implement your own hypertuner for another model / dataset from scratch.
 - dont blindly reuse the environment from the lessons; this means, DO NOT simply copy pyproject.toml but create a minimal environment by following [the codestyle](https://github.com/raoulg/codestyle/blob/main/docs/make_a_module.md)
 - Check the [dependencies for mltrainer](https://github.com/raoulg/mltrainer/blob/main/pyproject.toml) to see whats already installed if you use mltrainer
 - have a look at the pyproject.toml file from the course;
-    - `configspace` is a dependency for `hpbandster`.
-    - `bayesian-optimization` is for, well, bayesian optimization
-    - `hyperopt` is another hyperoptimalisation library which we have used in `2_convolutions/03_mlflow.ipynb`. It doesnt has as much algorithms as ray, which is why we use ray. Just know that `hyperopt` can be an alternative to `ray.tune` that's slightly easier to setup but less powerful.
+    - `hyperopt` backs `HyperOptSearch`, which is the TPE implementation `ray.tune` uses in
+      this course. It can be used standalone as a slightly simpler, less powerful
+      alternative to `ray.tune`.
+    - `ray[tune]` is the search framework itself. Use `tune.Tuner` with `tune.TuneConfig`
+      and `tune.RunConfig`; `tune.run` is the old API and is gone.
 
 ### split code and configuration
 - make a *configurable model* where you can change the different options from the config. You can decide for yourself if you want to make it configurable by simply passing a dictionary, or by creating a @dataclass as a Settings object, or by using a `.toml` file with `tomllib` (since python 3.11 part of python) and the `TOMLserializer`.
