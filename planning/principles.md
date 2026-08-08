@@ -119,6 +119,21 @@ The habit is transferable and the verdict is not. Grade the habit.
 - **Verify before asserting.** Everything in `evidence.md` is a number that was actually
   produced on this machine, not a recollection. Several decisions reversed once measured.
 - **A notebook counts as done when it has been run**, not when it has been written.
+- **Never assume an epoch count for a number you report.** This is basic training hygiene
+  and it belongs in every trainer, students' included. The two cases are different:
+  - **While searching**, under-training is fine *provided every config gets the same
+    budget*. You are ranking configs, not measuring one — 10 epochs each when 50 would be
+    optimal is a legitimate, stated economy.
+  - **For any number that goes in a table** — a final architecture, a baseline, an
+    ablation arm — the budget must be justified, not chosen. Train to a plateau
+    (early stopping) or show the convergence curve, and say which. A single (epochs,
+    seeds) configuration is not a result.
+
+  This is not pedantry. An unjustified epoch count has changed the **sign** of a
+  conclusion twice in this repo: `evidence.md` §7 (a 3-seed check found a gate beating its
+  control; 5 seeds × 3 epoch counts erased it) and §11 (12 epochs said supervised
+  representations transfer for free; 60 epochs said the opposite at 11 sigma). Both times
+  the error was caught by someone asking, not by the process.
 - **`param(full, test=...)` on anything that scales runtime** (epochs, steps, trials,
   dataset size, seeds). See `CLAUDE.md`.
 - **Published libraries only.** `vectormesh` and `mltrainer` ship a release *before* a
