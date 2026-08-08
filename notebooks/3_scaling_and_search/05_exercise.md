@@ -61,8 +61,11 @@ Important: the report you write is NOT the same as your journal! The journal wil
 
 
 ## Implementing
-In hypertune.py, I have set up an example for hypertuning.
-Implement your own hypertuner for another model / dataset from scratch.
+`hypertune.py` is a worked example: it searches a head over a published cache with
+`tune.Tuner`, `HyperOptSearch` and an `ASHAScheduler`, and writes the trials to a csv.
+Run it once, read it, then implement your own hypertuner for another model or dataset
+from scratch. Copy the *shape* — a self-contained trainable, one report per epoch so the
+scheduler has something to prune on, results written to disk — rather than the model.
 
 ### environment setup
 - dont blindly reuse the environment from the lessons; this means, DO NOT simply copy pyproject.toml but create a minimal environment by following [the codestyle](https://github.com/raoulg/codestyle/blob/main/docs/make_a_module.md)

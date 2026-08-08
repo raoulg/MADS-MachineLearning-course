@@ -20,14 +20,11 @@ classifiers = [
 ]
 
 dependencies = [
-    "bayesian-optimization==1.5.1",
     "datasets>=4.0",
-    "configspace>=0.7.1",
     "huggingface-hub>=0.30",
     "hyperopt>=0.2.7",
     "jupyter>=1.1.1",
     "loguru>=0.7.0",
-    "mads-datasets[torch]>=0.3.15",
     "matplotlib>=3.7.1",
     "plotly>=5.17.0",
     "pydantic>=1.10.9",
