@@ -23,7 +23,8 @@ ARGS ?=
 
 # Encoders for the lesson-1 caches: one strong, two weak. The spread is the point --
 # 04_search.ipynb searches over this axis and finds it dominates every head knob.
-ENCODERS ?= facebook/dinov2-small microsoft/resnet-18 google/mobilenet_v2_1.0_224
+# ENCODERS ?= facebook/dinov2-small microsoft/resnet-18 google/mobilenet_v2_1.0_224
+ENCODERS ?= facebook/dinov2-base facebook/dinov2-large
 
 # newest artefact folder matching a glob, or empty
 latest = $(shell ls -dt artefacts/$(1) 2>/dev/null | head -1)
