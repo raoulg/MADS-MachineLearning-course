@@ -1,7 +1,7 @@
 """Designed features for US Supreme Court opinions.
 
 This module exists for the same reason `2_convolutions/cnn.py` does: two
-notebooks (06_composition, 07_metrics) need the same definition, and pasting it
+notebooks (04_composition) need the same definition, and pasting it
 into both guarantees they drift apart silently (lesson2.yml C10).
 
 It is the US counterpart of vectormesh's Dutch `build_legal_reference_pattern`

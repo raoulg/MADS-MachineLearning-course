@@ -65,7 +65,7 @@ resultaat rapporteren op een split waar de search nooit naar gekeken heeft.
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 4.5-4.10, 4.15 | attention, positional encoding | `01_reweighing` |
+| 4.5-4.10, 4.15 | attention, positional encoding | `01_attention` |
 | 4.1-4.3, 4.16 | tokenization, BPE, tokens als budget | `02_tokenization` |
 | 4.4, 4.11 | semantische vectorruimte, tensordimensies | les, alle lessen tot nu toe |
 | 4.12, 4.13, 4.17, 4.19 | lange documenten, padding, masking, search | `03_long_documents` |

@@ -73,5 +73,5 @@ force-exclude = true
 exclude = ["planning/research"]
 
 [tool.ty.environment]
-extra-paths = ["notebooks/0-baseline", "notebooks/2_timeseries", "notebooks/3_scaling_and_search", "notebooks/4_attention", "notebooks/6_uncertainty", "notebooks/7_generalists_and_memory"]
+extra-paths = ["notebooks/0-baseline", "notebooks/2_timeseries", "notebooks/3_scaling_and_search", "notebooks/4_language", "notebooks/6_uncertainty", "notebooks/7_generalists_and_memory"]
 

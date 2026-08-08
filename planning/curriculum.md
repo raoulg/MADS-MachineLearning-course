@@ -122,21 +122,21 @@ their last consumer, which clears `pyproject.toml`.
 
 ## L4 — Language
 
-**Status: strip from ten notebooks to four.**
+**Status: stripped from ten notebooks to four, done and run** (4 passed, 37 s).
 
 L4 is where the full tensor ladder earns its keep. L1 teaches the short image ladder —
 `(D) → (B, D) → (B, K)` — because images give one vector per item. Text does not: a long
 document overflows a 512-token window and becomes a `(chunks, dim)` matrix, which is where
 padding, masking and aggregation become decisions rather than vocabulary.
 
-Keep, renumbered 01–04:
+`01_attention` (`01_reweighing` + `02_transformer` merged — attention derived from
+proximity, then positional encoding as the deliberately separate ingredient that puts
+distance back), `02_tokenization` (BPE, reframed as *tokens are your budget*),
+`03_long_documents` (the spine — padding, masking, aggregation, a real search),
+`04_composition` (two representations fused, with the ablation that keeps you honest).
 
-- `01_reweighing` + `02_transformer` **merged** — attention derived from proximity, then
-  positional encoding. The one mechanism worth building by hand before importing it.
-- `04_tokenization` — BPE, reframed as *tokens are your budget*. More relevant now than
-  when it was written, not less.
-- `05_long_documents` — the spine. Padding, masking, aggregation, and a real search.
-- `06_composition` — two representations, fused, with the ablation that keeps you honest.
+The merge also removed a broken `<img src=transformers.pbm>` whose file was already
+missing from the repo; the encoder block is described in prose instead.
 
 Cut: `03_Attention_gestures`, `05_imdb_preprocessing`, `06_imdb_attention` (all
 `mads_datasets` + `mltrainer.rnn_models`, all the old altitude), `08_excercise`, and
@@ -150,7 +150,7 @@ generalist alternative is L7.
 
 ## L5 — Self-supervised
 
-**Status: three good notebooks, plus one conceptual opener, minus `src/`.**
+**Status: `src/` deleted; conceptual opener still to build.**
 
 L1 hands students a representation and shows it dominates every other choice. The obvious
 next question — where did it come from, and could I make one for a domain that has none? —
@@ -170,8 +170,10 @@ The linear probe is the instrument, and the punchline is that the *choice of pre
 is the choice of what the space forgets*. This costs seconds and removes the last hand-
 rolled module directory in the graded course.
 
-Delete `5_unsupervised/src/` (`autoencoder.py`, `vae_embeddings.py`, `show_vae.py`,
-`query_embeddings.py`, `settings.py`). `02_patch_tokens` and `03_ijepa` stand as they are.
+`5_unsupervised/src/` is gone (`autoencoder.py`, `vae_embeddings.py`, `show_vae.py`,
+`query_embeddings.py`, `settings.py`) — verified unused by any notebook first — and the
+`Makefile` with it, since every target ran one of those scripts. `02_patch_tokens` and
+`03_ijepa` stand as they are, to be renumbered when the opener lands.
 
 **Candidate closing notebook: "what you cannot learn from the shape of an embedding
 cloud."** If the probe is the instrument this lesson leans on, the obvious student
@@ -295,8 +297,9 @@ truth, and is not falsifiable by a student; it stays prose.
 
 Not graded, kept because it is good material without a lesson-sized job.
 
-- `graphs/` — `01_intro` and `03_gnn`. GNN theory on Cora, with `torch-geometric` moved to
-  an optional dependency group. The *structural* graph material students need lives in L7.
+- `graphs/` — moved from `6_graphs`, intact for now. GNN theory on Cora; `torch-geometric`
+  still needs moving to an optional dependency group. The *structural* graph material
+  students need lives in L7.
 - `swarms/` — cellular automata and El Farol as emergence; the population **optimisers**
   move into L3, where they are a search algorithm that knows something TPE does not.
 - `deployment/`, `julia_dl/` — unchanged.
