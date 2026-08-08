@@ -503,37 +503,7 @@ have, and on a frozen representation that runs out almost immediately.
 
 ---
 
-## 13. L1's baseline was under-trained (audit finding)
-
-The first entry from the course-wide epoch audit (`todo.md`). EuroSAT dinov2-small cache,
-`Serial([NeuralNet(384, 10)])`, 4 seeds, probed along one run. Measured 2026-08-08.
-
-| epochs | train | test | std |
-|---|---|---|---|
-| 1 | 0.9494 | 0.9317 | 0.0064 |
-| 5 | 0.9847 | 0.9420 | 0.0079 |
-| 10 | 0.9980 | 0.9463 | 0.0022 |
-| 20 | 0.9994 | 0.9485 | 0.0013 |
-| **40** | 1.0000 | **0.9509** | 0.0025 |
-| 80 | 1.0000 | 0.9511 | 0.0020 |
-
-`03_training` used `EPOCHS = param(20)` with `earlystop_kwargs=None` and no justification
-anywhere in the notebook. **Test accuracy is still climbing at 20**, flattening near 40, so
-the reported baseline was ~0.26 pt low — about 2 sigma.
-
-Small in isolation, and not small in context: this is the reference line notebook 04's
-search is compared against, and §3 shows architecture effects on these caches are often
-under a point. A systematically low baseline tilts every subsequent comparison toward
-whatever is being tested. Fixed to 40 epochs with the table in the notebook as its
-justification.
-
-Also worth noting for anyone reconciling numbers: §2's published-cache table records
-eurosat/dinov2 at 0.9502, between the 20- and 40-epoch values here, so it was measured at
-a different budget again.
-
----
-
-## 14. Published caches (hf.co/pttrn-io)
+## 13. Published caches (hf.co/pttrn-io)
 
 Every one carries `label`, `source_idx`, `embed` and a dataset card pinning the
 source-dataset and encoder revisions.

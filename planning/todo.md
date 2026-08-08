@@ -10,13 +10,19 @@ an assumed count changed the sign of a conclusion (`evidence.md` §7 and §11). 
 caught by the instructor asking, which means the process did not catch them, which means
 **there are very likely more.**
 
-Every notebook that trains a model and reports a number needs checking. For each: is the
-epoch count justified anywhere, and does the metric actually plateau there?
+**The question is whether a different budget would change a conclusion** — not whether the
+run stopped exactly at the plateau. A baseline that is a quarter of a point below its
+asymptote is not a finding; it changes no ranking and no verdict. What counts is a budget
+that turns a real effect into "no effect", reverses which model comes first, or lets a
+notebook claim something does not work when at a longer budget it does.
+
+Check each notebook against *that*, and do not manufacture findings. Most of these are
+probably fine.
 
 | lesson | notebook | trains and reports? | checked |
 |---|---|---|---|
 | L1 | `02_nonlinearity` | yes | ☐ |
-| L1 | `03_training` | yes — the baseline everything else is measured against | ✔ **was under-trained**, fixed; `evidence.md` §13 |
+| L1 | `03_training` | yes — the baseline everything else is measured against | ✔ fine at 20; still climbing by ~0.3 pt to epoch 40, which changes nothing |
 | L1 | `04_search` | search (equal budget, acceptable) + a final arm | ☐ |
 | L1 | `05_exercises` | yes, incl. the data-size ablation | ☐ |
 | L2 | `02_basemodels` | yes — the model comparison table | ☐ |
@@ -34,18 +40,17 @@ epoch count justified anywhere, and does the metric actually plateau there?
 | L6 | `01_probabilistic` | yes — CRPS/calibration tables | ☐ |
 | L7 | `01_foundation_models` | mostly zero-shot, but the trained baselines count | ☐ |
 
-Priority order: ~~L1 `03_training`~~ **done — it was wrong** (`evidence.md` §13: still
-climbing at 20 epochs, reported ~0.26 pt low, and it is the line every later comparison
-uses). Next: L4 `04_composition`, because a fusion ablation is exactly the shape of
-comparison an under-trained run distorts, then L1 `05_exercises` and `04_search`, which
-share the same `EPOCHS = param(15)` with no justification.
+Priority: L4 `04_composition`, because a fusion ablation is the shape of comparison an
+under-trained run distorts most, then L5 `02_selfsupervised`, where a flat loss can hide
+collapse and the budget genuinely decides whether the model learned anything.
 
-**One for one.** The first notebook audited was wrong. That is not a reason to panic, but
-it is a reason to finish the list rather than assume the rest are fine.
+L1 `03_training` is checked and fine: it is ~0.3 pt below its asymptote at 20 epochs, which
+is real and irrelevant — no ranking moves. Left at 20.
 
-Where a notebook fails the check, the fix is the one L5's opener now models: run the sweep,
-put the table in the notebook, keep the wrong reading next to the correction, and record it
-in `evidence.md`.
+Where a notebook genuinely fails — where the budget changed a conclusion — put the
+convergence table in the notebook as the justification and record the number in
+`evidence.md`. Where it passes, note it here and move on; do not add a paragraph to the
+notebook about having checked.
 
 **Consider making this cheap rather than manual.** If `vectormesh.training.Trainer` grew a
 plateau-detecting early stop that reports *why* it stopped, and notebooks used it for final
