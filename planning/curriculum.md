@@ -80,7 +80,7 @@ the second search exists.
 
 ## L3 — What did that capacity buy you?
 
-**Status: rebuild. Most stale folder in the repo.**
+**Status: rebuilt and run.** `01_gates_highways_moe`, `02_scaling_curves`, `03_what_does_the_algorithm_know`, `04_search`, `05_exercise.md`.
 
 The old lesson was "here is ray". Ray now lands in L1 §04 and L2's search notebook, so
 that lesson has no subject. The subject it *should* have is the question every measurement

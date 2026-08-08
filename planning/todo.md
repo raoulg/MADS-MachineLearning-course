@@ -21,8 +21,10 @@ epoch count justified anywhere, and does the metric actually plateau there?
 | L1 | `05_exercises` | yes, incl. the data-size ablation | ☐ |
 | L2 | `02_basemodels` | yes — the model comparison table | ☐ |
 | L2 | `03_decomposition_and_nbeats` | yes — has an epoch sweep already (§3.4), so probably fine | ☐ |
-| L3 | `05_gates_highways_moe` | yes — **has** a 5-seed × 3-epoch-count check, the model to copy | ✔ |
-| L3 | `06_search` | search budget + a final comparison | ☐ |
+| L3 | `01_gates_highways_moe` | yes — **has** a 5-seed × 3-epoch-count check, the model to copy | ✔ |
+| L3 | `04_search` | search budget + a final comparison | ☐ |
+| L3 | `02_scaling_curves` | yes — the epoch curve *is* the notebook's first cell | ✔ |
+| L3 | `03_what_does_the_algorithm_know` | search at equal budget, winner retrained at a justified 20 | ✔ |
 | L4 | `03_long_documents` | yes, and the search | ☐ |
 | L4 | `04_composition` | yes — the fusion ablation table | ☐ |
 | L5 | `01_why_pretext_tasks_work` | yes — sweep done, EPOCHS=40 justified | ✔ |
@@ -47,10 +49,10 @@ library change and ships as a release first.
 
 ## Dependencies to drop
 
-- `mads-datasets` — last consumer is L3 `01_hypertuner`; leaves `pyproject.toml` when that
-  is rewritten
-- `bayesian-optimization==1.5.1` — pinned for one section of the same notebook
-- `torch-geometric` — move to an optional group with `8_extras/graphs`
+- ~~`mads-datasets`~~ — **gone.** Its last two consumers were L3's `01_hypertuner`
+  (deleted) and `hypertune.py` (rewritten against a published cache)
+- ~~`bayesian-optimization`~~, ~~`configspace`~~ — **gone** with the algorithm-zoo notebook
+- `torch-geometric` — still to move to an optional group with `8_extras/graphs`
 
 ## Research to verify
 
