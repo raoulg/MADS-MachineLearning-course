@@ -173,6 +173,18 @@ rolled module directory in the graded course.
 Delete `5_unsupervised/src/` (`autoencoder.py`, `vae_embeddings.py`, `show_vae.py`,
 `query_embeddings.py`, `settings.py`). `02_patch_tokens` and `03_ijepa` stand as they are.
 
+**Candidate closing notebook: "what you cannot learn from the shape of an embedding
+cloud."** If the probe is the instrument this lesson leans on, the obvious student
+question is whether you can skip it and read quality off the geometry instead. Measured
+on the published caches, you cannot, and the failure is crisp enough to teach: RankMe
+ranks the three encoders *backwards* on all three datasets, pure Gaussian noise scores
+higher than every real encoder, and whitening drives RankMe, stable rank and mean pairwise
+cosine all to their theoretical optima while the probe does not move to four decimals.
+The invariance argument is the point — a linear probe is invariant to invertible linear
+maps and these metrics are not, so they cannot be measuring what the probe measures.
+Full numbers and an 8-cell proposal in `research/embedding_space_measurement.md`.
+**Re-run before promoting any of it to `evidence.md`.**
+
 ---
 
 ## L6 — Uncertainty: modelling it, scoring it, deciding with it
@@ -220,6 +232,27 @@ The arc: you cannot train it, so every bit of leverage is in what you feed it.
    detection over it to find topics (`6_graphs/02_clusters_in_graphs` earns its keep
    here), hybrid retrieval and multi-hop traversal. Graphs return as **infrastructure with
    a job**, which is a better argument for them than GNN theory on Cora was.
+
+   `research/neurosymbolic_and_structure.md` supplies the two measurements this section
+   needs, and they pair into one honest arc rather than a sales pitch. **The ceiling:** on
+   a two-hop corpus where the answer document shares no content word with the query,
+   cosine recall@20 is 0.110 at 133 documents and **0.000 at 720** — it gets *worse* with
+   corpus size, because this is an information-theoretic limit rather than a quality gap,
+   so no encoder can fix it. Traversal reads two documents and gets 100%. **The tax:**
+   traversal accuracy under per-edge extraction error is `(1-p)^h`, giving an explicit
+   break-even of p ≈ 0.45 at two hops and 0.26 at four — while published zero-shot
+   relation-extraction F1 sits at 0.15–0.42, i.e. p ≈ 0.6–0.85. A three-hop query over an
+   LLM-built graph therefore answers roughly 6% of the time. Both halves are student-
+   measurable in seconds, and the second is the number nobody publishes inside a GraphRAG
+   demo.
+
+   Two more results worth a cell each: retrieval **inverts** under negation — on "A but
+   not B" queries, precision@10 on the ¬B half is 0.000 against a 0.626 base rate, so
+   writing "not B" returns B every time when ignoring the query would have been right 63%
+   of the time (externally corroborated by NevIR, EACL 2024) — and hierarchy direction is
+   recoverable from frozen vectors by a head, but that head does not transfer across
+   domains (0.88 within mammals, 0.517 — chance — on musical instruments), which
+   reproduces Levy et al.'s lexical-memorisation critique in the course's own idiom.
 4. **Memory over time.** What to keep, what to summarise, what to forget — measured
    against flat RAG on a task you can actually score.
 5. **Distillation** — the generalist's outputs as labels, a cheap head trained on them,
@@ -233,6 +266,28 @@ local ~3B-class model via ollama for students with the RAM.
 measured evidence, and every other lesson in the course rests on numbers. Build it last,
 and measure its claims — a lesson that asserts structured memory beats flat RAG without a
 number contradicts `principles.md` §2 in the course's own final lesson.
+
+**That risk is now partly retired.** `research/memory_beyond_rag.md` reports four
+synthetic retrieval experiments on generated corpora that run in ~1.5 s of CPU and
+produce the effects directly, with scripts in `research/memory_experiments/`. Two are
+strong enough to anchor notebooks: a staleness task where flat cosine recall@1 goes
+0.117 → 0.983 under a recency prior *while recall@5 stays at 0.933* (the standard metric
+says the flat system is fine and it is not), and a multi-hop task where flat retrieval
+finds the bridge document 100% of the time and the answer document 0%, rising to 0.93
+with one-hop entity expansion. Forgetting gets a Pareto table rather than a slogan:
+soft forgetting trades "work now" against "work in 2019", while hard deletion puts the
+gold document outside the index for 100% of historical questions. Retrieval metrics need
+no LLM at student time, so this half of the lesson costs nothing to run.
+
+The same report supplies the lesson's honesty: **HippoRAG's headline does not survive
+inspection** — its "up to 20% higher recall" is a max over three datasets (+20.9 on
+2Wiki, +2.7 on MuSiQue, −1.6 on HotpotQA), and 2Wiki is template-generated from Wikidata
+triples, so an entity-graph retriever is being scored on a corpus whose data-generating
+process *is* an entity graph. That is a leakage story students can reproduce with a
+dial. GraphRAG's headline is LLM-as-judge win rates on "comprehensiveness" with no ground
+truth, and is not falsifiable by a student; it stays prose.
+
+**Re-run everything before promoting any of it to `evidence.md`.**
 
 ---
 
