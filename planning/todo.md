@@ -16,7 +16,7 @@ epoch count justified anywhere, and does the metric actually plateau there?
 | lesson | notebook | trains and reports? | checked |
 |---|---|---|---|
 | L1 | `02_nonlinearity` | yes | ☐ |
-| L1 | `03_training` | yes — the baseline everything else is measured against | ☐ |
+| L1 | `03_training` | yes — the baseline everything else is measured against | ✔ **was under-trained**, fixed; `evidence.md` §13 |
 | L1 | `04_search` | search (equal budget, acceptable) + a final arm | ☐ |
 | L1 | `05_exercises` | yes, incl. the data-size ablation | ☐ |
 | L2 | `02_basemodels` | yes — the model comparison table | ☐ |
@@ -34,9 +34,14 @@ epoch count justified anywhere, and does the metric actually plateau there?
 | L6 | `01_probabilistic` | yes — CRPS/calibration tables | ☐ |
 | L7 | `01_foundation_models` | mostly zero-shot, but the trained baselines count | ☐ |
 
-Priority order: L1 `03_training` first, because its baseline is the number the rest of the
-course is compared against, and L4 `04_composition` second, because a fusion ablation is
-exactly the shape of comparison an under-trained run distorts.
+Priority order: ~~L1 `03_training`~~ **done — it was wrong** (`evidence.md` §13: still
+climbing at 20 epochs, reported ~0.26 pt low, and it is the line every later comparison
+uses). Next: L4 `04_composition`, because a fusion ablation is exactly the shape of
+comparison an under-trained run distorts, then L1 `05_exercises` and `04_search`, which
+share the same `EPOCHS = param(15)` with no justification.
+
+**One for one.** The first notebook audited was wrong. That is not a reason to panic, but
+it is a reason to finish the list rather than assume the rest are fine.
 
 Where a notebook fails the check, the fix is the one L5's opener now models: run the sweep,
 put the table in the notebook, keep the wrong reading next to the correction, and record it
