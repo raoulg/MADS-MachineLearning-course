@@ -385,7 +385,42 @@ test it on a dataset with more obvious heterogeneity rather than re-spending tri
 
 ---
 
-## 10. Published caches (hf.co/pttrn-io)
+## 10. You cannot rank encoders by the geometry of their embedding cloud
+
+Measured 2026-08-08 on the published EuroSAT caches, CPU, seconds. Independently re-run
+rather than taken from the research note; script in the session scratchpad,
+`verify_rankme.py`, to be checked in with the notebook that uses it.
+
+RankMe (`exp` of the entropy of the normalised singular-value spectrum) against a
+closed-form ridge probe on the same rows:
+
+| encoder | dim | RankMe | probe | RankMe after whitening | probe after whitening |
+|---|---|---|---|---|---|
+| dinov2-small | 384 | 265.1 | **0.9460** | 384.0 | 0.9467 |
+| resnet-18 | 512 | 328.4 | 0.9180 | 512.0 | 0.9180 |
+| mobilenet_v2 | 1280 | 822.3 | 0.8873 | 1280.0 | 0.8873 |
+
+**RankMe ranks these encoders exactly backwards.** And it is not simply reading off the
+ambient dimension, though that is part of it — pure Gaussian noise scores higher than
+every real encoder at matched width (380.9 / 506.4 / 1243.5 at 384 / 512 / 1280).
+
+The decisive control is whitening. It drives RankMe to `dim` for all three — its
+theoretical maximum — while the probe moves by at most 0.0007. That is the argument, and
+it is structural rather than empirical: **a linear probe is invariant to invertible
+linear maps and RankMe is not**, so RankMe cannot be measuring what the probe measures.
+Any unsupervised metric with the same non-invariance fails the same way.
+
+The lesson is not "RankMe is bad". It answers a different question — *has this encoder
+collapsed?* — which is a training diagnostic for one model, not a selection criterion
+across models. Fitting the actual probe costs about a second per cache and answers the
+question you asked. Further metrics, and two that do correlate (intrinsic dimension,
+label-free; and same-minus-different-class cosine, which needs labels and is therefore a
+probe with extra steps), in `research/embedding_space_measurement.md` — **not yet
+independently verified.**
+
+---
+
+## 11. Published caches (hf.co/pttrn-io)
 
 Every one carries `label`, `source_idx`, `embed` and a dataset card pinning the
 source-dataset and encoder revisions.

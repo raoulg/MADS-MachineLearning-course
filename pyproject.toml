@@ -62,6 +62,16 @@ executionEnvironments = [
   { root = "notebooks/8_extras/swarms" }
 ]
 
+[tool.ruff]
+# Scouting scripts kept as evidence for how a research number was produced. They import
+# packages this project does not declare (sentence-transformers, nltk) and are deleted
+# once the lesson built on them has run.
+extend-exclude = ["planning/research"]
+force-exclude = true
+
+[tool.ty.src]
+exclude = ["planning/research"]
+
 [tool.ty.environment]
 extra-paths = ["notebooks/0-baseline", "notebooks/2_timeseries", "notebooks/3_scaling_and_search", "notebooks/4_attention", "notebooks/6_uncertainty", "notebooks/7_generalists_and_memory"]
 

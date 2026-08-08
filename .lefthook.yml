@@ -26,6 +26,9 @@ pre-commit:
     typecheck:
       files: git ls-files
       glob: '*.py'
+      # research scripts import undeclared packages; see [tool.ruff] in pyproject.toml
+      exclude:
+        - 'planning/research/**/*.py'
       run: uv run ty check {staged_files}
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --max-cache-age 7d
