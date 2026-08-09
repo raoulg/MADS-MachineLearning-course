@@ -154,9 +154,8 @@ from datasets import load_dataset
 {lookup}
 ```
 
-Pass that `revision`. The cache was shuffled before encoding, so `source_idx` is *not* the cache row
-number, and an index into a different revision of `{source}` would resolve to the wrong row
-silently rather than failing.
+`source_idx` indexes the source dataset, not this cache, and the same index resolves to a different
+row in a different revision of `{source}` — without erroring. Pass the `revision`.
 
 ## Load it
 
