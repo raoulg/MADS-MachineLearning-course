@@ -41,3 +41,6 @@ artefacts/**
 **/own_caches/
 # claude code worktrees
 .claude/
+
+# embedding caches, rebuilt by notebooks/7_generalists_and_memory/build_*.py
+notebooks/7_generalists_and_memory/artefacts/
