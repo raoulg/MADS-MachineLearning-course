@@ -25,7 +25,7 @@ from vectormesh.data.vectorizers import detect_device
 EMBEDDER = "ibm-granite/granite-embedding-small-english-r2"
 MAX_TOKENS = 512
 DIM = 384
-CACHE_DIR = Path(__file__).parent / "artefacts"
+CACHE_DIR = Path(__file__).resolve().parents[2] / "artefacts"
 OUT = Path(__file__).parent / "data" / "learning_curve.json"
 
 N_EVAL = 200
