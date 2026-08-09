@@ -22,6 +22,7 @@ import numpy as np
 import requests
 from datasets import Dataset, load_dataset
 from loguru import logger
+from scotus import AREAS
 from vectormesh import VectorCache, Vectorizer
 from vectormesh.data.vectorizers import detect_device
 
@@ -37,23 +38,7 @@ N_TRAIN = 800
 IMDB_CHARS = 1200
 SCOTUS_CHARS = 6000
 
-# The loaded dataset exposes 13 classes named '1'..'13'; the LexGLUE card describes 14
-# issue areas (the 14th, "Private Action", is absent here). Index i -> issue area i+1.
-SCOTUS_AREAS = [
-    "Criminal Procedure",
-    "Civil Rights",
-    "First Amendment",
-    "Due Process",
-    "Privacy",
-    "Attorneys",
-    "Unions",
-    "Economic Activity",
-    "Judicial Power",
-    "Federalism",
-    "Interstate Relations",
-    "Federal Taxation",
-    "Miscellaneous",
-]
+SCOTUS_AREAS = AREAS
 
 
 def ask(prompt: str, n_predict: int) -> str:

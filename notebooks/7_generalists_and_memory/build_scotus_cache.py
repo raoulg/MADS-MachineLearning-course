@@ -40,22 +40,6 @@ MAX_TOKENS = 512
 DOC_CHARS = 24_000
 CACHE_DIR = Path(__file__).resolve().parents[2] / "artefacts"
 
-AREAS = [
-    "Criminal Procedure",
-    "Civil Rights",
-    "First Amendment",
-    "Due Process",
-    "Privacy",
-    "Attorneys",
-    "Unions",
-    "Economic Activity",
-    "Judicial Power",
-    "Federalism",
-    "Interstate Relations",
-    "Federal Taxation",
-    "Miscellaneous",
-]
-
 
 def with_provenance(ds, split_name: str):
     """Stamp each row with where it came from, before anything reorders it.
