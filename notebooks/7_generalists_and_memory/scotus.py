@@ -18,11 +18,13 @@ CACHE_REPO = "pttrn-io/scotus-bge-large-en-v1.5"
 # describe the text they were built from.
 DOC_CHARS = 24_000
 
-# The generator gets a quarter of that. On 40 stratified test opinions, 6k and 24k scored
-# the same 0.650 while 24k took 3.6x as long (4.7 vs 1.3 s/doc) -- the issue area is settled
-# by the opening of an opinion, and the rest is argument. The two branches of the cascade
-# therefore read different amounts of the same document, each the amount it was measured to
-# want, which is the choice an engineer makes rather than the symmetric-looking one.
+# The generator gets a quarter of that. On 40 stratified test opinions the two truncations
+# picked the same issue area for 38 of them and scored 26/40 either way, while 24k cost 3.6x
+# the time (4.7 vs 1.3 s/doc). 40 documents cannot resolve a difference of a few points, so
+# read this as "no effect large enough to pay 3.6x for", not as "identical" -- the issue area
+# is settled by the opening of an opinion, and the rest is argument the encoder can still use.
+# So the two branches of the cascade read different amounts of the same document, each the
+# amount it was measured to want, rather than the same amount for the look of fairness.
 LLM_CHARS = 6_000
 
 # The loaded dataset exposes 13 classes named '1'..'13'; the LexGLUE card describes 14 issue
