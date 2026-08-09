@@ -29,7 +29,7 @@ MODEL = "qwen3.6:35b"
 URL = "http://localhost:11434/api/generate"
 EMBEDDER = "ibm-granite/granite-embedding-small-english-r2"  # the encoder lesson 4 uses
 MAX_TOKENS = 512
-CACHE_DIR = Path(__file__).parent / "artefacts"
+CACHE_DIR = Path(__file__).resolve().parents[2] / "artefacts"
 OUT = Path(__file__).parent / "data" / "baselines.json"
 
 N_EVAL = 200
