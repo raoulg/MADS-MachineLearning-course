@@ -1,0 +1,7002 @@
+{
+"c571f6ffb65b24b9": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"fa05667c6e6f1dc4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"35db3b0f4334bbb7": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"5d2de74881d83e0a": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"f6a6991c2c224fb0": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"6ce327332a85637e": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"48edc5e4e2677c23": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"679901bc89707c09": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"8b0ba0f24718fd20": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"de8095cf683d8668": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"10bb364b32d183d0": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"0c4641ac3b3d13c0": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"13f23b3d85aff9f5": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"d97eae509b6d03b0": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"28464c1d36df4872": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"0f592982f802ead1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f6f633fbffddaec7": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"df81aa47d102548b": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"ad33e6d18b583451": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"0e5d4c87c683373d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4e2705859d621922": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"eec9eb14b8756e77": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"aef088ad920a2be1": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3d8f793b65992cbc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"529d3eaf3dc1d79b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7e97516eef0a17d0": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"a3193f38a71e4f91": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b30da5aa0687ade8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"7f4021a94a56ef5b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"21065e4c33344ad0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7bad25113a16468e": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c187358e74d6ae58": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"941aa7a8ad365010": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f81dfe02edf693cb": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"8d31cf36d6dfa2c1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"421d01fab0145b94": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"daa344ba56a2140d": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"501ac6b06812f762": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1c90ac4331fe2324": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"00331dbd12b19053": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"74fdf766535ddf6c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"80a210ac1846872d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"fce9198024287d38": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"805bdc82e4240777": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"1e26bb36355d87d5": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"6021b7771d7ab4c8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"774190808eb79919": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fd18ac98afd2efc8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c83dc50787efd4ef": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"daa1fc452a74e78d": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"aea180d1d9f5e072": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a1ec419a060c7416": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"5ffadd7e2f08c820": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"ab04a45f00c28735": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"53ac6a935d812dcd": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"ffe5093a1b9990e9": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"13474a8dc96abb8a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"5cd9b7535b377e79": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"644b6588f80b6b61": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"fd421517ded76ad6": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d8a9b5befa7b2356": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a9e49430e48f600d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"71842cd457b7a115": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"cd900afc80e694a2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4d4a9611e5721590": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ecb27d55b75b99d1": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"2589a4d0cbf04d5f": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"173fb86d7b96d851": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"70ebc83aafbcdc50": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"94b26e1e4dff6115": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"46cfc07c8c6f57f6": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3456a641f0f45ca3": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"8292394ac6f25084": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"af0df312960774cd": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"147181cd90d61977": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"358f5a91ac0bf4bd": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c53c22aff663c89b": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"cd3bcbbe16f1ee39": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"02140ae10b37fa6f": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c7c049e99de4cf13": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"f624bdfb59775c6a": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"886e52e5e67f82cd": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2924570caf98f91a": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"20fdda35701bdf45": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"f1e498022b4f0ba7": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"21450c7a53ee2748": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"611c2051cfc2038c": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"11c9f5b20d062c3d": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"549ae3297f6c60d9": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4c67393f877c7ee5": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ec89098f05571493": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"984f7e06fe3e0cc8": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"281b72417939f789": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c48fc0b13ea9552c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9cdc1c50f95f9748": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3710222ffc640691": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8219e6b94fe7b915": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"23e26062aaf5d6e2": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"eb58b9c6afa296b8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"6c463ff2f7c5e743": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"2bdef8dca875170c": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"48e88310d6a4ea02": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"1a1bc222641b4253": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"135cbf9546f2c714": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"927be9aeaac345d3": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"38b826c81c0d8a56": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"684b7ffa8832d14a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6dad3783479dda64": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e0ab2c7354f0dec5": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e525cd6667c2c0e7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"df0ba66f949a221c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4685cb35d45ae504": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"30fb13faf77f2c21": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8694e60c7dbb4406": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"5c59b844dc280613": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fd659165d2954f49": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"595a8288afa7f123": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"dc67dabfa793c51d": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"c43b50ceb1bb886a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9ca366d3d269f688": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"82c2e487cc35111b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"537a1c3736877cbc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"89bd90898e7cd109": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"58e702518cc45d6a": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"dce458ad9146083b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"45e3d60e50806bd7": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"50d4b4bcd8600bf4": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4d7511c05faff15e": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"fc3892b42d1f7431": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"bb4286e4948ff07c": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f4e0b7cec96cf020": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"89c2a894c8f13bb7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a7d06d8bf2093650": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"91148552882ac310": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fdd4dbf39aec29b7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e4819c5d8b936ec7": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"ed43920ad535b627": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"4cd354f7a911c167": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"b2ef5cff8d299423": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"ba8ae89b05b1bb0f": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"ca8ee565c2f8e524": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"412e6c588104851a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"54959b46b08b2f26": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"e1ee4413e477aa12": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"ce1602ef3768a099": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7114a91d48596d72": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"6e4e7bcffcbe3fbc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c5c56754556dc492": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c848e36bdea6b180": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b5f7f17e1ca2c80b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"45a844d00e7b29cf": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a07519ea6e9d37d4": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"c821117c24aa4760": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"31b5435809e7d661": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2005e55992d39b05": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"45e0ca962f627dc4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"f8fbd7287dace9a0": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"c70738df922d4b47": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a20fa1d0b4bc06a3": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"88a47c3f25d1389d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a891a3f0c8cdfce5": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"d17e38a7159f5dd3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"6b632a70d9f111f9": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a16c3c13ea6bd8ae": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"ca4863c9d9c249b8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"dc5c07753f7ab7f1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"81cd92354ed6f902": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"8dd5968dff4bf0db": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"31cc1adc2e2bf801": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"a706aa837a1628a5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b6052562e4edcbf8": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"87ee53d35d53761b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3dd5544381271b9a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1531e5a4001f9793": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"87572cc3a4ea7053": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"12b62d140cd0b714": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"de04f94c03c9eb1b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"92082e7d96088038": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4096d179a773714d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"545743f134f433aa": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"070d0a40f4a0c6b5": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"068f60e917c3dc21": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"388c6cacab6bce99": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"402058b0de93377d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"af7421a267a60d79": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"50bae2152a197947": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"e37a99c8d110b6ae": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"1b016a1ac4070396": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"6a0f9be3d69b211b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e23ce7faac0722f4": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"9ce7f2ede7c12466": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"03a599b4a23c21fc": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"61569afc01cb9f80": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"9dae12763d4c1ab9": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"08e853d3d1f0a265": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"4dcf8bb7e8b1a756": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2b592f597e7a27cc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"74c8f6554cc11c43": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"f9dafa2a85fcb028": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"01f246d950be89e9": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"a9cdb9876824918e": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"53b800714d5fd8da": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f78ad1cc6637f566": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e36af4df7fec9480": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"774d4fc0ecc8022d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fca1357a99dd1ad2": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f3642bdc03c8fdd0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"47fa1eebf25379da": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3c9c3c091e8933ee": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e073b9ba922b226d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"4b26fb177608d09e": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9d851b8153c6e8d0": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"1cb28323e79f28b5": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"7c984070333d8816": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d946f2f0c11c036e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1b931f2a04af1fcc": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"2bf641c3249b223d": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"aa9913a3f4ffe7ef": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"71b7cd3dc4593f64": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5b0870f764cb31fd": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"46fe4a5ec5d19236": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a0d7ce561dba2611": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5451253bfb74a4f6": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"463075aadd9f0727": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"598de625910b3fc0": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"88947ab96cc644d9": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"952fe3ca2abbaa2a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"eaf237b07991e883": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"02cce45f6c259c82": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"3e41a3bf0700a614": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"69354eb5a5d96140": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"f85b68b3fbc2fab7": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"5fad6737de0c444c": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"e85cea9444f0b862": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"680f6a8f3fde2937": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5085e95430382e31": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"5ab5e6009e7adcbb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"600112a0bb175ed5": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ffb936a4d052d694": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fa1b98606cf58e79": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"6f22afe753c37d5b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6da8d3d00aef3a9f": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"a80e6024a1bd4192": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"68cd40d1cdeed97d": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"21c7a99ef31906fd": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2ec0009de8fabd00": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"500dcd5291032d33": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ad56b91834e00de8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7449540a936a31a4": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e3260a91109f81e8": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"75366472cf0bce32": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d737d992db9f26eb": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"2f646ac6eeeacecf": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"f1312d1d49c5c22e": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"69c8a0874a92206d": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"2119fd9c0c6ab658": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"b490be2871bfd23d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"5e9088f6d5f119b3": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"4bb16729db0c0016": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"480173183c0f2294": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"a0823f69ad8d5641": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0cb844e01efcbcd1": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d18f20625b1a37fd": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"034e6fe75aa8a297": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"6868ee10c0555240": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f42e537c2d829a36": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"dc7ed53e22abf36c": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"ea672ee72de931ac": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ef0c6ca102f41891": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"fe2ad7c0866ead06": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"bc258dac18893526": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"446b6fe5927d78b8": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1b5161559e52c7de": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"88a206d4be676bfa": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"f94a2e84804875bf": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"eac82e8a9504b141": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f48f22e7d884fbee": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5b886b2bf35d0e23": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"8779aa097ed3b840": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"6a461a97d92ee477": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"11a5d6304ba10998": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bdefdfb52de08dce": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c8affbd4557bc264": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"f136e98aa4af2a8e": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"ed91be1383ebfc5f": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"02b451bdfe840378": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5dc91b2ad61ee676": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"d817e6a457450d56": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1e9b6c6d97a1a1f2": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"7934c41db6d07e1f": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"9ddcc7b27d235978": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a3233c37242f5cca": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7923393a2dee9942": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"763017a4f11a1684": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"9a59c9443d7abe97": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"03bb63562ccc8c32": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1effd545358b6c8a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"63e67ca2d4f171ec": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d38760316ce30875": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c9846fe21e98443d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f1d631aefce4ab1c": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"f1124ba470768fb0": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"dade2c1cf2b4636d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"1fc65d7a99d85764": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"727e40d535fc1142": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e8de9c2186bbb9c2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"553578824dd51342": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b21320e90c765595": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"af239ea6e057118e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"97a5bc726d127f30": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6ab0608a962653c5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"29f4a1c6e62849a5": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"7ded9323014e247e": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"dc73e0ac10223654": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7424a75d114991cd": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7cf550df183c1c6e": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"e7f844715076dbdc": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a3f7ec04ccf2582f": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"f67e50637fea3f70": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"beb81a468b5e72e4": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c04f4801cd5152f8": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"655fb6d2d9173104": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e17f60ce4db75170": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"1a4d4c11347a8896": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a108a9372a23e3f1": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"853fcbb44d85b274": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"c6972e91103a9ebb": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"0fd789049d42750f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"17d23302847acf72": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"0e2ac6634fe183fe": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"ea0bdafd91d36583": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"fcbf534d8b4988f7": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ced234bc281db744": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"dd791422155d177a": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"dbf8bd00473fc12a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4bf7371624b3bf0d": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"94c486a4b8e1b51d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f942df92e7287747": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"b0bc22620820e788": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e6f446d6007f60fb": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"487f750f891faf80": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"745d7c115d1a2075": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"bed230f88d575097": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"93cdd1dd8918398f": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"b0ede660ec19b735": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e461af45b55cdeec": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"2d5e1d280e6ca6f1": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5c1ed4eb201afa52": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c929d7bf2ac51c68": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"05564076f8eb2c40": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"ae76e631b0a7e0ad": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"9b8804d18d98f6f1": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c5a7dbf8735f3940": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"32af4c4cb9a3a726": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"1d05f965c0ffdae6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1f9a109a8d5cc4a6": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"2c2561165818f72c": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"8601fdfb5c72011e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f232d5f1b9e7e61f": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"4aa988b1d2bc66e7": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"af5dfe6ec6ad102a": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"cbdd77dda0700876": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"8dd73a5e4f76c7b7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c7e1e0b79bccd127": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"c45883dda5d9d410": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"4667847fb921fcfc": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"7822a56e43bed076": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"c3f73bd9d8bc2728": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"205176a5e99c8624": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"35d6579f011f6881": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"819cb752d55ab423": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1db43b71d0e81f31": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c516b669a43f005d": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"341d58aa7488b365": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e469e1de557a9b73": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0ecc5cbf0830adc4": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"54f0b58df5e6c7bb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d803f4fd6431259a": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"674c700a7ebbc976": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"43f97718c3413b91": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"0f64c873646173e9": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"ebe3794e92b52763": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"2f52e53113df406c": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"1b4b37cdfdfaf2b5": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"91a2b688446c90d0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d4d19d9343bf80e3": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b8df52b276e3c556": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"50fe7eeb70bec627": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"d9556721ecb78786": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"6c157814a4883331": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c60d2fe9ee1ba0c5": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"510baf8bd130f6d9": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"462e40ea5ee783d7": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"83bf47958420657d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"f002766fffcfc4b3": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"8bebc359e0f89196": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0a0bfe9495947773": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"31965ba04334bbe9": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"28006ea3fa4af2ea": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"602fc5923943783b": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"aad608f6a489cb28": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"94deb608a979540e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"9cc072c37cc08e2f": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a8f2b7fb4824be08": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"c33f606fbde7be72": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a279302c2d279367": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"088c50db0187f079": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e45381eef76d6d1b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2ddbdf7493d303ed": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"0164f1876daefc12": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e8871bf8e83dd16b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"22c06c61a9da2426": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c758be4b2b7bcfe3": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"e997dbc65bfeb811": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"63dc0bf1710e46f6": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4e2c20bf91ea5d9b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1cf583bd5694c3d5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b062a82c9799a2aa": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"9aac1667cf742551": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d6602f051a54d140": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"72bc8464a9fcf35b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"79207f6f963d3fb4": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"5ff30fd81ce325ce": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"db5533b221986c8d": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"e80e5835edbde993": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b724aa5194b4cad7": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c19eb1e79a00b7d1": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"b8f5ab82cbdf1c8a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bd2f214e140b8be4": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"76794fe2823e8f3c": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4b2b7f23f53ae8c9": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"490e80ebb462bb18": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"952081f8f66a3c93": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b22245447e003cfa": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"cfcf125229d17d59": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"a1223e9ba2793f4f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f40d41faf965a435": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"604c3011d83000a0": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"da909d5e83adec5a": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"3bd81f7764adb1ce": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"51b0827d14d8c385": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9d71ed2f5204158b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b7ebd6844a946cbb": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"6c7a644fb850a4c3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8eede5688b8e8754": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e5e4fc617d16546d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"c94bc41a32c5979e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d9a87d3967fd3179": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a6eadae6d859fdb7": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"15ba9442bf50af06": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e9eb28eaeb78016d": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"4b1abc0f3855f9e3": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"51801a1e5c9f6a00": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"3e0808d59effba6a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2fb3305799de5140": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"f8cdfd6630f5a9c8": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"855997ad77a22ff3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8578927b66686688": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"d2cde724aee90b7a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5e16adc3d3f8b16e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c798f1ee3bc57b9d": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"c091c6c157ad6a06": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"9b53e1e14248a959": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"ca3cab2f952c6cc4": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"2d2c9227c09059ec": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cda98924115bb6a8": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"d0958afbfc054822": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"322c758ff130b027": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"868e169e122dc1f9": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e5735d55abb6d427": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"60c1e7ff393cada1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7e6006e5c0d65496": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"46e50ec72f2836f8": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"202d0d19cbf223ed": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"0381bccff6571aae": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b60255aae4e0cb38": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"22aa78d171be975b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8687a846a58d08ed": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"8691becdbb736b28": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"9f81edc802931572": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"8f938155a5a1781d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c2c756850cd7e0da": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fa698ed6b5f67e6b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5f9b2f6b78e7a1eb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"a4d769aa698bcf51": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"aa87847b248bb862": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"80ae5aad75ae1352": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"cdec246d299dd6b7": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"d22eaaa286960268": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"573ea053c2ac0eb5": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"19f8903be1b4ab42": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"96284158d773a45c": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"547417bda4bf9038": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"eb40dae7a153ed51": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"c43b53605ea19f63": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"3c6341017f8df866": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"f1f6386d5e7a396d": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"d38c47404754bc8b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"71808b0df7973482": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"7a59b2be40b7aac1": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3d4ce437ecfa0b13": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"0ed8a08fc39d0364": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"76d055f6cf4090c5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"bda21cbaca2649f9": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5ce009da20cbd956": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"7fbee6d20c5341e8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a4909711bddfc8f8": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4fc37141b2e7d8dc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ed5b7fa35751ccd7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3b4d5948dc530fa7": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3ac3e08a82aa7a03": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"addc24237c650101": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"e1c7bb2495fdc469": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e1c23dbb0e43ff9c": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"82789752013f89bc": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4d09d992c2708fb0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c1eefee3006b7c9b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"462ecd0fe207cdf0": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"a6be74214cc7580d": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"acc2dd1d07b9fc92": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e0dd2c787a9982eb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c32071791e6e352f": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7e92a56d705e1fe7": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a86c69e5f708a041": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1072d6ba8273a069": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"bd292ac213038bf6": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"8afabcefe686660b": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"48067b1ee0b02c70": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"cacc604d175474de": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"327404ac0ffbbcbc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d6c286c234de111b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d305f26e06d60f05": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"3722b24ef1b70107": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"21c302f449a1b5cb": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ba1ceb575b8b289e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3523d2cde2d425ca": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"c1d32b1bacfee3be": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"beb3a7c844e5ee28": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"35a2f955f257e25b": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"60f234a3214ca547": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"b856cf0425fdf732": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"dc4e332d6ed8251c": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a357921ca1602140": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"ab28cb1e5785ed5a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a6f714775fb0d142": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"1dffb7d43aeb4d44": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"296983af9b6d6c3b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"82c8cf9fed8393d6": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"1f6f963b164c6e45": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f8f8591f2be026fc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"34312f1b4942406a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4956390f06136277": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"baab118d9c1a2952": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c7e215bc61857b07": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"2a16e6ee00c5dab2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1864d0351bf572a7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1a63c70b7e28bafa": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"c8eec1ea4629db4c": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"c9ce0d3a0f483723": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"0965a2bd8fe3790f": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"746c201c828f7a0e": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"f06d3c2d333e17bf": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"19b5214c3e430623": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f48578668d1b6a57": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"2c18d1ddf52650a2": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"87aa7cc5bb213145": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"13eea7c457273e5b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a7eaac49cfa46802": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"df4e92aed7994122": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"89ddff990ee24199": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"107d38b6081f57c4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3ac8641dabccf6ac": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b29ba092f01ee4e5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2b7376e8ac593596": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e2b653f27419b3a1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9edbfdfb62726e58": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"aa2a2e3135ec94ac": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6378b6268c75e10f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"568b69073371264b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e5c05c18e080cb9e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"284018f58f605b9e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"78df8f9669dc218a": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"4d7936586a720f60": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"9cbd55bb7c9b4386": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ccded6c6705c034b": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"3e0aa9e719b10180": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5ca2591193d7df57": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"23fd2908d56d6bfa": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6929187aceb28119": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"3679c00cd69c136d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"5884a0eb71f07577": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"f307736ade26b628": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"52fefa7b4cc1caf3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d361f4a44db99dde": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a686d0f993af14e3": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"0599094c73c4fe1d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"0d85a2057a4cb094": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e326add031e7b60e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2ed3afd521307fe6": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"ee206e480ea22d31": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"eb4830f27d96de10": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"6b8910493eebde09": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"23e056d4184e2514": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"ad4803e23aabaf8f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"69216c75b382df04": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"36e8f61d8d992522": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b7cba84f4dce9b2b": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"bb5ce18c05f560b6": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"c800381f651249f6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e7641b1fc4b50d56": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"843f43a9f58abe81": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c76d0c97e0c70cb9": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"5c46f7a57ff90827": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"f9d36c6ae37675e7": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6c6e979e8ee7c7fb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"86d7b6304911f6fe": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1e3b6168420c10a0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"cd8d1a0b1c30561d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"84b2dcb5a89fdc4d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"23eccf2e08c0de54": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8d08bbf697a836da": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"84aaa48002549e36": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5a3a02676d813b5e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8748e72629253da3": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"5af4ef8b0f83aec7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"15bf3c11036f02d1": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"713b719b3907b853": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9dce4bba59857fd7": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"4648f622af51ed8b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"95386f8444faf22b": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"6b748ad1490fb500": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"2280287510442e66": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2e4cda685d7901a9": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"521dc20d5a150635": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9c74c71dd1be8a3d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"2663327268942937": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"6d33a8261971efa0": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f56ae4d0d8603fff": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"2fc3b7f67f161ef7": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"60ecbb06c0b7c6c6": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"dae061e252321e65": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"21be755eca4d01ff": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e2e2922726bf8830": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f30a40dce563d4d2": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9d57b1cdf9c89c7e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3977bac3d05a5860": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"9bebc5cd8a087e1e": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"91be251792420388": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"4937f3d21a8bf89a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8995bfd62e9be9d9": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9e378ab4d30fb239": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"464261e5bed2a187": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"a9da9147ae22be75": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d0a7318f8820a851": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"6899f014602478cf": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e785e535c6cae967": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"36aa82fc22513517": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"909d29617e88b62d": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"2ffda4fb0252afc9": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"581f2b32dec9c6bc": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"270713aa1a63fb4c": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"cb1409cb0f8dcabf": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"376f9b429df32c2b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3b71b7d043c4ad1b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"13bf350aed61eb02": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"6cb8722bacae1dbc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cfb70436a3606ec3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ec9eddeb75ea0268": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"40061bf8738e4d1c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1ee1cc9d2902bfc8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fe74d17c7e60029f": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"a347ef9a55358b7d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"220daaf1d1c8aa87": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"ebd31ab8c9fa04f7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"722a0027cc4a9d0b": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"61308640f3895e3f": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"cf3bb1aab821f259": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"cc2ef568ca264487": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e62886b2a0a0c3a6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3d074d4d3238ac96": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"bbadcc608cfc1445": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8724971098690461": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"656794dac0b71188": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ad59680555b50023": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"84f58a3bb19ff075": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bfefce7466401e5f": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"8812ef989bf79a8b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"ce2b3eb61de07c83": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"36d0b3a931ecd539": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"354a28b68d1b2655": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"c7ec92caef7c5af3": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"785ba2c6e33dd460": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"420a2e9f5d46eff3": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"c7c66a16e276d03a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"22d4078df71f57e3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c27124e4ef61e72c": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"03a21ad5294f2e46": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"0706ac10c23ace4f": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"13128fa46f1fdee3": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"edea945284f6527a": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"5ca5ed261effbb2d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9b612fd7b1e9dcb9": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"d7d600f3e3ef2649": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"0101edae15a4dfae": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"ec110d03c47667ab": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"9db92ce968b9c16c": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"642d20f05a2a4aa6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e10963639d1d1acf": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"16d9e5787527bf76": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"1b8cb67f922243b1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8804e4a4b6f22554": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"cb475d743c93e5d3": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"c07b9e368f3cffa6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5fe1dff360e8b4a2": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e86369b7cd4f7b97": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d8f24e8bb495713c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"79ac479a7b89f168": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"cc15db0e74ade9f1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cdd5fd11d1e3b5fa": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"74f42ceef878a7f1": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"926d0671f69e4f45": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"60a33f6c34eaeb51": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"9dcb01679eb708c0": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5f5e1e20636f8b44": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8ce21f19d6070f46": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"f34fbc0439456065": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"53fad9e256a87f54": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"258cc40bea2ae4b2": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a51c83787b2a0a7e": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"ff57f1eacd21c7cf": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"14ed5ad03be2106a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"57fb0e311b72dffb": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d7b0922a639bb982": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"36e982f844ba1030": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"4b7bc72503d270f9": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3b69140997b6eef5": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7086a57d8650ac7a": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"0039457995efb65c": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"db9498646fbd9ed8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ff885c25164a68ca": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"43972f763b6310c7": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"db3d5c681e96a8a1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7f79d69f9f8ebfff": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"a6a2cb26e11071a7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e20fa46213cd53a9": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d3026f878413690e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b2dd052ff401fca2": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"e81a07054385173c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"87d8b0ab05e16f51": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1a3ec6facfb24473": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"6ddffc0f3b85f2bf": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"cf7bb32465730e86": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"92ef1915da2745ec": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a99258d27d584281": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3762c3777a3a8bb4": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"bd2fdab2f6668f8e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4b3c33f4b1c8b6c9": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"51ee079a84cd9a37": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"56b5df88a156df4b": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"41c4b3f0bfd9392b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fb583b831c356709": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"9f86123008ede37c": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"039704522fc08dde": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"df036a1d2ebd371e": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b859445c115471ac": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"289738198bb2a758": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"29982ebfa65d2873": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"371c7328a6a07471": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"47b8676a2f8f2229": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"4827c4c99f840a62": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"0256f81c7bbc6670": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"48389af1228adbb2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"49621c5b672496f3": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"36387a0155f917da": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"eba2b5eb62a9d532": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"4ba0732e77421302": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d8b68a9995c22f04": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b80c76d317df698e": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"ac3bb33441e8a9f2": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"74a31e7b88c26859": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"6698d39ec91645e5": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3d8e662b39f370b0": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2b756afe06a88308": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"4576125216eb19b6": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"16a5b838dc57cbca": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"62ee54e942f9fb64": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7f740e44a253cee6": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"355d45e74adddff8": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"162682b9868f9af8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"366fdd474d49d0f6": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0eb8df5dbcb266a4": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"101d2cd55fc96b3d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"be7521d564fac770": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"175cdc4a4a97225b": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"e1645d0b29de27bb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ebecf1875c1ee28d": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"f70499239d29af8b": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"dd674d7be13c6ccf": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b3e5e722c99a380d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cc2929e0ce60caca": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"9152b45715b0c4be": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"c2f010dda581bcd5": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"01025fa2cb41cd22": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"da6367d727d337fe": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0765b01b052b3cac": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"73c62e1c98838b6f": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"2e1406904bfe3d06": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b1e975efe580a3d5": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"0912d403506f3e9b": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"2018708cda63cc4a": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"29fcb081380897a2": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"948de8f53bbaf767": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e04d1c93c8e553fe": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"d5bf17b660db067a": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"9cce1beb35401a69": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9fd8efa7db6c171d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"eb7f7b732ded876c": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"eef517195f4816fa": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"0bdec4509444e9e4": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"4970d5e5dd2b506b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"5c783caa83c14e70": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e16034ce6ef84d18": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3fe6c34ca16aefe4": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"c8f8d21fa6577cd7": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"ff91316f757f3c9d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"bb8c5894f3b20007": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"e71b62d63483e4f1": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0c3c4fb491d391b3": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"3c06410a58a81acb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f982314e1fbc63c4": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"fd14da7fe673ebb4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"58f1e5c7cf6f1aba": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a6b4cb1c430ca172": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"02e5c5ad7c2c0e65": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e3f5053965732632": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"51d6fad143174b15": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d7cc2f1a311801a6": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6fc818338fffc891": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a548fb6ca010f859": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"a24e72316cdb0e6d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0b37505268e8ff0a": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"681fedc0fc7d6457": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"b6da2839e9f4aba8": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"2440f7e925d8f64d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"16b25bda49bacb07": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1a262dc2e5bf47b3": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"52b5163c56e95617": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2e734b45febfd8b6": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"9c6c6e5111cc2dfb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"332618be499a6620": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"bc6338d05e2a86bc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"03b5bd8b752b59c7": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"451a4aedc621d278": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6a3c950731984e65": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"98024b80fa35e528": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"dfe651beb055e7de": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"8792d49ea108f665": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"71f384da6fd21f05": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"3a2c9c12b144a59e": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"a3f91c052bb0f5b6": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a6c25ee407f3b264": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e5d6831be8d73d23": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1040e5103f24f5ab": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"f88e8faf5aee3e62": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ba7309a2eb8cdc62": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0b0352329d961f7e": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"91734b71f67e381f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ea929842b3346de4": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"e16353986caaf9cb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2927e1e4e48500d2": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"ad26a8ca6dd80336": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a031f265b4addfc0": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"d873d0748e477b1d": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"592670810abddf84": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c6bb8e373f9b5230": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"57f753801de749c2": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"035f1fd45c47ead4": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"5e34780695d63fb2": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"773b4d4be319c748": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"edb6be47a596a406": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"4d7d555ac29590f7": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"af0c1a029c58b5b4": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cb895a8895a8b897": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d55d58f8daadcc75": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d5787ff70a7fb939": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"6dcb2206a329a084": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"ac7ae59cd5fdeb46": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"da97ff9ec2150849": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2112f80e2ed5c53c": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8f385b45e5cd62e4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d7c05f13c7b1185f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"44095ccc6e90a378": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"74776d6a2f874f70": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9c30391712c2767b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"48e8d2dd9f0103de": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"f06b9070ab1e373f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e0081213eeaca337": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ef013b173e14a685": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"af91c32a7fba0a75": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ffcbc93cb4c68cd8": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"0ac240bcdf28e0c1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1ae75688c0764716": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b100a1d8aedc0373": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fc7927a852534289": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"17f759755ef700eb": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"4269f4576a69a470": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bd9575c3d58fc95d": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"0840d9d1b692e060": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"e9709f03905cf1d8": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"894c2f38d0c091f7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"018daf62fb089209": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"06ef7bed83e0e8c5": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"27812e8476baa53f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fbe6509a0d4ee361": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"e6430b33d6f78c7e": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"634fbaaabfe6c906": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"ef379e917e110371": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"854e7a4d0774858f": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9929841ac1bedf84": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d8aef799d2fc7a63": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5518a9e8457f4c8e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"237e30246e3ab863": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c147c195cdcab57d": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"443269acb1a5ecec": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"07911144e4272324": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"7c54900c1d02c9e0": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"8e758e8020742673": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"ac59c6cc25937af1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cbd8480042140f5a": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3dd7b43b09ecccb1": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d0488b9777c565d8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fa3ce66807452850": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"677cf2c89240ee47": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e8acab12784ead17": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e00b84d39a6b488b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c1bf013f9e899537": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"487a2d901357b1fd": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"47f2a569cc837d2a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"76dfb870a08fd454": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"b1b0f8e5285114fe": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e8deda563e61fbaf": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7c3f1d320e2e4d83": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"03dd65eb482a70fc": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"07c9c7567ab2e96f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e0b6c9228e6a0b6b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"248a09ba1fd7724a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"74f3fb94b60b0f8b": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"dcaa2b089bef6922": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bcba35407c0d781b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"aaa23be884abe0ca": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d03c04a324319c14": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"65f3ef4c7de846da": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"90ef85e47a43eb35": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"12946258c53d55f0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f8970cf14a0ad604": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e57780bb2e214dfe": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"7793259a1d9d7ff5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2b18ddfb34e0ba36": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b85e702fcab747b2": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"d055de3159113a50": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"b3853063f60c99b4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d9f95b20fa3658d5": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"95c87998c00dcd49": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e384f34ef79862de": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"c633c312dc4d3b90": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bbf5eef0f904b691": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"391e661d6ea6c4f2": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"2ddfa36bef0fb278": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"1be89619ccbdcd70": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"67c5abbe20912278": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"3964aea4e21ec140": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"a2943374c7b0d016": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"2275dd646c134a2f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3205b322ebad25ee": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"809e85ea2aeba451": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"efb33fb6198c96f8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"71a92808fb5691ed": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"c852fb74eccd6539": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"5255e22eb55db0e7": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"f4136ac998b4ce14": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8039cdbb3f6432cb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7a1de258c0f79448": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"53500ba7a134124f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"162f8b60429c6007": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c5f336982145d83a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b7585582791521fb": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"225b0e409167f643": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1d336b3af6708d59": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"39a33faab5ba6221": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d22be05c1e00f154": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"c3414bd9a5122255": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"14c60ecceced1270": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"b0b9c05716044aa0": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"c9fed550cbc4f86a": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"744fe1afc79e2757": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"260c9f0aab0caabe": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"cd940b947366af5e": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"371c4d14bb6c466e": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"8605460230b6725d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e2736bb03232bbdb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"31ad5147588649bf": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"dfd2b044388f608a": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"809f6699b03dd7f3": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"4eb48fa80f4ed362": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8f863ecea8971127": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"145fc5a029de8b5d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"07bf2ad6d18c601e": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"0db3b154de471bac": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8bc2bbab2947538e": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"fbb49a10fc7d5f69": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e68b482a1ec07242": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8f482a4fe6ac8352": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"15260bd6b7c3c4a2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"ccc08653cdd2bbdb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"dc71171bd91dd9b6": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"1b777b9a9c1d94a4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b7f591bb87123a45": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7cbe3c9cf085e90a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"06716e3359a5e364": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"98781f6a90ef2b1a": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"3e0f2194a66b65bc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c3d5285b978c90ba": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"947811101e016a3b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0a801c15b2b2670d": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"cd928ea5a68afa48": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"40d49c9a6f8110ea": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6f24e37d1772934a": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"cd7064d258af9a40": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"3a7c379b4bca591b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4047f1c442243277": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e7302dcbc22f3385": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"6a48a4913186bcf6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"04dbe99892703027": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7d7ec0ca190c28e3": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"14825863756ed537": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"491b8eaa9eb58f2d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9655c0a4753ac21f": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"3eb85f738a03af9d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d2ff955996ef5dee": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bdd059a9ae818bc5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1442181a8c971390": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"cb9ea33322433ec7": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"9bd3e139a7fd180a": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"05a1e28fc0721905": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"43094fc886f36696": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"2334d06fdfa88f87": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"57f4ebf82d91cc3a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2a62f7c4c4726c9d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b98386412dada2be": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"328b59fbe2cf4123": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"1006d1c736031812": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"58ef3d2a42bf0948": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"28280c22d53727ef": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e2ab12a629599758": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c0e84cb73eaf15af": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"0e9fd3134e59c406": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"37262864dbf1bdce": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"d517d41b03568017": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"f524a303d8dd0dc5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3f22938d61e1fa96": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a46de3b2c5a9dbb0": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"1577f3de23598554": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a40f9b6d7fcc62a2": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"750f5cfa853a0995": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7861906137a8072f": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"63bd582403219ca0": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"1ab85fd8630030b8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e0d54f9ccfe6fa1f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d27cef42e7600edd": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c516158d5ddceac7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"0da482f77d3888f6": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"14915040090a7e69": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"36ee7aa975dad507": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3b58900ba9391dd8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2ed2408b6f199352": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"0bbc5d41c7a445bc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a0e8c783f7fadaf2": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"85583fca4bd65ad6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ee867c4f4518c9df": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"2353840b9a4bfc19": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cf0824e2c71e1687": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fdaadadfba6fb6cc": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"13602aaf6d8d1769": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"b6f9f0cb4307f9c7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8598b5b46953c89e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a2af2d146406efe0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"856f3035ba11c97c": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"187f0c22d5397ce5": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"0f7b60353d456ad0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"fb7180dabbb74846": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"de6eeb7b8a310c2b": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"0552a95f14f4d3cc": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a6e57a62f8cab4c4": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"105faa827f3d0afd": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f01fcb34d574429f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"753e00e927ebfdaf": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"d844bb399ee8c2c4": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"43b9eeace47716c8": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"d84230ba5fa97c7d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"84a5b9edaa64220f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1fee14ea4d7e07c9": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"7abf128c9cb55644": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"11ceb333fcb85790": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"427eef888c827777": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"240d9a4062fe480e": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"bba4715faabddbc1": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"f60e36830382c507": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8d0119c101d4ef71": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b70ce2b19eca483f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"a8d11b782305e0ef": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"122f896069c64de0": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8bf48d0ed5ccb80c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7f08d896b24b44ef": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"a08cafbeb9ac1185": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"38a819e12c16c7f7": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"7af7f900b98dfe97": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e8e80ba951040a4d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"55a9afd8a641ac98": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"23d9d776a642da89": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"07b99b94834ff05a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d3ef906960f00dfb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6beffb68e880b6bc": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"87f89098ac54b420": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d90c20fc3861606d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e9cf700b59f6bd04": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"06b957c164a01fa2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1de1acda8924c8d0": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"173aed2930d6b50f": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"aab600666a9d08ef": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"88bb7abe7e039b1b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"4481e9908cb337d6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7cff448bc4c59c51": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"8eb496b3f26957b1": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"302b8b2b850bf0bc": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"7cb609af44494ac4": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5a198d03082f7690": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"407e440dcd247f6b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"f63b17a166b320e5": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"505de01e8b56945c": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"093777aaacf49c8c": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"00b7a3d8f4713d4c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"18b671ef78f46bbc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f5363e28d3974512": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"17c1f206af38a8a0": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"05f76d7ffe29ab1f": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"24cb71793bdedecc": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"f6f050d2478d6b0b": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"61cc2f79af9e4698": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6feb4a4c129cef2f": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"03eb6126eeb3e6fc": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"2c7fad7470e6b17d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"aa499d01c2e1647b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"4c868307da191fdb": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"cb8e8d4d78e75e14": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"14808751712288bf": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5797230fe85b1f8b": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"48f8755d073def46": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"59db64638993858b": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fc1ed5b4141ea94a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2fd4baa9d4f9a470": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"8476c004eab54b0d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"fa15158df1c5c8d2": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"37501d73e9baa5c1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8d55e63dedcb375f": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"75761690b2df0973": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ac7f40e46a7e412e": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"dc49db579ef3fcfc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1914570d54b3907c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bec7db1ee05fe948": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"54bfb92dbf555b68": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"71e76fb0a3b08d46": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"48610abe1e927216": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"8af0da6e72a4cb28": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0844cfea1f7e757c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"42967d7d6e05b365": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1c3221fd19590f48": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"2bd6c3920d5fe6f0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"538a37c583d71e0b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"43bdabf64292412e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"07e528e9b8d5074f": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"7529f6094839bea4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"fe2f80d8e79f3b8d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b794b282e01b2a60": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"5d6103e312f4c040": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"38c846f7a7adcd55": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1b4f4639745bb100": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"708ef0c7011fe9c1": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"8a986b747e3b48ff": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"609a9b442c00e33d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"31e9ec129abc0ac8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"65f8ad169f3a9de2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"f90a9dac1ded106e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2cbb9c61106ba727": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b3c6cbdab4ddcfc9": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"37dfa47abb1a148b": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0aa2d267ca7c2ab2": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"d167c6a2f2a80e7c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e93e840d665522cb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2cc8528a5d11812c": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"8a7d03adbda2fb3a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3629297ccb33b394": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a1391a2a38b0a398": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5d187aea45149da0": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"78d38cd4bbb7b528": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f1d839bd76db7e54": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ef0dedf5169aafec": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7aa47baed6b9d292": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"01ba9f7a7d55ba6f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"232f2561061b7179": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f89e2e2afd18eeb8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9f56424625072d35": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b66b12f3c998530d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"115b6a4ac199205d": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"2a5f009648f34774": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a4f40dc89fd874f2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"ad79ebe909dd8a86": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e57355420718f8ec": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e73990accd2a6bc2": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"63530004f5c12b29": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"49e90c13c33c2293": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"d82d4cd4ae476d20": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7ae53aab9451a1a0": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b25dd47832623878": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"bea401666e49ba47": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"a6a4f079c08b4122": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"6faf69e7aff89f4a": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"314eaeb27a4525ba": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"e42bd34e67c8a219": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"615d37bbcbd3c7f1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"72d494ee858584ac": {
+"raw": "5",
+"pred": 4,
+"model": "qwen3.6:35b"
+},
+"dc94a91200b5a590": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"049a8eeeb41118d7": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7d2b191c9e713033": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"21a85e213765a1a1": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"cb41ef2882f206fb": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c87a4230cc135f99": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"46558f111cc85045": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"23ff68be86772069": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"241b78b68c38c95a": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"8718f57764e09ec6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"553ab7420796f0c0": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"39a7a81192c27d94": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"d6cd7c29ead28f35": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"2d0bf60dd7e7ba38": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8677f4fc48f4be05": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c93b226a6b3401a2": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"a6c2398408c7a034": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"27feeeabc832f061": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"9eaf9c87484fe338": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1f035274b1e25044": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"0d60972dc15df266": {
+"raw": "7",
+"pred": 6,
+"model": "qwen3.6:35b"
+},
+"f0e77e99919db3d4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"1ab4887037a35cf2": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"c21f33f2afcc8b1a": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"9ef66240ee16426d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"928c1a3d0f8819e5": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"006bb46f8d6d052f": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"d18638078182da55": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"764e1e8bec701268": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"8ff6878013930d0e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e5ffaf37dfc1af30": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"bf2c832a00534e4f": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c9c2fe3c4294c6b1": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3dd7e7e736c265c7": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"88210c505e8c5718": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"f1f76b2cb92a9321": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"95ac80b48e1e84f9": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"7c89c078a10c26df": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"69144606d9bb931b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ee97b40606494709": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7ccd51dcdbe0543a": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"239b6ffde9d6b0d6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f0982a983f40c721": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b27c1fb0f6546fc3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"0627a1230608f1ad": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9b5c9284834c03c5": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"349b682df4d8468e": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"deefdd7bf989c688": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"53c494954416ee34": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"ec5f23ff9b5dee4d": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"7ddcdb7e2ce44dec": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"c4202282a63a395c": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"cd2a432905a07cec": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"240d0c67ee754967": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"699d958397ab3588": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"5057f468bdbfb1ff": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"3d22ff98c3578541": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"5c9e0987d417c5ec": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"a6d27cf9268e625d": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"6074d3dd471ea751": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"6e7f02bad2becb1f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7caac0a7887ef68c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"24eb12d24ce6116f": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"7820cdb9672116bd": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c48d44a94ece90be": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"bd3624ad87576380": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"f6922b21db2c7f13": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"e802fb5cd51bfba7": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"68aa55743d918a6c": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4526163d7e5e10a6": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"b6eff5a0f8081363": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"cd295e6d7d2bd6ea": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"1c2e9ef79be8e1e2": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"2b9fc8eb145c90af": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"40ac9f2b124398e4": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"7e44a2957d4c2764": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f57f34f110d78be8": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"11b3097f672d6535": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"82b1a8fcf99ee17e": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"e5e21ec4fc9a0c51": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"75d38a32b8125f74": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c9cfcaee8afb9c81": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"8c791ff3a91812fb": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"c898987c73450ad7": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"962752d0574c946c": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"64013e739bfb59e5": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"23f64d0e422af4f3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"cf8acfd008da12d9": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"01e851c6b551543d": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"46a2bc83f73c3881": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"4ce9d7eefc802bff": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"7fc6521d827b7b67": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"3b3729adee066d88": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"165d5070436c989c": {
+"raw": "13",
+"pred": 12,
+"model": "qwen3.6:35b"
+},
+"86c9b5dce2df6a9e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c3612b60125075af": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"16438a0e479a3203": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"c21fb6efa34b2533": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"be9f63716978c190": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2ba0b8c4d4924566": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"959c3dc5dea15042": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"5749f1afda580af7": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"7980b14404c03471": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"a6c081322921801b": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"bca80564e18142c8": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"5f177f92aa422957": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"9f75101f94407bbf": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"67c786492a97a8fb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"eb9c459ed62726fb": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"85b2617af71099ac": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d7096ca72ff63a41": {
+"raw": "10",
+"pred": 9,
+"model": "qwen3.6:35b"
+},
+"5a9b577d3baecb6f": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8978df73357f29f3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"11056e771b246619": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3cf945c486712242": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e5345e5c39340c47": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f4a5990759d82dbb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"7474d3a4d8b1950d": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"6f882c373ec6da31": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"3907274bcb5c23b4": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"3c906e9540b52109": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"fa0b6ebd5262778b": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"660a1a21bf2105b8": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"29e542770b241883": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"23716600d5260dd0": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fdfef6a8de8afcc6": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"af2df64f913130e9": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ebc4a4fcf55675e4": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c1ee09304fb39819": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"d5d7a1a78aed1326": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"ffb9f546856e73bb": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"b25f67a37f0ba311": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"eb8cd95b8ee0386a": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9ebfac11adb36c17": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1a3395758f118bcd": {
+"raw": "3",
+"pred": 2,
+"model": "qwen3.6:35b"
+},
+"2457ee63dba7f2a9": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"bfd3f6a8e1489bbf": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"79dbf000a1920f10": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"0a15cc1005820da9": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2a71f774d941dfad": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"ec690805ee1650eb": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"523da91aa3a0a595": {
+"raw": "12",
+"pred": 11,
+"model": "qwen3.6:35b"
+},
+"0f2142f12cdaca22": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"946893149c08e428": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"a1a424dcec548b7e": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"8fe2c458ed87b200": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"a03f3e14805702ce": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"57a06965e7cec8bd": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"093bffc97d12963b": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"adcc10a7d9815669": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"b1e9f23c24bd6b78": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"e7f2ab6b8c880bae": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"2de509b012e9d853": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"d92335934be538c1": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"864a53ae0d15fbdf": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"60dfa81a9ac7ecbc": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"9cdb989041f19039": {
+"raw": "9",
+"pred": 8,
+"model": "qwen3.6:35b"
+},
+"5805cb3c17f20990": {
+"raw": "6",
+"pred": 5,
+"model": "qwen3.6:35b"
+},
+"5e95c96d322be0a7": {
+"raw": "8",
+"pred": 7,
+"model": "qwen3.6:35b"
+},
+"c5fc2f03a4ac855e": {
+"raw": "11",
+"pred": 10,
+"model": "qwen3.6:35b"
+},
+"9ba4535f27751831": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"fabb6e6b97c7c7bb": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"f5b9c5cd2f1534a1": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"aa749ab8775b48b3": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"cabf9db218d25cb3": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"1a6e64ce4544821b": {
+"raw": "4",
+"pred": 3,
+"model": "qwen3.6:35b"
+},
+"b94ce191152ce1b0": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+},
+"51d6577b8fce55c0": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"80311b0677925021": {
+"raw": "1",
+"pred": 0,
+"model": "qwen3.6:35b"
+},
+"48a735b6aa0a4aa7": {
+"raw": "2",
+"pred": 1,
+"model": "qwen3.6:35b"
+}
+}
