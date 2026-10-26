@@ -1,0 +1,7 @@
+{
+  "route": "notebooks.1_pytorch_intro.01_the_cache_demo",
+  "open": {
+    "steps": ["notebooks.1_pytorch_intro.01_the_cache_demo/0"],
+    "functions": ["notebooks.1_pytorch_intro.01_the_cache_demo.OneNearestNeighbour.predict"]
+  }
+}
