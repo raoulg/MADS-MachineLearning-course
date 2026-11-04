@@ -25,6 +25,7 @@ data/raw/*.arff
 
 # hypertuning, logs
 **/mlruns/*
+**/ray_results/
 **/models/
 **/modellogs/*
 **/modellog/*
@@ -34,3 +35,13 @@ data/raw/*.arff
 model.toml
 settings.toml
 *.pt
+artefacts/**
+**/tmp/*
+**/assets/*
+# figures the notebooks embed; the rest of assets/ is downloaded data
+!notebooks/assets/udl/
+!notebooks/assets/scikit-image/
+!notebooks/assets/eurosat/
+**/own_caches/
+# claude code worktrees
+.claude/

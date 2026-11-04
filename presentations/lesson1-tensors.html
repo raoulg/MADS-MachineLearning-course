@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MADS-ML · Lesson 1 · Tensors and the cache</title>
+<meta name="description" content="Lesson 1 of MADS-ML: reusing a model somebody else trained, what a tensor is, why a network needs a nonlinearity, how it learns, and how to search architectures.">
+<style>
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:block;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:400;font-display:block;src:url(fonts/Outfit-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:500;font-display:block;src:url(fonts/Outfit-500.woff2) format('woff2')}
+:root{color-scheme:dark}
+html,body{margin:0;background:#141210}
+body{font-family:Outfit,Arial,sans-serif}
+.deck>section{position:relative;width:1920px;height:1080px;overflow:hidden}
+.deck section,.deck section *{box-sizing:border-box;margin:0}
+.deck h1{font-size:96px;font-weight:600;line-height:1.1}
+.deck h2{font-size:64px;font-weight:600;line-height:1.15}
+.deck p{font-size:32px;line-height:1.4}
+.deck img{display:block;flex-shrink:0}
+.deck aside{display:none}
+.deck table{border-collapse:collapse;width:100%}
+.deck th,.deck td{padding:.35em .6em;border-bottom:1px solid #cfc7bb;vertical-align:top;text-align:left}
+html.js,html.js body{height:100%;overflow:hidden}
+html.js #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(var(--scale,1))}
+html.js .deck>section{position:absolute;left:0;top:0;display:none!important}
+html.js .deck>section.active{display:flex!important}
+#notes,#hint{display:none}
+html.js #hint{display:block;position:fixed;right:16px;bottom:12px;font:13px/1.4 Outfit,Arial,sans-serif;color:#9397ab;background:rgba(14,15,24,.85);padding:6px 12px;border-radius:6px;transition:opacity .6s}
+html.js #hint.gone{opacity:0}
+html.js .deck [data-build-in]{opacity:0;transition:opacity .5s}
+html.js .deck [data-build-in].built{opacity:1}
+html.js body.show-notes #notes{display:block;position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;background:rgba(14,15,24,.94);color:#cfd3e5;border-top:1px solid #3f424d;padding:14px 24px 18px;font:17px/1.5 Outfit,Arial,sans-serif}
+#notes .count{font:13px/1.4 'JetBrains Mono',monospace;color:#9184d9;letter-spacing:.08em;margin-bottom:6px}
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html.js,html.js body{height:auto;overflow:visible}
+  html.js #stage{position:static;transform:none;width:auto;height:auto}
+  html.js .deck>section{position:relative;display:flex!important;break-after:page}
+  html.js #hint,html.js body.show-notes #notes{display:none}
+  html.js .deck [data-build-in]{opacity:1}
+}
+#crumbs{display:none}
+html.js #crumbs{display:flex;position:fixed;bottom:8px;left:50%;transform:translateX(-50%);gap:2px;z-index:5;font:12px/1.3 'JetBrains Mono',monospace;background:#141210;padding:3px;border:1px solid #2b2621}
+#crumbs a{color:#b8b0a5;padding:5px 10px;text-decoration:none;letter-spacing:.04em;white-space:nowrap}
+#crumbs a:hover{color:#f4f1ec}
+#crumbs a.here{color:#f2643c}
+@media print{html.js #crumbs{display:none}}
+
+/* the slide kinds of the MADS-DAV decks, as classes */
+.deck section.ink{background:#141210;color:#f4f1ec}
+.deck section.paper{background:#f4f1ec;color:#111111}
+.deck section.std{display:flex;flex-direction:column;padding:128px 100px 56px}
+.deck section.mid{display:flex;flex-direction:column;justify-content:center;padding:128px 100px 56px}
+.strip{position:absolute;left:0;top:0;width:1920px;height:105px;object-fit:contain}
+.mono{font-family:'JetBrains Mono',monospace}
+.kick{display:flex;flex-direction:row;gap:36px}
+.kick p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:3.8px;text-transform:uppercase}
+.paper .kick p:first-child{color:#1d5a73}
+.paper .kick p+p{color:#5a544d}
+.ink .kick p{color:#86b9c9}
+.body{display:flex;flex-direction:column;gap:36px;flex:1;padding:16px 0}
+.deck h2.t{font-family:Outfit,Arial,sans-serif;font-size:62px;font-weight:500;line-height:1.08;letter-spacing:-1.2px;color:#111111}
+.deck h2.claim{max-width:1560px;font-family:Outfit,Arial,sans-serif;font-size:84px;font-weight:500;line-height:1.05;letter-spacing:-2.1px;color:#f4f1ec}
+.v{color:#c43a14}
+.ink .v{color:#f2643c}
+.pe{color:#1d5a73}
+.ink .pe{color:#86b9c9}
+.deck p.s{font-family:Outfit,Arial,sans-serif;font-size:26px;line-height:1.4;color:#111111}
+.deck p.m{font-family:Outfit,Arial,sans-serif;font-size:30px;line-height:1.4;color:#5a544d}
+.row{display:flex;flex-direction:row;gap:64px;align-items:center;flex:1}
+.col{display:flex;flex-direction:column;gap:26px;flex:1}
+.center{display:flex;flex-direction:row;justify-content:center}
+.fill{display:flex;flex-direction:column;gap:28px;justify-content:center;flex:1}
+.g3{display:grid;gap:48px;grid-template-columns:1fr 1fr 1fr}
+.g2{display:grid;gap:64px;grid-template-columns:1fr 1fr}
+.foot{display:flex;flex-direction:row;justify-content:space-between;padding:22px 0 0;border-top:1px solid #e2dcd3}
+.foot p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
+.deck p.pn{position:absolute;right:100px;bottom:56px;width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
+.deck .ink p.pn{color:#b8b0a5}
+.cards{display:grid;gap:36px;grid-template-columns:1fr 1fr 1fr}
+.card{display:flex;flex-direction:column;gap:14px;padding:28px 32px;border:1px solid #5a5148}
+.card .ck{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#86b9c9}
+.deck .card p.s{color:#f4f1ec}
+.box{display:flex;flex-direction:column;gap:12px;padding:26px 28px;border:1px solid #cfc7bb}
+.box.on{border:2px solid #c43a14}
+.box.pet{border:2px solid #1d5a73}
+.deck p.ck2{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#1d5a73}
+.deck .box.on p.ck2{color:#c43a14}
+.top{display:flex;flex-direction:column;gap:14px;padding:22px 0 0;border-top:1px solid #cfc7bb}
+.top.first{border-top-color:#1d5a73}
+.chip{display:flex;flex-direction:row;gap:14px;align-items:center;padding:8px 16px;border:1px solid #cfc7bb;align-self:flex-start}
+.chip .lab{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d}
+.chip .code{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73}
+pre.code{font-family:'JetBrains Mono',monospace;font-size:25px;line-height:1.5;color:#111111;padding:24px 32px;border:1px solid #cfc7bb;background:#ebe6de;white-space:pre;margin:0}
+pre.code .c{color:#5a544d}
+pre.code .k{color:#1d5a73}
+pre.code .r{color:#c43a14}
+.callout{display:flex;flex-direction:column;gap:12px;padding:24px 32px;border-left:4px solid #c43a14;background:#ebe6de}
+.deck p.arrow{font-family:Outfit,Arial,sans-serif;font-size:48px;line-height:1;color:#5a544d}
+.again{display:grid;gap:80px;align-items:center;grid-template-columns:1fr 1fr}
+.deck .again p.big{font-family:Outfit,Arial,sans-serif;font-size:56px;font-weight:500;line-height:1.2;letter-spacing:-0.8px;color:#111111}
+.deck table.tab{font-family:Outfit,Arial,sans-serif;font-size:27px;color:#111111}
+.deck table.tab th{white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:400;color:#1d5a73}
+.deck table.tab td.mono{font-family:'JetBrains Mono',monospace;font-size:24px}
+.deck p.credit{font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1.3;color:#5a544d}
+.shape{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73;padding:14px 18px;border:2px solid #1d5a73;white-space:nowrap}
+.op{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#111111;padding:14px 18px;border:1px solid #cfc7bb;white-space:nowrap}
+.op.on{border:2px solid #c43a14;color:#c43a14}
+.to{font-family:Outfit,Arial,sans-serif;font-size:36px;line-height:1;color:#5a544d}
+.arch{display:flex;flex-direction:row;gap:18px;align-items:center}
+.deck p.archlab{font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d;width:250px}
+</style>
+</head>
+<body>
+<div id="stage"><div class="deck">
+
+<!-- ============================================================ cover -->
+<section id="cover" class="ink" style="display:flex; flex-direction:column; padding:236px 100px 56px">
+  <img src="img/lesson1/band_title_ink.png" alt="pttrn logo in a Rule 30 band" style="position:absolute; left:0; top:0; width:1920px; height:201px; object-fit:contain">
+  <img src="img/lesson1/cover_cat.png" alt="A photo of a tabby cat on a dark ground, with three copies stacked behind it: only its red values, only its green values, only its blue values" style="position:absolute; top:250px; right:120px; width:640px; height:461px; object-fit:contain">
+  <div class="kick"><p style="color:#b8b0a5">MADS-ML</p><p style="color:#b8b0a5">Machine Learning</p></div>
+  <div style="flex:1"></div>
+  <div style="display:flex; flex-direction:column; gap:32px">
+    <div style="width:280px; height:2px; background:#f2643c"></div>
+    <h1 style="font-family:Outfit, Arial, sans-serif; font-size:132px; font-weight:500; line-height:0.98; letter-spacing:-4px; color:#f4f1ec">Tensors and<br>the cache</h1>
+    <p style="max-width:1000px; font-family:Outfit, Arial, sans-serif; font-size:40px; line-height:1.3; color:#b8b0a5">Reusing a model somebody else trained, what the numbers it hands you are, and how a small network learns on top of them.</p>
+  </div>
+  <div class="foot" style="border-top-color:#2b2621"><p style="color:#b8b0a5">Lesson 1</p><p style="color:#b8b0a5">Hogeschool Utrecht</p></div>
+  <aside>Lesson 1. The course starts from a fact that changed how deep learning is done in practice: large models that somebody else trained already put photos and sentences in a space where similar things lie close together. You do not have to train that part; you download its output and train something small on top. Today has eight questions. The first places deep learning in a longer history and names the three kinds of learning. Two, three and four are about the cache: why a pretrained encoder works for your task, why you run it only once, and why the choice of encoder matters more than anything you build on top. Five is the core of the lesson: what a tensor is, on two levels, its shape and what its axes mean. Six, seven and eight build the network on top: why it needs a nonlinearity, how it learns, and how you search for an architecture without fooling yourself. The cover is the whole of question five in one picture: a photo of a cat is three planes of numbers, one for red, one for green, one for blue.</aside>
+</section>
+
+<!-- ============================================================ agenda -->
+<section id="map" class="paper std" data-crumb="agenda">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Agenda</p><p>eight questions</p></div>
+  <div style="display:flex; flex-direction:column; gap:44px; justify-content:center; flex:1">
+    <h2 class="t">Eight questions for today</h2>
+    <div style="display:grid; gap:40px 44px; grid-template-columns:1fr 1fr 1fr 1fr">
+      <div class="top first"><p class="mono pe" style="font-size:25px">01</p><p style="font-size:31px; font-weight:500; line-height:1.25">Where does deep learning <span class="v">fit</span>?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">After Copernicus, Darwin and Freud: Turing. And three ways to learn.</p></div>
+      <div class="top"><p class="mono pe" style="font-size:25px">02</p><p style="font-size:31px; font-weight:500; line-height:1.25">Why use a model <span class="v">somebody else</span> trained?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">Its space is already ordered. Your labels only have to be read off.</p></div>
+      <div class="top"><p class="mono pe" style="font-size:25px">03</p><p style="font-size:31px; font-weight:500; line-height:1.25">What does embedding <span class="v">once</span> save?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">Embed once, train many heads. A search multiplies only the cheap part.</p></div>
+      <div class="top"><p class="mono pe" style="font-size:25px">04</p><p style="font-size:31px; font-weight:500; line-height:1.25">Which <span class="v">encoder</span>?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">It depends on what it was trained on, and on your task. Measure it.</p></div>
+      <div class="top"><p class="mono pe" style="font-size:25px">05</p><p style="font-size:31px; font-weight:500; line-height:1.25">What is a <span class="v">tensor</span>?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">A rank and a shape. What the axes mean is yours to track.</p></div>
+      <div class="top"><p class="mono pe" style="font-size:25px">06</p><p style="font-size:31px; font-weight:500; line-height:1.25">Why a <span class="v">nonlinearity</span>?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">Without one, five layers are one layer.</p></div>
+      <div class="top"><p class="mono pe" style="font-size:25px">07</p><p style="font-size:31px; font-weight:500; line-height:1.25">How does a network <span class="v">learn</span>?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">Stack a batch, score it with a loss, step the weights downhill.</p></div>
+      <div class="top"><p class="mono pe" style="font-size:25px">08</p><p style="font-size:31px; font-weight:500; line-height:1.25">How do you <span class="v">search</span> architectures?</p><p style="font-size:24px; line-height:1.4; color:#5a544d">Baseline first. Then read the search one axis at a time.</p></div>
+    </div>
+  </div>
+  <div class="foot"><p>Agenda</p><p class="n"></p></div>
+  <aside>The agenda as eight questions; read them out. One is the context: where deep learning sits in a longer story, and the three kinds of learning problem. Two, three and four are the cache, the idea the whole course is built on: a pretrained encoder turns a photo into a vector, its space is already ordered, you run it once, and which encoder you pick matters more than what you put on top. Five is the core: tensors, their shape and their meaning. Six, seven and eight are the network you train on top of the cache: why it needs a nonlinearity, how training works, and how a search over architectures is read. The notebooks follow along: 01 the cache, 01b tensors, 02 nonlinearity, 03 training, 04 search, and 05 the exercises. Same rhythm every time: a question, real data, then the answer again in plain words.</aside>
+</section>
+
+<!-- ============================================================ 01 -->
+<section id="p01" class="ink std" data-crumb="01 context">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 01</p><p>where does deep learning fit?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">Machines that learn are the latest in a line of discoveries that moved humans off the centre. They learn in three ways.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · The <span class="v">wounds</span></p><p class="s">Copernicus, Darwin, Freud: each took away a privilege. Schrödinger and Turing took two more.</p></div>
+      <div class="card"><p class="ck">2 · Three <span class="v">kinds</span></p><p class="s">Supervised, unsupervised, reinforcement. What your data gives you decides which one you are doing.</p></div>
+      <div class="card"><p class="ck">3 · A <span class="v">loop</span></p><p class="s">Reinforcement learning is a loop: act, check, repeat until a stop condition. Agents work the same way.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question one. Before the code, two pieces of context. The first is historical: where does deep learning sit among the ideas that changed how we see ourselves? The second is practical: there are three kinds of learning problem, and you should be able to say which one you have before you choose a method. The third card is new this year: reinforcement learning is a loop, and the agents many of you already use, coding assistants among them, are built as loops in exactly that sense.</aside>
+</section>
+
+<section id="wounds" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>narcissistic wounds</p></div>
+  <div class="body">
+    <h2 class="t">Five <span class="v">narcissistic wounds</span></h2>
+    <div style="display:flex; flex-direction:column; gap:26px; justify-content:center; flex:1">
+      <div style="display:grid; gap:24px 48px; grid-template-columns:90px 330px 1fr; align-items:baseline">
+        <p class="mono pe" style="font-size:28px">1</p><p style="font-size:40px; font-weight:500">Copernicus</p><p style="font-size:36px; color:#5a544d">The earth is not the centre of the universe.</p>
+        <p class="mono pe" style="font-size:28px">2</p><p style="font-size:40px; font-weight:500">Darwin</p><p style="font-size:36px; color:#5a544d">Humans are a product of evolution.</p>
+        <p class="mono pe" style="font-size:28px">3</p><p style="font-size:40px; font-weight:500">Freud</p><p style="font-size:36px; color:#5a544d">We are driven by an unconscious.</p>
+      </div>
+      <div data-build-in="fade" style="display:grid; gap:24px 48px; grid-template-columns:90px 330px 1fr; align-items:baseline; padding-top:26px; border-top:1px solid #cfc7bb">
+        <p class="mono v" style="font-size:28px">4</p><p style="font-size:40px; font-weight:500">Schrödinger</p><p style="font-size:36px; color:#5a544d">Our everyday logic falls short of quantum mechanics.</p>
+        <p class="mono v" style="font-size:28px">5</p><p style="font-size:40px; font-weight:500">Turing</p><p style="font-size:36px; color:#5a544d">Humans are not the peak of <span class="v">intelligence</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>1 / where does deep learning fit?</p><p class="n"></p></div>
+  <aside>Freud wrote in 1917 that science had dealt human self-love three blows. Copernicus: the earth, and we with it, is not the centre of the universe. Darwin: humans are not a separate creation but a product of evolution, an animal among animals. And, Freud's own claim, psychoanalysis: we are not even masters in our own house, because much of what drives us is unconscious. Then click. Two more can be added. Schrödinger, standing for quantum mechanics: the logic we use every day, in which a thing is here or there, falls short of how the world behaves at small scales. And Turing: the idea that a machine can do what we call thinking, which takes away the last privilege, that humans are the peak of intelligence. You do not have to agree with the fifth to see why it provokes; the discussion around large language models is full of it. "It is just statistics, so it cannot understand" is the same move people made against Darwin: it is just chemistry, so love cannot exist. A description at a low level, statistics or chemistry, does not by itself rule out a property at a higher level. Keep that in mind when you read claims in either direction. This course stays at the level where we can measure things, and the habit we train is: say what you measured, and how sure you are.</aside>
+</section>
+
+<section id="kinds" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>three kinds of learning</p></div>
+  <div class="body">
+    <h2 class="t">What your data gives you decides the <span class="v">kind</span> of learning</h2>
+    <div class="g3" style="flex:1; align-items:start; padding-top:12px">
+      <div class="col" style="gap:20px">
+        <p class="ck2">supervised · x and y</p>
+        <img src="img/lesson1/ml_supervised.png" alt="Photos of eight flower species as points on two axes, each species in its own colour; points of one colour lie together" style="width:520px; height:426px; object-fit:contain">
+        <p class="s">Every example comes with the answer. Learn the map from x to y: a class (<span class="pe">classification</span>) or a number (<span class="pe">regression</span>).</p>
+      </div>
+      <div class="col" style="gap:20px">
+        <p class="ck2">unsupervised · only x</p>
+        <img src="img/lesson1/ml_unsupervised.png" alt="The same points without colours, all grey" style="width:520px; height:426px; object-fit:contain">
+        <p class="s">The same points without answers. Find the structure in x itself: groups, directions, what is normal and what is not.</p>
+      </div>
+      <div class="col" style="gap:20px">
+        <p class="ck2">reinforcement · a score</p>
+        <svg aria-label="A loop: act, the world responds, a score comes back, the agent updates, and acts again" width="520" height="426" viewBox="0 0 520 426">
+          <circle cx="260" cy="213" r="140" fill="none" stroke="#cfc7bb" stroke-width="3"/>
+          <polygon points="400,205 390,228 410,228" fill="#5a544d"/>
+          <polygon points="120,221 110,198 130,198" fill="#5a544d"/>
+          <polygon points="252,353 275,343 275,363" fill="#5a544d"/>
+          <polygon points="268,73 245,63 245,83" fill="#5a544d"/>
+          <rect x="185" y="48" width="150" height="50" fill="#f4f1ec" stroke="#c43a14" stroke-width="2"/>
+          <text x="260" y="81" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#c43a14">act</text>
+          <rect x="330" y="188" width="170" height="50" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
+          <text x="415" y="221" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#111111">the world</text>
+          <rect x="185" y="328" width="150" height="50" fill="#f4f1ec" stroke="#1d5a73" stroke-width="2"/>
+          <text x="260" y="361" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#1d5a73">score</text>
+          <rect x="30" y="188" width="170" height="50" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
+          <text x="115" y="221" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#111111">update</text>
+        </svg>
+        <p class="s">No answers, only a score after you act. Act, get scored, change, act again: a <span class="v">loop</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>1 / where does deep learning fit?</p><p class="n"></p></div>
+  <aside>Three kinds of learning, told apart by what the data gives you. Left and middle are the same data on purpose: photos of eight flower species, as vectors from the encoder we meet in question two, drawn on two axes. Supervised: every photo comes with its label, the colour, and the job is to learn the map from photo to label. If the label is a class it is classification; if it is a number, a price or a temperature, it is regression. Unsupervised: the same points without the colours. Now there is nothing to predict; you look for structure in the data itself, such as groups, the main directions of variation, or points that do not fit. You can see the groups even in grey here, and that is the point of question two. Reinforcement learning is the odd one out: there is no right answer per example at all. An agent acts, the world changes, and a score comes back: a game won or lost, a test passed or failed. The agent changes how it acts and tries again. Between supervised and unsupervised sits self-supervised learning, where the labels are made from the data itself, such as predicting a hidden part of a photo; that is how the encoder in question two was trained, and it is the subject of lesson 5. When you start a project, the first thing to write down is which of these you have.</aside>
+</section>
+
+<section id="loops" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>loop engineering</p></div>
+  <div class="body">
+    <h2 class="t">A loop runs until a <span class="v">check</span> says stop</h2>
+    <div class="row" style="gap:72px">
+      <svg aria-label="A loop diagram. A trigger starts the agent. The agent acts, the world changes, a check scores the result. If the stop condition is met the loop ends; if not, the agent updates and acts again." width="820" height="640" viewBox="0 0 820 640">
+        <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a544d"/></marker></defs>
+        <rect x="20" y="40" width="210" height="64" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
+        <text x="125" y="70" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#5a544d">trigger</text>
+        <text x="125" y="94" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="20" fill="#5a544d">prompt, clock, event</text>
+        <path d="M230,72 C300,72 300,140 330,170" fill="none" stroke="#5a544d" stroke-width="2.5" marker-end="url(#ah)"/>
+        <circle cx="400" cy="340" r="190" fill="none" stroke="#cfc7bb" stroke-width="3"/>
+        <rect x="320" y="122" width="160" height="60" fill="#f4f1ec" stroke="#c43a14" stroke-width="2.5"/>
+        <text x="400" y="160" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#c43a14">act</text>
+        <rect x="500" y="310" width="200" height="60" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
+        <text x="600" y="348" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#111111">world changes</text>
+        <rect x="310" y="498" width="180" height="60" fill="#1d5a73" stroke="#1d5a73" stroke-width="2"/>
+        <text x="400" y="536" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#f4f1ec">check</text>
+        <rect x="100" y="310" width="200" height="60" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
+        <text x="200" y="348" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#111111">update</text>
+        <path d="M484,170 A190,190 0 0 1 585,300" fill="none" stroke="#5a544d" stroke-width="2.5" marker-end="url(#ah)"/>
+        <path d="M585,380 A190,190 0 0 1 494,505" fill="none" stroke="#5a544d" stroke-width="2.5" marker-end="url(#ah)"/>
+        <path d="M306,505 A190,190 0 0 1 215,380" fill="none" stroke="#5a544d" stroke-width="2.5" marker-end="url(#ah)"/>
+        <path d="M215,300 A190,190 0 0 1 316,170" fill="none" stroke="#5a544d" stroke-width="2.5" marker-end="url(#ah)"/>
+        <text x="236" y="470" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">not yet</text>
+        <path d="M490,528 L640,528 L640,590" fill="none" stroke="#1d5a73" stroke-width="2.5" marker-end="url(#ah)"/>
+        <text x="566" y="622" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#1d5a73">stop condition met</text>
+        <rect x="580" y="592" width="120" height="44" fill="#f4f1ec" stroke="#1d5a73" stroke-width="2"/>
+        <text x="640" y="622" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#1d5a73">stop</text>
+      </svg>
+      <div class="col" style="gap:24px">
+        <p class="s"><span class="pe">Reinforcement learning:</span> an agent acts, the world answers with a reward, the agent updates and acts again.</p>
+        <p class="s"><span class="pe">Loop engineering:</span> design what starts the loop, what checks the work, and when it stops. The Claude Code team defines a loop as “an agent repeating cycles of work until a stop condition is met”.</p>
+        <table class="tab" style="font-size:24px">
+          <tr><th style="width:40%">started by</th><th>stops when</th></tr>
+          <tr><td>your prompt</td><td>the agent judges it done</td></tr>
+          <tr><td>a goal</td><td>a checker confirms the goal</td></tr>
+          <tr><td>a clock</td><td>you cancel it</td></tr>
+          <tr><td>an event</td><td>each task's goal is met</td></tr>
+        </table>
+        <p class="s">The check plays the part of the reward. A loop can only get as good as <span class="v">what it can check</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>1 / where does deep learning fit?</p><p class="n"></p></div>
+  <aside>Reinforcement learning as a loop, and why that idea is everywhere right now. The classic picture: an agent takes an action, the environment changes, a reward comes back, the agent updates its policy, and it acts again, until the episode ends. Coding agents are built the same way, and the people who build them have started calling the design work loop engineering. The Claude Code team at Anthropic describes a loop as an agent repeating cycles of work until a stop condition is met, and sorts loops by what starts them and what stops them. Four kinds, in my words. A loop you start with a prompt, where the agent decides when it is done. A loop with an explicit goal, where a separate check looks at the work every time the agent wants to stop and sends it back if the goal is not met, for example: get this page's performance score to 90, at most five attempts. A loop on a clock, every five minutes check this pull request. And a loop triggered by events, such as a new bug report, that runs without anyone watching. Source: claude.com, Getting started with loops, and the Claude account on Threads, November 2026. The diagram is my own drawing of the common shape. What carries over to this course: the check is the reward. A reinforcement learner, or an agent in a loop, can only become as good as the signal that tells it whether it did well. A check that a program can compute, tests that pass, a score above a threshold, is what makes a loop work without a human in it. You will see the same structure in question seven: the training loop runs forward, loss, backward, step, until a stop condition, a number of epochs or a loss that stops improving.</aside>
+</section>
+
+<section id="again01" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 01 — where does deep learning fit?</p></div>
+    <div class="again">
+      <p class="big">Machines that learn are the fifth wound. They learn from <span class="v">answers</span>, from structure, or from a score.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">Supervised: x with y. Unsupervised: only x. Reinforcement: no y, only a score after acting.</p>
+        <p class="m">Write down which one you have <span style="color:#111111">before</span> you choose a method.</p>
+        <p class="m">A loop needs a trigger, a <span class="v">check</span> and a stop condition. The check decides how good it can get.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. Deep learning is one more step in a long line of findings that took a privilege away from us, and the discussion around it is loud in both directions; we stay with what can be measured. A learning problem is supervised when you have the answers, unsupervised when you only have the data, and reinforcement learning when all you get is a score after you act. And a loop, the shape of every agent and of every training run, is only as good as the check inside it.</aside>
+</section>
+
+<!-- ============================================================ 02 -->
+<section id="p02" class="ink std" data-crumb="02 cache">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 02</p><p>why use a model somebody else trained?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">A model trained on millions of photos already puts similar photos close together. Your labels only have to be read off.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · <span class="v">Encoder</span></p><p class="s">A network that turns a photo or a sentence into a few hundred numbers. Somebody else trained it; you keep it frozen.</p></div>
+      <div class="card"><p class="ck">2 · An <span class="v">ordered</span> space</p><p class="s">Near means similar, even for classes the encoder never saw. A nearest neighbour already classifies.</p></div>
+      <div class="card"><p class="ck">3 · <span class="v">Transfer</span></p><p class="s">Use what it learned for your own task, and train only a small head on top.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question two, the idea the whole course rests on. Training a network on raw photos means it first has to learn to see, edges, textures, shapes, before it can learn your task. The first part is expensive and has little to do with your task. So it has been done for you: companies with far more data and hardware train large encoders, and publish them. An encoder turns a photo into, say, 384 numbers, and it is trained so that photos that look alike get numbers that lie close together. That makes the space ordered: for flowers, for satellite images, for textures, even though it was never trained on any of those labels. You keep the encoder frozen and train only a small model on top, the head. That is transfer learning. Notebook 01, the cache.</aside>
+</section>
+
+<section id="pipeline" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>oxford flowers, 102 species</p></div>
+  <div class="body">
+    <div style="display:flex; flex-direction:column; gap:16px"><h2 class="t">The encoder runs <span class="v">once</span>; the head trains on what it stored</h2>
+      <div class="chip"><p class="lab">cache</p><p class="code">VectorCache.from_hub("pttrn-io/oxford-flowers-dinov2-small", split="train")</p></div>
+    </div>
+    <div style="display:flex; flex-direction:column; gap:48px; justify-content:center; flex:1">
+      <div style="display:flex; flex-direction:row; gap:20px; align-items:center">
+        <div class="box" style="flex:1"><p class="ck2">photos</p><p class="s">5,000 photos of 102 kinds of flower</p></div>
+        <p class="arrow">→</p>
+        <div class="box on" style="flex:1"><p class="ck2">encoder · once</p><p class="s">DINOv2-small: 22 million weights, trained by Meta on 142 million photos, without labels. Frozen.</p></div>
+        <p class="arrow">→</p>
+        <div class="box" style="flex:1"><p class="ck2">cache</p><p class="s">384 numbers per photo, stored and published on the hub</p></div>
+        <p class="arrow">→</p>
+        <div class="box pet" style="flex:1"><p class="ck2">head · yours</p><p class="s">384 × 102 weights, trained on a laptop, as often as you like</p></div>
+      </div>
+      <div class="g3">
+        <p class="s"><span class="pe">Encoder:</span> photo in, 384 numbers out. It never saw these labels; it learned what makes photos look alike.</p>
+        <p class="s"><span class="pe">Cache:</span> a frozen encoder gives the same vector for the same photo every time. So compute it once and <span class="v">store it</span>.</p>
+        <p class="s"><span class="pe">Head:</span> the small network you train. <span class="v">Transfer learning</span> is training only this part.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>2 / why use a model somebody else trained?</p><p class="n"></p></div>
+  <aside>The pipeline of notebook 01, left to right. The photos: Oxford Flowers, 102 species, 4,000 for training and 1,000 for testing. The encoder: facebook/dinov2-small, 22 million weights, trained by Meta on 142 million photos with a self-supervised objective: no labels, only the task of giving two views of the same photo similar vectors. It has never seen a flower label. It turns every photo into 384 numbers. Because the encoder is frozen, the vector for a photo never changes, so there is no reason to compute it more than once: a vector cache. This one is published on the Hugging Face hub; VectorCache.from_hub downloads the vectors, the labels and a metadata.json that says which model made them, in about a second, without a GPU. On top sits the head, the part that is yours: one Linear layer of 384 by 102 weights, or a little more. The cache is what turns training into seconds on a laptop, and question three counts what it saves.</aside>
+</section>
+
+<section id="flowers" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>eight of the 102 species</p></div>
+  <div class="body">
+    <h2 class="t">An <span class="v">ordered</span> space, before anything is trained</h2>
+    <div class="row" style="gap:80px">
+      <img src="img/lesson1/flowers_pca.png" alt="78 test photos of eight flower species on the first two PCA components of the encoder vectors, one colour per species: most species form their own tight group, two or three overlap" style="width:760px; height:600px; object-fit:contain">
+      <div class="col">
+        <p class="s">78 test photos of eight species, the encoder’s 384 numbers projected onto two axes with PCA, one colour per species.</p>
+        <p class="s">Nothing was trained on these labels, and still photos of one species <span class="v">sit together</span>.</p>
+        <p class="s">The encoder was trained to recognise views of the same photo, not to name flowers. The order is a side effect of learning to see.</p>
+        <p class="s">The projection does not make the groups. It only shows two of the 384 directions in which the encoder <span class="pe">already</span> sorted them.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>2 / why use a model somebody else trained?</p><p class="n"></p></div>
+  <aside>If the encoder did its job, photos of the same species should already sit near each other. Not because anything was fitted to this task, but because near in this space is supposed to mean similar. This is the direct way to look: eight species picked at random, their test photos, and PCA, a projection of 384 numbers onto the two directions in which they vary most. Most species form their own group; two or three overlap in these two directions, which is what two out of 384 can show. The order is there before you train anything. The labels in this cache are class numbers, so there is no legend; nothing here needs to know which number is a rose. Notebook 01, the start.</aside>
+</section>
+
+<section id="knn" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>1,000 test photos × 4,000 training photos</p></div>
+  <div class="body">
+    <div style="display:flex; flex-direction:column; gap:16px"><h2 class="t">Copy the label of the <span class="v">most similar</span> photo: 99.1%</h2>
+      <div class="chip"><p class="lab">all cosines at once</p><p class="code">(normalize(Xte) @ normalize(Xtr).T).argmax(dim=1)</p></div>
+    </div>
+    <div class="row" style="gap:80px">
+      <div class="col" style="flex:0 0 860px">
+        <table class="tab">
+          <tr><th style="width:60%">flowers, 102 species</th><th style="text-align:right">trains</th><th style="text-align:right">accuracy</th></tr>
+          <tr><td>guess</td><td style="text-align:right">nothing</td><td style="text-align:right">1.0%</td></tr>
+          <tr><td>nearest neighbour on the cached vectors</td><td style="text-align:right">nothing</td><td style="text-align:right; color:#c43a14">99.1%</td></tr>
+          <tr><td>a small trained head on the same vectors</td><td style="text-align:right">a head</td><td style="text-align:right">99.3%</td></tr>
+        </table>
+      </div>
+      <div class="col">
+        <p class="s"><span class="pe">Nearest neighbour:</span> for every test photo, find the training photo with the highest cosine similarity, and copy its label.</p>
+        <p class="s">No loss, no optimizer, no weights. Only distances, in a space somebody else ordered.</p>
+        <p class="s">The trained head adds <span class="v">two tenths of a point</span>. The representation does the work.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>2 / why use a model somebody else trained?</p><p class="n"></p></div>
+  <aside>The classifier that needs no training. To label a photo you have never seen, find the most similar photo whose label you know, and copy it. That only works if most similar usually means same species, which the picture on the previous slide suggested and this checks in all 384 dimensions. Similarity is cosine similarity: the angle between two vectors. Scale every vector to length one first, and the cosine is a dot product, so one matrix product gives every pair at once: test times train transposed is a table of 1,000 rows by 4,000 columns, and argmax per row is the nearest neighbour. Result: 99.1 percent on 102 fine-grained species, against 1 percent by guessing. A small trained head on the same vectors gets 99.3. A number like that deserves suspicion, so it was checked: train and test come from different source splits, near-duplicates are too rare to carry it, and resnet-18 gets 90 percent through the identical rows; a leak would lift every encoder. Flowers is solved, which makes it a good demo and a useless exercise: the notebooks continue on EuroSAT and DTD, where there is something left to learn.</aside>
+</section>
+
+<section id="objective" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>flowers, satellites, textures</p></div>
+  <div class="body">
+    <h2 class="t">The encoder was never trained for <span class="v">your</span> labels</h2>
+    <div class="fill">
+      <div class="callout"><p style="font-size:30px; line-height:1.4">DINOv2 was trained to give two views of the same photo similar vectors. Nobody told it about flowers, fields or fabrics. The order in its space is a <span class="v">by-product</span>, and you can use it for a purpose it was never trained for.</p></div>
+      <table class="tab">
+        <tr><th style="width:32%">dataset · dinov2-small</th><th style="width:16%; text-align:right">classes</th><th style="width:26%; text-align:right">nearest neighbour</th><th style="text-align:right">trained head</th></tr>
+        <tr><td>Oxford Flowers</td><td style="text-align:right">102</td><td style="text-align:right">99.1%</td><td style="text-align:right">99.3%</td></tr>
+        <tr><td>EuroSAT, satellite tiles</td><td style="text-align:right">10</td><td style="text-align:right">—</td><td style="text-align:right">95.0%</td></tr>
+        <tr><td>DTD, textures</td><td style="text-align:right">47</td><td style="text-align:right">77.0%</td><td style="text-align:right">80.3%</td></tr>
+      </table>
+      <p class="s">Flowers is solved. EuroSAT is good, not solved. Textures leave <span class="v">twenty points</span> of headroom: that is where the search in question eight runs.</p>
+    </div>
+  </div>
+  <div class="foot"><p>2 / why use a model somebody else trained?</p><p class="n"></p></div>
+  <aside>The point of the previous three slides in one sentence: an encoder trained for one purpose gives you a space that is useful for many others. DINOv2's training objective has nothing to do with flower species, land use from a satellite or kinds of fabric; it is self-supervised, which lesson 5 is about. Yet on all three a nearest neighbour or a single Linear layer gets far above chance. How far depends on the task. Flowers: 99 percent, solved. EuroSAT satellite tiles: 95 percent with the full cache. DTD, the describable textures dataset, 47 kinds of texture such as braided, cracked or striped: 77 percent with a nearest neighbour and about 80 with a trained head. That leaves room, which is why notebook 04 searches on DTD: a search on a solved task can only show you noise. The head column is the same small head on every dataset, from planning/evidence.md; the nearest-neighbour numbers were computed for this deck.</aside>
+</section>
+
+<section id="again02" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 02 — why use a model somebody else trained?</p></div>
+    <div class="again">
+      <p class="big">Somebody else paid to <span class="v">order the space</span>. You read your labels off it.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">A frozen encoder turns a photo into a vector. Similar photos get nearby vectors, also for classes it never saw.</p>
+        <p class="m">Nearest neighbour on flowers: 99.1% with nothing trained. The trained head: 99.3%.</p>
+        <p class="m"><span style="color:#111111">Compute the no-training baseline first</span>: it tells you how much is left for a head to do.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. A pretrained encoder is the expensive part of a vision or language model, and its output space is ordered: near means similar. That order is general enough to transfer to tasks it was never trained for, which is why you can train only a small head and still get far. And before you train anything, compute what a nearest neighbour gets on the same vectors. Sometimes, as with flowers, that is already the answer.</aside>
+</section>
+
+<!-- ============================================================ 03 -->
+<section id="p03" class="ink std" data-crumb="03 economics">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 03</p><p>what does embedding once save?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">The encoder is the expensive part, and its output never changes. Pay for it once, then train as many heads as you like.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · Embed <span class="v">once</span></p><p class="s">Running a frozen encoder twice on the same photo gives the same vector twice. Store it.</p></div>
+      <div class="card"><p class="ck">2 · Many <span class="v">heads</span></p><p class="s">On a cache a head trains in a fraction of a second. Try a hundred.</p></div>
+      <div class="card"><p class="ck">3 · Search <span class="v">multiplies</span></p><p class="s">A hyperparameter search repeats head training, not embedding. Keep the encoder out of the loop.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question three, the economics. The cache only makes sense if you see the two price tags. Encoding is slow, wants a GPU, and gives the same answer every time. Training a head on stored vectors takes a fraction of a second. Every experiment you run, every seed, every point of a hyperparameter search, is another head. So the rule is: as long as you are not finetuning the encoder, never run it inside your training loop. Notebook 01, the section with the stopwatch.</aside>
+</section>
+
+<section id="economics" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 3 — what does embedding once save?</p><p>eurosat, 8,000 tiles, measured</p></div>
+  <div class="body">
+    <h2 class="t">A search of 100 heads: <span class="v">165 minutes</span> or two</h2>
+    <div class="row" style="gap:72px">
+      <img src="img/lesson1/economics.png" alt="Minutes against the number of heads trained, up to 100. A grey line for the encoder in the loop rises straight to 165 minutes; a petrol line for encoding once stays flat near the bottom and ends at 1.8 minutes" style="width:900px; height:536px; object-fit:contain">
+      <div class="col">
+        <table class="tab" style="font-size:25px">
+          <tr><th style="width:62%">measured</th><th style="text-align:right">seconds</th></tr>
+          <tr><td>encode 8,000 tiles, dinov2-small, fast laptop CPU (81 per s)</td><td style="text-align:right">99</td></tr>
+          <tr><td>train one head: 10 epochs over 6,000 vectors</td><td style="text-align:right">0.08</td></tr>
+        </table>
+        <p class="s"><span class="pe">Encoder in the loop:</span> every trial encodes again. 100 trials, 165 minutes, nearly all of it recomputing the same vectors.</p>
+        <p class="s"><span class="pe">Encode once:</span> 99 seconds, then 100 heads add 8 seconds.</p>
+        <p class="s">On an older laptop the encoder runs at 10–30 photos per second. The gap only <span class="v">grows</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>3 / what does embedding once save?</p><p class="n"></p></div>
+  <aside>Measured, not estimated. Encoding: dinov2-small on the CPU of a recent Apple laptop does about 81 photos per second, so the 8,000 EuroSAT tiles of the cache take 99 seconds; on MPS it is about three times faster, on an older laptop or a basic cloud machine it is 10 to 30 photos per second, so several minutes. Training a Linear head on the cached vectors, ten epochs over 6,000 rows: 0.08 seconds, test accuracy 0.94. Now run a search of 100 trials. With the encoder inside each trial, every trial pays the 99 seconds again: 165 minutes, almost all of it producing vectors you already had. And that is the generous version, in which a trial encodes once; an encoder inside the epoch loop pays it every epoch, ten times more. With the cache: 99 seconds once, plus 100 times 0.08. Under two minutes. Notebook 01 has you measure your own encoder rate; compare it with the person next to you. That spread is why no notebook in this lesson builds a full cache: every one downloads a published one.</aside>
+</section>
+
+<section id="multiply" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 3 — what does embedding once save?</p><p>counting multiplications</p></div>
+  <div class="body">
+    <h2 class="t">A search multiplies the <span class="v">head</span>, never the encoder</h2>
+    <div class="fill" style="gap:44px">
+      <div style="display:flex; flex-direction:row; gap:48px; align-items:center; justify-content:center">
+        <p style="font-size:64px; font-weight:500; color:#c43a14">E</p><p style="font-size:64px; color:#5a544d">+</p><p style="font-size:64px; font-weight:500; color:#111111">N</p><p style="font-size:64px; color:#5a544d">×</p><p style="font-size:64px; font-weight:500; color:#1d5a73">H</p>
+      </div>
+      <div class="g3">
+        <div class="top first"><p class="ck2" style="color:#c43a14">E · encode, once</p><p class="s">One photo through DINOv2-small: 22 million weights × 257 patches ≈ <span class="v">5.7 billion</span> multiplications.</p></div>
+        <div class="top"><p class="ck2">N · experiments</p><p class="s">Seeds, learning rates, widths, encoders to compare: a search of 24 trials is N = 24, five seeds each is 120.</p></div>
+        <div class="top"><p class="ck2">H · one head</p><p class="s">One photo through a Linear head for EuroSAT: 384 × 10 = <span class="pe">3,840</span> multiplications. A million times less.</p></div>
+      </div>
+      <div class="callout"><p style="font-size:28px; line-height:1.4">This holds while the encoder is <span class="v">frozen</span>. Finetune it, and every epoch runs the encoder forward and backward: then E is inside the loop and you need the GPU after all.</p></div>
+    </div>
+  </div>
+  <div class="foot"><p>3 / what does embedding once save?</p><p class="n"></p></div>
+  <aside>The same argument as a formula. Total cost is E plus N times H: the encoder once, plus N experiments that each train a head. Count multiplications to see the sizes. A photo goes into DINOv2-small as patches of 14 by 14 pixels: 256 patches for a 224-pixel photo plus one summary token, 257 in all, and each of them passes through the 22 million weights once: about 5.7 billion multiplications per photo, and the attention between patches comes on top. A Linear head for ten classes is 384 times 10, 3,840 multiplications per photo. The encoder is more than a million times the head. A search multiplies N. With the encoder in the loop, it multiplies E as well. That is the whole economic argument, and it has one condition: the encoder is frozen. If you finetune it, adjusting its weights for your task, each epoch runs it forward and backward and nothing can be cached. That is sometimes worth it; lesson 3 and lesson 5 return to when. In this lesson it is not.</aside>
+</section>
+
+<section id="again03" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 03 — what does embedding once save?</p></div>
+    <div class="again">
+      <p class="big">Embed once, train <span class="v">many heads</span>.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">Cost is E + N × H. The encoder is a million times the head; the cache pays it once.</p>
+        <p class="m">100 trials: 165 minutes with the encoder in the loop, under two with the cache.</p>
+        <p class="m"><span style="color:#111111">The condition</span>: the encoder stays frozen. Finetuning puts it back in the loop.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. The vectors of a frozen encoder do not change, so you compute them once and store them. Every experiment after that, a seed, a learning rate, a search of a hundred trials, costs only the head, which is so cheap that measuring beats guessing. That is what makes question eight possible.</aside>
+</section>
+
+<!-- ============================================================ 04 -->
+<section id="p04" class="ink std" data-crumb="04 encoders">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 04</p><p>which encoder?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">Different encoders give different vectors. Which one wins depends on what it was trained on, and on your task.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · Training <span class="v">data</span></p><p class="s">An encoder keeps what helped on its own training set and objective, and drops the rest.</p></div>
+      <div class="card"><p class="ck">2 · Your <span class="v">task</span></p><p class="s">The same three encoders are 2 points apart on satellite tiles and 14 apart on textures.</p></div>
+      <div class="card"><p class="ck">3 · <span class="v">Width</span> is not quality</p><p class="s">1,280 numbers per photo can lose to 384. Measure, with the same head.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question four. If the encoder does most of the work, the choice of encoder is the most important choice you make, and it is cheap to make well: every encoder is one more cache, and the comparison is the same head on each. What an encoder is good at follows from what it was trained on and what it was trained to do. Whether that matches your task you find out by measuring. Notebook 01, the encoder comparison, and the encoder axis of the search in notebook 04.</aside>
+</section>
+
+<section id="encoders" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 4 — which encoder?</p><p>same rows, same head, three encoders</p></div>
+  <div class="body">
+    <h2 class="t">The encoder moves the number by up to <span class="v">14 points</span></h2>
+    <div class="row" style="gap:72px">
+      <img src="img/lesson1/encoders.png" alt="Test accuracy of three encoders on three datasets with the same head. EuroSAT: 95.0, 93.8 and 92.6, a spread of 2.4 points. Flowers: 99.3 for dinov2-small, 90.8 for mobilenet and 90.3 for resnet, 9.1 points. DTD: 80.3 for dinov2-small and 65.9 for resnet-18, 14.4 points" style="width:860px; height:560px; object-fit:contain">
+      <div class="col">
+        <table class="tab" style="font-size:24px">
+          <tr><th style="width:36%">encoder</th><th>trained on</th><th style="text-align:right">numbers</th></tr>
+          <tr><td>dinov2-small</td><td>142 M photos, no labels</td><td style="text-align:right">384</td></tr>
+          <tr><td>resnet-18</td><td>ImageNet, 1,000 objects</td><td style="text-align:right">512</td></tr>
+          <tr><td>mobilenet_v2</td><td>ImageNet, 1,000 objects</td><td style="text-align:right">1,280</td></tr>
+        </table>
+        <p class="s"><span class="pe">Satellite tiles</span> sit close to what all three learned: 2.4 points apart. <span class="pe">Textures</span> do not: 14.4.</p>
+        <p class="s">mobilenet has 1,280 numbers per photo and loses to dinov2’s 384 on flowers by 8.5 points. <span class="v">Width is not quality.</span></p>
+        <p class="s">An axis that is flat on one dataset can be steep on the next. Look before you search on it.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>4 / which encoder?</p><p class="n"></p></div>
+  <aside>Same rows, same two-layer head, same seed; the only thing that changes is which frozen model made the vectors. Three findings. First, the encoder matters a lot, and how much depends on the dataset. On EuroSAT the three encoders land within 2.4 points: satellite tiles are close enough to what all of them learned. On flowers DINOv2 is 9 points ahead, on DTD textures 14. Second, width is not quality: mobilenet_v2 gives 1,280 numbers per photo and loses to DINOv2's 384. Third, what each was trained on: resnet-18 and mobilenet_v2 were trained with labels, to name 1,000 kinds of object in ImageNet; DINOv2 was trained on 142 million photos without labels, to recognise two views of the same photo. An encoder keeps what helped with its own objective. Why exactly one does better on textures is an empirical question; the claim you can make is the measured one. The numbers are the full published caches with a two-layer head, from planning/evidence.md; the DTD search in question eight adds dinov2-base and dinov2-large.</aside>
+</section>
+
+<section id="again04" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 04 — which encoder?</p></div>
+    <div class="again">
+      <p class="big">Pick the encoder by <span class="v">measuring</span> it on your task, with the same head.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">What an encoder keeps follows from its training data and its objective.</p>
+        <p class="m">The spread depends on the task: 2.4 points on satellite tiles, 14.4 on textures.</p>
+        <p class="m"><span style="color:#111111">More numbers per item is not better</span>. 1,280 lost to 384.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. The encoder is the axis with the most leverage, and it is the cheapest to explore: one cache per encoder, the same head on each. Its strengths follow from what it was trained on, but you only know what that is worth for your task by measuring. Exercise E3 of notebook 01 asks you to predict, before measuring, whether resnet-18 is further behind on textures than on flowers.</aside>
+</section>
+
+<!-- ============================================================ 05 -->
+<section id="p05" class="ink std" data-crumb="05 tensors">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 05</p><p>what is a tensor?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">A tensor is a rank and a shape. What its axes mean is up to you, and torch cannot check it.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · <span class="v">Formal</span></p><p class="s">Rank: how many axes. Shape: how long each one is. That is all torch knows.</p></div>
+      <div class="card"><p class="ck">2 · <span class="v">Semantic</span></p><p class="s">What each axis stands for: items, chunks, channels, pixels, time. That lives in your head and your names.</p></div>
+      <div class="card"><p class="ck">3 · The <span class="v">ladder</span></p><p class="s">(D) one item, (C, D) one chunked item, (B, D) a batch, (B, C, D) a batch of chunked items.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question five, the core of today. Everything a neural network does, it does to tensors, and almost every confusion of the form "can I use model X on data Y" comes from mixing up two levels. The formal level: a tensor has a rank, the number of axes, and a shape, the length of each axis. That is everything torch knows about it, and every operation looks only at that. The semantic level: what the axes stand for. A tensor of shape 5 by 384 can be five sentences or one document in five pieces, and nothing in the object tells you which. The ladder is the vocabulary we use for the four shapes a cached pipeline moves through. Notebook 01b, and tensor-ladder.md as the reference page every later lesson points back to.</aside>
+</section>
+
+<section id="sentence" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>one sentence, all-MiniLM-L6-v2</p></div>
+  <div class="body">
+    <div style="display:flex; flex-direction:column; gap:16px"><h2 class="t">A sentence becomes a <span class="v">vector</span>: rank 1, shape (384,)</h2>
+      <div class="chip"><p class="lab">encode</p><p class="code">model.encode(["The cat sleeps on the warm windowsill."])[0].shape  # (384,)</p></div>
+    </div>
+    <div class="fill" style="gap:40px">
+      <p style="font-size:44px; font-weight:500; text-align:center">“The cat sleeps on the warm windowsill.”</p>
+      <img src="img/lesson1/sentence_vector.png" alt="A strip of 384 coloured cells from petrol for negative to vermilion for positive values: the vector of one sentence" style="width:1720px; height:172px; object-fit:contain">
+      <div class="g3">
+        <p class="s"><span class="pe">The numbers:</span> 0.107, −0.011, −0.034, 0.145, −0.040, and 379 more. Petrol below zero, vermilion above.</p>
+        <p class="s"><span class="pe">No single number</span> means “cat”. The meaning is in the direction of the whole vector, compared with other vectors.</p>
+        <p class="s">A photo through DINOv2 gives the same <span class="v">kind</span> of object: one item, one vector, (D). From here on, text and images take the same road.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>The first rung of the ladder, with a real sentence. all-MiniLM-L6-v2, a small sentence encoder, turns "The cat sleeps on the warm windowsill." into 384 numbers. That is a rank-1 tensor of shape 384: one item, one vector, written (D). Each cell in the strip is one number, coloured from petrol for negative to vermilion for positive. The first five are 0.107, minus 0.011, minus 0.034, 0.145 and minus 0.040. Do not look for the cat in one of them: the axes of a learned embedding are not named features, unlike the counts of a hand-made feature vector. What carries the meaning is where the vector points, relative to the vectors of other sentences, which is what cosine similarity measures. That this encoder also gives 384 numbers, like DINOv2-small, is a coincidence of model sizes. What is not a coincidence: from the moment a photo or a sentence is a (D) vector, the rest of the pipeline is the same for both. Same collate, same head.</aside>
+</section>
+
+<section id="ranks" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>rank 0 to rank 5</p></div>
+  <div class="body">
+    <h2 class="t">Rank and shape are <span class="v">formal</span>; meaning is yours</h2>
+    <div class="fill">
+      <table class="tab">
+        <tr><th style="width:8%">rank</th><th style="width:28%">shape</th><th style="width:34%">one reading</th><th>another reading, same shape</th></tr>
+        <tr><td class="mono">0</td><td class="mono">()</td><td>the loss of one batch</td><td>an accuracy</td></tr>
+        <tr><td class="mono">1</td><td class="mono">(384,)</td><td>one sentence</td><td>one photo</td></tr>
+        <tr><td class="mono">2</td><td class="mono">(5, 384)</td><td>five sentences: (B, D)</td><td>one document in five chunks: (C, D)</td></tr>
+        <tr><td class="mono">3</td><td class="mono">(3, 300, 451)</td><td>one colour photo: (C, H, W)</td><td>three documents, 300 chunks, 451 numbers each</td></tr>
+        <tr><td class="mono">4</td><td class="mono">(6, 3, 64, 64)</td><td>six photos: (B, C, H, W)</td><td>six 3-sensor recordings on a 64 × 64 grid</td></tr>
+        <tr><td class="mono">5</td><td class="mono">(8, 16, 3, 112, 112)</td><td>eight video clips: (B, T, C, H, W)</td><td>eight CT scans of 16 slices, 3 contrasts each</td></tr>
+      </table>
+      <p class="s">Going up one rank is almost always “<span class="v">a batch of</span> the rank below”. Which reading you hold, the tensor does not record.</p>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>The two levels in one table. The shape column is all torch sees. The other two columns are meanings you bring, and every row has at least two. Rank 0 is a single number, like a loss. Rank 1 is one item. Rank 2 is the first real ambiguity: five sentences stacked into a batch, or one document cut into five chunks; both are 5 by 384, and the next slides show both with real vectors. Rank 3 is our cat: three colour planes of 300 by 451 pixels. Rank 4 is a batch of photos. Rank 5 turns up with video, a batch of clips each a sequence of frames, or with medical scans. The pattern to remember is the last line: going up one rank usually means a batch, or a stack, of the rank below. And the tensor does not record which reading is the right one; that is in your variable names, your comments, and, for a cache you did not build, in its metadata.json.</aside>
+</section>
+
+<section id="ladder" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>the ladder</p></div>
+  <div class="body" style="gap:24px">
+    <h2 class="t">Four rungs, and the <span class="v">operation</span> that moves you between them</h2>
+    <div class="row" style="gap:56px">
+      <img src="img/lesson1/ladder.png" alt="Four tensor shapes drawn as grids of cells. Top left (D), one row: one item. Top right (C, D), four rows in shades of one colour: one document, one row per chunk. Bottom left (B, D), four rows in four colours: four different items. Bottom right (B, C, D), three stacked grids: three documents of four chunks. Arrows: split before encoding from (D) to (C, D); stack B items from (D) to (B, D); stack after padding from (C, D) to (B, C, D); aggregate over C from (B, C, D) to (B, D)" style="width:1100px; height:660px; object-fit:contain">
+      <div class="col">
+        <p class="s"><span class="pe">Columns:</span> a whole item, or an item cut into C chunks.</p>
+        <p class="s"><span class="pe">Rows:</span> one item, or a batch of B.</p>
+        <p class="s"><span class="pe">Stack</span> moves down a row. Chunks of different length need <span class="pe">padding</span> first.</p>
+        <p class="s"><span class="v">Aggregate</span> over C, a mean for instance, takes you back to (B, D), where a head can work.</p>
+        <p class="s">Images in this lesson stay on the left: (D) → (B, D) → (B, K).</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>The ladder, as a two-by-two. Left column, a whole item: one vector per item. Right column, a chunked item: a long document does not fit through a language model at once, so it is cut into C pieces before encoding and each piece gets its own vector. Top row, one item; bottom row, a batch. The arrows are the operations that move you between the rungs. Stacking B items of shape (D) gives (B, D): that is what a collate function does, and question seven builds one by hand. Stacking chunked items gives (B, C, D), but only after padding, because documents have different numbers of chunks and torch.stack needs equal shapes. And an aggregator, for example the mean over the chunk axis, takes (B, C, D) back to (B, D). A head always ends at (B, K), K scores per item. For the image caches of this lesson you stay in the left column: one photo is one vector, a batch is (B, D), the head gives (B, K). Text in lesson 4 uses the right column. The colours in the drawing carry meaning: the four rows of (B, D) are four unrelated items in four colours; the four rows of (C, D) are shades of one colour, pieces of one thing.</aside>
+</section>
+
+<section id="batchchunk" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>stack five documents, or split one</p></div>
+  <div class="body">
+    <h2 class="t">Same shape, (5, 384). Different <span class="v">meaning</span>.</h2>
+    <div class="fill">
+      <div class="center"><img src="img/lesson1/batch_vs_chunk.png" alt="Two heatmaps of five rows each, the first 40 of 384 numbers. Left, petrol title: five unrelated sentences about a cat, trains, baking, football and interest rates, one per row. Right, vermilion title: five consecutive sentences of one text about a cat called Chelsea" style="width:1720px; height:484px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">Batch:</span> five documents, stacked. Each row is an item of its own; a head gives each its own prediction.</p>
+        <p class="s"><span class="v">Chunks:</span> one document, split in five. The rows belong together: their mean cosine is 0.29, against 0.03 for the batch.</p>
+        <p class="s">torch sees two (5, 384) tensors and treats them the same. Mix them up and nothing <span class="v">crashes</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>The ambiguity of rank 2 with real vectors from the same sentence encoder. Left: five unrelated one-line documents, about a cat, train delays, baking, football and interest rates, each encoded and stacked: a batch, (B, D). Right: one short text about a cat called Chelsea, cut into its five sentences, each encoded: one chunked item, (C, D). Both are 5 by 384; shown are the first 40 numbers of each row. Can you see from the heatmaps which is which? Not really. There is a statistical hint: the chunks of one document are about the same thing, so their average cosine similarity is 0.29, while the five unrelated documents average 0.03. But torch does not compute that, and does not care. Give the chunk tensor to a head as if it were a batch and you get five predictions for what should have been one document, with no error. Which reading you hold depends on where you are in the pipeline, before or after collation, and it is your job to track it. The next slide shows the one place this bites hardest.</aside>
+</section>
+
+<section id="linear" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>the trap</p></div>
+  <div class="body">
+    <h2 class="t"><span class="mono" style="font-size:56px">nn.Linear</span> never tells you which <span class="v">rung</span> you are on</h2>
+    <div class="row" style="gap:64px; align-items:center">
+      <div class="col" style="flex:0 0 1060px; gap:28px">
+<pre class="code"><span class="k">head</span> = nn.Linear(384, 10)          <span class="c"># acts on the LAST axis only</span>
+
+head(torch.rand(32, 384)).shape     <span class="c"># (32, 10): one prediction per item</span>
+head(torch.rand(32, 7, 384)).shape  <span class="r"># (32, 7, 10): one per chunk, no error</span></pre>
+<pre class="code"><span class="c"># write the meaning down, and have it checked</span>
+@jaxtyped(typechecker=beartype)
+def classify(x: Float[Tensor, <span class="k">"batch dim"</span>]) -&gt; Float[Tensor, <span class="k">"batch classes"</span>]:
+    return head(x)
+
+classify(torch.rand(32, 7, 384))    <span class="r"># raises: expected 2 axes, got 3</span></pre>
+      </div>
+      <div class="col">
+        <p class="s">A Linear layer accepts <span class="v">any leading shape</span>. The second call trains, the loss goes down, and the answer is about chunks, not documents.</p>
+        <p class="s">A type annotation names the axes. The check turns a mistake in <span class="pe">meaning</span> into a mistake in <span class="pe">shape</span>, the only kind a computer can catch.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>Why the two levels matter in code. nn.Linear multiplies along the last axis and keeps every axis before it, whatever they are. Give it a batch of 32 items of 384 numbers and you get 32 predictions, what you meant. Give it a batch of 32 documents of 7 chunks each and you get 32 times 7 predictions, one per chunk, without any error. It trains. The loss goes down. Nothing warns you. The fix is to write the meaning into the code where it can be checked. jaxtyping lets you annotate a tensor with names for its axes, and beartype checks the annotation every time the function is called. Float of Tensor, batch dim, says: two axes, the first is the batch, the second the features. Now the wrong rung raises an error. That is the only way a semantic mistake becomes a formal one, and formal mistakes are the only kind a computer can catch for you. Notebook 01, section on shape and meaning.</aside>
+</section>
+
+<section id="cat" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>chelsea the cat, 300 × 451 pixels</p></div>
+  <div class="body">
+    <div style="display:flex; flex-direction:column; gap:16px"><h2 class="t">A photo is three planes: <span class="v">(C, H, W)</span></h2>
+      <div class="chip"><p class="lab">channels first</p><p class="code">torch.from_numpy(img).permute(2, 0, 1).shape  # (3, 300, 451)</p></div>
+    </div>
+    <div class="fill">
+      <div class="center"><img src="img/lesson1/cat_channels.png" alt="The photo of a tabby cat, then three copies: one with only the red values, in red; one with only the green values, in green; one with only the blue values, in blue. The fur is bright in red and dark in blue" style="width:1720px; height:425px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">One pixel</span> is three numbers from 0 to 255. Row 150, column 225, in the fur: red 190, green 150, blue 124.</p>
+        <p class="s"><span class="pe">One channel</span> is a grid of 300 × 451 numbers. The fur is light in red and dark in blue: that is why it looks orange.</p>
+        <p class="s">A file stores (H, W, 3); torch layers want <span class="v">channels first</span>, (3, H, W). One permute, same numbers.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>Rank 3, and here the axes have a physical meaning. A colour photo is three grids of numbers, one per colour channel. Each grid is the image as seen through one colour filter: drawn here in its own colour, red, green and blue. One pixel in the fur at row 150, column 225 is red 190, green 150, blue 124: more red than blue, which is why the cat looks orange-brown. You can see the same thing per channel: the fur is bright in the red plane and dark in the blue one, while the white whiskers are bright in all three. Image files and numpy store a photo as height, width, channels. torch's convolution layers want channels first: C, H, W. permute(2, 0, 1) reorders the axes; the numbers do not change, only how they are indexed. That one call is the whole difference between the two conventions, and forgetting it is a classic shape error. Chelsea is the sample photo that ships with scikit-image, released into the public domain by her owner.</aside>
+</section>
+
+<section id="images4d" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>six eurosat tiles</p></div>
+  <div class="body">
+    <h2 class="t">A batch of photos is <span class="v">4D</span>: (B, C, H, W)</h2>
+    <div class="fill">
+      <div class="center"><img src="img/lesson1/batch_images.png" alt="Six satellite tiles of 64 by 64 pixels in a row: forest, river, highway, residential, lake and annual crop land; on the right the same six drawn as a stack of cards" style="width:1720px; height:494px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">One tile</span> is (3, 64, 64): the cat’s three planes, at satellite resolution.</p>
+        <p class="s"><span class="pe">Six tiles</span> stacked are (6, 3, 64, 64). One rank up, and again it means “a batch of the rank below”.</p>
+        <p class="s">The encoder takes (B, 3, 224, 224) and returns <span class="v">(B, 384)</span>. That step is the cache, seen from the shapes.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>Rank 4. Six EuroSAT tiles, the satellite dataset of notebooks 01 to 03: forest, river, highway, residential, lake and farmland. Each is 64 by 64 pixels with three channels, so (3, 64, 64), the same kind of object as the cat. Stack six and you get (6, 3, 64, 64): batch, channels, height, width, the shape every image model in torch expects. Going up one rank meant a batch again. Now connect it to question two. The encoder takes a batch of photos, resized to 224 by 224, so (B, 3, 224, 224), and gives back (B, 384): one vector per photo. Everything rank 4 disappears into the encoder, and what comes out is the left column of the ladder. That is why this course rarely needs 4D tensors by hand: the cache did that step for you, once.</aside>
+</section>
+
+<section id="cnn" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>a formal question</p></div>
+  <div class="body">
+    <h2 class="t">Can a CNN run on a time series? Formally, <span class="v">yes</span></h2>
+    <div class="row" style="gap:64px">
+      <div class="col" style="flex:0 0 1040px">
+<pre class="code">x = torch.rand(32, 200, 3)     <span class="c"># (B, S, D): 32 series, 200 steps, 3 sensors</span>
+
+nn.Conv1d(3, 16, kernel_size=5)(x.permute(0, 2, 1)).shape
+<span class="k"># (32, 16, 196)      Conv1d wants (B, C, L): sensors as channels</span>
+
+nn.Conv2d(1, 16, kernel_size=3)(x.unsqueeze(1)).shape
+<span class="k"># (32, 16, 198, 1)   Conv2d wants (B, C, H, W): a one-channel "image"</span></pre>
+      </div>
+      <div class="col">
+        <p class="s">“A CNN is an image model” is a habit, not a rule. The rule is only <span class="pe">the rank, channels second</span>.</p>
+        <p class="s">Whether it <span class="v">makes sense</span> is the semantic question: does the pattern you convolve along mean the same wherever it occurs? Along time, often. Across sensors, rarely.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>Ask a room whether you can use a CNN on a time series and many say no, because a CNN is for images. That is a semantic answer to a formal question. Formally, Conv1d wants (B, C, L), batch, channels, length. A batch of time series is (B, S, D): steps and sensors. One permute and the sensors are the channels and the steps the length. It runs, and it is what people mean by a 1D CNN on signals. Conv2d wants (B, C, H, W). Add an axis with unsqueeze and the same batch is a one-channel image whose height is time and whose width is the sensors. That runs too. So the question "is it allowed" has a boring answer. The interesting one is semantic: a convolution assumes that nearby positions are related and that a pattern means the same wherever it occurs. Time usually has both properties. The sensor axis usually has neither: sensor one and sensor two are not neighbours in any meaningful way, which is why you make them the channels. That is an argument you can have, and test. tensor-ladder.md, section 2.</aside>
+</section>
+
+<section id="again05" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 05 — what is a tensor?</p></div>
+    <div class="again">
+      <p class="big">torch sees a <span class="v">shape</span>. You have to know what it means.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">Rank and shape are formal. What the axes stand for, items, chunks, channels, time, is semantic.</p>
+        <p class="m">(D) → (C, D) → (B, D) → (B, C, D): stack, pad, aggregate. Batch of five and one in five chunks have the same shape.</p>
+        <p class="m"><span style="color:#111111">Write the meaning down</span>: in names, and in annotations that are checked.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. A tensor is numbers with a rank and a shape, and that is all the library knows. The meaning of each axis, whether rows are items or chunks, whether the first axis is channels or time, is yours to keep track of. Most bugs you will meet in this course are not shape errors, which are loud, but meaning errors with the right shape, which are silent. Name your axes, annotate the functions where it matters, and read the metadata.json of a cache before you write model code: it tells you the rank of one item.</aside>
+</section>
+
+<!-- ============================================================ 06 -->
+<section id="p06" class="ink std" data-crumb="06 nonlinearity">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 06</p><p>why a nonlinearity?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">Stack linear layers and you get one linear layer. A nonlinearity between them is what makes depth worth anything.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · <span class="v">Collapse</span></p><p class="s">W₅W₄W₃W₂W₁ is one matrix. Five layers without activation compute what one layer computes.</p></div>
+      <div class="card"><p class="ck">2 · <span class="v">Bend</span></p><p class="s">A layer is σ(Wx + b). The σ bends the line, and bent lines add up to curves.</p></div>
+      <div class="card"><p class="ck">3 · <span class="v">Any</span> curve</p><p class="s">With enough units, one hidden layer can come as close as you like to any continuous function.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question six. The 384 numbers in the cache came out of a stack of layers, and the head you train on top is a small stack too. What does each layer do? A linear operation, Wx plus b, followed by a nonlinear function, the activation σ. The first part is not optional and neither is the second, and this question shows why the second matters: without it, any number of layers is one layer. With it, a network can approximate any continuous function. Notebook 02; book chapter 3, pages 25 to 30.</aside>
+</section>
+
+<section id="collapse" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 6 — why a nonlinearity?</p><p>five 12 × 12 layers</p></div>
+  <div class="body">
+    <h2 class="t">Five linear layers are <span class="v">one matrix</span></h2>
+    <div class="fill" style="gap:44px">
+      <div class="center"><img src="img/lesson1/collapse.png" alt="Five random 12 by 12 weight matrices drawn as heatmaps, W5 to W1, then an equals sign and their product W" style="width:1720px; height:342px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">The stack:</span> x → W₁x → W₂W₁x → … → W₅W₄W₃W₂W₁x. Five layers, 720 weights.</p>
+        <p class="s"><span class="pe">The product</span> of five matrices is one matrix W, 144 weights. Same output for every x, to within 2 × 10⁻⁸.</p>
+        <p class="s">Biases change nothing: W₂(W₁x + b₁) + b₂ = (W₂W₁)x + (W₂b₁ + b₂). Without a nonlinearity, <span class="v">depth buys nothing</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>6 / why a nonlinearity?</p><p class="n"></p></div>
+  <aside>The proof is one line of algebra, and the notebook does it numerically. Each linear layer multiplies by a matrix. Five in a row multiply by W1, then W2, and so on, and matrix multiplication is associative, so the five matrices can be multiplied together first into one matrix W. Five layers of 12 by 12 have 720 weights; their product is one 12 by 12 matrix with 144, and it gives the same output for every input, up to rounding, 2 times ten to the minus 8. Not approximately the same function: the same function. With biases it is still one matrix and one bias. So every extra layer without an activation is a slower way to compute a map you could write down as one matrix. A convolution is a linear operation too, with shared weights and a small window: two stacked convolutions without an activation are one wider convolution. Notebook 02, sections 2.1 and 2.2, and exercise E4 asks you to do the version with biases yourself.</aside>
+</section>
+
+<section id="sine" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 6 — why a nonlinearity?</p><p>y = sin(3x), 200 noisy points</p></div>
+  <div class="body">
+    <h2 class="t">The same three layers, with and without <span class="v">GELU</span></h2>
+    <div class="row" style="gap:72px">
+      <img src="img/lesson1/sine_fit.png" alt="200 grey noisy points around a sine wave on x from minus 3 to 3. A grey straight line, the fit of three Linear layers, MSE 0.52. A vermilion curve, the same layers with GELU between them, follows the sine closely, MSE 0.020" style="width:960px; height:500px; object-fit:contain">
+      <div class="col">
+        <p class="s"><span class="pe">Three Linear layers</span> of width 64, trained for 2,000 steps: the best straight line through a sine. MSE 0.52.</p>
+        <p class="s"><span class="v">The same three</span> with a GELU after the first two: MSE 0.020, about the noise in the data.</p>
+        <p class="s">No amount of training fixes the straight line. It is not a training problem, it is what the model <span class="v">can express</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>6 / why a nonlinearity?</p><p class="n"></p></div>
+  <aside>The collapse made visible. The data: y equals sine of 3x on x from minus 3 to 3, 200 points with noise of standard deviation 0.15. Two networks with the same layers, three Linear layers with 64 units, the same seed, the same optimizer, 2,000 steps. Without activations they collapse to one linear function of x, and the best line through a sine is almost flat: mean squared error 0.52. With a GELU after the first two layers the network follows the curve; its error, 0.020, is about the square of the noise, 0.0225, which is as low as an honest fit can go. Train the first one ten times longer and it stays a line: the problem is what the model can express, not how well it was trained. Exercise E2 of notebook 02 asks you to predict that 0.52 before running it.</aside>
+</section>
+
+<section id="uat" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 6 — why a nonlinearity?</p><p>universal approximation</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">Bend a line in enough places and you can draw <span class="v">any curve</span></h2>
+    <div class="row" style="gap:56px; align-items:center">
+      <img src="img/lesson1/udl_fig3_3.png" alt="Figure 3.3 from Understanding Deep Learning: three straight lines in panels a to c; each clipped at zero by a ReLU in panels d to f; each weighted in panels g to i; and their sum in panel j, a line with three bends" style="width:520px; height:630px; object-fit:contain; background:#ffffff">
+      <div class="col" style="gap:24px">
+        <p class="s"><span class="pe">a–c</span> three linear functions of x. <span class="pe">d–f</span> each clipped by a ReLU. <span class="pe">g–i</span> each weighted. <span class="pe">j</span> summed: a line with three bends.</p>
+        <img src="img/lesson1/udl_fig3_5.png" alt="Figure 3.5 from Understanding Deep Learning: a dashed curve approximated by piecewise linear functions with 5, 10 and 20 linear regions, each closer than the last" style="width:900px; height:287px; object-fit:contain; background:#ffffff">
+        <p class="s">One hidden unit, one bend. More units, more regions, and the fit gets as close as you want. The <span class="v">universal approximation theorem</span>: for any continuous function there is a shallow network that approximates it to any precision.</p>
+        <p class="credit">Figures 3.3 (p. 28) and 3.5 (p. 30) from Prince, Understanding Deep Learning, MIT Press, CC BY-NC-ND. udlbook.github.io/udlbook</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>6 / why a nonlinearity?</p><p class="n"></p></div>
+  <aside>Why the bends add up to anything. Figure 3.3 from Simon Prince's book, which you read for this lesson, takes a network with one input, three hidden units and ReLU apart. Top row: each hidden unit starts as a straight line in x, with its own intercept and slope. Second row: the ReLU clips each line at zero, so it becomes a line with one bend. Third row: each clipped line is multiplied by an output weight. Bottom: the sum, plus an offset, is a function made of four straight pieces. Each hidden unit adds one bend. Figure 3.5 takes that further: approximate a smooth curve with 5, 10 and 20 linear pieces, and the fit gets closer each time. The universal approximation theorem says that this always works: for any continuous function on a bounded region, a network with one hidden layer and enough units can approximate it to any precision you specify. Two things it does not say: how many units you need, which can be enormous, and whether gradient descent will find those weights. Deep networks are in practice the efficient way to get there, which is chapter 4. Both figures are shown whole and unchanged, under the book's licence: CC BY-NC-ND, non-commercial, with attribution.</aside>
+</section>
+
+<section id="activations" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 6 — why a nonlinearity?</p><p>five activation functions</p></div>
+  <div class="body">
+    <h2 class="t">Which σ matters less than <span class="v">having one</span>, but read the slopes</h2>
+    <div class="fill">
+      <div class="center"><img src="img/lesson1/activations.png" alt="Left: five activation functions on z from minus 4 to 4: ReLU, Leaky ReLU, ELU, GELU and sigmoid. Right: their slopes. Sigmoid's slope is at most 0.25 and near zero away from the middle; ReLU's slope is 0 left of zero and 1 right of it; Leaky ReLU keeps 0.1 on the left; ELU and GELU are smooth versions" style="width:1520px; height:520px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">Sigmoid</span> flattens on both sides: slope near zero, so the gradient fades through layers. The old reason deep nets would not train.</p>
+        <p class="s"><span class="pe">ReLU</span> has slope 1 for z &gt; 0. Its weakness: a unit stuck below zero has slope 0 and never recovers, a dead ReLU.</p>
+        <p class="s"><span class="pe">Leaky ReLU, ELU, GELU</span> keep a little slope below zero. GELU is the default in transformers and in vectormesh’s NeuralNet.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>6 / why a nonlinearity?</p><p class="n"></p></div>
+  <aside>The activations from the learning goals, and the panel to read is the right one: the slope. During training the gradient flows backwards through every layer and is multiplied, at every unit, by the slope of its activation. Sigmoid squashes everything into 0 to 1; its slope is at most 0.25 and nearly zero away from the middle. Multiply a handful of those and the gradient reaching the first layers is almost nothing: the vanishing gradient, the historical reason deep networks were thought to be untrainable. ReLU, max of 0 and z, has slope exactly 1 for positive input, which fixed that. Its own failure: a unit whose input is always negative has slope 0, gets no gradient, and stays dead. Leaky ReLU gives the negative side a small slope, here 0.1; ELU curves smoothly to minus one; GELU is a smooth ReLU that dips slightly below zero. GELU is the default in transformers and in the NeuralNet of vectormesh you will use. In practice: pick GELU or ReLU and move on. Notebook 04 shows where your time is better spent.</aside>
+</section>
+
+<section id="again06" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 06 — why a nonlinearity?</p></div>
+    <div class="again">
+      <p class="big">A layer is σ(Wx + b). Without the <span class="v">σ</span>, depth is a slower way to compute one matrix.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">Five linear layers are one; a sine fit stays a straight line, MSE 0.52 against 0.020.</p>
+        <p class="m">Each unit adds a bend. Enough bends approximate any continuous function: the universal approximation theorem.</p>
+        <p class="m"><span style="color:#111111">Read the slope</span>: sigmoid fades, ReLU can die, GELU is the default.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. Dense or convolutional, a layer is a linear operation followed by a nonlinearity, and the nonlinearity is the part that makes stacking layers mean something. With it, a network with enough units can approximate any continuous function. Which activation you pick matters much less than having one; the slope tells you whether gradients survive the trip back. And the encoder you downloaded is this construction repeated many times: convolutions or Linear layers, with a ReLU or a GELU between them.</aside>
+</section>
+
+<!-- ============================================================ 07 -->
+<section id="p07" class="ink std" data-crumb="07 training">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 07</p><p>how does a network learn?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">Training repeats one loop: stack a batch, predict, measure how wrong with a loss, and step the weights downhill.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · <span class="v">Batch</span></p><p class="s">A list of items becomes one tensor. For cached vectors that is a torch.stack.</p></div>
+      <div class="card"><p class="ck">2 · <span class="v">Loss</span> and metric</p><p class="s">The loss is smooth, so the optimizer can follow it. The metric is for you, and may jump.</p></div>
+      <div class="card"><p class="ck">3 · <span class="v">Optimizer</span></p><p class="s">The gradient says which way is downhill for every weight. The optimizer decides how far to step.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question seven, the training loop. None of this is new, and it is the same for every network in the course: data comes in batches, the model predicts, a loss function says in one number how wrong it was, backpropagation turns that number into a gradient for every weight, and an optimizer moves the weights a little. Then the next batch. You write the loop by hand once in notebook 03 and then let vectormesh's Trainer run it. Book pages 22 to 23 and chapter 5 for losses, 77 to 80 for the optimizer.</aside>
+</section>
+
+<section id="batching" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 7 — how does a network learn?</p><p>four eurosat rows</p></div>
+  <div class="body">
+    <div style="display:flex; flex-direction:column; gap:16px"><h2 class="t">Batching is <span class="v">stacking</span></h2>
+      <div class="chip"><p class="lab">collate</p><p class="code">X = torch.stack([row["embed"] for row in rows]); y = torch.stack([row["label"] for row in rows])</p></div>
+    </div>
+    <div class="fill">
+      <div class="center"><img src="img/lesson1/batching.png" alt="Four cache rows drawn as strips of 24 coloured cells, each with its label: forest, permanent crop land, pasture land, river. An arrow labelled torch.stack. On the right the same four strips as one block X of shape (4, 384), and a column y of shape (4,) with the labels 1, 6, 5, 8" style="width:1720px; height:474px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">A cache row</span> is a dict: a vector (384,) and a label, one number.</p>
+        <p class="s"><span class="pe">A collate function</span> turns a list of rows into two tensors: X of (B, D) and y of (B,). That is the whole job.</p>
+        <p class="s">The DataLoader shuffles the training set: gradient descent on a fixed order <span class="v">learns the order</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>7 / how does a network learn?</p><p class="n"></p></div>
+  <aside>The step from (D) to (B, D), with real rows from the EuroSAT cache. A row of the cache is a dictionary: one vector of 384 numbers and one label, an integer: 1 is forest, 6 permanent crop land, and so on. A model wants a batch: one tensor X with one row per item, and one tensor y with the labels. torch.stack does exactly that, and the function that does it for a DataLoader is called a collate function. Write it once by hand, as notebook 03 does, so it stops being magic. For chunked documents it also has to pad, because their numbers of chunks differ; for one vector per item, stacking is enough, and metadata.json tells you which case you are in. Two details from the notebook. The label usually becomes a one-hot vector, all zeros and a one at the true class, so the target has the same shape as the output, (B, K). And the training loader shuffles, the test loader does not: a model trained on data in a fixed order learns the order, and a test number should be reproducible.</aside>
+</section>
+
+<section id="lossmetric" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 7 — how does a network learn?</p><p>loss and metric</p></div>
+  <div class="body">
+    <h2 class="t">The loss is for the <span class="v">optimizer</span>; the metric is for you</h2>
+    <div class="row" style="gap:64px">
+      <img src="img/lesson1/loss_metric.png" alt="For two classes, against the probability the model gives the true class from 0 to 1: the cross-entropy loss, a smooth curve falling from about 4.6 to near 0; and accuracy, a step from 0 to 1 at probability 0.5, flat on both sides" style="width:860px; height:484px; object-fit:contain">
+      <div class="col">
+        <table class="tab" style="font-size:24px">
+          <tr><th style="width:34%">task</th><th style="width:36%">loss</th><th>metric</th></tr>
+          <tr><td>regression</td><td class="mono">MSELoss, L1Loss</td><td>MAE, MASE</td></tr>
+          <tr><td>one class of K</td><td class="mono">CrossEntropyLoss</td><td>accuracy</td></tr>
+          <tr><td>any subset of K</td><td class="mono">BCEWithLogitsLoss</td><td>F1</td></tr>
+        </table>
+        <p class="s"><span class="v">Accuracy</span> is a step: right or wrong. Its slope is zero almost everywhere, so it cannot tell the optimizer which way to go.</p>
+        <p class="s"><span class="pe">Cross-entropy</span> is smooth and keeps rewarding more confidence in the right class. Both must say what “good” means for your task.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>7 / how does a network learn?</p><p class="n"></p></div>
+  <aside>Two numbers that look alike and do different jobs. The loss exists for the optimizer: it must be differentiable, because backward needs a slope to follow. The metric exists for you: it must be interpretable, and it needs no slope at all. The picture is a two-class problem. Along the bottom, the probability the model gives the true class. Accuracy, vermilion, is zero below one half and one above: a step, flat everywhere, so its gradient is zero and it tells the optimizer nothing. Cross-entropy, minus the log of that probability, is smooth: it falls steadily as the model grows more confident in the right answer, and it punishes confident mistakes hard. That is why you train on cross-entropy and report accuracy. The table pairs them by task. When the classes compete, one correct class out of K, the loss is cross-entropy, which contains a softmax. When an item can have several labels at once, BCEWithLogits, a sigmoid per class, and F1 as the metric. Both take logits, not probabilities: do not put a softmax at the end of your model. And a metric can mislead as easily as a loss: accuracy on a dataset with 95 percent of one class is 95 percent for a model that learned nothing. Notebook 03, section 3.2.</aside>
+</section>
+
+<section id="optimizer" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 7 — how does a network learn?</p><p>a valley with two weights</p></div>
+  <div class="body">
+    <h2 class="t">The gradient points downhill; the optimizer decides <span class="v">how far</span></h2>
+    <div class="row" style="gap:64px">
+      <img src="img/lesson1/optimizer.png" alt="Contour lines of a long narrow valley over two weights, the minimum marked with a star. From the same start: grey SGD with a small step creeps and stops halfway after 40 steps; vermilion SGD with a large step zigzags across the valley; petrol Adam curves towards the minimum and overshoots a little before settling" style="width:1000px; height:500px; object-fit:contain">
+      <div class="col">
+        <p style="font-size:40px; font-weight:500; color:#111111">w ← w − η · ∂L/∂w</p>
+        <p class="s"><span class="pe">The gradient</span> ∂L/∂w: for every weight, how fast the loss changes. backward() computes it for all of them at once.</p>
+        <p class="s"><span class="pe">The learning rate</span> η: too small and you creep, too large and you <span class="v">zigzag</span> across the valley.</p>
+        <p class="s"><span class="pe">Adam</span> scales the step per weight by how large its gradients have been. A good default for this course.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>7 / how does a network learn?</p><p class="n"></p></div>
+  <aside>The optimizer, drawn with a made-up loss over only two weights, so you can see the whole landscape: a long narrow valley, steep in one direction and shallow in the other, with the minimum at the star. Real networks have millions of weights, but valleys like this, steep in some directions and flat in others, are typical. Gradient descent: compute the slope of the loss for every weight, and step against it, the learning rate times the gradient. Forty steps each from the same start. Grey, plain SGD with a small learning rate: it drops quickly into the valley, where the slope is steep, and then creeps along the flat floor and is only halfway after forty steps. Vermilion, a large learning rate: it overshoots the steep direction every step and zigzags from wall to wall, making progress only slowly along the valley. Petrol, Adam: it keeps a running average of each weight's gradient and of its size, and divides one by the other, so every weight gets a step that suits its own scale. It heads for the minimum on a curve, overshoots a little, and settles. Adam is the default in this course. The learning rate is still yours to set, and it is one of the axes of the search in question eight.</aside>
+</section>
+
+<section id="loop" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 7 — how does a network learn?</p><p>eurosat, a hidden layer, 20 epochs</p></div>
+  <div class="body">
+    <h2 class="t">Five lines per batch, and watch <span class="v">both</span> curves</h2>
+    <div class="row" style="gap:64px">
+      <div class="col" style="flex:0 0 820px; gap:24px">
+<pre class="code" style="font-size:24px">for X, y in trainloader:
+    optimizer.zero_grad()   <span class="c"># 1 clear: gradients add up</span>
+    yhat = model(X)         <span class="c"># 2 forward: (B, D) to (B, K)</span>
+    loss = loss_fn(yhat, y) <span class="c"># 3 how wrong, one number</span>
+    loss.backward()         <span class="c"># 4 a gradient for every weight</span>
+    optimizer.step()        <span class="c"># 5 move the weights</span></pre>
+        <p class="s">Evaluate with <span class="mono" style="font-size:24px">model.eval()</span> and <span class="mono" style="font-size:24px">torch.no_grad()</span>, then back to <span class="mono" style="font-size:24px">model.train()</span>.</p>
+      </div>
+      <div class="col" style="gap:16px">
+        <img src="img/lesson1/training_curve.png" alt="Over 20 epochs: train loss falls from 0.38 to nearly 0; test loss is lowest around epoch 7 at about 0.14 and then creeps up to 0.18; test accuracy rises from 0.93 to about 0.95 and stays there" style="width:820px; height:448px; object-fit:contain">
+        <p class="s">Train loss goes to zero; test loss is lowest at epoch 7, then <span class="v">rises</span>: the model starts to memorise.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>7 / how does a network learn?</p><p class="n"></p></div>
+  <aside>The whole loop. Five lines per batch, always in this order. zero_grad first, because torch adds new gradients to the old ones; forget it and every step uses the sum of all gradients so far, the most common torch bug, exercise E3. Forward: the batch of vectors through the model, (B, D) in, (B, K) out. The loss: one number. backward: by the chain rule, the gradient of that number with respect to every weight. step: the optimizer moves the weights. One pass over the whole training set is an epoch. For evaluation, switch to eval mode, because some layers such as dropout behave differently, and use no_grad, because you need no gradients. The curve on the right is a real run: a head with one hidden layer of 384 units with GELU, on the EuroSAT cache, 20 epochs, batch size 64. The training loss goes to almost zero. The test loss is lowest around epoch 7 and then creeps up, while test accuracy stays near 95 percent. The model is memorising the training rows: overfitting. That is why you keep a part of the data out of training, and why early stopping, which stops when the validation loss stops improving, is a stop condition worth having: the loop from question one again. From notebook 03 on, vectormesh's Trainer runs these five lines for you.</aside>
+</section>
+
+<section id="again07" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 07 — how does a network learn?</p></div>
+    <div class="again">
+      <p class="big">Stack, predict, score, <span class="v">step</span>. Repeat until a stop condition.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">A batch is a stack of items: (D) to (B, D). A collate function does it.</p>
+        <p class="m">Train on a smooth loss, report a metric you can explain. Feed both logits.</p>
+        <p class="m"><span style="color:#111111">zero_grad, forward, loss, backward, step</span>. Watch the test loss, not only the training loss.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. Every network in this course trains with the same loop. Only the model, the loss and the data change. Pick the loss for the optimizer, the metric for the reader, and keep a test set out of training so you can see when the model starts to memorise. Notebook 03 ends with a baseline: a two-layer head on EuroSAT, trained in seconds. The next question is what you do with a number like that.</aside>
+</section>
+
+<!-- ============================================================ 08 -->
+<section id="p08" class="ink std" data-crumb="08 search">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>▲ question 08</p><p>how do you search architectures?</p></div>
+  <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
+    <h2 class="claim">A head trains in a second, so measure instead of guessing: a baseline first, then a search, read one axis at a time.</h2>
+    <div class="cards">
+      <div class="card"><p class="ck">1 · <span class="v">Baseline</span> first</p><p class="s">The simplest model, over several seeds, logged in MLflow. Its spread decides what counts as a win.</p></div>
+      <div class="card"><p class="ck">2 · The search <span class="v">space</span></p><p class="s">Every model you are willing to consider, in one dictionary. Draw each with its tensor shapes.</p></div>
+      <div class="card"><p class="ck">3 · Read per <span class="v">axis</span></p><p class="s">An axis that does not sort the trials did not matter. A null result is a result.</p></div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Question eight. A training run on a cache costs about a second, and that changes how you should work: you can no longer defend picking a width by intuition when checking twenty widths costs less than the argument. So hand the architecture space to a search algorithm and read what comes back, including the parts that disappoint. Three habits: establish a baseline and its noise before anything else, and log it; define the search space explicitly, and know the shape of every model in it; and read the result one axis at a time. Notebook 04, on DTD, the dataset with headroom.</aside>
+</section>
+
+<section id="baseline" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 8 — how do you search architectures?</p><p>dtd, dinov2-small, 47 textures</p></div>
+  <div class="body">
+    <div style="display:flex; flex-direction:column; gap:16px"><h2 class="t">A <span class="v">baseline</span> first, with its noise, logged</h2>
+      <div class="chip"><p class="lab">mlflow</p><p class="code">mlflow.log_metric("baseline_accuracy", BASELINE)   ·   uv run mlflow ui</p></div>
+    </div>
+    <div class="row" style="gap:72px">
+      <div class="col" style="flex:0 0 900px">
+        <table class="tab">
+          <tr><th style="width:56%">dtd · dinov2-small</th><th style="text-align:right">trained weights</th><th style="text-align:right">accuracy</th></tr>
+          <tr><td>guess</td><td style="text-align:right">0</td><td style="text-align:right">2.1%</td></tr>
+          <tr><td>nearest neighbour</td><td style="text-align:right">0</td><td style="text-align:right">77.0%</td></tr>
+          <tr><td>Linear head, 5 seeds</td><td style="text-align:right">18,095</td><td style="text-align:right; color:#c43a14; white-space:nowrap">78.9% ± 0.3</td></tr>
+        </table>
+      </div>
+      <div class="col">
+        <p class="s"><span class="pe">The floor:</span> nearest neighbour trains nothing. A head has to beat it to be worth training.</p>
+        <p class="s"><span class="pe">The spread:</span> five seeds give ± 0.3 points. A trial within ± 0.6 of 78.9 has <span class="v">not beaten anything</span>.</p>
+        <p class="s"><span class="pe">MLflow:</span> log every run from the first one on, so the comparison is a table, not your memory.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>8 / how do you search architectures?</p><p class="n"></p></div>
+  <aside>A search without a baseline cannot be read: if you do not know what the simplest model scores, you cannot tell whether the best trial is a discovery or a rounding error. So the first cell of notebook 04 establishes two numbers. The floor: nearest neighbour, which trains nothing, 77.0 percent on 47 textures. Then the baseline: one Linear layer from 384 numbers to 47 classes, 18,095 weights, trained five times with five seeds: 78.9 percent, with a standard deviation of 0.3 points. The spread is the number people skip, and it is the one that decides what counts as a win: a trial that beats the mean by less than twice the spread has not beaten anything. And log it. Notebook 01 starts the habit of logging every run to MLflow: log_param for settings, log_metric for results, and mlflow ui to browse them as a table. Not because six runs need a dashboard, but because the habit has to exist before a project has fifty runs. The numbers on this slide are notebook 04's own: DTD, dinov2-small, 15 epochs, from planning/evidence.md section 3.</aside>
+</section>
+
+<section id="space" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 8 — how do you search architectures?</p><p>ray.tune, TPE, 24 trials</p></div>
+  <div class="body">
+    <h2 class="t">The search space: every model you are willing to <span class="v">consider</span></h2>
+    <div class="row" style="gap:64px">
+      <div class="col" style="flex:0 0 980px">
+<pre class="code">param_space = {
+    <span class="k">"encoder"</span>:         tune.choice(["dinov2-large", "dinov2-base",
+                                   "dinov2-small", "resnet-18"]),
+    <span class="k">"n_hidden_layers"</span>: tune.choice([0, 1, 2]),     <span class="c"># 0 = the baseline</span>
+    <span class="k">"hidden_dim"</span>:      tune.choice([128, 512]),
+    <span class="k">"sigma"</span>:           tune.uniform(0.0, 0.4),     <span class="c"># noise on the input</span>
+    <span class="k">"lr"</span>:              tune.loguniform(1e-4, 3e-3),
+}
+search_alg = HyperOptSearch()                    <span class="c"># TPE</span></pre>
+      </div>
+      <div class="col">
+        <p class="s"><span class="pe">The encoder</span> is an axis too: one cache per encoder, and question four said it moves the most.</p>
+        <p class="s"><span class="pe">The head:</span> zero, one or two hidden layers, each 128 or 512 wide, GELU between them.</p>
+        <p class="s"><span class="pe">TPE</span> learns which regions scored well and samples there, instead of spending the budget on a grid.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>8 / how do you search architectures?</p><p class="n"></p></div>
+  <aside>One dictionary describes every model the search may try. The encoder: four caches of the same DTD photos, from resnet-18 to dinov2-large. The number of hidden layers: zero is exactly the baseline, one or two add layers of 128 or 512 units with a GELU after each. sigma: Gaussian noise added to the input vectors during training, the feature-space version of data augmentation, because the pixels are gone. The learning rate, sampled log-uniformly because learning rates matter by factors, not by differences. The search algorithm is TPE, HyperOptSearch in ray.tune: after a few random trials it models which regions of the space gave good scores and samples where it expects improvement. A grid would spend most of its budget on combinations it already knows are bad. Lesson 3 opens up the algorithms; here it is one, used properly, with 24 trials. Before you run it, the next slide draws what the models in this space look like.</aside>
+</section>
+
+<section id="arch" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 8 — how do you search architectures?</p><p>three heads, with their shapes</p></div>
+  <div class="body">
+    <h2 class="t">Draw every architecture with its <span class="v">tensor shapes</span></h2>
+    <div class="fill" style="gap:48px">
+      <div class="arch"><p class="archlab">baseline</p><span class="shape">(B, 384)</span><span class="to">→</span><span class="op">Linear 384 → 47</span><span class="to">→</span><span class="shape">(B, 47)</span></div>
+      <div class="arch"><p class="archlab">one hidden</p><span class="shape">(B, 384)</span><span class="to">→</span><span class="op">Linear 384 → 512</span><span class="to">→</span><span class="shape">(B, 512)</span><span class="to">→</span><span class="op on">GELU</span><span class="to">→</span><span class="op">Linear 512 → 47</span><span class="to">→</span><span class="shape">(B, 47)</span></div>
+      <div style="display:flex; flex-direction:row; gap:18px; align-items:center">
+        <p class="archlab">parallel</p>
+        <div style="display:flex; flex-direction:column; gap:22px">
+          <div class="arch"><span class="op" style="width:200px; text-align:center">dinov2-small</span><span class="to">→</span><span class="shape">(B, 384)</span></div>
+          <div class="arch"><span class="op" style="width:200px; text-align:center">resnet-18</span><span class="to">→</span><span class="shape">(B, 512)</span></div>
+        </div>
+        <svg aria-label="two arrows joining" width="60" height="150" viewBox="0 0 60 150"><path d="M2,36 C40,36 30,75 58,75 M2,114 C40,114 30,75 58,75" fill="none" stroke="#5a544d" stroke-width="3"/></svg>
+        <span class="op on">Concatenate2D</span><span class="to">→</span><span class="shape">(B, 896)</span><span class="to">→</span><span class="op">head 896 → 47</span><span class="to">→</span><span class="shape">(B, 47)</span>
+      </div>
+      <p class="s">Two caches of the same photos, joined on <span class="mono" style="font-size:24px">source_idx</span>, each a branch of its own. The widths add: 384 + 512 = 896. Write the shape after every step <span class="v">before</span> you run anything.</p>
+    </div>
+  </div>
+  <div class="foot"><p>8 / how do you search architectures?</p><p class="n"></p></div>
+  <aside>Three architectures, each drawn as the tensors that flow through it. That is the habit: before you run a model, write down the shape after every step, and you will catch most bugs on paper. The baseline is one Linear layer: (B, 384) in, (B, 47) out, one score per texture class. One hidden layer: up to 512, a GELU, down to 47. Without the GELU these two Linear layers would collapse into one, question six. The third is the parallel or fusion architecture of notebook 04's last section. Two encoders saw the same photos, so join their caches on source_idx, the row number in the original dataset, and feed both vectors in: (B, 384) from DINOv2 and (B, 512) from resnet. Concatenate2D glues them along the feature axis into (B, 896), and a head goes from there: a plain Linear from 896 to 47, or one with a hidden layer; the next slides measure both. Each branch could have its own layers before the join, a projection for instance, which is what vectormesh's Parallel component is for; here they are joined at their raw widths. The idea behind it: two encoders trained differently may have made different mistakes, and a model that sees both might beat either alone. It is a real hypothesis, cheap to test, and the notebook asks you to write down a prediction before you run it.</aside>
+</section>
+
+<section id="searchaxes" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 8 — how do you search architectures?</p><p>24 trials on dtd</p></div>
+  <div class="body">
+    <h2 class="t">Only the <span class="v">encoder</span> axis sorts the trials</h2>
+    <div class="fill">
+      <div class="center"><img src="img/lesson1/search_axes.png" alt="Four panels sharing a test accuracy axis from 0.65 to 0.85, every dot one trial, coloured by encoder, with the baseline as a dashed line and its seed spread as a band. Encoder panel: resnet-18 trials near 0.65, dinov2-small around the baseline, dinov2-base and dinov2-large between 0.79 and 0.84. The n_hidden_layers, sigma and learning-rate panels show no order: the same two bands at every value" style="width:1720px; height:496px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">Encoder:</span> resnet-18 at 62–66%, dinov2-small just above the baseline, base and large up to <span class="v">85%</span>. Nothing done to the head closes that gap.</p>
+        <p class="s"><span class="pe">Hidden layers, sigma, lr:</span> clouds. The low dots in every panel are resnet trials. Inside one encoder the head moves the result by a few points, not twenty.</p>
+        <p class="s">The leverage was <span class="v">upstream</span>, in the representation. A search can tell you that an axis does not matter.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>8 / how do you search architectures?</p><p class="n"></p></div>
+  <aside>The latest run of notebook 04's search, 24 trials, every dot one trial, coloured by encoder from light grey for resnet-18 to dark petrol for dinov2-large. The dashed line is the baseline, a Linear head on dinov2-small, and the band its seed spread. Read it one axis at a time, because an axis that does not sort the dots did not matter. The encoder panel sorts them cleanly: resnet-18 between 62 and 66 percent, dinov2-small between 79 and 81, dinov2-base and dinov2-large between 80 and 85. The other three panels are clouds: the same bands repeat at every number of hidden layers, every noise level and every learning rate, and the low dots in each are simply the resnet trials. Inside one encoder the head matters by a few points: on dinov2-base, no hidden layer gave 81, one hidden layer 83 to 84, two hidden layers 80. One trial per setting cannot separate effects that small from seed noise; the next slide does that with five seeds. The best trial, 84.7, was dinov2-large with no hidden layer at all. So the answer to "which architecture" is mostly "which encoder". That holds for a small head on a strong frozen encoder; lesson 2 and lesson 5 are the cases where the architecture is back to being your problem. The trials are in img/lesson1/data/dtd_search_trials.csv next to this deck.</aside>
+</section>
+
+<section id="fusion" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 8 — how do you search architectures?</p><p>dtd, dinov2-small, 15 epochs, 5 seeds</p></div>
+  <div class="body">
+    <h2 class="t">The head is worth <span class="v">two points</span>; the encoder is worth ten</h2>
+    <div class="row" style="gap:72px">
+      <img src="img/lesson1/fusion_seeds.png" alt="Test accuracy on DTD for five heads. Nearest neighbour 0.770; nn.Linear baseline 0.789 ± 0.003, with its seed band; one hidden layer 0.812; fusion of dinov2-small and resnet-18 into nn.Linear 0.810 ± 0.003; fusion into a head with one hidden layer 0.824. Everything above the baseline sits well outside its band" style="width:900px; height:466px; object-fit:contain">
+      <div class="col">
+        <p class="s"><span class="pe">One hidden layer</span> buys 2.3 points over the linear baseline. <span class="pe">Fusion</span> with resnet-18 buys 2.1, in 5 seeds of 5. Both are real: far outside the ± 0.3 band.</p>
+        <p class="s">A <span class="v">second</span> hidden layer loses about 5 points again. Capacity after a frozen encoder helps once, then hurts.</p>
+        <p class="s">Swapping the encoder moves the number by <span class="v">more than ten</span>. Spend your search there first.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>8 / how do you search architectures?</p><p class="n"></p></div>
+  <aside>The search gave one trial per setting; this slide gives the effects their seeds. DTD, dinov2-small, 15 epochs, five seeds, from planning/evidence.md section 3. The floor is the nearest neighbour, 77.0, which trains nothing. The baseline is nn.Linear from 384 to 47: 78.9 percent, with a seed spread of 0.3, the grey band. Add one hidden layer, which is what vectormesh's NeuralNet(384, 47) builds, Linear, GELU, Linear: 81.2, plus 2.3 points. Fusion, the parallel architecture of two slides ago, dinov2-small and resnet-18 concatenated to 896 numbers into a plain Linear: 81.0, plus 2.1, and it wins all five seeds. Both effects are about seven times the baseline's spread: real, not noise. Fusion with a hidden layer on top reaches 82.4. A second hidden layer goes the other way: in an earlier eight-seed run it lost about 5 points against the one-hidden-layer head. So capacity after a frozen encoder pays once, a little, and then hurts. Now put that next to question four: changing the encoder moved DTD by 14 points with the same head, and in the search resnet-18 and dinov2-large are twenty points apart. The head is worth a couple of points; the encoder is worth ten or more. That ordering is the practical result of this lesson: search the encoder first, then tune the head, and measure every claimed gain against the seed spread of a baseline you established before you started. Watch out for the name: NeuralNet(384, 47) is not a linear probe, it already has a hidden layer, and an older table in the evidence called it the baseline. Whatever you call the baseline, write down what it builds.</aside>
+</section>
+
+<section id="again08" class="paper mid">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="display:flex; flex-direction:column; gap:48px">
+    <div class="kick"><p>● 08 — how do you search architectures?</p></div>
+    <div class="again">
+      <p class="big">Baseline first. Then let the search tell you <span class="v">which axis</span> matters.</p>
+      <div style="display:flex; flex-direction:column; gap:28px">
+        <p class="m">Measure the floor and the baseline’s seed spread, and log them in MLflow before the first trial.</p>
+        <p class="m">Draw every model in the space with its shapes. Read the result one axis at a time.</p>
+        <p class="m"><span style="color:#111111">On a frozen encoder the leverage is upstream</span>: the head is worth about two points, the encoder ten.</p>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>Said again. When a run costs a second, searching beats guessing, but only if you can read the result: a baseline and its noise first, a search space you can draw, and a reading per axis. On a strong frozen encoder the head is worth a couple of points and the encoder ten or more, which is the thesis of question two arriving from the other side. Notebook 05 is where you design and run your own search; report what you find, including "nothing moved".</aside>
+</section>
+
+<!-- ============================================================ close -->
+<section id="close" class="ink mid" data-crumb="summary">
+  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <div style="width:280px; height:2px; background:#f2643c"></div>
+  <div style="display:flex; flex-direction:column; gap:24px; padding:36px 0">
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Where does deep learning <span class="v">fit</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">The fifth wound. It learns from answers, from structure, or from a score in a loop.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Why use a model <span class="v">somebody else</span> trained?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Its space is ordered: nearest neighbour gets 99.1% on flowers.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">What does embedding <span class="v">once</span> save?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">E + N × H: a search multiplies the head, not the encoder.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Which <span class="v">encoder</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Measure it on your task. 2.4 points apart on satellites, 14.4 on textures.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">What is a <span class="v">tensor</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">A rank and a shape. The meaning of the axes is yours to track.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Why a <span class="v">nonlinearity</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Without it five layers are one matrix. With it, any curve.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">How does a network <span class="v">learn</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Stack, predict, loss, backward, step. Watch the test loss.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">How do you <span class="v">search</span> architectures?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Baseline and its noise first; then one axis at a time.</p></div>
+  </div>
+  <div class="foot" style="border-top-color:#2b2621"><p style="color:#b8b0a5">Lesson 1 · Tensors and the cache</p><p class="n" data-plain="1" style="color:#b8b0a5"></p></div>
+  <aside>The eight questions with their answers. The notebooks work through each: 01 the cache, the nearest neighbour, the stopwatch and the encoder comparison; 01b tensors with pictures; 02 the collapse, the sine and the activations; 03 batching, losses and the loop; 04 the baseline, the search and fusion; 05 your own search. For your own work from today on: read the metadata.json of a cache before you write model code, compute a baseline without training and one with, log every run, and say how large the noise is before you call something a win.</aside>
+</section>
+
+</div></div>
+<nav id="crumbs"></nav>
+<div id="notes"><div class="count"></div><div class="text"></div></div>
+<div id="hint">← → or click to move · F full screen · N speaker notes</div>
+<script>(function(){
+  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
+  // slide numbers: "MADS-ML · N" in a footer, the bare number elsewhere
+  slides.forEach(function(s,k){
+    [].forEach.call(s.querySelectorAll('.n'),function(el){
+      el.textContent=(el.closest('.foot')&&!el.dataset.plain)?'MADS-ML · '+(k+1):String(k+1);
+    });
+  });
+  // breadcrumbs from the sections that start a part
+  var nav=document.getElementById('crumbs');
+  slides.forEach(function(s,k){
+    if(!s.dataset.crumb)return;
+    var a=document.createElement('a');a.href='#'+(k+1);a.textContent=s.dataset.crumb;a.dataset.from=k;nav.appendChild(a);
+  });
+})();</script>
+<script>(function(){
+  document.documentElement.classList.add('js');
+  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
+  var stage=document.getElementById('stage'), notes=document.getElementById('notes');
+  var i=0;
+  function fit(){stage.style.setProperty('--scale',Math.min(innerWidth/1920,innerHeight/1080));}
+  function builds(s){return [].slice.call(s.querySelectorAll('[data-build-in]'));}
+  function next(){var left=builds(slides[i]).filter(function(b){return !b.classList.contains('built');});if(left.length){left[0].classList.add('built');}else{show(i+1);}}
+  function show(n,back){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    builds(slides[i]).forEach(function(b){b.classList.toggle('built',!!back);});
+    slides.forEach(function(s,k){s.classList.toggle('active',k===i);});
+    history.replaceState(null,'','#'+(i+1));
+    var a=slides[i].querySelector('aside');
+    notes.querySelector('.count').textContent='SLIDE '+(i+1)+' / '+slides.length;
+    notes.querySelector('.text').textContent=a?a.textContent:'';
+  }
+  addEventListener('keydown',function(e){
+    if(e.metaKey||e.ctrlKey||e.altKey)return;
+    var k=e.key;
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].indexOf(k)>=0){e.preventDefault();next();}
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].indexOf(k)>=0){e.preventDefault();show(i-1,true);}
+    else if(k==='Home'){show(0);}
+    else if(k==='End'){show(slides.length-1);}
+    else if(k==='n'||k==='N'){document.body.classList.toggle('show-notes');}
+    else if(k==='f'||k==='F'){
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
+      else{document.exitFullscreen&&document.exitFullscreen();}
+    }
+  });
+  addEventListener('click',function(e){
+    if(e.target.closest('#notes,#crumbs'))return;
+    if(e.clientX<innerWidth/3){show(i-1,true);}else{next();}
+  });
+  var x0=null;
+  addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  addEventListener('touchend',function(e){
+    if(x0===null)return;
+    var dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)>50){if(dx<0){next();}else{show(i-1,true);}}
+  });
+  addEventListener('hashchange',function(){
+    var h=parseInt(location.hash.slice(1),10);
+    if(isFinite(h)&&h-1!==i)show(h-1);
+  });
+  addEventListener('resize',fit);
+  fit();
+  var h=parseInt(location.hash.slice(1),10);
+  show(isFinite(h)?h-1:0);
+  setTimeout(function(){document.getElementById('hint').classList.add('gone');},4000);
+})();</script>
+<script>(function(){
+  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
+  var links=[].slice.call(document.querySelectorAll('#crumbs a'));
+  var starts=links.map(function(a){return +a.dataset.from;});
+  function mark(){
+    var i=slides.findIndex(function(s){return s.classList.contains('active');});
+    var here=null;
+    links.forEach(function(a,k){var end=k+1<starts.length?starts[k+1]:slides.length;if(starts[k]<=i&&i<end)here=a;});
+    links.forEach(function(a){a.classList.toggle('here',a===here);});
+  }
+  new MutationObserver(mark).observe(document.querySelector('.deck'),{attributes:true,subtree:true,attributeFilter:['class']});
+  mark();
+})();</script>
+</body>
+</html>
