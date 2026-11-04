@@ -1,0 +1,60 @@
+{
+ "model": "qwen3.6:35b",
+ "embedder": "ibm-granite/granite-embedding-small-english-r2",
+ "max_tokens": 512,
+ "imdb": {
+  "n_eval": 200,
+  "n_train": 800,
+  "n_classes": 2,
+  "majority": 0.51,
+  "probe_acc": 0.63,
+  "embed_seconds": 3.2279417514801025,
+  "probe_fit_seconds": 0.007882118225097656,
+  "llm_acc": 0.9693877551020408,
+  "llm_parsed": 196,
+  "llm_seconds": 94.1214210987091,
+  "llm_raw_sample": [
+   "Positive",
+   "Positive",
+   "Negative",
+   "Positive",
+   "Negative"
+  ]
+ },
+ "scotus": {
+  "n_eval": 200,
+  "n_train": 800,
+  "n_classes": 11,
+  "majority": 0.245,
+  "probe_acc": 0.455,
+  "embed_seconds": 44.103806257247925,
+  "probe_fit_seconds": 0.012546777725219727,
+  "llm_acc": 0.71,
+  "llm_parsed": 200,
+  "llm_seconds": 280.17868185043335,
+  "llm_raw_sample": [
+   "8",
+   "2",
+   "12",
+   "2",
+   "3"
+  ],
+  "areas": [
+   "Criminal Procedure",
+   "Civil Rights",
+   "First Amendment",
+   "Due Process",
+   "Privacy",
+   "Attorneys",
+   "Unions",
+   "Economic Activity",
+   "Judicial Power",
+   "Federalism",
+   "Interstate Relations",
+   "Federal Taxation",
+   "Miscellaneous"
+  ]
+ },
+ "scotus_chars": 6000,
+ "imdb_chars": 1200
+}

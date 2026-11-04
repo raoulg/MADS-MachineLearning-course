@@ -1,0 +1,44 @@
+name: validate
+
+# Checks every push to main: each changed file must be a valid run submission, and a
+# student may only write inside lesson<N>/<their own GitHub login>/.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      # The validator lives in the (public) course repository, so the format has one source.
+      - uses: actions/checkout@v5
+        with:
+          repository: raoulg/MADS-MachineLearning-course
+          path: course
+          sparse-checkout: scripts/run_submission.py
+          sparse-checkout-cone-mode: false
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Validate the files this push changed
+        env:
+          ACTOR: ${{ github.actor }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          TEACHERS: raoulg
+        run: |
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            changed=$(git diff --name-only "$BEFORE" "$AFTER" -- 'lesson*')
+          else
+            changed=$(git ls-files 'lesson*')
+          fi
+          uv run --no-project --with pydantic python course/scripts/run_submission.py \
+            check . --files "$changed" --actor "$ACTOR" --teachers "$TEACHERS"

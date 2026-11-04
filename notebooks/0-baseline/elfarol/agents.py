@@ -38,7 +38,7 @@ class BaseAgent:
             float: prediction for upcoming week
         """
         model = self._getmodel(hist)
-        self.log.append(str(model.__name__))
+        self.log.append(str(getattr(model, "__name__", str(model))))
         yhat = model(hist)
         return yhat
 

@@ -1,0 +1,96 @@
+name: notebooks
+
+on:
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  select:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.pick.outputs.mode }}
+      notebooks: ${{ steps.pick.outputs.notebooks }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Decide which notebooks to run
+        id: pick
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          all=$(find notebooks -name '*.ipynb' -not -path 'notebooks/legacy/*' | sort | tr '\n' ' ')
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "mode=full" >> "$GITHUB_OUTPUT"
+            echo "notebooks=$all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only --diff-filter=ACMR "$BASE...$HEAD")
+          if echo "$changed" | grep -qE '^(pyproject\.toml|uv\.lock)$'; then
+            mode=full
+            nbs="$all"
+          else
+            mode=changed
+            nbs=$(echo "$changed" | grep -E '^notebooks/.+\.ipynb$' | grep -v '^notebooks/legacy/' | tr '\n' ' ' || true)
+            if [ -z "$nbs" ]; then
+              mode=none
+            fi
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "notebooks=$nbs" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: select
+    if: needs.select.outputs.mode != 'none'
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Install the locked environment
+        run: uv sync --locked
+
+      - name: Run notebooks
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          NOTEBOOKS: ${{ needs.select.outputs.notebooks }}
+          CACHE: ${{ runner.temp }}/nbcache
+        run: |
+          # NOTEBOOKS is a space-separated list of paths, so it is split on purpose.
+          # notebooktester exits 0 even when notebooks fail; the next step checks the results.
+          uv run notebooktester $NOTEBOOKS -f -t 600 -w 2 --cache-dir "$CACHE"
+
+      - name: Fail on any notebook that did not pass
+        env:
+          NOTEBOOKS: ${{ needs.select.outputs.notebooks }}
+          CACHE: ${{ runner.temp }}/nbcache
+        run: |
+          expected=$(echo "$NOTEBOOKS" | wc -w)
+          uv run python - "$CACHE" "$expected" <<'EOF'
+          import json
+          import sys
+          from pathlib import Path
+
+          expected = int(sys.argv[2])
+          results = [json.loads(p.read_text()) for p in Path(sys.argv[1]).glob("*.json")]
+          failed = [r["notebook_path"] for r in results if not r["success"]]
+          for path in failed:
+              print(f"did not pass: {path}")
+          if len(results) != expected or failed:
+              print(f"{len(results)} results for {expected} notebooks")
+              sys.exit(1)
+          print(f"{len(results)} notebooks passed")
+          EOF

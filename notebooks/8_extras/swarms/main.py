@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-from typing import cast
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -60,10 +59,10 @@ if __name__ == "__main__":
     fig_funcs = plt.figure(figsize=(14, 12))
     fig_funcs.suptitle("2D Benchmark Function Visualizations", fontsize=20, y=0.95)
     ax_map: dict[str, Axes3D] = {
-        "Sphere": cast(Axes3D, fig_funcs.add_subplot(2, 2, 1, projection="3d")),
-        "Rastrigin": cast(Axes3D, fig_funcs.add_subplot(2, 2, 2, projection="3d")),
-        "Rosenbrock": cast(Axes3D, fig_funcs.add_subplot(2, 2, 3, projection="3d")),
-        "Ackley": cast(Axes3D, fig_funcs.add_subplot(2, 2, 4, projection="3d")),
+        "Sphere": fig_funcs.add_subplot(2, 2, 1, projection="3d"),
+        "Rastrigin": fig_funcs.add_subplot(2, 2, 2, projection="3d"),
+        "Rosenbrock": fig_funcs.add_subplot(2, 2, 3, projection="3d"),
+        "Ackley": fig_funcs.add_subplot(2, 2, 4, projection="3d"),
     }
 
     for func_name, (func, bounds) in test_functions.items():
