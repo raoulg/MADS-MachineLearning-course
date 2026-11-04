@@ -47,8 +47,7 @@ The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/l
 
 Data, representations and the training loop are separated out. You will find them as dependencies in the project:
 - [huggingface `datasets`](https://huggingface.co/docs/datasets) — every dataset in the course is loaded from the hub with `load_dataset`. Nothing is downloaded by hand.
-- https://github.com/raoulg/vectormesh — vectorizers, the `VectorCache` artefact format, and the small shape-checked components you compose into a pipeline
-- https://github.com/raoulg/mltrainer — all code for the training
+- https://github.com/raoulg/vectormesh — vectorizers, the `VectorCache` artefact format, the small shape-checked components you compose into a pipeline, and the `Trainer` that trains them
 
 These will be used a lot in the notebooks; by separating them it is easier to use the code in your own repositories.
 
@@ -107,5 +106,4 @@ If you are on an Intel Mac, your options are:
 
 - **Use a Linux VM (recommended).** This is the supported path; see the `references`
    folder for lab setups (azure / surf).
--  **Drop the `[tune]` extra in the pyproject.toml** if your blocker is Ray rather than torch: using plain `mltrainer` instead of `mltrainer[tune]` skips Ray, so the Ray hypertuning notebooks won't run but the rest will. 
-- **Build your own environment with older versions.** create your own environment with uv. Start with mltrainer, an option could be to go back to `mltrainer==0.2.7.1`.
+- **Remove `ray[tune]` from the pyproject.toml** if your blocker is Ray rather than torch: the Ray hypertuning notebooks won't run, but the rest will.
