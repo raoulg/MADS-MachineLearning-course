@@ -94,12 +94,29 @@ sweeping lr on the full dataset, the baseline wins at **every** learning rate:
 
 | setup | mean | std | Δ vs baseline | sigma | beats baseline |
 |---|---|---|---|---|---|
-| **baseline `NeuralNet(384, 47)`** | **0.8098** | 0.0024 | — | — | — |
+| **baseline `NeuralNet(384, 47)`, one hidden layer** | **0.8098** | 0.0024 | — | — | — |
 | baseline + a hidden layer (2× params) | 0.7579 | 0.0086 | **−5.19 pt** | −15.4 | 0/8 |
 | fusion, raw widths (384+512) | 0.8142 | 0.0126 | +0.43 pt | +0.9 | 7/8 |
 | fusion, weak stream projected to 384 | 0.8132 | 0.0087 | +0.33 pt | +1.0 | 7/8 |
 
 Depth loses badly and unambiguously: 5.2 points at 15 sigma, 0 seeds out of 8.
+
+**What "baseline" means in these tables.** `NeuralNet(512, 102)` and `NeuralNet(384, 47)`
+build `Linear(D→D) → GELU → Linear(D→k)`: one hidden layer, not a linear probe
+(`NeuralNet([D], k)` builds the same). Against a plain `nn.Linear(384, 47)` on DTD,
+dinov2-small, 5 seeds, 15 epochs (L1 `04_search`, 2026-11-04):
+
+| head | accuracy |
+|---|---|
+| 1-nearest-neighbour, no training | 0.770 |
+| `nn.Linear(384, 47)` | 0.789 ± 0.003 |
+| `NeuralNet(384, 47)` (one hidden layer) | 0.812 |
+| fusion dinov2-small + resnet-18, concat → `nn.Linear(896, 47)` | 0.810 ± 0.003 (+2.1 pt over linear, 5/5 seeds) |
+| fusion, concat → `NeuralNet(896, 47)` | 0.824 |
+
+So on DTD the first hidden layer pays about 2 points over a linear probe, and the second
+loses 5 (table above). The L1 notebooks use `nn.Linear` as the baseline and count
+`NeuralNet` layers as added capacity.
 
 ### 3a. Fusion is a wash, not a loss — and three seeds lied
 
