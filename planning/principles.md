@@ -136,8 +136,8 @@ The habit is transferable and the verdict is not. Grade the habit.
   the error was caught by someone asking, not by the process.
 - **`param(full, test=...)` on anything that scales runtime** (epochs, steps, trials,
   dataset size, seeds). See `CLAUDE.md`.
-- **Published libraries only.** `vectormesh` and `mltrainer` ship a release *before* a
-  notebook depends on the change. No editable installs, no `PYTHONPATH` shims — students
+- **Published libraries only.** `vectormesh` ships a release *before* a notebook depends
+  on the change. No editable installs, no `PYTHONPATH` shims — students
   will not have one.
 - **No notebook builds a full cache.** Every notebook downloads a published one. Building
   is taught on a ~200-item subsample that finishes on any hardware; the full build lives

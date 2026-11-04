@@ -69,7 +69,7 @@ scheduler has something to prune on, results written to disk — rather than the
 
 ### environment setup
 - dont blindly reuse the environment from the lessons; this means, DO NOT simply copy pyproject.toml but create a minimal environment by following [the codestyle](https://github.com/raoulg/codestyle/blob/main/docs/make_a_module.md)
-- Check the [dependencies for mltrainer](https://github.com/raoulg/mltrainer/blob/main/pyproject.toml) to see whats already installed if you use mltrainer
+- Check the [dependencies for vectormesh](https://github.com/raoulg/vectormesh/blob/main/pyproject.toml) to see whats already installed if you use vectormesh
 - have a look at the pyproject.toml file from the course;
     - `hyperopt` backs `HyperOptSearch`, which is the TPE implementation `ray.tune` uses in
       this course. It can be used standalone as a slightly simpler, less powerful

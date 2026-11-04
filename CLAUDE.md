@@ -55,8 +55,8 @@ decisions are settled by the plan, until the plan is explicitly revised.
 
 ## Libraries
 
-`vectormesh` (components, vectorizers, caches) and `mltrainer` (Trainer, metrics) are
-sibling repos at `../vectormesh` and `../mltrainer`, published to PyPI. The course
+`vectormesh` (components, vectorizers, caches, `Trainer`) is a sibling repo at
+`../vectormesh`, published to PyPI. The course
 installs the **published** versions — do not rely on an editable install or a
 `PYTHONPATH` shim, because students will not have one. If a notebook needs a library
 change, that change ships as a release first.
