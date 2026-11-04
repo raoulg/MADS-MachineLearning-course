@@ -478,6 +478,126 @@ def fig_ladder():
     save(fig, "ladder")
 
 
+def depth(ax, start, n, step, text, color):
+    """A bracket along a stack's depth axis: n card slots from `start`, labelled `text`."""
+    (x0, y0), (dx, dy) = start, step
+    x1, y1 = x0 + n * dx, y0 + n * dy
+    ax.plot([x0, x1], [y0, y1], color=color, lw=3, solid_capstyle="butt", zorder=50)
+    for x, y in ((x0, y0), (x1, y1)):
+        ax.plot(
+            [x - 0.09, x + 0.09], [y + 0.09, y - 0.09], color=color, lw=2.5, zorder=50
+        )
+    ax.text(
+        (x0 + x1) / 2 + 0.25,
+        (y0 + y1) / 2 - 0.05,
+        text,
+        color=color,
+        fontsize=20,
+        fontweight="bold",
+        ha="left",
+        va="center",
+        zorder=51,
+    )
+
+
+def fig_unit_axis():
+    img = cat_image()
+    gray = img.astype(float).mean(axis=-1)
+    H, W = gray.shape
+    fig = plt.figure(figsize=(16, 7.2))
+
+    # top row: the cat, grey and in colour; channels first, as on the slides
+    w, h = 3.6, 3.6 * H / W
+    dx, dy = 0.42, 0.34
+    for k, (planes, n, label, color) in enumerate(
+        [
+            (None, 0, f"(H, W) = ({H}, {W})", GREY),
+            ([gray], 1, f"(1, H, W) = (1, {H}, {W})", SECOND),
+            (
+                [channel_rgb(img, c) for c in range(3)],
+                3,
+                f"(3, H, W) = (3, {H}, {W})",
+                GREY,
+            ),
+        ]
+    ):
+        ax = fig.add_axes((0.0 + k * 0.335, 0.47, 0.31, 0.50))
+        if planes is None:
+            ax.imshow(gray, cmap="gray", extent=(0, w, 0, h), interpolation="lanczos")
+        else:
+            cards(
+                ax,
+                [
+                    np.stack([p] * 3, -1).astype(np.uint8) if p.ndim == 2 else p
+                    for p in planes
+                ],
+                dx,
+                dy,
+                w,
+                h,
+            )
+        if n:
+            depth(ax, (w + 0.08, 0.0), n, (dx, dy), str(n), color)
+        ax.set_xlim(-0.05, w + 3 * dx + 0.6)
+        ax.set_ylim(-0.05, h + 3 * dy + 0.05)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title(label, color=color, fontsize=22)
+
+    # bottom row: the ladder's shapes, drawn as on the ladder slide
+    chunk_shades = ["#1d5a73", "#2f6f88", "#4a86a0", "#6a9db3"]
+    items = [
+        ACCENT,
+        "#6b7a3a",
+        THIRD,
+        "#7a5a8c",
+    ]  # no vermilion: here it marks the axis of length 1
+    cols, cell = 8, 0.32
+    gw = cols * cell
+    sdx, sdy = 0.3, 0.42
+    panels = [
+        ("(C, D)", GREY, "one document"),
+        ("(1, C, D)", SECOND, "a batch of one document"),
+        ("(B, D)", GREY, "four documents"),
+        ("(B, 1, D)", SECOND, "four documents, one chunk each"),
+    ]
+    for k, (label, color, sub) in enumerate(panels):
+        ax = fig.add_axes((0.0 + k * 0.25, 0.0, 0.24, 0.40))
+        if k == 0:
+            grid(ax, 0, 4 * cell, 4, cols, chunk_shades)
+        elif k == 1:
+            grid(ax, 0, 4 * cell, 4, cols, chunk_shades)
+            depth(ax, (gw + 0.06, 0.0), 1, (sdx, sdy), "B = 1", SECOND)
+        elif k == 2:
+            grid(ax, 0, 4 * cell, 4, cols, items)
+        else:
+            for b in reversed(range(4)):
+                grid(ax, b * sdx, cell + b * sdy, 1, cols, [items[b]], z=5 - b)
+            ax.plot([-0.1, -0.1], [0, cell], color=SECOND, lw=3)
+            ax.text(
+                -0.18,
+                cell / 2,
+                "C = 1",
+                color=SECOND,
+                fontsize=20,
+                fontweight="bold",
+                ha="right",
+                va="center",
+            )
+            depth(ax, (gw + 0.06, 0.0), 4, (sdx, sdy), "B = 4", GREY)
+        ax.set_xlim(-1.3, gw + 4 * sdx + 1.2)
+        ax.set_ylim(-0.6, 4 * cell + 4 * sdy * 0.5 + 0.3)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.set_title(label, color=color, fontsize=22)
+        ax.text(0, -0.3, sub, color=GREY_DIM, fontsize=18, va="top")
+    save(fig, "unit_axis")
+    g1 = torch.from_numpy(gray).unsqueeze(0)
+    print(
+        f"grey cat: {gray.shape} -> unsqueeze(0) -> {tuple(g1.shape)}, pixel [150, 225] = {gray[150, 225]:.1f}"
+    )
+
+
 # ---------------------------------------------------------------- the cache
 
 
@@ -1087,6 +1207,7 @@ FIGURES = [
     fig_batch_images,
     fig_sentences,
     fig_ladder,
+    fig_unit_axis,
     fig_flowers_pca,
     fig_ml_types,
     fig_economics,

@@ -701,6 +701,26 @@ classify(torch.rand(32, 7, 384))    <span class="r"># raises: expected 2 axes, g
   <aside>Rank 3, and here the axes have a physical meaning. A colour photo is three grids of numbers, one per colour channel. Each grid is the image as seen through one colour filter: drawn here in its own colour, red, green and blue. One pixel in the fur at row 150, column 225 is red 190, green 150, blue 124: more red than blue, which is why the cat looks orange-brown. You can see the same thing per channel: the fur is bright in the red plane and dark in the blue one, while the white whiskers are bright in all three. Image files and numpy store a photo as height, width, channels. torch's convolution layers want channels first: C, H, W. permute(2, 0, 1) reorders the axes; the numbers do not change, only how they are indexed. That one call is the whole difference between the two conventions, and forgetting it is a classic shape error. Chelsea is the sample photo that ships with scikit-image, released into the public domain by her owner.</aside>
 </section>
 
+<section id="unitaxis" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 5 — what is a tensor?</p><p>an axis of length 1</p></div>
+  <div class="body">
+    <div style="display:flex; flex-direction:column; gap:16px"><h2 class="t">An axis of length 1 is <span class="v">free</span></h2>
+      <div class="chip"><p class="lab">same numbers, one more index</p><p class="code">gray.unsqueeze(0).shape  # (1, 300, 451)</p></div>
+    </div>
+    <div class="fill">
+      <div class="center"><img src="img/lesson1/unit_axis.png" alt="Top row: the cat in grey as a flat grid labelled (H, W); the same grey cat as a stack of one card, with a vermilion bracket of length 1 along the depth, labelled (1, H, W); the colour cat as a stack of three cards, red, green and blue, with a bracket of length 3. Bottom row: a grid of four chunk rows labelled (C, D); the same grid as one card with a vermilion bracket B = 1, labelled (1, C, D); four rows in four colours labelled (B, D); the same four rows as four separate cards of one row each, with a vermilion mark C = 1 and a bracket B = 4, labelled (B, 1, D)" style="width:1720px; height:470px; object-fit:contain"></div>
+      <div class="g3">
+        <p class="s"><span class="pe">A grey photo</span> is (H, W), or one plane: (1, H, W). Pixel [150, 225] is also [0, 150, 225]. The new index can only be 0.</p>
+        <p class="s"><span class="pe">unsqueeze(dim)</span> adds the axis, <span class="pe">squeeze(dim)</span> takes it away. No number moves; torch does not even copy.</p>
+        <p class="s">One document (C, D) is a batch of one, <span class="v">(1, C, D)</span>. Four documents (B, D) are four of one chunk each, <span class="v">(B, 1, D)</span>.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>5 / what is a tensor?</p><p class="n"></p></div>
+  <aside>The question students always ask: where does that extra dimension come from, and how can you add it for free? Look at the grey cat. One number per pixel, so (H, W), 300 by 451. You can also call it a colour image with one channel: (1, H, W), a stack of one plane, the vermilion bracket. Both describe exactly the same 135,300 numbers in the same order. The only difference is the address. In the stack of one, every pixel needs a third index, and that index can only be zero: pixel 150, 225 is also pixel 0, 150, 225, brightness 154.7 in both. That is why it costs nothing. unsqueeze adds an axis of length 1 at the position you name, squeeze removes it, and torch does not even copy the data; it hands you a new view on the same memory. The same move works on the ladder. One document in chunks, (C, D), is a batch of one: (1, C, D). A batch of four documents vectorised whole, (B, D), is four documents of one chunk each: (B, 1, D). You need this whenever a layer wants a rank you do not have: Conv2d wants channels, so a one-channel image gets its 1; a model that expects a batch of chunked documents takes your single document as a batch of one. One trap: squeeze without an argument removes every axis of length 1, including a batch axis that happens to hold one item. Always name the dimension.</aside>
+</section>
+
 <section id="images4d" class="paper std">
   <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 5 — what is a tensor?</p><p>six eurosat tiles</p></div>
