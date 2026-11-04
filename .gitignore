@@ -38,6 +38,10 @@ settings.toml
 artefacts/**
 **/tmp/*
 **/assets/*
+# figures the notebooks embed; the rest of assets/ is downloaded data
+!notebooks/assets/udl/
+!notebooks/assets/scikit-image/
+!notebooks/assets/eurosat/
 **/own_caches/
 # claude code worktrees
 .claude/
