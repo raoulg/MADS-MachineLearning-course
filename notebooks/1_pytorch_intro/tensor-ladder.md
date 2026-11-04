@@ -57,6 +57,13 @@ nn.Conv1d(3, 16, kernel_size=5)(x.permute(0, 2, 1)).shape   # (32, 16, 196)
 nn.Conv2d(1, 16, kernel_size=3)(x.unsqueeze(1)).shape       # (32, 16, 198, 1)
 ```
 
+That `unsqueeze(1)` is free. An axis of length 1 adds an index that can only be 0, and moves
+no number: a grey image `(H, W)` is the same data as a one-channel image `(1, H, W)`, one
+chunked document `(C, D)` is a batch of one `(1, C, D)`, and a batch `(B, D)` is `B` documents
+of one chunk each, `(B, 1, D)`. `squeeze(dim)` takes the axis away again. Name the `dim`:
+a bare `squeeze()` removes every axis of length 1, including a batch axis that happens to
+hold one item. Notebook 01b draws it.
+
 "CNN = image model" is a habit of association, not a constraint. The formal constraint is only
 "rank 3, channels second" or "rank 4, channels second".
 
