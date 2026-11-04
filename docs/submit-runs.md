@@ -27,14 +27,15 @@ guess it. It must be the account that was invited to the runs repository.
 
 ## 2. One time: clone the runs repository
 
-The runs repository is private. The student gets access by accepting the GitHub
-invitation from the teacher; the URL is the one announced for this cohort
-(`https://github.com/<owner>/<runs-repo>`). If you do not have it, ask the student.
+The runs repository of the current cohort (November 2026) is
+https://github.com/raoulg/mads-ml-runs-2026-11. It is public, so anyone can read it; pushing needs Write access, which
+the student gets by accepting the GitHub invitation from the teacher. If the push is
+refused, ask the student whether they accepted it.
 
 Clone it next to the course repository, where the script looks for it:
 
 ```bash
-git clone <runs-repo-url> ../mads-runs
+git clone https://github.com/raoulg/mads-ml-runs-2026-11.git ../mads-runs
 ```
 
 Skip this step if `../mads-runs` already exists. If the student keeps the clone elsewhere,
@@ -87,4 +88,4 @@ submitted are skipped, and new runs are added.
 | `no experiment matches lesson<N>-*` | The notebook has not logged anything yet; it lists the experiments it did find. |
 | `does not fit the submission format` | A run has something the format does not accept (the message says what). Tell the student; do not work around it. |
 | `push failed after 4 attempts` | Show the git error to the student. Do not force-push. |
-| The check on GitHub fails after a push | Open the failed run's log (`gh run list -R <owner>/<runs-repo>`, `gh run view <id> --log-failed`). It names the file and the problem. |
+| The check on GitHub fails after a push | Open the failed run's log (`gh run list -R raoulg/mads-ml-runs-2026-11`, `gh run view <id> --log-failed`). It names the file and the problem. |

@@ -2,8 +2,9 @@
 
 Students submit their training runs between lessons. Each lesson opens with mlflow showing
 what the whole class did: which architectures were built, what they scored, and how much
-of each search winner survived being rerun over seeds. There is no server. A private
-GitHub repository carries the runs.
+of each search winner survived being rerun over seeds. There is no server. A GitHub
+repository carries the runs; for the November 2026 cohort that is
+https://github.com/raoulg/mads-ml-runs-2026-11 (public).
 
 ## How several people write to one mlflow without a server
 
@@ -29,7 +30,7 @@ them in order, and authenticates who wrote what. `mlflow ui` only ever reads a l
 sqlite file.
 
 ```
- student laptop                      GitHub (private)                 your laptop
+ student laptop                      GitHub                           your laptop
  notebook --log_run--> mlruns.db
  submit_runs.py --JSON files--push--> lesson1/alice/<run>.json --pull--> collect_runs.py
                                       lesson1/bob/<run>.json              --> class.db
@@ -99,13 +100,20 @@ through `log_run`, and end the exercise notebook with the submission section (le
 
 ## Setting up the runs repository (once per cohort)
 
-1. Create a **private** repository, for example `raoulg/mads-runs-2026`, with a `main`
+1. Create a repository per cohort, for example `raoulg/mads-ml-runs-2026-11`, with a `main`
    branch. Copy in `docs/runs-repo-template/` (README and `.github/workflows/validate.yml`);
    set `TEACHERS` in the workflow to the logins allowed to write anywhere.
 2. Add a ruleset on `main` that **blocks force pushes and deletions**. Students push
    directly to `main`, so this is what keeps history intact.
 3. Invite every student as a collaborator with **Write** access (or add them to an
    organization team that has it). Their GitHub login is their identity in the protocol.
+   With the logins one per line in `logins.txt`:
+
+   ```bash
+   while read -r login; do
+     gh api -X PUT "repos/raoulg/mads-ml-runs-2026-11/collaborators/$login" -f permission=push
+   done < logins.txt
+   ```
 4. Put the repository URL in the course announcement. `docs/submit-runs.md` tells the
    student's agent to clone it to `../mads-runs`, next to the course repository.
 5. Clone it yourself to `../mads-runs` too (or set `MADS_RUNS_REPO`).
