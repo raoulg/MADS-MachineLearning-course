@@ -28,18 +28,32 @@ The course is one argument, not seven topics:
 
 ## L1 — Representation, composition, search
 
-**Status: built and run. No changes this round.**
+**Status: built and run (2026-11-04).**
 
 `01_the_cache`, `01b_tensors`, `01c_build_your_own_cache` (optional), `02_nonlinearity`,
-`03_training`, `04_search`, `05_exercises`.
+`03_training`, `04_search`, `05_exercises`. Slides: `presentations/lesson1-*.html`. Goals:
+`references/leerdoelen/les1.md`.
 
-The lesson establishes everything downstream depends on: a published cache, reasoning
-over tensor shapes, `σ(Wx+b)` and `σ(W*x)` as one idea (which is how dense and
-convolutional layers become a single lesson instead of two), the training loop at the
-`vectormesh.training.Trainer` level, and ray.tune with a single algorithm used properly.
+The lesson establishes everything downstream depends on, with the weight on tensors:
 
-Excludes on purpose: the search-algorithm zoo (L3), the 2D/3D rungs of the tensor ladder
-(L4 — images give one vector per item, so the short ladder is the honest one here).
+- **The cache as transfer learning.** A foundation model orders the vector space without
+  training on your task (1-NN already classifies); embed once, train many heads, because a
+  search multiplies head cost and not embedding cost; encoders differ by their training
+  data and your task.
+- **Tensors.** Rank and shape versus meaning, built from real items: a sentence as `(D)`,
+  a batch as stacked items and a chunked item as one split item (same shape, different
+  meaning), a cat as `(C,H,W)` with real channels, a stack of EuroSAT tiles as 4D.
+- **Nonlinearity.** A linear stack collapses to one linear map (shown by multiplying it
+  out); universal approximation via UDL Fig. 3.3/3.5; `σ(Wx+b)` and `σ(W*x)` as one idea.
+- **Training** at the `vectormesh.training.Trainer` level: batching is stacking, loss vs
+  metric, optimizers drawn on a loss surface.
+- **Search** with ray.tune and a single algorithm used properly: the search space drawn
+  before it runs, a 1-NN floor and a linear baseline logged to MLflow first, architectures
+  drawn with the tensor shape on every arrow, fusion as a parallel architecture.
+- **Delivery** through the run protocol (`docs/run-protocol.md`): students submit their
+  MLflow runs to the class runs repository, and the next lesson opens on the class's runs.
+
+Excludes on purpose: the search-algorithm zoo (L3).
 
 ---
 
