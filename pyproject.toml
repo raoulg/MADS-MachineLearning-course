@@ -26,8 +26,10 @@ dependencies = [
     "jupyter>=1.1.1",
     "loguru>=0.7.0",
     "matplotlib>=3.7.1",
+    "mlflow>=3.5.1",
     "plotly>=5.17.0",
     "pydantic>=1.10.9",
+    "ray[tune]>=2.58.0",
     "seaborn>=0.12.2",
     "tokenizers>=0.21.0",
     "tensorboard>=2.20",
@@ -37,9 +39,7 @@ dependencies = [
     "torch-tb-profiler>=0.4.3",
     "torchvision>=0.21.0",
     "tomlserializer>=0.2.0",
-    "mltrainer[tune]>=0.3.6",
-    "flax>=0.12.2",
-    "vectormesh>=0.11.0",
+    "vectormesh>=0.12.0",
     "scikit-learn>=1.9.0",
 ]
 
