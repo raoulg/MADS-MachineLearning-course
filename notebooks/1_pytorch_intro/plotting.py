@@ -410,3 +410,182 @@ def plot_optimizer_paths(
     ax.set_title(title)
     ax.legend(loc="lower right", fontsize=8)
     return ax
+
+
+UNIT_AXIS = "#e07a10"  # the colour of an axis of length 1, in every panel
+
+
+def _stack(ax, planes, dx, dy, w, h, cmap=None, vmin=None, vmax=None):
+    """Draw 2D planes as a stack of cards, the first one in front, the rest up and to the right."""
+    from matplotlib.patches import Rectangle
+
+    n = len(planes)
+    for i in reversed(range(n)):
+        x0, y0 = i * dx, i * dy
+        ax.imshow(
+            planes[i],
+            extent=(x0, x0 + w, y0, y0 + h),
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            aspect="auto",
+            interpolation="nearest",
+            zorder=n - i,
+        )
+        ax.add_patch(
+            Rectangle(
+                (x0, y0), w, h, fill=False, ec="black", lw=0.8, zorder=n - i + 0.5
+            )
+        )
+
+
+def _bracket(ax, start, end, text, color, side=(0.12, -0.12)):
+    """A line from `start` to `end` with end ticks, labelled `text` beside its middle."""
+    import numpy as np
+
+    (x0, y0), (x1, y1) = start, end
+    ax.plot([x0, x1], [y0, y1], color=color, lw=2.5, solid_capstyle="butt", zorder=50)
+    for x, y in (start, end):
+        ax.plot(
+            [x - side[0] / 2, x + side[0] / 2],
+            [y - side[1] / 2, y + side[1] / 2],
+            color=color,
+            lw=2,
+            zorder=50,
+        )
+    mid = np.array([(x0 + x1) / 2, (y0 + y1) / 2]) + 1.6 * np.array(side)
+    ax.text(
+        *mid,
+        text,
+        color=color,
+        fontsize=11,
+        fontweight="bold",
+        ha="left",
+        va="center",
+        zorder=51,
+    )
+
+
+def _panel(ax, title, xlim, ylim):
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.set_title(title, fontsize=11, loc="left")
+
+
+def plot_unit_axis(gray, rgb, chunked, batch, max_dims: int = 12):
+    """Draw an axis of length 1 as a stack of one card.
+
+    A stack axis is drawn as cards behind each other, with a bracket along the depth
+    labelled with its length; the bracket is orange when that length is 1.
+
+    Top row: a grey image as a flat `(H, W)` grid; the same numbers as a stack of one
+    channel, `(H, W, 1)`; and the colour image, a stack of three, `(H, W, 3)`.
+    Bottom row: one chunked item `(C, D)` and the same item as a batch of one,
+    `(1, C, D)`; a batch `(B, D)` and the same rows as B items of one chunk each,
+    `(B, 1, D)`.
+
+    Args:
+        gray: `(H, W)` grey image.
+        rgb: `(H, W, 3)` colour image, uint8.
+        chunked: `(C, D)` chunk vectors of one item.
+        batch: `(B, D)` vectors of B items.
+        max_dims: how many of the D numbers to draw.
+    """
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    gray = np.asarray(gray, dtype=float)
+    rgb = np.asarray(rgb)
+    H, W = gray.shape
+    w, h = 4.0, 4.0 * H / W
+    dx, dy = 0.55, 0.45
+    channels = []
+    for k in range(3):
+        only = np.zeros_like(rgb)
+        only[:, :, k] = rgb[:, :, k]
+        channels.append(only)
+
+    fig = plt.figure(figsize=(16, 6.5))
+    top_fig, bottom_fig = np.asarray(
+        fig.subfigures(2, 1, height_ratios=[1.2, 1])
+    ).ravel()
+    top = top_fig.subplots(1, 3)
+    bottom = bottom_fig.subplots(1, 4)
+    image_box = ((-0.2, w + 3 * dx + 0.9), (-0.3, h + 3 * dy + 0.3))
+
+    # top row: the image
+    ax = top[0]
+    ax.imshow(gray, cmap="gray", extent=(0, w, 0, h), aspect="auto")
+    _panel(ax, f"(H, W) = ({H}, {W})\na grey image: one number per pixel", *image_box)
+
+    ax = top[1]
+    _stack(ax, [gray], dx, dy, w, h, cmap="gray")
+    _bracket(ax, (w + 0.1, 0.0), (w + 0.1 + dx, dy), "1", UNIT_AXIS)
+    _panel(
+        ax, f"(H, W, 1) = ({H}, {W}, 1)\nthe same numbers, a stack of one", *image_box
+    )
+
+    ax = top[2]
+    _stack(ax, channels, dx, dy, w, h)
+    _bracket(ax, (w + 0.1, 0.0), (w + 0.1 + 3 * dx, 3 * dy), "3", "black")
+    _panel(
+        ax,
+        f"(H, W, 3) = {tuple(rgb.shape)}\nthe colour image, a stack of three",
+        *image_box,
+    )
+
+    # bottom row: the ladder
+    chunked = np.asarray(chunked, dtype=float)[:, :max_dims]
+    batch = np.asarray(batch, dtype=float)[:, :max_dims]
+    vmin = float(min(chunked.min(), batch.min()))
+    vmax = float(max(chunked.max(), batch.max()))
+    C, B = chunked.shape[0], batch.shape[0]
+    cell = 0.4
+    gw = max_dims * cell
+    dx, dy = 0.35, 0.7
+    grid_box = (
+        (-1.6, gw + B * dx + 1.4),
+        (-0.2, max(C * cell + dy, cell + B * dy) + 0.2),
+    )
+    style = {"cmap": "viridis", "vmin": vmin, "vmax": vmax}
+
+    ax = bottom[0]
+    ax.imshow(chunked, extent=(0, gw, 0, C * cell), aspect="auto", **style)
+    _panel(ax, f"(C, D)\none review, {C} chunks", *grid_box)
+
+    ax = bottom[1]
+    _stack(ax, [chunked], dx, dy, gw, C * cell, **style)
+    _bracket(ax, (gw + 0.1, 0.0), (gw + 0.1 + dx, dy), "B = 1", UNIT_AXIS)
+    _panel(ax, "(1, C, D)\na batch of one review", *grid_box)
+
+    ax = bottom[2]
+    ax.imshow(batch, extent=(0, gw, 0, B * cell), aspect="auto", **style)
+    _panel(ax, f"(B, D)\n{B} reviews, one row each", *grid_box)
+
+    ax = bottom[3]
+    _stack(ax, [batch[i : i + 1] for i in range(B)], dx, dy, gw, cell, **style)
+    ax.plot([-0.15, -0.15], [0, cell], color=UNIT_AXIS, lw=2.5)
+    ax.text(
+        -0.3,
+        cell / 2,
+        "C = 1",
+        color=UNIT_AXIS,
+        fontsize=11,
+        fontweight="bold",
+        ha="right",
+        va="center",
+    )
+    _bracket(ax, (gw + 0.1, 0.0), (gw + 0.1 + B * dx, B * dy), f"B = {B}", "black")
+    _panel(ax, f"(B, 1, D)\n{B} reviews of one chunk each", *grid_box)
+
+    fig.text(
+        0.01,
+        -0.01,
+        "orange: an axis of length 1. Adding or removing it moves no number; "
+        "the address gets one more index, and that index can only be 0.",
+        color=UNIT_AXIS,
+        fontsize=12,
+    )
+    return fig
