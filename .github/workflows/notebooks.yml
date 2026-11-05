@@ -17,7 +17,7 @@ jobs:
       mode: ${{ steps.pick.outputs.mode }}
       notebooks: ${{ steps.pick.outputs.notebooks }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - uses: astral-sh/setup-uv@v7
         with:
