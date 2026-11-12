@@ -301,6 +301,8 @@ def describe_space(space: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def _num(x: Any) -> str:
+    if isinstance(x, bool):
+        return str(x).lower()
     if isinstance(x, float) and 0 < abs(x) < 0.1:
         mantissa, exponent = f"{x:e}".split("e")
         return f"{mantissa.rstrip('0').rstrip('.')}e{int(exponent)}"
@@ -333,7 +335,10 @@ def space_line(space: Mapping[str, Any]) -> str:
 
 
 def _plain(x: Any) -> str:
-    """A number as a short plain decimal (0.0003, 0.5, 64), a string as it is."""
+    """A number as a short plain decimal (0.0003, 0.5, 64), a bool as true/false, a string
+    as it is."""
+    if isinstance(x, bool):
+        return str(x).lower()
     if isinstance(x, float):
         return np.format_float_positional(x, trim="-")
     return str(x)
