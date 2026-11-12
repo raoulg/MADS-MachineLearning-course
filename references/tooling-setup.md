@@ -12,7 +12,7 @@ https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/refe
 If you are the assistant: you are coaching one student through a one-time installation
 of the tools used in the course *Machine Learning* of the Master of Applied Data Science:
 a terminal, git and GitHub, uv, an editor, the course repository, the git hooks that
-guard code quality, Atlas, the coaching server, and the class runs repository the
+guard code quality, Atlas, the coaching servers, and the class runs repository the
 student submits their training runs to. Read this whole file now, then follow the
 protocol below.
 
@@ -163,7 +163,7 @@ Track these. Each is a section below.
 - [ ] **M5 — The course repository.** Cloned, own branch, `uv sync`, a notebook cell runs.
 - [ ] **M6 — Lefthook.** Hooks installed; each hook explained; one commit made through them; `param()` and cleared outputs explained back.
 - [ ] **M7 — Atlas.** `atlas-code` installed and current, Studio if wanted, its MCP server registered.
-- [ ] **M8 — The coach.** `codestyle` connected, and they know what a coach will and will not do.
+- [ ] **M8 — The coaches.** `vectormesh` and `codestyle` connected, and they know what a coach will and will not do.
 - [ ] **M9 — The class runs repository.** Their own fork, cloned to `../mads-runs`, with `upstream` set.
 
 Tell the student that most of this is done once, ever.
@@ -789,7 +789,7 @@ both questions. Tick the box.
 
 For a no: Atlas draws a repository as a picture — the places where data rests (files,
 tables, types in memory) and the functions between them — and checks the code against a
-handful of design principles. Like the coach in M8, every finding it reports ends in a
+handful of design principles. Like the coaches in M8, every finding it reports ends in a
 question for the author, not a fix.
 
 The effect they will notice: `atlas-code view .` opens a picture of a repository in the
@@ -892,31 +892,41 @@ registered with their assistant, and they have seen the picture once. Tick the b
 
 ---
 
-## M8 — The coach
+## M8 — The coaches
 
 ### Ask first
 
-*"Milestone 8 of 9: the coaching server. Do you know what an MCP server is?"*
+*"Milestone 8 of 9: the coaching servers. Do you know what an MCP server is?"*
 
 For a no: an MCP server is a small program that gives an assistant tools it does not
-have by itself. This repository registers `codestyle` (*is my code any good?*), which
-holds the course's code guidelines and review rubric. It is a coach, not an oracle: it
-asks questions, waits for the student's own words, and only then writes code.
-`CLAUDE.md` and `AGENTS.md` in the repository root spell out that contract.
+have by itself. This repository registers two, written by the teacher:
+
+- **`vectormesh`** (*is my architecture any good?*) holds the course's design and search
+  method. `/vectormesh:design` walks the student through a design one stage at a time —
+  the problem and the acceptance bound, the tensor, pretrained models, context, the
+  architecture, the search space, search practice and the results — and code comes after
+  the last stage. `/vectormesh:search` coaches the setup of a Ray Tune search.
+- **`codestyle`** (*is my code any good?*) holds the course's code guidelines and
+  review rubric.
+
+Both are coaches, not oracles: they ask questions, wait for the student's own words, and
+only then write code. `CLAUDE.md` and `AGENTS.md` in the repository root spell out that
+contract.
 
 The effect they will notice: their assistant will sometimes decline to just write the
 model or the search space, and ask them a question instead. That is the tool working.
 
 ### How it works
 
-Open `.mcp.json` together. Its entry is one command:
+Open `.mcp.json` together. Each entry is one command:
 
 ```
-uv run --no-project https://raw.githubusercontent.com/raoulg/codestyle/$CODESTYLE_REF/codestyle_mcp.py
+uv run --no-project https://raw.githubusercontent.com/raoulg/<repo>/<tag>/<script>.py
 ```
 
-with `CODESTYLE_REF=stable`. Read it out: uv downloads a single Python script from
-GitHub at the `stable` tag, builds an isolated environment for that script's own
+with the tag in an environment variable, `VECTORMESH_REF=stable` and
+`CODESTYLE_REF=stable`. Read it out: uv downloads a single Python script from GitHub at
+the `stable` tag, builds an isolated environment for that script's own
 dependencies (the first start is slower; after that it is cached), and runs it. Nothing
 lands in the project's `.venv`, and `stable` moves to each new release. No uv, no coach:
 another reason for M3.
@@ -926,10 +936,10 @@ another reason for M3.
 - **Claude Code**: start `claude` in the `MADS-MachineLearning-course` folder. It sees
   `.mcp.json`, asks whether to use the project's MCP servers, and the student approves
   once.
-- **Codex**: reads `.codex/config.toml` in the repository, which holds the same server.
+- **Codex**: reads `.codex/config.toml` in the repository, which holds the same servers.
 - **Cursor**: `mkdir -p .cursor && cp .mcp.json .cursor/mcp.json` (`.cursor/` is in
-  `.git/info/exclude` since §0). Settings → MCP shows the server with a green dot once
-  it has started.
+  `.git/info/exclude` since §0). Settings → MCP shows both servers with a green dot once
+  they have started.
 
 ### Verify (you run this)
 
@@ -937,14 +947,16 @@ another reason for M3.
 claude mcp list            # or: codex mcp list
 ```
 
-`codestyle` must say connected. If you are the assistant running inside the session,
-prove it instead: call one of its tools (list the codestyle topics) and tell the student
-one title.
+`vectormesh` and `codestyle` must both say connected. If you are the assistant running
+inside the session, prove it instead: call one tool of each — `vectormesh_list_concepts`
+and `codestyle_list_topics` — and tell the student one title from each.
 
 A server that fails to connect is diagnosed by running its command by hand: copy the
 `uv run --no-project ...` line out of `.mcp.json`, prefix the environment variable, run
 it in the terminal. A Python traceback in the first lines is the actual error; a silent
-wait means it started fine and is waiting for a client.
+wait means it started fine and is waiting for a client. A 404 when the vectormesh
+server starts means its `stable` release is not out yet: tell the student to tell their
+teacher, and go on.
 
 ### Then ask
 
@@ -955,11 +967,13 @@ they say "write the model", point at `CLAUDE.md` and try again.
 
 **Remember** (memory file):
 
-- `codestyle` from `.mcp.json` is the course's code coach. It asks first, and the
-  student answers in their own words.
+- `vectormesh` and `codestyle` from `.mcp.json` are the course coaches. Use
+  `/vectormesh:design` for a new architecture and `/vectormesh:search` for a Ray Tune
+  search, `codestyle` for code questions. They ask first, and the student answers in
+  their own words.
 - The student designs the search space and states the hypothesis; the assistant coaches.
 
-**CHECKPOINT.** M8 is done when `codestyle` is connected and the student answered the
+**CHECKPOINT.** M8 is done when both servers are connected and the student answered the
 question. Tick the box.
 
 ---
@@ -1016,7 +1030,8 @@ The first must show `origin` pointing at `<login>/mads-ml-runs-2026-11` and `ups
 `raoulg/mads-ml-runs-2026-11`; the second must say `"isFork": true`.
 
 Nothing is submitted now. Submitting a lesson's runs is done at the end of that
-lesson's exercise notebook, by following `docs/submit-runs.md`.
+lesson's exercise notebook, by following `docs/submit-runs.md`: the runs go to their
+fork, and reach the class repository through a pull request. Never push to `upstream`.
 
 **Remember** (memory file):
 
@@ -1063,7 +1078,8 @@ the browser, or `references/01_git crash course.pdf` (Dutch, the teacher's own).
 | `git pull` on `master` says "would be overwritten" | They edited or committed on `master`. Commit on their branch, never again |
 | Merge conflict in a lesson notebook after `git merge master` | They edited the teacher's file in place. Resolve, then rename their copy |
 | `atlas-code --version` older than the latest release | Run the install command again, or `brew upgrade atlas-code` |
-| `atlas` or `codestyle` "failed to connect" | Run its command by hand; the traceback is the error |
+| `atlas`, `vectormesh` or `codestyle` "failed to connect" | Run its command by hand; the traceback is the error |
+| 404 when the `vectormesh` server starts | Its `stable` release is not out yet; tell the teacher |
 | `gh repo fork` says the fork exists | It does; go on with the clone |
 | `git push` to `../mads-runs` refused | `gh auth setup-git` was not run (M2), or `origin` is not their fork |
 
