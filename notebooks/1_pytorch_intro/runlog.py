@@ -39,7 +39,8 @@ TRACKING_DB = Path(__file__).resolve().parents[2] / "artefacts" / "mlflow" / "ml
 ROLES = ("baseline", "trial", "final", "ablation", "hypothesis")
 
 STUDY_PLACEHOLDER = "name-your-study"
-STUDY_NAME = re.compile(r"[a-z0-9][a-z0-9-]{2,39}")
+# <first name>-<what it studies>: who it is from, and what it is about
+STUDY_NAME = re.compile(r"[a-z]+-[a-z0-9][a-z0-9-]{1,38}")
 
 # One timestamp per execution of a notebook (this module is imported once, at the top):
 # every run carries it as the tag `session`, so a notebook run twice can be told apart and
@@ -384,19 +385,20 @@ def space_tags(space: Mapping[str, Any]) -> dict[str, str]:
 
 
 def check_study_name(name: Any) -> str:
-    """`name`, stripped, if it can name a study; otherwise a `ValueError` that says what
-    to do. The placeholder `name-your-study` passes only under notebooktester."""
+    """`name`, stripped and in lowercase, if it can name a study; otherwise a `ValueError`
+    that says what to do. The placeholder `name-your-study` passes only under notebooktester."""
     testing = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
-    name = name.strip() if isinstance(name, str) else ""
+    name = name.strip().lower() if isinstance(name, str) else ""
     if not name or (name == STUDY_PLACEHOLDER and not testing):
         raise ValueError(
-            f"name your study: set STUDY to a name of your own instead of "
-            f"{STUDY_PLACEHOLDER!r}, for example 'depth-on-eurosat'"
+            f"name your study: set STUDY to your first name and what it studies "
+            f"instead of {STUDY_PLACEHOLDER!r}, for example 'sam-depth-on-eurosat'"
         )
     if not STUDY_NAME.fullmatch(name):
         raise ValueError(
-            f"study name {name!r}: use 3 to 40 lowercase letters, digits and dashes, "
-            "starting with a letter or digit, for example 'depth-on-eurosat'"
+            f"study name {name!r}: use your first name, a dash, and what the study "
+            "studies, in lowercase letters, digits and dashes, for example "
+            "'sam-depth-on-eurosat'"
         )
     return name
 
@@ -411,7 +413,7 @@ class Study:
     `space_<axis>` per axis) and, when `default_space` is given, `space_is_default`; and
     the artifact `search_space.json` (what `describe_space` gives).
 
-        study = Study("depth-on-eurosat", space=param_space,
+        study = Study("sam-depth-on-eurosat", space=param_space,
                       budget={"n_trials": 16, "epochs": 15, "seeds": 3})
         study.log_run("winner", "final", dataset="eurosat", scores={"accuracy": per_seed})
     """
