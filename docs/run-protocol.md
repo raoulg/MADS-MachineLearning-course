@@ -97,10 +97,18 @@ log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
 - **dataset** tag, on every run: the dataset the run was trained and scored on.
 - **role** tag: `baseline`, `trial` (one search trial), `final` (the result a student
   stands behind, rerun over seeds), `ablation`, `hypothesis`.
-- **a study** carries, on each of its runs, the tags `study` (its name), `claim` (what the
-  student set out to show), `search_space` (the space searched), `space_is_default`
-  (`true` when that is the notebook's space, unchanged) and `budget` (the number of
-  trials), and the artifact `search_space.json` with the space in full.
+- **a study** carries, on each of its runs, the tags `study` (its name),
+  `space_is_default` (`true` when the space is the notebook's, unchanged) and `budget`
+  (the number of trials). What the student expected and why is not recorded: the lesson
+  discusses it live.
+- **a search** (every search run, in `lesson<N>-study` and the handed-out search of
+  `lesson<N>-notebook` alike) makes its space filterable per axis:
+  - `search_space`: the whole space on one line;
+  - the artifact `search_space.json`: the space in full;
+  - one tag per axis, `space_<axis>`, with a short value: `choice[64,256]`,
+    `loguniform[0.0003,0.003]`, `uniform[0,0.5]`, `fixed[dinov2-small]`;
+  - `searched_axes`: the names of the axes that are not fixed, sorted and
+    comma-separated.
 - **scores**: per-seed values become `<metric>` (the mean), `<metric>_std`,
   `<metric>_per_seed` and `n_seeds`. `submit_runs.py --list` shows them as
   `accuracy=<mean> ± <std> (n=<seeds>)`.
@@ -184,6 +192,12 @@ In mlflow ui itself, useful views on the class store:
 - Chart view, scatter `n_params` against `accuracy` over all trials.
 - Select one student's trials and compare their `accuracy` curves per epoch.
 - Every run's Artifacts tab has its `architecture.json` with the shape at each layer.
+- Filter `tags.space_encoder LIKE 'fixed%'` for the searches that kept the encoder fixed.
+- Filter `tags.searched_axes LIKE '%n_hidden_layers%'` for the searches that searched
+  over the number of hidden layers.
+
+The lesson discusses these runs live, with the students who made them: why did you do
+this, what was the idea, what did you learn when it disappointed.
 
 ## Why not mlflow-export-import, or a tracking server
 
