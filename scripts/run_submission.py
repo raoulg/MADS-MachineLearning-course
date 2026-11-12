@@ -9,10 +9,13 @@ recreate the run in another mlflow store: params, tags, the full history of ever
 metric, small text/JSON artifacts (the architecture), and where the code came from.
 
 This module depends on pydantic and the standard library only, so the runs repository's
-CI can validate a push without installing mlflow:
+CI can validate a push or a pull request without installing mlflow:
 
     uv run --with pydantic python scripts/run_submission.py check <runs-repo> \
         [--actor <login>] [--teachers raoulg] [--files <changed paths>...]
+
+With `--files`, `<runs-repo>` is the repository as it would be with the change applied,
+and the paths are every path the change touches, deleted ones included.
 
 `docs/run-protocol.md` describes the protocol around it.
 """
@@ -132,12 +135,28 @@ class Submission(BaseModel):
 def load(path: Path, root: Path | None = None) -> Submission:
     """Read and validate one submission file. With `root`, also check that the file sits
     at the path its own content says it belongs at."""
+    if path.is_symlink():
+        raise ValueError(
+            "a symbolic link, not a file: submit again, do not edit by hand"
+        )
     size = path.stat().st_size
     if size > MAX_FILE_BYTES:
         raise ValueError(f"{size} bytes, limit {MAX_FILE_BYTES}")
-    sub = Submission.model_validate(json.loads(path.read_text()))
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        raise ValueError(
+            f"not valid JSON ({e}): submit again, do not edit by hand"
+        ) from None
+    sub = Submission.model_validate(data)
     if root is not None:
         rel = path.resolve().relative_to(root.resolve()).as_posix()
+        m = PATH.match(rel)
+        if m and m.group(2) != sub.student:
+            raise ValueError(
+                f"this file says it is {sub.student}'s run; "
+                f"it sits in {m.group(2)}'s directory"
+            )
         if rel != sub.relpath():
             raise ValueError(f"belongs at {sub.relpath()}, found at {rel}")
     return sub
@@ -148,38 +167,56 @@ def check(
 ) -> list[str]:
     """Every problem with the submissions under `root`, as readable lines.
 
-    `files` restricts the check to those paths (the files a push changed); with them,
-    `actor` adds the rule that a student only writes inside their own directory."""
+    `files` restricts the check to those paths (the files a push or pull request
+    changed), and then every one of them must be a `lesson<N>/<student>/<run_id>.json`
+    path; with them, `actor` adds the rule that a student only writes inside their own
+    directory. A run id may sit in one student's directory only."""
     problems = []
     if files is None:
-        paths = sorted(root.glob("lesson*/*/*.json"))
+        rels = sorted(
+            p.relative_to(root).as_posix() for p in root.glob("lesson*/*/*.json")
+        )
     else:
         # a CI step may pass the changed paths as one newline-separated argument
-        paths = [
-            root / f for arg in files for f in arg.split() if f.startswith("lesson")
-        ]
+        rels = [f for arg in files for f in arg.splitlines() if f.strip()]
 
-    for path in paths:
-        rel = path.relative_to(root).as_posix()
+    for rel in rels:
         m = PATH.match(rel)
         if not m:
-            problems.append(f"{rel}: not a lesson<N>/<student>/<run_id>.json path")
+            problems.append(
+                f"{rel}: outside lesson<N>/<student>/<run_id>.json; "
+                "a submission changes nothing else"
+            )
             continue
-        owner = m.group(2)
+        path = root / rel
+        owner, run_id = m.group(2), m.group(3)
+        deleted = not path.exists() and not path.is_symlink()
         if (
             files is not None
             and actor
             and actor.lower() not in teachers
             and owner.lower() != actor.lower()
         ):
+            verb = "deleted" if deleted else "written"
             problems.append(
-                f"{rel}: written by {actor}, but this directory belongs to {owner}"
+                f"{rel}: {verb} by {actor}, but this directory belongs to {owner}"
             )
-        if not path.exists():
-            continue  # a deletion; the ownership rule above still applies
+        if deleted:
+            continue
+        others = sorted(
+            {
+                p.parent.name
+                for p in root.glob(f"lesson*/*/{run_id}.json")
+                if p.parent.name.lower() != owner.lower()
+            }
+        )
+        if others:
+            problems.append(
+                f"{rel}: this run id is already submitted by {', '.join(others)}"
+            )
         try:
             load(path, root)
-        except (ValueError, json.JSONDecodeError) as e:
+        except ValueError as e:  # pydantic's ValidationError is a ValueError
             problems.extend(f"{rel}: {line}" for line in explain(e))
     return problems
 
@@ -203,7 +240,9 @@ def main() -> None:
     c.add_argument("root", type=Path)
     c.add_argument("--files", nargs="*", help="only these paths, relative to root")
     c.add_argument(
-        "--actor", help="GitHub login that pushed; may only write in its own directory"
+        "--actor",
+        help="GitHub login that pushed or opened the pull request; "
+        "may only write in its own directory",
     )
     c.add_argument(
         "--teachers", default="", help="comma-separated logins that may write anywhere"
