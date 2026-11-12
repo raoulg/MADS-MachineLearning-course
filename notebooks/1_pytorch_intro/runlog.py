@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -39,6 +40,11 @@ ROLES = ("baseline", "trial", "final", "ablation", "hypothesis")
 
 STUDY_PLACEHOLDER = "name-your-study"
 STUDY_NAME = re.compile(r"[a-z0-9][a-z0-9-]{2,39}")
+
+# One timestamp per execution of a notebook (this module is imported once, at the top):
+# every run carries it as the tag `session`, so a notebook run twice can be told apart and
+# the class analysis keeps only a student's latest session of the handed-out runs.
+SESSION = time.strftime("%Y-%m-%d %H:%M:%S")
 
 
 def _tracking_uri() -> str:
@@ -202,6 +208,7 @@ def _log_run(
 
     with mlflow.start_run(run_name=name, experiment_id=experiment_id) as run:
         mlflow.set_tag("role", role)
+        mlflow.set_tag("session", SESSION)
         if os.environ.get("NOTEBOOKTESTER_RUNNING"):
             mlflow.set_tag("test_run", "true")
         if dataset is not None:
@@ -376,6 +383,24 @@ def space_tags(space: Mapping[str, Any]) -> dict[str, str]:
     return tags
 
 
+def check_study_name(name: Any) -> str:
+    """`name`, stripped, if it can name a study; otherwise a `ValueError` that says what
+    to do. The placeholder `name-your-study` passes only under notebooktester."""
+    testing = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
+    name = name.strip() if isinstance(name, str) else ""
+    if not name or (name == STUDY_PLACEHOLDER and not testing):
+        raise ValueError(
+            f"name your study: set STUDY to a name of your own instead of "
+            f"{STUDY_PLACEHOLDER!r}, for example 'depth-on-eurosat'"
+        )
+    if not STUDY_NAME.fullmatch(name):
+        raise ValueError(
+            f"study name {name!r}: use 3 to 40 lowercase letters, digits and dashes, "
+            "starting with a letter or digit, for example 'depth-on-eurosat'"
+        )
+    return name
+
+
 @dataclass
 class Study:
     """Your own study: a name, a search space and a budget.
@@ -399,18 +424,7 @@ class Study:
     tags: dict[str, str] = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
-        testing = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
-        self.name = self.name.strip()
-        if not self.name or (self.name == STUDY_PLACEHOLDER and not testing):
-            raise ValueError(
-                f"name your study: set STUDY to a name of your own instead of "
-                f"{STUDY_PLACEHOLDER!r}, for example 'depth-on-eurosat'"
-            )
-        if not STUDY_NAME.fullmatch(self.name):
-            raise ValueError(
-                f"study name {self.name!r}: use 3 to 40 lowercase letters, digits and "
-                "dashes, starting with a letter or digit, for example 'depth-on-eurosat'"
-            )
+        self.name = check_study_name(self.name)
         self.tags = {
             "origin": "study",
             "study": self.name,
@@ -440,7 +454,16 @@ class Study:
         train_seconds: float | None = None,
     ) -> str:
         """`log_run` for this study: same arguments, into `lesson<N>-study`, with the
-        study's tags and its `search_space.json`. The selected experiment stays as it is."""
+        study's tags and its `search_space.json`. The selected experiment stays as it is.
+
+        A `hypothesis` run is not a trial of the search, so it carries only `origin` and
+        `study`: no budget, no space tags, no `search_space.json`."""
+        if role == "hypothesis":
+            study_tags = {"origin": "study", "study": self.name}
+            artifacts = None
+        else:
+            study_tags = self.tags
+            artifacts = {"search_space.json": describe_space(self.space)}
         return _log_run(
             name,
             role,
@@ -450,8 +473,8 @@ class Study:
             curves=curves,
             model=model,
             example=example,
-            tags={**(tags or {}), **self.tags},
+            tags={**(tags or {}), **study_tags},
             train_seconds=train_seconds,
             experiment_id=_experiment_id(self.experiment),
-            artifacts={"search_space.json": describe_space(self.space)},
+            artifacts=artifacts,
         )
