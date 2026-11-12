@@ -17,9 +17,16 @@ protocol below.
 > this document does not apply — send them to
 > <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/00-SURF-lab-setup.pdf> and the teacher.
 >
-> This document is about the VM. The tools on the student's own machine — git, uv,
-> the editor — have their own guide, <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md>, run the same way.
-> Every student does that one; only students with a VM do this one as well.
+> This document is about the VM. The tools on the student's own machine have their own
+> guide, run the same way. Every student does that one; only students with a VM do this
+> one as well.
+>
+> **How the two guides divide the work for a VM student.** From the tooling guide, the
+> laptop gets the terminal, git, uv, the editor and Atlas. The clone, the hooks, the
+> coaches and the runs repository are set up on the VM, because that is the machine that
+> trains and holds the mlflow store. Assistant: follow the tooling guide at
+> <https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/tooling-setup.md>. Student: read it at
+> <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md>.
 
 ---
 
@@ -51,9 +58,9 @@ whether a GUI dialog appeared, which button they clicked, how they feel about a 
 ### Keep a progress file
 
 This session may span several days, and you will lose your memory between sessions. So
-before you start, agree on a file to track progress in. Ask the student where they want
-it; if they have no preference, propose `~/mads-ml-vm-setup.md`. It stays on the laptop. Create it with the
-milestone list from §1 as unchecked boxes, and tick a box the moment a milestone is
+before you start, find the progress file both guides share: `~/mads-ml-setup.md` on the
+laptop (create it if it does not exist). Append the milestone list from §1 under a
+heading "VM" in that file, as unchecked boxes, and tick a box the moment a milestone is
 verified — not when you *think* it worked.
 
 When a session resumes, read that file first and pick up where it stops. Re-verify the
@@ -827,7 +834,7 @@ what keeps their work and the incoming updates from colliding. On the VM, in the
 folder:
 
 ```bash
-git checkout -b les1
+git switch -c mywork
 ```
 
 The workflow to teach, and to make them repeat back:
@@ -837,8 +844,8 @@ The workflow to teach, and to make them repeat back:
    becomes `01_the_cache_WillemvO.ipynb`. Editing the teacher's file in place is what
    produces merge conflicts; a differently-named file never conflicts with anything.
 3. Save work: `git add .` then `git commit -m "..."`.
-4. Get updates: commit everything (`git status` must be clean), `git checkout master`,
-   `git pull`, `git checkout les1`, `git merge master`.
+4. Get updates: commit everything (`git status` must be clean), `git switch master`,
+   `git pull`, `git switch mywork`, `git merge master`.
 
 Note the branch is `master`, not `main`.
 
@@ -857,7 +864,7 @@ the branch from the laptop:
 ssh -o BatchMode=yes ml-vm 'git -C ~/MADS-MachineLearning-course branch --show-current'
 ```
 
-It prints `les1`. Tick the last box, and tell the student the setup is finished — from now
+It prints `mywork`. Tick the last box, and tell the student the setup is finished — from now
 on the routine is: start the VM in the browser → Remote-SSH connect → work (a long run in
 tmux) → close the connection → **stop the VM on the website**.
 
