@@ -27,7 +27,7 @@ Show you can
 1. Design experiments to test your hypothesis
 1. Work iterative: eg start with a small experiment to get a direction, then reduce the search space and run a more extensive experiment
 
-**Your report must contain a capacity curve with a control.** Whatever you conclude helped
+**Your runs must include a capacity curve with a control.** Whatever you conclude helped
 — more width, more depth, a gate, a routed mixture — show the same score against a model
 with the *same parameter count* spent differently. A number without that control is not a
 result, and this lesson is the one where that stops being optional. See notebook 01, where
@@ -57,9 +57,6 @@ The science part of data science is about setting up experiments. You follow thi
 To keep track of this process, it is useful to keep a journal. While you could use anything to do so, a nice command line tool is [jrnl](https://jrnl.sh/en/stable/). This gives you the advantage of staying in the terminal, just type down your ideas during the process, and you can always look back at what you have done.
 First formulate a hypothesis, and then design an experiment to test it. You are encouraged to use both your book and use an LLM as a sparring partner (eg use gemini or claude. I advise against chatgpt) to help formulate your hypothesis, or to finetune it.
 
-Important: the report you write is NOT the same as your journal! The journal will help you to keep track of your process, and later write down a reflection on what you have done where you draw conclusion, reflecting back on the theory.
-
-
 ## Implementing
 `hypertune.py` is a worked example: it searches a head over a published cache with
 `tune.Tuner`, `HyperOptSearch` and an `ASHAScheduler`, and writes the trials to a csv.
@@ -80,13 +77,12 @@ scheduler has something to prune on, results written to disk — rather than the
 ### split code and configuration
 - make a *configurable model* where you can change the different options from the config. You can decide for yourself if you want to make it configurable by simply passing a dictionary, or by creating a @dataclass as a Settings object, or by using a `.toml` file with `tomllib` (since python 3.11 part of python) and the `TOMLserializer`.
 
-## Report
-Write a report of **maximum** 3 a4 pages; but 2 a4 should be enough. The master shows in knowing what to remove...
-This means you will have to be very clear with your report. Remove all clutter. Use clear visualisations. Make sure it's clear in a few seconds what the results are of every experiment.
+## What you bring
+You bring your runs to the lesson, and we look at them there in mlflow. The master shows in knowing what to remove: bring the runs that show something, and leave out the rest. Name and tag every run so it is clear in a few seconds which experiment it belongs to and what it found.
 
 You will get a:
 - 0, which means: you will have to improve things, otherwise it will cost you points at your exam
-- 1, meaning: your work is fine. There are some things to improve, but you are on the right track for the final report.
+- 1, meaning: your work is fine. There are some things to improve, but you are on the right track.
 - 2, meaning: your work is excellent. You have done everything right, even exceeded expectations,and you have shown that you understand the material. If you do the same on the exam you will be good, and even though i give improvements, this should be interpreted as a direction for future growth and not as a critique on your current level.
 
 # Common gotchas
