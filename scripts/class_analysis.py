@@ -27,7 +27,7 @@
 # (`tags.dataset = 'dtd' and tags.study = 'depth-on-eurosat'`, or `tags.origin =
 # 'notebook'` for the handed-out runs). Put the params on the axes: `encoder` and
 # `embed_dim` (the vectors a run starts from), `n_hidden_layers`, `hidden_dim`, `activation`, `sigma`,
-# `norm`, `skip`, `gate`, `lr`; and the metrics `accuracy`, `n_params` and `train_seconds`
+# `norm`, `dropout`, `skip`, `gate`, `lr`; and the metrics `accuracy`, `n_params` and `train_seconds`
 # (seconds in training steps, evaluation not counted) as the outcomes. Notebook 05
 # (`lesson1-notebook`, `lesson1-study`) logs every one of these params, so a study that
 # varied one switch differs from its neighbours on one axis. Notebook 04 (`lesson1-search`)
@@ -357,10 +357,50 @@ else:
 # the configuration it drew, and the winner rerun over seeds. Read down the columns: a
 # choice that every student's winner shares is a property of the problem; one that changes
 # from row to row was the draw. The spread of `best_trial` against `final` is how much a
-# single search's leaderboard number overstates.
+# single search's leaderboard number overstates. Below the table, the trials of every
+# student pooled, per axis: the search samples at random, so together they are one search
+# of the space, and a continuous axis shows its trend in four bins of equal count.
+
 
 # %%
-AXES = ["n_hidden_layers", "hidden_dim", "activation", "norm", "sigma", "lr"]
+def quartile_labels(numeric: pd.Series) -> pd.Series:
+    """Four bins of equal count, each labelled by the range of values it holds."""
+    bins = pd.qcut(numeric, 4, duplicates="drop")
+    low = numeric.min()  # qcut widens the lowest edge a little below the smallest value
+    return bins.map(lambda b: f"{max(b.left, low):.3g} to {b.right:.3g}").astype(str)
+
+
+def per_axis(index: pd.Index) -> None:
+    """For every param the runs at `index` varied: how often each value was tried and what
+    it scored. A continuous axis is cut into four bins of equal count."""
+    for name in params.columns:
+        values = params.loc[index.intersection(params.index), name].dropna()
+        if values.nunique() < 2:
+            continue
+        numeric = pd.to_numeric(values, errors="coerce")
+        key = values
+        if numeric.notna().all() and values.nunique() > 4:
+            key = quartile_labels(numeric)
+        elif numeric.notna().all() and (numeric % 1 != 0).any():
+            key = numeric.map(lambda x: f"{x:.3g}")
+        elif numeric.notna().all():
+            key = numeric.astype(int)  # sorts 64, 256, 1024 as numbers
+        stats = runs.loc[values.index].groupby(key).score.agg(["size", "median", "max"])
+        print(f"-- {name}")
+        print(stats.round(4).to_string(), "\n")
+
+
+AXES = [
+    "n_hidden_layers",
+    "hidden_dim",
+    "activation",
+    "norm",
+    "dropout",
+    "sigma",
+    "lr",
+    "skip",
+]
+CHOICES = ["n_hidden_layers", "activation", "norm", "skip"]
 handed = runs[(runs.origin == "notebook") & runs.score.notna()]
 trials = handed[handed.role == "trial"]
 if trials.empty:
@@ -373,7 +413,11 @@ else:
         final = final.sort_values("start").tail(1)
         row = {"student": student, "trials": len(group), "best_trial": best.score}
         row |= {a: params.at[best.name, a] if a in params else None for a in AXES}
-        for axis, fmt in (("sigma", "{:.2f}"), ("lr", "{:.1e}")):
+        for axis, fmt in (
+            ("dropout", "{:.2f}"),
+            ("sigma", "{:.2f}"),
+            ("lr", "{:.1e}"),
+        ):
             if row[axis] is not None and pd.notna(row[axis]):
                 row[axis] = fmt.format(float(row[axis]))
         row["final"] = final.score.iloc[0] if len(final) else np.nan
@@ -381,10 +425,20 @@ else:
         rows.append(row)
     table = pd.DataFrame(rows).sort_values("final", ascending=False)
     print(table.round(4).to_string(index=False), "\n")
-    for axis in AXES[:4]:
+    for axis in CHOICES:
         counts = table[axis].astype(str).value_counts()
         print(f"winners' {axis:<16}", ", ".join(f"{v}: {n}" for v, n in counts.items()))
     print()
+
+    # The trials were sampled at random and independently, so the class's trials pooled
+    # are one random search of the space: per axis, what the pooled trials scored.
+    print(
+        f"== the class's handed-out trials pooled: {len(trials)} trials, "
+        f"{trials.student.nunique()} students"
+    )
+    for dataset, group in trials.groupby("dataset"):
+        print(f"-- dataset {dataset}")
+        per_axis(group.index)
 
 # %% [markdown]
 # ## How much identical code varies
@@ -613,32 +667,10 @@ for dataset, group in arch.groupby("dataset"):
 
 
 # %%
-def quartile_labels(numeric: pd.Series) -> pd.Series:
-    """Four bins of equal count, each labelled by the range of values it holds."""
-    bins = pd.qcut(numeric, 4, duplicates="drop")
-    low = numeric.min()  # qcut widens the lowest edge a little below the smallest value
-    return bins.map(lambda b: f"{max(b.left, low):.3g} to {b.right:.3g}").astype(str)
-
-
 trials = runs[(runs.role == "trial") & (runs.origin == "study")]
 for (student, study), group in trials.groupby(["student", "study"]):
     print(f"== {student} / {study}  [{', '.join(sorted(group.dataset.unique()))}]")
-    for name in params.columns:
-        values = params.loc[group.index, name].dropna()
-        if values.nunique() < 2:
-            continue
-        numeric = pd.to_numeric(values, errors="coerce")
-        key = values
-        if numeric.notna().all() and values.nunique() > 4:
-            # a continuous axis: four bins of equal count, labelled by their range
-            key = quartile_labels(numeric)
-        elif numeric.notna().all() and (numeric % 1 != 0).any():
-            key = numeric.map(lambda x: f"{x:.3g}")
-        elif numeric.notna().all():
-            key = numeric.astype(int)  # sorts 64, 256, 1024 as numbers
-        stats = runs.loc[values.index].groupby(key).score.agg(["size", "median", "max"])
-        print(f"-- {name}")
-        print(stats.round(4).to_string(), "\n")
+    per_axis(group.index)
 
 # %%
 print(f"figures in {OUT}")

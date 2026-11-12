@@ -119,10 +119,9 @@ log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
 - **cost and choices**: every run logs `train_seconds` (training only, the mean over
   seeds) and `n_params` as metrics, and every choice that tells runs apart as a param
   with one name and one kind of value across the lesson: `encoder`, `embed_dim`,
-  `dataset`, `hidden_dim`, `n_hidden_layers`, `activation`, `norm`, `skip`, `gate`, `sigma`,
-  `lr`. A
-  switch that has no effect on a run is logged at its off value (`hidden_dim=0` on a
-  linear head).
+  `dataset`, `hidden_dim`, `n_hidden_layers`, `activation`, `norm`, `dropout`, `skip`,
+  `gate`, `sigma`, `lr`. A switch that has no effect on a run is logged at
+  its off value (`hidden_dim=0` on a linear head).
 - **session** tag: one value per execution of a notebook, so a rerun can be told apart
   from the first run.
 - Runs logged while notebooktester runs get `test_run=true` and are not submitted.
@@ -138,6 +137,11 @@ choices above are params.
 2. Chart view → Add chart → Parallel coordinates.
 3. Params as the axes (for example `encoder`, `n_hidden_layers`, `hidden_dim`, `norm`,
    `skip`), and `accuracy`, `n_params` and `train_seconds` as the outcomes on the right.
+
+The handed-out search of notebook 05 samples at random, so its trials are independent
+draws: filter on `tags.origin = 'notebook' and tags.role = 'trial'` and the whole class's
+trials together are one search of a few hundred points, dense enough to show a trend
+along `hidden_dim`, `lr`, `dropout` or `sigma`.
 
 Questions it answers at a glance: where more width or depth stops paying in accuracy and
 starts costing in time; what a switch (`norm`, `skip`, `gate`) buys at equal width; how
