@@ -1,6 +1,12 @@
+import json
 from pathlib import Path
 
-from run_submission import Submission, check  # ty: ignore[import-not-found]
+import pytest
+from run_submission import (  # ty: ignore[import-not-found]
+    Submission,
+    check,
+    read_files,
+)
 
 
 def write(root: Path, sub: Submission, rel: str | None = None) -> str:
@@ -56,8 +62,8 @@ def test_invalid_json(tmp_path, submission):
 def test_path_outside_lessons(tmp_path, submission):
     rel = write(tmp_path, submission("alice"))
     (tmp_path / "README.md").write_text("hi\n")
-    files = f"{rel}\nREADME.md\n.github/workflows/validate.yml"
-    problems = check(tmp_path, [files], "alice", set())
+    files = [rel, "README.md", ".github/workflows/validate.yml"]
+    problems = check(tmp_path, files, "alice", set())
     rule = (
         "outside lesson<N>/<student>/<run_id>.json; a submission changes nothing else"
     )
@@ -92,3 +98,85 @@ def test_whole_repository_without_files(tmp_path, submission):
     write(tmp_path, submission("alice"))
     write(tmp_path, submission("bob"))
     assert check(tmp_path, None, None, set()) == []
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "lesson1/alice/{id}.json\u2028README.md",
+        "lesson1/alice/{id}.json\r",
+        "\nlesson1/alice/{id}.json",
+        "lesson1/alice/{id}.json\n",
+        "lesson1/alice_/{id}.json",
+        "lesson1/alice/{id}.JSON",
+    ],
+)
+def test_odd_paths_are_refused_first(tmp_path, submission, bad):
+    sub = submission("alice")
+    write(tmp_path, sub)
+    rel = bad.format(id=sub.run.run_id)
+    [problem] = check(tmp_path, [rel], "alice", set())
+    assert "outside lesson<N>/<student>/<run_id>.json" in problem
+    assert not any(c in problem for c in "\n\r\u2028")
+
+
+def test_files_from_is_nul_separated(tmp_path, submission):
+    a = submission("alice").relpath()
+    listing = tmp_path / "changed.z"
+    listing.write_bytes(f"{a}\0README.md\u2028{a}\0".encode())
+    assert read_files(None, listing) == [a, f"README.md\u2028{a}"]
+    assert read_files([f"{a}\nREADME.md"], None) == [a, "README.md"]
+    assert read_files([f"{a}\u2028b"], None) == [f"{a}\u2028b"]
+
+
+def test_owner_must_match_the_author_exactly(tmp_path, submission):
+    rel = write(tmp_path, submission("alice"))
+    problems = check(tmp_path, [rel], "Alice", set())
+    assert problems == [f"{rel}: written by Alice, but this directory belongs to alice"]
+
+
+def test_copy_under_a_new_run_id_is_caught(tmp_path, submission):
+    original = submission("bob")
+    write(tmp_path, original)
+    run = original.run.model_copy(update={"run_id": "f" * 32, "run_name": "mine"})
+    copy = original.model_copy(update={"student": "alice", "run": run})
+    rel = write(tmp_path, copy)
+    problems = check(tmp_path, [rel], "alice", set())
+    assert problems == [
+        f"{rel}: this run is already submitted by bob, under another run id"
+    ]
+
+
+def invalid(tmp_path, sub, **run_fields) -> list[str]:
+    data = json.loads(sub.dump())
+    data["run"].update(run_fields)
+    path = tmp_path / sub.relpath()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data))
+    return check(tmp_path, [sub.relpath()], sub.student, set())
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    [
+        ("params", {"bad\nkey": "1"}, "param key"),
+        ("params", {"k" * 251: "1"}, "param key"),
+        ("params", {"lr": "x" * 6001}, "limit 6000"),
+        ("tags", {"role": "x" * 5001}, "limit 5000"),
+        ("tags", {"mlflow.user": "alice"}, "mlflow's own tags"),
+        ("tags", {"a;b": "1"}, "tag key"),
+        ("metrics", {"acc\u2028": []}, "metric key"),
+        ("experiment", "Lesson1-notebook", "lesson<N>-<lowercase-name>"),
+        ("experiment", "lesson1-notebook\n", "lesson<N>-<lowercase-name>"),
+        ("artifacts", {"/etc/x.json": {}}, "must be relative"),
+        ("artifacts", {"a/../x.json": {}}, "must be relative"),
+    ],
+)
+def test_content_limits(tmp_path, submission, field, value, expected):
+    problems = invalid(tmp_path, submission("alice"), **{field: value})
+    assert any(expected in p for p in problems), problems
+
+
+def test_kept_mlflow_tags_pass(tmp_path, submission):
+    tags = {"mlflow.note.content": "n", "mlflow.parentRunId": "p", "role": "trial"}
+    assert invalid(tmp_path, submission("alice"), tags=tags) == []

@@ -12,10 +12,12 @@ This module depends on pydantic and the standard library only, so the runs repos
 CI can validate a push or a pull request without installing mlflow:
 
     uv run --with pydantic python scripts/run_submission.py check <runs-repo> \
-        [--actor <login>] [--teachers raoulg] [--files <changed paths>...]
+        [--actor <login>] [--teachers raoulg] \
+        [--files <newline-separated paths>... | --files-from <NUL-separated file>]
 
-With `--files`, `<runs-repo>` is the repository as it would be with the change applied,
-and the paths are every path the change touches, deleted ones included.
+With `--files` or `--files-from`, `<runs-repo>` is the repository as it would be with
+the change applied, and the paths are every path the change touches, deleted ones
+included.
 
 `docs/run-protocol.md` describes the protocol around it.
 """
@@ -36,10 +38,32 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 SCHEMA = "mads-run/1"
 MAX_FILE_BYTES = 2_000_000
 MAX_ARTIFACT_BYTES = 256_000
+MAX_CHANGED_FILES = 200
 ARTIFACT_SUFFIXES = (".json", ".txt", ".md", ".yaml", ".yml")
-LOGIN = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")  # GitHub's rule for a login
-RUN_ID = re.compile(r"^[0-9a-f]{32}$")
-PATH = re.compile(r"^lesson(\d+)/([^/]+)/([^/]+)\.json$")
+# Every pattern is used with fullmatch, so a trailing newline never slips through.
+LOGIN = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", re.ASCII)  # GitHub's login rule
+RUN_ID = re.compile(r"[0-9a-f]{32}", re.ASCII)
+PATH = re.compile(r"lesson(\d+)/([A-Za-z0-9-]+)/([0-9a-f]{32})\.json", re.ASCII)
+EXPERIMENT = re.compile(r"lesson\d+-[a-z0-9-]+", re.ASCII)
+KEY = re.compile(r"[\w\-. /]{1,250}")  # mlflow's rule for param, tag and metric keys
+MAX_PARAM_CHARS = 6000  # mlflow's limits on a value
+MAX_TAG_CHARS = 5000
+# mlflow's own tags carry local usernames and absolute paths; these are the ones kept.
+KEEP_SYSTEM_TAGS = {"mlflow.note.content", "mlflow.parentRunId"}
+
+
+def shown(path: str) -> str:
+    """A path as it is safe to print: quoted when it holds anything unprintable."""
+    return path if path.isprintable() else repr(path)
+
+
+def check_keys(kind: str, keys: Any) -> None:
+    for key in keys:
+        if not KEY.fullmatch(key):
+            raise ValueError(
+                f"{kind} key {key!r}: only letters, digits, _ - . / and spaces, "
+                "at most 250 characters"
+            )
 
 
 class MetricPoint(BaseModel):
@@ -68,14 +92,60 @@ class Run(BaseModel):
     @field_validator("run_id")
     @classmethod
     def _run_id(cls, v: str) -> str:
-        if not RUN_ID.match(v):
+        if not RUN_ID.fullmatch(v):
             raise ValueError("run_id must be a 32-character mlflow run id")
+        return v
+
+    @field_validator("experiment")
+    @classmethod
+    def _experiment(cls, v: str) -> str:
+        if not EXPERIMENT.fullmatch(v):
+            raise ValueError("experiment must be named lesson<N>-<lowercase-name>")
+        return v
+
+    @field_validator("params")
+    @classmethod
+    def _params(cls, v: dict[str, str]) -> dict[str, str]:
+        check_keys("param", v)
+        for key, value in v.items():
+            if len(value) > MAX_PARAM_CHARS:
+                raise ValueError(
+                    f"param {key!r} is {len(value)} characters, limit {MAX_PARAM_CHARS}"
+                )
+        return v
+
+    @field_validator("tags")
+    @classmethod
+    def _tags(cls, v: dict[str, str]) -> dict[str, str]:
+        check_keys("tag", v)
+        for key, value in v.items():
+            if key.startswith("mlflow.") and key not in KEEP_SYSTEM_TAGS:
+                raise ValueError(f"tag {key!r}: mlflow's own tags are not submitted")
+            if len(value) > MAX_TAG_CHARS:
+                raise ValueError(
+                    f"tag {key!r} is {len(value)} characters, limit {MAX_TAG_CHARS}"
+                )
+        return v
+
+    @field_validator("metrics")
+    @classmethod
+    def _metrics(cls, v: dict[str, list[MetricPoint]]) -> dict[str, list[MetricPoint]]:
+        check_keys("metric", v)
         return v
 
     @field_validator("artifacts")
     @classmethod
     def _artifacts(cls, v: dict[str, Any]) -> dict[str, Any]:
         for path, content in v.items():
+            parts = path.split("/")
+            if (
+                path.startswith("/")
+                or "\\" in path
+                or any(p in ("", ".", "..") for p in parts)
+            ):
+                raise ValueError(
+                    f"artifact {path!r}: the path must be relative, without . or .."
+                )
             if not path.endswith(ARTIFACT_SUFFIXES):
                 raise ValueError(
                     f"artifact {path!r}: only {ARTIFACT_SUFFIXES} files are submitted"
@@ -111,7 +181,7 @@ class Submission(BaseModel):
     @field_validator("student")
     @classmethod
     def _student(cls, v: str) -> str:
-        if not LOGIN.match(v):
+        if not LOGIN.fullmatch(v):
             raise ValueError("student must be a GitHub login")
         return v
 
@@ -129,6 +199,13 @@ class Submission(BaseModel):
     def content_hash(self) -> str:
         """Hash of the run itself, independent of when it was submitted."""
         body = json.dumps(self.run.model_dump(mode="json"), sort_keys=True)
+        return hashlib.sha256(body.encode()).hexdigest()[:16]
+
+    def copy_hash(self) -> str:
+        """Hash of the run without its id, its name and the student: two files with the
+        same copy hash hold the same run, however they are labelled."""
+        run = self.run.model_dump(mode="json", exclude={"run_id", "run_name"})
+        body = json.dumps(run, sort_keys=True)
         return hashlib.sha256(body.encode()).hexdigest()[:16]
 
 
@@ -151,7 +228,7 @@ def load(path: Path, root: Path | None = None) -> Submission:
     sub = Submission.model_validate(data)
     if root is not None:
         rel = path.resolve().relative_to(root.resolve()).as_posix()
-        m = PATH.match(rel)
+        m = PATH.fullmatch(rel)
         if m and m.group(2) != sub.student:
             raise ValueError(
                 f"this file says it is {sub.student}'s run; "
@@ -162,6 +239,18 @@ def load(path: Path, root: Path | None = None) -> Submission:
     return sub
 
 
+def copies(root: Path) -> dict[str, set[str]]:
+    """copy hash -> the students whose directories hold a file with it."""
+    out: dict[str, set[str]] = {}
+    for path in root.glob("lesson*/*/*.json"):
+        try:
+            sub = load(path)
+        except ValueError:
+            continue
+        out.setdefault(sub.copy_hash(), set()).add(path.parent.name)
+    return out
+
+
 def check(
     root: Path, files: list[str] | None, actor: str | None, teachers: set[str]
 ) -> list[str]:
@@ -169,22 +258,23 @@ def check(
 
     `files` restricts the check to those paths (the files a push or pull request
     changed), and then every one of them must be a `lesson<N>/<student>/<run_id>.json`
-    path; with them, `actor` adds the rule that a student only writes inside their own
-    directory. A run id may sit in one student's directory only."""
+    path, checked before anything else; with them, `actor` adds the rule that a student
+    only writes inside the directory spelled exactly as their login. A run, by id or by
+    content, may sit in one student's directory only."""
     problems = []
     if files is None:
         rels = sorted(
             p.relative_to(root).as_posix() for p in root.glob("lesson*/*/*.json")
         )
     else:
-        # a CI step may pass the changed paths as one newline-separated argument
-        rels = [f for arg in files for f in arg.splitlines() if f.strip()]
+        rels = [f for f in files if f]
+    hashes: dict[str, set[str]] | None = None
 
     for rel in rels:
-        m = PATH.match(rel)
+        m = PATH.fullmatch(rel)
         if not m:
             problems.append(
-                f"{rel}: outside lesson<N>/<student>/<run_id>.json; "
+                f"{shown(rel)}: outside lesson<N>/<student>/<run_id>.json; "
                 "a submission changes nothing else"
             )
             continue
@@ -195,7 +285,7 @@ def check(
             files is not None
             and actor
             and actor.lower() not in teachers
-            and owner.lower() != actor.lower()
+            and owner != actor
         ):
             verb = "deleted" if deleted else "written"
             problems.append(
@@ -207,7 +297,7 @@ def check(
             {
                 p.parent.name
                 for p in root.glob(f"lesson*/*/{run_id}.json")
-                if p.parent.name.lower() != owner.lower()
+                if p.parent.name != owner
             }
         )
         if others:
@@ -215,10 +305,30 @@ def check(
                 f"{rel}: this run id is already submitted by {', '.join(others)}"
             )
         try:
-            load(path, root)
+            sub = load(path, root)
         except ValueError as e:  # pydantic's ValidationError is a ValueError
             problems.extend(f"{rel}: {line}" for line in explain(e))
+            continue
+        if hashes is None:
+            hashes = copies(root)
+        copied = sorted(hashes.get(sub.copy_hash(), set()) - {owner, *others})
+        if copied:
+            problems.append(
+                f"{rel}: this run is already submitted by {', '.join(copied)}, "
+                "under another run id"
+            )
     return problems
+
+
+def read_files(files: list[str] | None, files_from: Path | None) -> list[str] | None:
+    """The changed paths: from a file of NUL-separated paths, or from `--files`
+    arguments split on newlines only. None when neither is given."""
+    if files_from is not None:
+        raw = files_from.read_bytes().decode("utf-8", errors="surrogateescape")
+        return [f for f in raw.split("\0") if f]
+    if files is None:
+        return None
+    return [f for arg in files for f in arg.split("\n") if f]
 
 
 def explain(error: Exception) -> list[str]:
@@ -238,7 +348,14 @@ def main() -> None:
     sub = parser.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("check", help="validate the submissions in a runs repository")
     c.add_argument("root", type=Path)
-    c.add_argument("--files", nargs="*", help="only these paths, relative to root")
+    c.add_argument(
+        "--files", nargs="*", help="only these paths, relative to root (one per line)"
+    )
+    c.add_argument(
+        "--files-from",
+        type=Path,
+        help="only the paths in this file, NUL-separated, relative to root",
+    )
     c.add_argument(
         "--actor",
         help="GitHub login that pushed or opened the pull request; "
@@ -255,7 +372,14 @@ def main() -> None:
         return
 
     teachers = {t.strip().lower() for t in args.teachers.split(",") if t.strip()}
-    problems = check(args.root, args.files, args.actor, teachers)
+    files = read_files(args.files, args.files_from)
+    if files is not None and len(files) > MAX_CHANGED_FILES:
+        too_many = (
+            f"the change touches {len(files)} files, more than {MAX_CHANGED_FILES}"
+        )
+        problems = [f"{too_many}; submit in smaller parts"]
+    else:
+        problems = check(args.root, files, args.actor, teachers)
     for p in problems:
         print(p)
     print(f"{len(problems)} problem(s)")
