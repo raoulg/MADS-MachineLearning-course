@@ -7,9 +7,10 @@ name: validate
 # `false`.
 #
 # pull_request_target runs this file as it is on main, with a token that can write. So
-# nothing from a pull request runs as code: its files are fetched into head/ and only
-# read, by the validator taken from the course repository. Values from the pull request
-# reach the shell only through env:.
+# nothing from a pull request is checked out or run: its commit is fetched into the
+# base checkout's object store, the changed paths come from `git diff`, and the files
+# are read with `git cat-file` as data, for the validator taken from the course
+# repository. Values from the pull request reach the shell only through env:.
 
 on:
   pull_request_target:
@@ -19,6 +20,10 @@ on:
     branches: [main]
 
 permissions: {}
+
+env:
+  # The logins that may write in any directory. This is the one place they are set.
+  TEACHERS: raoulg
 
 concurrency:
   group: validate-${{ github.event.pull_request.number || github.ref }}
@@ -31,13 +36,13 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
       # The validator lives in the (public) course repository, so the format has one source.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: raoulg/MADS-MachineLearning-course
           path: course
@@ -45,14 +50,13 @@ jobs:
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
 
       - name: Validate the files this push changed
         env:
           ACTOR: ${{ github.actor }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
-          TEACHERS: raoulg
         run: |
           if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
             changed=$(git diff --name-only "$BEFORE" "$AFTER" -- 'lesson*')
@@ -67,25 +71,18 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
     outputs:
       problems: ${{ steps.check.outputs.problems }}
     steps:
       - name: Check out the base repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           path: base
-          persist-credentials: false
-
-      - name: Fetch the pull request's files into head/ (read as data, never run)
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          path: head
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Take the validator from the course repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: raoulg/MADS-MachineLearning-course
           path: course
@@ -93,53 +90,63 @@ jobs:
           sparse-checkout-cone-mode: false
           persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+        with:
+          enable-cache: false
 
-      - name: List the paths the pull request changes
+      - name: Lay the pull request's submission files over the base checkout
+        working-directory: base
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          # A rename changes two paths: where the file went, and where it came from.
-          gh api "repos/$REPO/pulls/$NUMBER/files" --paginate \
-            --jq '.[] | .filename, (.previous_filename // empty)' > changed.txt
-          cat changed.txt
+          # The commit is fetched as objects only; its tree is never checked out.
+          git fetch --quiet --no-tags origin "$HEAD_SHA"
+          git cat-file -e "$HEAD_SHA^{commit}"
+          fork_point=$(git merge-base origin/main "$HEAD_SHA")
+          git diff --name-status -z --no-renames "$fork_point" "$HEAD_SHA" > ../status.z
 
-      - name: Apply the changed submission files to the base checkout
-        run: |
           # base/ becomes main as it would be after the merge, so the validator also
-          # sees run ids that other students submitted. Only paths of the submission
-          # shape are copied; any other path fails the check in the next step.
-          while IFS= read -r f; do
-            printf '%s\n' "$f" | grep -Eq '^lesson[0-9]+/[A-Za-z0-9-]+/[0-9a-f]{32}\.json$' || continue
-            mode=$(git -C head ls-tree HEAD -- "$f" | cut -d' ' -f1)
-            if [ -z "$mode" ]; then
-              rm -f "base/$f"
-            else
-              # a symbolic link is copied as a link, and the validator refuses it
-              mkdir -p "base/$(dirname "$f")"
-              cp -P "head/$f" "base/$f"
+          # sees the runs other students submitted. Only paths of the submission shape
+          # are written; the validator reports every other path by name.
+          : > ../changed.z
+          : > ../blob-problems.txt
+          while IFS= read -r -d '' status && IFS= read -r -d '' path; do
+            printf '%s\0' "$path" >> ../changed.z
+            [[ "$path" =~ ^lesson[0-9]+/[A-Za-z0-9-]+/[0-9a-f]{32}\.json$ ]] || continue
+            if [ "$status" = D ]; then
+              rm -f -- "$path"
+              continue
             fi
-          done < changed.txt
+            mode=$(git ls-tree "$HEAD_SHA" -- "$path" | cut -d' ' -f1)
+            if [ "$mode" = 100644 ] || [ "$mode" = 100755 ]; then
+              mkdir -p -- "$(dirname -- "$path")"
+              git cat-file blob "$HEAD_SHA:$path" > "$path"
+            else
+              rm -f -- "$path"
+              echo "$path: not a regular file (mode $mode): submit again, do not edit by hand" \
+                >> ../blob-problems.txt
+            fi
+          done < ../status.z
 
       - name: Validate
         id: check
         env:
           AUTHOR: ${{ github.event.pull_request.user.login }}
-          TEACHERS: raoulg
         run: |
           set +e
           uv run --no-project --with pydantic python course/scripts/run_submission.py \
-            check base --files "$(cat changed.txt)" --actor "$AUTHOR" --teachers "$TEACHERS" \
+            check base --files-from changed.z --actor "$AUTHOR" --teachers "$TEACHERS" \
             > result.txt 2>&1
           status=$?
-          cat result.txt
-          if [ "$status" -ne 0 ]; then
+          set -e
+          cat blob-problems.txt result.txt > problems.txt
+          cat problems.txt
+          if [ "$status" -ne 0 ] || [ -s blob-problems.txt ]; then
+            status=1
             delimiter="PROBLEMS_$(openssl rand -hex 16)"
             {
               echo "problems<<$delimiter"
-              cat result.txt
+              cat problems.txt
               echo "$delimiter"
             } >> "$GITHUB_OUTPUT"
           fi
@@ -164,12 +171,21 @@ jobs:
           NUMBER: ${{ github.event.pull_request.number }}
           PROBLEMS: ${{ needs.validate-pr.outputs.problems }}
         run: |
+          # No @mention may reach GitHub: a zero-width space follows every @. The fence
+          # is longer than any run of backticks in the text, so the text cannot close it.
+          zwsp=$(printf '\xe2\x80\x8b')
+          text=${PROBLEMS//@/@$zwsp}
+          tick=$(printf '\x60')
+          longest=$(printf '%s\n' "$text" | { grep -o "${tick}\\+" || true; } \
+            | awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }')
+          width=$(( longest >= 3 ? longest + 1 : 3 ))
+          fence=$(printf "%${width}s" '' | tr ' ' "$tick")
           {
             echo "The check found problems with this pull request, so it is not merged."
             echo
-            echo '```'
-            printf '%s\n' "$PROBLEMS"
-            echo '```'
+            echo "$fence"
+            printf '%s\n' "$text"
+            echo "$fence"
             cat <<'TEXT'
 
           Fix the runs in mlflow (or rerun the notebook) and run `scripts/submit_runs.py`
