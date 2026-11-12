@@ -17,9 +17,14 @@ is the failure to avoid.
 - **`codestyle`** is the code coach. Both coaches are registered in `.mcp.json` and
   `.codex/config.toml`; they ask first, so put their questions to the student and wait
   for their answers.
-- **Runs are submitted by following `docs/submit-runs.md`.** Never submit runs made
-  under notebooktester (tagged `test_run`).
+- **Runs are submitted by following `docs/submit-runs.md`.** Runs logged through
+  `runlog.log_run` while the tester runs are tagged `test_run` and are left out of a
+  submission.
 - Setting up a machine for this course: `references/tooling-setup.md`.
+
+The sections below are for work on the course material itself. A student's assistant
+follows the section above and the `param` rule below, and never edits a lesson notebook
+in place.
 
 ## Notebooks must be cheap to test
 
