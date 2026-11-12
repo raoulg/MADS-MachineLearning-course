@@ -1,0 +1,19 @@
+[mcp_servers.codestyle]
+command = "sh"
+args = [
+    "-c",
+    "uv run --no-project https://raw.githubusercontent.com/raoulg/codestyle/$CODESTYLE_REF/codestyle_mcp.py",
+]
+
+[mcp_servers.codestyle.env]
+CODESTYLE_REF = "stable"
+
+[mcp_servers.vectormesh]
+command = "sh"
+args = [
+    "-c",
+    "uv run --no-project https://raw.githubusercontent.com/raoulg/vectormesh/$VECTORMESH_REF/vectormesh_mcp.py",
+]
+
+[mcp_servers.vectormesh.env]
+VECTORMESH_REF = "stable"
