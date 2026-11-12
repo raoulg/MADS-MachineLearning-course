@@ -1,10 +1,15 @@
 """Log runs in the shape the class run protocol expects.
 
 Every run this lesson asks you to submit is logged through `log_run`, which writes the
-same things for every student: a `role` tag, the parameters, the score (with its seed
-spread when there is one), per-epoch curves when there are some, and the architecture
-with the tensor shape at every layer. `scripts/submit_runs.py` exports those runs to the
-class repository; `docs/run-protocol.md` describes the whole protocol.
+same things for every student: a `role` tag, the dataset, the parameters, the score (with
+its seed spread when there is one), per-epoch curves when there are some, and the
+architecture with the tensor shape at every layer. `scripts/submit_runs.py` exports those
+runs to the class repository; `docs/run-protocol.md` describes the whole protocol.
+
+Two kinds of run reach the class. The notebook as handed out logs through the module's
+`log_run` (tag `origin=notebook`) and is the same for everyone. Your own study logs
+through a `Study`, which carries its name, its claim and its search space on every run
+(tag `origin=study`), so the runs themselves say what you set out to test.
 
 Runs go to `artefacts/mlflow/mlruns.db` at the root of the course repository, unless
 `MLFLOW_TRACKING_URI` is set, in which case mlflow's own convention wins.
@@ -12,8 +17,11 @@ Runs go to `artefacts/mlflow/mlruns.db` at the root of the course repository, un
 
 from __future__ import annotations
 
+import json
 import os
+import re
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -28,21 +36,40 @@ TRACKING_DB = Path(__file__).resolve().parents[2] / "artefacts" / "mlflow" / "ml
 # reads trials as the search space everyone explored.
 ROLES = ("baseline", "trial", "final", "ablation", "hypothesis")
 
+STUDY_PLACEHOLDER = "name-your-study"
+CLAIM_PLACEHOLDER = "one sentence that can turn out false"
+STUDY_NAME = re.compile(r"[a-z0-9][a-z0-9-]{2,39}")
 
-def use_experiment(name: str) -> str:
-    """Point mlflow at the course tracking store and select experiment `name`."""
+
+def _tracking_uri() -> str:
     uri = os.environ.get("MLFLOW_TRACKING_URI")
     if not uri:
         TRACKING_DB.parent.mkdir(parents=True, exist_ok=True)
         uri = f"sqlite:///{TRACKING_DB}"
     mlflow.set_tracking_uri(uri)
+    return uri
+
+
+def _experiment_id(name: str) -> str:
+    """The id of experiment `name`, created if it does not exist yet."""
+    uri = _tracking_uri()
+    exp = mlflow.get_experiment_by_name(name)
+    if exp is not None:
+        return exp.experiment_id
     # A new experiment keeps its artifacts next to a sqlite store, not in whatever
     # directory the notebook happens to run from.
-    if uri.startswith("sqlite:///") and mlflow.get_experiment_by_name(name) is None:
+    location = None
+    if uri.startswith("sqlite:///"):
         root = Path(uri.removeprefix("sqlite:///")).parent / "artifacts" / name
-        mlflow.create_experiment(name, artifact_location=root.as_uri())
+        location = root.as_uri()
+    return mlflow.create_experiment(name, artifact_location=location)
+
+
+def use_experiment(name: str) -> str:
+    """Point mlflow at the course tracking store and select experiment `name`."""
+    _experiment_id(name)
     mlflow.set_experiment(name)
-    return uri
+    return mlflow.get_tracking_uri()
 
 
 def _last_dim(shape: Any) -> int | None:
@@ -106,6 +133,7 @@ def log_run(
     name: str,
     role: str,
     *,
+    dataset: str | None = None,
     params: Mapping[str, Any] | None = None,
     scores: Mapping[str, Sequence[float]] | None = None,
     curves: Mapping[str, Sequence[float]] | None = None,
@@ -113,8 +141,12 @@ def log_run(
     example: Any = None,
     tags: Mapping[str, str] | None = None,
 ) -> str:
-    """Log one run in the protocol's shape and return its run id.
+    """Log one run in the protocol's shape, tagged `origin=notebook`, and return its id.
 
+    The run goes to the experiment selected with `use_experiment`.
+
+    - `dataset`: what the score was measured on, written as the tag `dataset`. The class
+      analysis never ranks runs of different datasets against each other.
     - `scores`: final values per seed, e.g. `{"accuracy": [0.71, 0.72, 0.70]}`. Logs the
       mean as `accuracy`, the spread as `accuracy_std`, every seed as `accuracy_per_seed`
       (step = seed) and `n_seeds`. A single value is a list of one.
@@ -123,18 +155,46 @@ def log_run(
     - `model` + `example`: logs `n_params`, the one-line `architecture` tag and the full
       layer table as the artifact `architecture.json`.
     """
+    return _log_run(
+        name,
+        role,
+        dataset=dataset,
+        params=params,
+        scores=scores,
+        curves=curves,
+        model=model,
+        example=example,
+        tags={**(tags or {}), "origin": "notebook"},
+    )
+
+
+def _log_run(
+    name: str,
+    role: str,
+    *,
+    dataset: str | None,
+    params: Mapping[str, Any] | None,
+    scores: Mapping[str, Sequence[float]] | None,
+    curves: Mapping[str, Sequence[float]] | None,
+    model: torch.nn.Module | None,
+    example: Any,
+    tags: Mapping[str, str],
+    experiment_id: str | None = None,
+    artifacts: Mapping[str, Any] | None = None,
+) -> str:
     if role not in ROLES:
         raise ValueError(f"role must be one of {ROLES}, got {role!r}")
     both = set(scores or {}) & set(curves or {})
     if both:
         raise ValueError(f"{sorted(both)} given as both a score and a curve; pick one")
 
-    with mlflow.start_run(run_name=name) as run:
+    with mlflow.start_run(run_name=name, experiment_id=experiment_id) as run:
         mlflow.set_tag("role", role)
         if os.environ.get("NOTEBOOKTESTER_RUNNING"):
             mlflow.set_tag("test_run", "true")
-        if tags:
-            mlflow.set_tags(dict(tags))
+        if dataset is not None:
+            mlflow.set_tag("dataset", dataset)
+        mlflow.set_tags(dict(tags))
         if params:
             mlflow.log_params(dict(params))
 
@@ -158,4 +218,187 @@ def log_run(
             mlflow.log_metric("n_params", arch["n_params"])
             mlflow.log_dict(arch, "architecture.json")
 
+        for path, content in (artifacts or {}).items():
+            mlflow.log_dict(content, path)
+
         return run.info.run_id
+
+
+def _jsonable(value: Any) -> Any:
+    """`value` as plain JSON data; anything JSON has no type for becomes its repr."""
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    if isinstance(value, Mapping):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    return repr(value)
+
+
+def _axis(value: Any) -> dict[str, Any]:
+    from ray.tune.search import sample
+
+    if isinstance(value, sample.Categorical):
+        return {"kind": "choice", "values": _jsonable(list(value.categories))}
+    if isinstance(value, sample.Integer):
+        if isinstance(value.get_sampler(), sample.Integer._Uniform):
+            return {"kind": "randint", "low": value.lower, "high": value.upper}
+    elif isinstance(value, sample.Float):
+        sampler = value.get_sampler()
+        if isinstance(sampler, sample.Float._LogUniform):
+            return {"kind": "loguniform", "low": value.lower, "high": value.upper}
+        if isinstance(sampler, sample.Float._Uniform):
+            return {"kind": "uniform", "low": value.lower, "high": value.upper}
+    if isinstance(value, sample.Domain):
+        bounds = [getattr(value, a) for a in ("lower", "upper") if hasattr(value, a)]
+        args = ", ".join(
+            [*map(_num, bounds), f"sampler={_sampler(value.get_sampler())}"]
+        )
+        return {"kind": "other", "repr": f"{type(value).__name__}({args})"}
+    if isinstance(value, Mapping):
+        return {"kind": "other", "repr": repr(_jsonable(value))}
+    return {"kind": "fixed", "value": _jsonable(value)}
+
+
+def _sampler(sampler: Any) -> str:
+    """A ray sampler by what it does, without the memory address of its default repr."""
+    if hasattr(sampler, "sampler") and hasattr(sampler, "q"):
+        return f"Quantized({_sampler(sampler.sampler)}, q={_num(sampler.q)})"
+    name = type(sampler).__name__.lstrip("_")
+    shape = [
+        f"{a}={_num(getattr(sampler, a))}"
+        for a in ("mean", "sd", "base")
+        if hasattr(sampler, a)
+    ]
+    return f"{name}({', '.join(shape)})" if shape else name
+
+
+def describe_space(space: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    """A ray tune search space as data, one entry per axis in the order of `space`.
+
+    `tune.choice` gives `{"kind": "choice", "values": [...]}`; `tune.loguniform` gives
+    `{"kind": "loguniform", "low": .., "high": ..}`, and likewise `uniform` and `randint`;
+    a constant gives `{"kind": "fixed", "value": ..}`. Anything else (`quniform`, `randn`,
+    `grid_search`, ...) gives `{"kind": "other", "repr": "..."}`.
+    """
+    return {str(name): _axis(value) for name, value in space.items()}
+
+
+def _num(x: Any) -> str:
+    if isinstance(x, float) and 0 < abs(x) < 0.1:
+        mantissa, exponent = f"{x:e}".split("e")
+        return f"{mantissa.rstrip('0').rstrip('.')}e{int(exponent)}"
+    if isinstance(x, float):
+        return f"{x:g}"
+    return str(x)
+
+
+def space_line(space: Mapping[str, Any]) -> str:
+    """A search space in one line, for example
+    `encoder=dinov2-small | hidden_dim in {128,256,512} | lr ~ logU(1e-4, 1e-2)`."""
+    parts = []
+    for name, axis in describe_space(space).items():
+        kind = axis["kind"]
+        if kind == "choice" and len(axis["values"]) == 1:
+            parts.append(f"{name}={_num(axis['values'][0])}")
+        elif kind == "choice":
+            parts.append(f"{name} in {{{','.join(_num(v) for v in axis['values'])}}}")
+        elif kind == "loguniform":
+            parts.append(f"{name} ~ logU({_num(axis['low'])}, {_num(axis['high'])})")
+        elif kind == "uniform":
+            parts.append(f"{name} ~ U({_num(axis['low'])}, {_num(axis['high'])})")
+        elif kind == "randint":
+            parts.append(f"{name} ~ randint({axis['low']}, {axis['high']})")
+        elif kind == "fixed":
+            parts.append(f"{name}={_num(axis['value'])}")
+        else:
+            parts.append(f"{name} ~ {axis['repr']}")
+    return " | ".join(parts)
+
+
+@dataclass
+class Study:
+    """Your own study: a name, a claim that can turn out false, a search space, a budget.
+
+    Every run logged through `study.log_run` goes to the experiment `lesson<N>-study` and
+    carries the study with it: the tags `origin=study`, `study`, `claim`, `search_space`
+    (the line `space_line` gives), `budget` (JSON) and, when `default_space` is given,
+    `space_is_default`; and the artifact `search_space.json` (what `describe_space` gives).
+
+        study = Study("depth-on-eurosat", "One hidden layer gains nothing on EuroSAT.",
+                      space=param_space, budget={"n_trials": 16, "epochs": 15, "seeds": 3})
+        study.log_run("winner", "final", dataset="eurosat", scores={"accuracy": per_seed})
+    """
+
+    name: str
+    claim: str
+    space: Mapping[str, Any]
+    budget: Mapping[str, Any]
+    default_space: Mapping[str, Any] | None = None
+    lesson: int = 1
+    tags: dict[str, str] = field(init=False, repr=False)
+
+    def __post_init__(self) -> None:
+        testing = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
+        self.name, self.claim = self.name.strip(), self.claim.strip()
+        if not self.name or (self.name == STUDY_PLACEHOLDER and not testing):
+            raise ValueError(
+                f"name your study: set STUDY to a name of your own instead of "
+                f"{STUDY_PLACEHOLDER!r}, for example 'depth-on-eurosat'"
+            )
+        if not STUDY_NAME.fullmatch(self.name):
+            raise ValueError(
+                f"study name {self.name!r}: use 3 to 40 lowercase letters, digits and "
+                "dashes, starting with a letter or digit, for example 'depth-on-eurosat'"
+            )
+        if not self.claim or (self.claim == CLAIM_PLACEHOLDER and not testing):
+            raise ValueError(
+                "state your claim: set CLAIM to one sentence your runs could show to be "
+                "false, for example 'One hidden layer gains nothing over the linear head "
+                "on EuroSAT.'"
+            )
+        self.tags = {
+            "origin": "study",
+            "study": self.name,
+            "claim": self.claim[:5000],
+            "search_space": space_line(self.space)[:5000],
+            "budget": json.dumps(_jsonable(self.budget), sort_keys=True),
+        }
+        if self.default_space is not None:
+            same = describe_space(self.space) == describe_space(self.default_space)
+            self.tags["space_is_default"] = str(same).lower()
+
+    @property
+    def experiment(self) -> str:
+        return f"lesson{self.lesson}-study"
+
+    def log_run(
+        self,
+        name: str,
+        role: str,
+        *,
+        dataset: str | None = None,
+        params: Mapping[str, Any] | None = None,
+        scores: Mapping[str, Sequence[float]] | None = None,
+        curves: Mapping[str, Sequence[float]] | None = None,
+        model: torch.nn.Module | None = None,
+        example: Any = None,
+        tags: Mapping[str, str] | None = None,
+    ) -> str:
+        """`log_run` for this study: same arguments, into `lesson<N>-study`, with the
+        study's tags and its `search_space.json`. The selected experiment stays as it is."""
+        return _log_run(
+            name,
+            role,
+            dataset=dataset,
+            params=params,
+            scores=scores,
+            curves=curves,
+            model=model,
+            example=example,
+            tags={**(tags or {}), **self.tags},
+            experiment_id=_experiment_id(self.experiment),
+            artifacts={"search_space.json": describe_space(self.space)},
+        )
