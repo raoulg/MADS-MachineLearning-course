@@ -2371,9 +2371,11 @@ name = "mads-deeplearning"
 version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "beartype" },
     { name = "datasets" },
     { name = "huggingface-hub" },
     { name = "hyperopt" },
+    { name = "jaxtyping" },
     { name = "jupyter" },
     { name = "loguru" },
     { name = "matplotlib" },
@@ -2406,9 +2408,11 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "beartype", specifier = ">=0.22.9" },
     { name = "datasets", specifier = ">=4.0" },
     { name = "huggingface-hub", specifier = ">=0.30" },
     { name = "hyperopt", specifier = ">=0.2.7" },
+    { name = "jaxtyping", specifier = ">=0.3.11" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "loguru", specifier = ">=0.7.0" },
     { name = "matplotlib", specifier = ">=3.7.1" },
