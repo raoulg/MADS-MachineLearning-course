@@ -15,7 +15,7 @@ pre-commit:
     format:
       priority: 2
       files: git ls-files
-      glob: '*.{py, ipynb}'
+      glob: '*.{py,ipynb}'
       run: uv run ruff format {staged_files}
       stage_fixed: true
     ruff:
