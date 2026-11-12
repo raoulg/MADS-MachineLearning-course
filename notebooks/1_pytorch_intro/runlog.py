@@ -8,8 +8,9 @@ runs to the class repository; `docs/run-protocol.md` describes the whole protoco
 
 Two kinds of run reach the class. The notebook as handed out logs through the module's
 `log_run` (tag `origin=notebook`) and is the same for everyone. Your own study logs
-through a `Study`, which carries its name, its claim and its search space on every run
-(tag `origin=study`), so the runs themselves say what you set out to test.
+through a `Study`, which carries its name and its search space on every run (tag
+`origin=study`), so the runs themselves say what you searched. The search space is also
+written one tag per axis (`space_tags`), so mlflow can filter runs by what they searched.
 
 Runs go to `artefacts/mlflow/mlruns.db` at the root of the course repository, unless
 `MLFLOW_TRACKING_URI` is set, in which case mlflow's own convention wins.
@@ -37,7 +38,6 @@ TRACKING_DB = Path(__file__).resolve().parents[2] / "artefacts" / "mlflow" / "ml
 ROLES = ("baseline", "trial", "final", "ablation", "hypothesis")
 
 STUDY_PLACEHOLDER = "name-your-study"
-CLAIM_PLACEHOLDER = "one sentence that can turn out false"
 STUDY_NAME = re.compile(r"[a-z0-9][a-z0-9-]{2,39}")
 
 
@@ -140,6 +140,7 @@ def log_run(
     model: torch.nn.Module | None = None,
     example: Any = None,
     tags: Mapping[str, str] | None = None,
+    train_seconds: float | None = None,
 ) -> str:
     """Log one run in the protocol's shape, tagged `origin=notebook`, and return its id.
 
@@ -147,6 +148,11 @@ def log_run(
 
     - `dataset`: what the score was measured on, written as the tag `dataset`. The class
       analysis never ranks runs of different datasets against each other.
+    - `params`: every choice that distinguishes this run from another, each under a stable
+      name with a plain value (a number, a short string, or a bool, written `true`/`false`):
+      in a parallel-coordinates plot only params and metrics can be axes.
+    - `train_seconds`: the time spent in training steps (not vectorizing, not evaluating),
+      the mean over seeds when there are several; logged as the metric `train_seconds`.
     - `scores`: final values per seed, e.g. `{"accuracy": [0.71, 0.72, 0.70]}`. Logs the
       mean as `accuracy`, the spread as `accuracy_std`, every seed as `accuracy_per_seed`
       (step = seed) and `n_seeds`. A single value is a list of one.
@@ -165,7 +171,12 @@ def log_run(
         model=model,
         example=example,
         tags={**(tags or {}), "origin": "notebook"},
+        train_seconds=train_seconds,
     )
+
+
+def _param(value: Any) -> Any:
+    return str(value).lower() if isinstance(value, (bool, np.bool_)) else value
 
 
 def _log_run(
@@ -179,6 +190,7 @@ def _log_run(
     model: torch.nn.Module | None,
     example: Any,
     tags: Mapping[str, str],
+    train_seconds: float | None,
     experiment_id: str | None = None,
     artifacts: Mapping[str, Any] | None = None,
 ) -> str:
@@ -196,7 +208,9 @@ def _log_run(
             mlflow.set_tag("dataset", dataset)
         mlflow.set_tags(dict(tags))
         if params:
-            mlflow.log_params(dict(params))
+            mlflow.log_params({k: _param(v) for k, v in params.items()})
+        if train_seconds is not None:
+            mlflow.log_metric("train_seconds", float(train_seconds))
 
         for metric, values in (curves or {}).items():
             for epoch, value in enumerate(values):
@@ -318,22 +332,61 @@ def space_line(space: Mapping[str, Any]) -> str:
     return " | ".join(parts)
 
 
+def _plain(x: Any) -> str:
+    """A number as a short plain decimal (0.0003, 0.5, 64), a string as it is."""
+    if isinstance(x, float):
+        return np.format_float_positional(x, trim="-")
+    return str(x)
+
+
+def space_tags(space: Mapping[str, Any]) -> dict[str, str]:
+    """A search space as mlflow tags that filter per axis.
+
+    One tag per axis, `space_<axis>`, with a short canonical value: `choice[64,256]`,
+    `loguniform[0.0003,0.003]`, `uniform[0,0.5]`, `randint[1,4]`, `fixed[dinov2-small]`
+    (a choice of one value is fixed; `other[...]` for an axis `describe_space` does not
+    know); `searched_axes`, the sorted, comma-separated names of the axes that are not
+    fixed; and `search_space`, the line `space_line` gives. In mlflow:
+    `tags.space_encoder LIKE 'fixed%'`, or `tags.searched_axes LIKE '%n_hidden_layers%'`.
+    """
+    tags = {}
+    searched = []
+    for name, axis in describe_space(space).items():
+        kind = axis["kind"]
+        if kind == "choice" and len(axis["values"]) == 1:
+            value = f"fixed[{_plain(axis['values'][0])}]"
+        elif kind == "choice":
+            value = f"choice[{','.join(_plain(v) for v in axis['values'])}]"
+        elif kind in ("loguniform", "uniform", "randint"):
+            value = f"{kind}[{_plain(axis['low'])},{_plain(axis['high'])}]"
+        elif kind == "fixed":
+            value = f"fixed[{_plain(axis['value'])}]"
+        else:
+            value = f"other[{axis['repr']}]"
+        tags[f"space_{name}"] = value[:5000]
+        if not value.startswith("fixed["):
+            searched.append(name)
+    tags["searched_axes"] = ",".join(sorted(searched))
+    tags["search_space"] = space_line(space)[:5000]
+    return tags
+
+
 @dataclass
 class Study:
-    """Your own study: a name, a claim that can turn out false, a search space, a budget.
+    """Your own study: a name, a search space and a budget.
 
     Every run logged through `study.log_run` goes to the experiment `lesson<N>-study` and
-    carries the study with it: the tags `origin=study`, `study`, `claim`, `search_space`
-    (the line `space_line` gives), `budget` (JSON) and, when `default_space` is given,
-    `space_is_default`; and the artifact `search_space.json` (what `describe_space` gives).
+    carries the study with it: the tags `origin=study`, `study`, `budget` (JSON), the
+    search space as `space_tags` writes it (`search_space`, `searched_axes` and one
+    `space_<axis>` per axis) and, when `default_space` is given, `space_is_default`; and
+    the artifact `search_space.json` (what `describe_space` gives).
 
-        study = Study("depth-on-eurosat", "One hidden layer gains nothing on EuroSAT.",
-                      space=param_space, budget={"n_trials": 16, "epochs": 15, "seeds": 3})
+        study = Study("depth-on-eurosat", space=param_space,
+                      budget={"n_trials": 16, "epochs": 15, "seeds": 3})
         study.log_run("winner", "final", dataset="eurosat", scores={"accuracy": per_seed})
     """
 
     name: str
-    claim: str
     space: Mapping[str, Any]
     budget: Mapping[str, Any]
     default_space: Mapping[str, Any] | None = None
@@ -342,7 +395,7 @@ class Study:
 
     def __post_init__(self) -> None:
         testing = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
-        self.name, self.claim = self.name.strip(), self.claim.strip()
+        self.name = self.name.strip()
         if not self.name or (self.name == STUDY_PLACEHOLDER and not testing):
             raise ValueError(
                 f"name your study: set STUDY to a name of your own instead of "
@@ -353,18 +406,11 @@ class Study:
                 f"study name {self.name!r}: use 3 to 40 lowercase letters, digits and "
                 "dashes, starting with a letter or digit, for example 'depth-on-eurosat'"
             )
-        if not self.claim or (self.claim == CLAIM_PLACEHOLDER and not testing):
-            raise ValueError(
-                "state your claim: set CLAIM to one sentence your runs could show to be "
-                "false, for example 'One hidden layer gains nothing over the linear head "
-                "on EuroSAT.'"
-            )
         self.tags = {
             "origin": "study",
             "study": self.name,
-            "claim": self.claim[:5000],
-            "search_space": space_line(self.space)[:5000],
             "budget": json.dumps(_jsonable(self.budget), sort_keys=True),
+            **space_tags(self.space),
         }
         if self.default_space is not None:
             same = describe_space(self.space) == describe_space(self.default_space)
@@ -386,6 +432,7 @@ class Study:
         model: torch.nn.Module | None = None,
         example: Any = None,
         tags: Mapping[str, str] | None = None,
+        train_seconds: float | None = None,
     ) -> str:
         """`log_run` for this study: same arguments, into `lesson<N>-study`, with the
         study's tags and its `search_space.json`. The selected experiment stays as it is."""
@@ -399,6 +446,7 @@ class Study:
             model=model,
             example=example,
             tags={**(tags or {}), **self.tags},
+            train_seconds=train_seconds,
             experiment_id=_experiment_id(self.experiment),
             artifacts={"search_space.json": describe_space(self.space)},
         )
