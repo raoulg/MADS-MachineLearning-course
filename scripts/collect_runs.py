@@ -27,6 +27,7 @@ os.environ.setdefault("MLFLOW_ENABLE_ARTIFACTS_PROGRESS_BAR", "false")
 os.environ.setdefault("MLFLOW_LOGGING_LEVEL", "WARNING")
 
 from mlflow.entities import Metric, Param, RunTag
+from mlflow.exceptions import MlflowException
 from mlflow.tracking import MlflowClient
 from run_submission import Submission, explain, load
 
@@ -83,7 +84,15 @@ def import_run(client: MlflowClient, exp_id: str, sub: Submission, digest: str) 
         exp_id, start_time=run.start_time, run_name=f"{sub.student}:{run.run_name}"
     )
     rid = created.info.run_id
+    try:
+        fill_run(client, rid, sub, tags)
+    except MlflowException:
+        client.delete_run(rid)  # no half-imported run stays in the class store
+        raise
 
+
+def fill_run(client: MlflowClient, rid: str, sub: Submission, tags: dict) -> None:
+    run = sub.run
     params = [Param(k, v) for k, v in run.params.items()]
     tag_list = [RunTag(k, v) for k, v in tags.items()]
     metrics = [
@@ -178,22 +187,25 @@ def main() -> None:
             counts["invalid"] += 1
             continue
 
-        exp_id = experiment_id(client, sub.run.experiment, artifact_root)
-        if exp_id not in index:
-            index[exp_id] = imported_runs(client, exp_id)
-        key = (sub.student, sub.run.run_id)
-        digest = sub.content_hash()
-        existing = index[exp_id].get(key)
-        if existing and existing[1] == digest:
-            counts["unchanged"] += 1
-        else:
-            if existing:
-                client.delete_run(existing[0])
-                counts["updated"] += 1
+        try:
+            exp_id = experiment_id(client, sub.run.experiment, artifact_root)
+            if exp_id not in index:
+                index[exp_id] = imported_runs(client, exp_id)
+            key = (sub.student, sub.run.run_id)
+            digest = sub.content_hash()
+            existing = index[exp_id].get(key)
+            if existing and existing[1] == digest:
+                counts["unchanged"] += 1
             else:
-                counts["new"] += 1
-            import_run(client, exp_id, sub, digest)
-            index[exp_id][key] = ("", digest)
+                import_run(client, exp_id, sub, digest)
+                if existing:
+                    client.delete_run(existing[0])
+                counts["updated" if existing else "new"] += 1
+                index[exp_id][key] = ("", digest)
+        except MlflowException as e:
+            print(f"failed {rel}: {e}")
+            counts["failed"] += 1
+            continue
         students.setdefault(sub.lesson, set()).add(sub.student)
         per_student[(sub.lesson, sub.student)] += 1
         per_experiment[sub.run.experiment] += 1
@@ -211,6 +223,10 @@ def main() -> None:
         for name, n in sorted(per_experiment.items()):
             print(f"  {name:<40} {n:>5}")
     print(f"class store: {args.tracking_uri}")
+    if counts["failed"]:
+        sys.exit(
+            f"{counts['failed']} file(s) could not be imported; see 'failed' above"
+        )
 
     ui = [
         "mlflow",
