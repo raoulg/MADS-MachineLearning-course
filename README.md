@@ -73,15 +73,7 @@ Two rules that matter from day one:
 - **Work on your own branch, never on `master`**, and copy a notebook under a new name before editing it. `master` receives new material every week; a renamed file never conflicts with it.
 - **Python and packages come from uv only.** No pip, no conda, no separately installed Python.
 
-## ⚠️ Intel Macs (x86_64) are not supported
-The course runs on Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs,
-on Python `>=3.12`.
+## Where the course runs
+The course is built to run on a laptop CPU: Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs, on Python `>=3.12`. A VM is optional: useful for a long training run that should not tie up your laptop, or when your laptop is old or short on memory.
 
-**Intel Macs are not supported**: `torch` and `ray` releases
-stopped publishing macOS x86_64 wheels (PyTorch's last Intel-Mac wheel was `2.2.2`)
-
-If you are on an Intel Mac, your options are:
-
-- **Use a Linux VM (recommended).** This is the supported path; see the `references`
-   folder for lab setups (azure / surf).
-- **Remove `ray[tune]` from the pyproject.toml** if your blocker is Ray rather than torch: the Ray hypertuning notebooks won't run, but the rest will.
+**Intel Macs (x86_64) are not supported**: `torch` and `ray` publish no macOS x86_64 wheels for the versions the course uses. On an Intel Mac, use a VM and follow the VM guide above (`references/lab-setup.md`).
