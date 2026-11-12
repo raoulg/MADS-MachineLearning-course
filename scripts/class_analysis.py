@@ -26,7 +26,7 @@
 # chart -> Parallel coordinates**. Filter first, on one dataset and one study
 # (`tags.dataset = 'dtd' and tags.study = 'depth-on-eurosat'`, or `tags.origin =
 # 'notebook'` for the handed-out runs). Put the params on the axes: `encoder` and
-# `embed_dim` (the vectors a run starts from), `n_hidden_layers`, `hidden_dim`, `sigma`,
+# `embed_dim` (the vectors a run starts from), `n_hidden_layers`, `hidden_dim`, `activation`, `sigma`,
 # `norm`, `skip`, `gate`, `lr`; and the metrics `accuracy`, `n_params` and `train_seconds`
 # (seconds in training steps, evaluation not counted) as the outcomes. Notebook 05
 # (`lesson1-notebook`, `lesson1-study`) logs every one of these params, so a study that
@@ -284,7 +284,13 @@ print(
 # deviating runs counted per student, with the run names.
 
 # %%
-notebook = runs[(runs.origin == "notebook") & runs.score.notna()].copy()
+# The handed-out search is not seeded, so its trials and its winner are compared per
+# student in the next section, not by run name here.
+notebook = runs[
+    (runs.origin == "notebook")
+    & runs.score.notna()
+    & ~runs.role.isin(["trial", "final"])
+].copy()
 if notebook.empty:
     print("no handed-out runs (origin=notebook) submitted\n")
 else:
@@ -341,6 +347,44 @@ else:
         )
     else:
         print("nobody\n")
+
+
+# %% [markdown]
+# ## The handed-out search, one draw per student
+#
+# Every student searched the same space without a seed: other trials, other starting
+# weights. One row per student: the best trial (a single seed, the maximum of the draws),
+# the configuration it drew, and the winner rerun over seeds. Read down the columns: a
+# choice that every student's winner shares is a property of the problem; one that changes
+# from row to row was the draw. The spread of `best_trial` against `final` is how much a
+# single search's leaderboard number overstates.
+
+# %%
+AXES = ["n_hidden_layers", "hidden_dim", "activation", "norm", "sigma", "lr"]
+handed = runs[(runs.origin == "notebook") & runs.score.notna()]
+trials = handed[handed.role == "trial"]
+if trials.empty:
+    print("no handed-out search trials submitted\n")
+else:
+    rows = []
+    for student, group in trials.groupby("student"):
+        best = group.loc[group.score.idxmax()]
+        final = handed[(handed.student == student) & (handed.role == "final")]
+        final = final.sort_values("start").tail(1)
+        row = {"student": student, "trials": len(group), "best_trial": best.score}
+        row |= {a: params.at[best.name, a] if a in params else None for a in AXES}
+        for axis, fmt in (("sigma", "{:.2f}"), ("lr", "{:.1e}")):
+            if row[axis] is not None and pd.notna(row[axis]):
+                row[axis] = fmt.format(float(row[axis]))
+        row["final"] = final.score.iloc[0] if len(final) else np.nan
+        row["final_std"] = final["std"].iloc[0] if len(final) else np.nan
+        rows.append(row)
+    table = pd.DataFrame(rows).sort_values("final", ascending=False)
+    print(table.round(4).to_string(index=False), "\n")
+    for axis in AXES[:4]:
+        counts = table[axis].astype(str).value_counts()
+        print(f"winners' {axis:<16}", ", ".join(f"{v}: {n}" for v, n in counts.items()))
+    print()
 
 # %% [markdown]
 # ## How much identical code varies
