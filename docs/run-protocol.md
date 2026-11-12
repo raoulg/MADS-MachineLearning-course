@@ -13,29 +13,37 @@ receives every write. This protocol has no shared database, so it needs no serve
 
 1. **Every student keeps their own local mlflow store** (`artefacts/mlflow/mlruns.db` in
    their checkout of this repository). The notebooks log to it as usual, offline.
-2. **A submission is a set of files.** `scripts/submit_runs.py` writes each run as one JSON
-   file into the student's clone of the runs repository, at
-   `lesson<N>/<github-login>/<run_id>.json`, then commits and pushes. Every student writes
-   only into their own directory, so two pushes never touch the same file. If a push is
-   rejected because someone else pushed first, the script rebases and pushes again, and
-   that rebase cannot conflict.
-3. **The teacher's collect step is the only writer to the class mlflow store.**
+2. **A submission is a set of files in a pull request.** Each student forks the runs
+   repository once. `scripts/submit_runs.py` writes each run as one JSON file into the
+   student's clone of that fork, at `lesson<N>/<github-login>/<run_id>.json`, commits on
+   the branch `lesson<N>`, pushes it to the fork, and opens a pull request against the
+   class repository. Every student writes only into their own directory, so two pull
+   requests never touch the same file and merge in any order.
+3. **A check merges what is valid.** The runs repository's workflow validates every pull
+   request and merges it when its files are valid runs in its author's own directory.
+   Students need no access to the class repository, and the teacher merges nothing by
+   hand.
+4. **The teacher's collect step is the only writer to the class mlflow store.**
    `scripts/collect_runs.py` pulls the repository and imports every file into a separate
    local store (`artefacts/mlflow/class.db`). It is idempotent: a run already imported
    unchanged is skipped, and a run whose file changed replaces its earlier import. Run it
    as often as you like.
 
-Git does the work a tracking server would do: it receives writes asynchronously, keeps
-them in order, and authenticates who wrote what. `mlflow ui` only ever reads a local
+Git and GitHub do the work a tracking server would do: they receive writes
+asynchronously, keep them in order, and authenticate who wrote what (the author of the
+pull request). `mlflow ui` only ever reads a local
 sqlite file.
 
 ```
- student laptop                      GitHub                           your laptop
+ student laptop                  GitHub                                 your laptop
  notebook --log_run--> mlruns.db
- submit_runs.py --JSON files--push--> lesson1/alice/<run>.json --pull--> collect_runs.py
-                                      lesson1/bob/<run>.json              --> class.db
-                                                                         --> mlflow ui
-                                                                         --> class_analysis.py
+ submit_runs.py --push--> alice/mads-ml-runs (fork), branch lesson1
+                            |  pull request, checked and merged by validate.yml
+                            v
+                          raoulg/mads-ml-runs: lesson1/alice/<run>.json --pull--> collect_runs.py
+                                               lesson1/bob/<run>.json             --> class.db
+                                                                                  --> mlflow ui
+                                                                                  --> class_analysis.py
 ```
 
 ## The pieces
@@ -44,11 +52,11 @@ sqlite file.
 |---|---|---|
 | `notebooks/<lesson>/runlog.py` | notebooks | `use_experiment` + `log_run`: logs a run in the protocol's shape |
 | `scripts/run_submission.py` | both, and CI | the file format (pydantic) and the validator |
-| `scripts/submit_runs.py` | student | local mlflow → JSON files → commit → push |
+| `scripts/submit_runs.py` | student | local mlflow → JSON files → commit on `lesson<N>` → push to the fork → pull request |
 | `docs/submit-runs.md` | student's coding agent | step-by-step instructions, including the one-time setup |
 | `scripts/collect_runs.py` | teacher | pull → validate → import into `class.db` → optionally `mlflow ui` |
 | `scripts/class_analysis.py` | teacher | the opening analysis: tables and figures for one lesson |
-| `docs/runs-repo-template/` | teacher, once | README and CI workflow for the runs repository |
+| `docs/runs-repo-template/` | teacher, once | README and the workflow that validates and merges pull requests |
 
 ## What a submission holds
 
@@ -71,22 +79,31 @@ never submitted, so weights cannot end up in git.
 ## Logging conventions
 
 The analysis reads what `runlog.log_run` writes. A notebook that follows the protocol logs
-every run worth discussing through it:
+every run worth discussing through it, for example:
 
 ```python
 from runlog import log_run, use_experiment
 
-use_experiment("lesson1-exercises")
+use_experiment("lesson1-notebook")
 log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
         model=model, example=one_batch[:2])
 ```
 
-- **experiment**: `lesson<N>-<something>`. The submit script takes every experiment with
-  that prefix.
+- **experiment**: `lesson<N>-notebook` for the runs of the notebook as handed out,
+  `lesson<N>-study` for the student's own research. The submit script takes every
+  experiment with the prefix `lesson<N>-`.
+- **origin** tag: `notebook` (the notebook as handed out) or `study` (the student's own
+  research).
+- **dataset** tag, on every run: the dataset the run was trained and scored on.
 - **role** tag: `baseline`, `trial` (one search trial), `final` (the result a student
   stands behind, rerun over seeds), `ablation`, `hypothesis`.
+- **a study** carries, on each of its runs, the tags `study` (its name), `claim` (what the
+  student set out to show), `search_space` (the space searched), `space_is_default`
+  (`true` when that is the notebook's space, unchanged) and `budget` (the number of
+  trials), and the artifact `search_space.json` with the space in full.
 - **scores**: per-seed values become `<metric>` (the mean), `<metric>_std`,
-  `<metric>_per_seed` and `n_seeds`.
+  `<metric>_per_seed` and `n_seeds`. `submit_runs.py --list` shows them as
+  `accuracy=<mean> ± <std> (n=<seeds>)`.
 - **curves**: per-epoch values, logged with step = epoch.
 - **model** + **example**: `n_params`, the one-line `architecture` tag
   (`GaussianNoise > Linear(384->128) > GELU > Linear(128->47)`) and `architecture.json`,
@@ -96,39 +113,54 @@ log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
 `runlog.py` sits in the lesson folder, as the course's other per-lesson helpers do. To
 bring a lesson into the protocol, copy it into that folder, log the exercise's runs
 through `log_run`, and end the exercise notebook with the submission section (lesson 1's
-`05_exercises` is the example).
+exercise notebook is the example).
 
 ## Setting up the runs repository (once per cohort)
 
-1. Create a repository per cohort, for example `raoulg/mads-ml-runs-2026-11`, with a `main`
-   branch. Copy in `docs/runs-repo-template/` (README and `.github/workflows/validate.yml`);
-   set `TEACHERS` in the workflow to the logins allowed to write anywhere.
-2. Add a ruleset on `main` that **blocks force pushes and deletions**. Students push
-   directly to `main`, so this is what keeps history intact.
-3. Invite every student as a collaborator with **Write** access (or add them to an
-   organization team that has it). Their GitHub login is their identity in the protocol.
-   With the logins one per line in `logins.txt`:
-
-   ```bash
-   while read -r login; do
-     gh api -X PUT "repos/raoulg/mads-ml-runs-2026-11/collaborators/$login" -f permission=push
-   done < logins.txt
-   ```
+1. Create a public repository per cohort, for example `raoulg/mads-ml-runs-2026-11`, with
+   a `main` branch. Copy in `docs/runs-repo-template/` (README and
+   `.github/workflows/validate.yml`); set `TEACHERS` in the workflow to the logins allowed
+   to write anywhere.
+2. In the repository's settings:
+   - **Actions → General → Workflow permissions**: *Read and write permissions*, so the
+     workflow's token can merge. The workflow itself declares, per job, the least it
+     needs.
+   - **Rules → Rulesets**: a ruleset on `main` that **blocks force pushes and
+     deletions**, so history stays intact.
+   - **Settings → Variables → Actions**: the variable `AUTO_MERGE`. Unset or anything but
+     `false`, a pull request that passes the check is merged by the workflow; `false`
+     leaves the passing ones for you to merge.
+3. Add no collaborators: students submit from their own forks, and their GitHub login (the
+   author of the pull request) is their identity in the protocol.
 4. Put the repository URL in the course announcement. `docs/submit-runs.md` tells the
-   student's agent to clone it to `../mads-runs`, next to the course repository.
-5. Clone it yourself to `../mads-runs` too (or set `MADS_RUNS_REPO`).
+   student's agent to fork it and clone the fork to `../mads-runs`, next to the course
+   repository.
+5. Clone the class repository itself to `../mads-runs` (or set `MADS_RUNS_REPO`); that
+   clone is what `collect_runs.py` pulls.
 
-The workflow validates every push: each changed file must fit the format, and a student
-may only write in their own directory (it compares the path with `github.actor`). It
-checks out `scripts/run_submission.py` from the course repository's default branch, so
-that file must be on `master`.
+The workflow, `validate.yml`, runs on every pull request against `main` and on every push
+to `main`:
+
+- **A pull request** runs under `pull_request_target`: the workflow as it is on `main`,
+  with a token that can write. Nothing from the pull request runs as code. The workflow
+  lists the changed paths through the API, fetches the pull request's head into a
+  separate directory without credentials, lays its submission files over a checkout of
+  `main`, and runs the validator with `--actor <author of the pull request>`. Every
+  changed path must be a valid `lesson<N>/<author>/<run_id>.json`, and no run id may sit
+  in another student's directory. A failure is posted as one comment on the pull request
+  and fails the check; a pass is squash-merged, unless `AUTO_MERGE` is `false`.
+- **A push to `main`** (your own) is validated as a set of changed files under
+  `lesson*`, with `github.actor` as the actor.
+
+The validator, `scripts/run_submission.py`, is taken from the course repository's
+default branch, so that file must be on `master`.
 
 ## Opening a lesson
 
 Set a deadline before the lesson (the evening before works). Then:
 
 ```bash
-uv run scripts/collect_runs.py --lesson 1          # pull and import; prints counts per student
+uv run scripts/collect_runs.py --lesson 1          # pull and import; prints runs per student and per experiment
 uv run scripts/class_analysis.py --lesson 1        # tables in the terminal, figures in artefacts/class-analysis/lesson1/
 uv run scripts/collect_runs.py --lesson 1 --ui     # import again (a no-op) and open mlflow ui on the class store
 ```
