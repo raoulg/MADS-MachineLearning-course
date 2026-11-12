@@ -1,32 +1,51 @@
 name: validate
 
-# Checks every push to main: each changed file must be a valid run submission, and a
-# student may only write inside lesson<N>/<their own GitHub login>/.
+# Students submit through pull requests from their forks; the teacher may push to main.
+# Either way, every changed path must be a valid run submission at
+# lesson<N>/<login>/<run_id>.json, and a student only writes in their own directory.
+# A valid pull request is merged here, unless the repository variable AUTO_MERGE is
+# `false`.
+#
+# pull_request_target runs this file as it is on main, with a token that can write. So
+# nothing from a pull request runs as code: its files are fetched into head/ and only
+# read, by the validator taken from the course repository. Values from the pull request
+# reach the shell only through env:.
 
 on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches: [main]
   push:
     branches: [main]
 
-permissions:
-  contents: read
+permissions: {}
+
+concurrency:
+  group: validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  validate:
+  validate-push:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       # The validator lives in the (public) course repository, so the format has one source.
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           repository: raoulg/MADS-MachineLearning-course
           path: course
           sparse-checkout: scripts/run_submission.py
           sparse-checkout-cone-mode: false
+          persist-credentials: false
 
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
 
       - name: Validate the files this push changed
         env:
@@ -42,3 +61,138 @@ jobs:
           fi
           uv run --no-project --with pydantic python course/scripts/run_submission.py \
             check . --files "$changed" --actor "$ACTOR" --teachers "$TEACHERS"
+
+  validate-pr:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      problems: ${{ steps.check.outputs.problems }}
+    steps:
+      - name: Check out the base repository
+        uses: actions/checkout@v7
+        with:
+          path: base
+          persist-credentials: false
+
+      - name: Fetch the pull request's files into head/ (read as data, never run)
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: head
+          persist-credentials: false
+
+      - name: Take the validator from the course repository
+        uses: actions/checkout@v7
+        with:
+          repository: raoulg/MADS-MachineLearning-course
+          path: course
+          sparse-checkout: scripts/run_submission.py
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: List the paths the pull request changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # A rename changes two paths: where the file went, and where it came from.
+          gh api "repos/$REPO/pulls/$NUMBER/files" --paginate \
+            --jq '.[] | .filename, (.previous_filename // empty)' > changed.txt
+          cat changed.txt
+
+      - name: Apply the changed submission files to the base checkout
+        run: |
+          # base/ becomes main as it would be after the merge, so the validator also
+          # sees run ids that other students submitted. Only paths of the submission
+          # shape are copied; any other path fails the check in the next step.
+          while IFS= read -r f; do
+            printf '%s\n' "$f" | grep -Eq '^lesson[0-9]+/[A-Za-z0-9-]+/[0-9a-f]{32}\.json$' || continue
+            mode=$(git -C head ls-tree HEAD -- "$f" | cut -d' ' -f1)
+            if [ -z "$mode" ]; then
+              rm -f "base/$f"
+            else
+              # a symbolic link is copied as a link, and the validator refuses it
+              mkdir -p "base/$(dirname "$f")"
+              cp -P "head/$f" "base/$f"
+            fi
+          done < changed.txt
+
+      - name: Validate
+        id: check
+        env:
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          TEACHERS: raoulg
+        run: |
+          set +e
+          uv run --no-project --with pydantic python course/scripts/run_submission.py \
+            check base --files "$(cat changed.txt)" --actor "$AUTHOR" --teachers "$TEACHERS" \
+            > result.txt 2>&1
+          status=$?
+          cat result.txt
+          if [ "$status" -ne 0 ]; then
+            delimiter="PROBLEMS_$(openssl rand -hex 16)"
+            {
+              echo "problems<<$delimiter"
+              cat result.txt
+              echo "$delimiter"
+            } >> "$GITHUB_OUTPUT"
+          fi
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Fail when the check found problems
+        env:
+          STATUS: ${{ steps.check.outputs.status }}
+        run: test "$STATUS" = 0
+
+  comment:
+    needs: validate-pr
+    if: failure() && needs.validate-pr.outputs.problems != ''
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Post the problems on the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          PROBLEMS: ${{ needs.validate-pr.outputs.problems }}
+        run: |
+          {
+            echo "The check found problems with this pull request, so it is not merged."
+            echo
+            echo '```'
+            printf '%s\n' "$PROBLEMS"
+            echo '```'
+            cat <<'TEXT'
+
+          Fix the runs in mlflow (or rerun the notebook) and run `scripts/submit_runs.py`
+          again; do not edit the files by hand. The table in `docs/submit-runs.md` of the
+          course repository says what each message means.
+          TEXT
+          } > body.md
+          gh api "repos/$REPO/issues/$NUMBER/comments" -F body=@body.md --silent
+
+  merge:
+    needs: validate-pr
+    if: vars.AUTO_MERGE != 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merge the pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Only the commit that was validated is merged; a newer push gets its own run.
+          gh pr merge "$NUMBER" --repo "$REPO" --squash --match-head-commit "$HEAD_SHA"
