@@ -28,9 +28,14 @@
 # 'notebook'` for the handed-out runs). Put the params on the axes: `encoder` and
 # `embed_dim` (the vectors a run starts from), `n_hidden_layers`, `hidden_dim`, `sigma`,
 # `norm`, `skip`, `gate`, `lr`; and the metrics `accuracy`, `n_params` and `train_seconds`
-# (seconds in training steps, evaluation not counted) as the outcomes. Every lesson 1 run
-# logs all of them, so a study that varied one switch differs from its neighbours on one
-# axis. `tags.searched_axes LIKE '%hidden_dim%'` finds the studies that searched an axis.
+# (seconds in training steps, evaluation not counted) as the outcomes. Notebook 05
+# (`lesson1-notebook`, `lesson1-study`) logs every one of these params, so a study that
+# varied one switch differs from its neighbours on one axis. Notebook 04 (`lesson1-search`)
+# logs `encoder`, `embed_dim`, `head`, `n_hidden_layers`, `hidden_dim`, `sigma` and `lr`;
+# notebook 01 (`lesson1-representation-quality`) logs `encoder`, `embed_dim`,
+# `n_hidden_layers`, `lr` and `epochs`. A run without hidden layers logs `hidden_dim=0`
+# and the switches as off, whatever its config drew. `tags.searched_axes LIKE
+# '%hidden_dim%'` finds the studies that searched an axis.
 
 # %%
 from __future__ import annotations
@@ -63,11 +68,11 @@ parser.add_argument(
     default=f"sqlite:///{COURSE_ROOT / 'artefacts' / 'mlflow' / 'class.db'}",
 )
 parser.add_argument(
-    "--tolerance",
+    "--noise-factor",
     type=float,
-    default=0.002,
-    help="a handed-out run further than this from the class median counts as deviating "
-    "(default: %(default)s)",
+    default=3.0,
+    help="a handed-out run with seeds counts as deviating when it is further from the class "
+    "median than this many times the class's median seed std (default: %(default)s)",
 )
 args, _ = parser.parse_known_args(sys.argv[1:] if "__file__" in globals() else [])
 
@@ -111,6 +116,7 @@ runs = pd.DataFrame(
         "searched_axes": col("tags", "searched_axes"),
         "space_is_default": col("tags", "space_is_default"),
         "budget": col("tags", "budget"),
+        "session": col("tags", "session"),
         "score": pd.to_numeric(col("metrics", METRIC), errors="coerce"),
         "std": pd.to_numeric(col("metrics", f"{METRIC}_std"), errors="coerce"),
         "n_seeds": pd.to_numeric(col("metrics", "n_seeds"), errors="coerce"),
@@ -119,6 +125,17 @@ runs = pd.DataFrame(
         "start": raw["start_time"],
     }
 )
+# A student who ran a handed-out notebook twice submits both sessions; only the latest
+# counts, per experiment, so the class compares one execution per student.
+handed = runs.origin == "notebook"
+latest_session = (
+    runs[handed]
+    .groupby(["student", "experiment"], dropna=False)
+    .session.transform("max")
+    .reindex(runs.index)
+)
+stale = handed & runs.session.notna() & (runs.session != latest_session)
+runs = runs[~stale]
 params = raw[[c for c in raw.columns if c.startswith("params.")]].rename(
     columns=lambda c: c[len("params.") :]
 )
@@ -163,29 +180,43 @@ def pm(run: pd.Series | None) -> str:
 #
 # One row per student and study: the axes it searched, whether its space is the handed-out
 # one, and how it came out. `baseline` is the study's own baseline run, or else the
-# student's handed-out baseline on the same dataset. `sigma` is the gain in units of the
-# standard error of the difference: inside about two, the difference is not measured,
-# whatever its sign. The second table is each study's space, axis by axis; `-` is an axis
-# the study does not have.
+# student's baseline from `lesson1-notebook` on the same dataset. `sigma` is the gain in
+# units of the standard error of the difference: inside about two, the difference is not
+# measured, whatever its sign. `trials` counts the trials per search space against the
+# budget; a study whose runs carry more than one space was run with a changed space, and
+# its trials do not come from one search. After the table, each study's space, axis by
+# axis.
 
 # %%
+HANDED_OUT = f"lesson{LESSON}-notebook"
+
+
+def handed_out_baseline(student: str, dataset: str) -> pd.Series | None:
+    return latest(
+        runs[
+            (runs.student == student)
+            & (runs.experiment == HANDED_OUT)
+            & (runs.role == "baseline")
+            & (runs.dataset == dataset)
+        ]
+    )
+
+
 study_runs = runs[runs.origin == "study"]
-rows, axes_rows = [], []
+rows, blocks, mixed = [], [], []
 for (student, study), group in study_runs.groupby(["student", "study"], dropna=False):
+    group = group.sort_values("start")
     final = latest(group[group.role == "final"])
     dataset = final["dataset"] if final is not None else group.dataset.mode().iloc[0]
     base = latest(group[(group.role == "baseline") & (group.dataset == dataset)])
     if base is None:
-        base = latest(
-            runs[
-                (runs.student == student)
-                & (runs.origin == "notebook")
-                & (runs.role == "baseline")
-                & (runs.dataset == dataset)
-            ]
-        )
-    first = group.iloc[0]
+        base = handed_out_baseline(student, dataset)
+    spaced = group[group.search_space.notna()]  # hypothesis runs carry no space
+    first = spaced.iloc[-1] if len(spaced) else group.iloc[-1]
     budget = json.loads(first["budget"]) if isinstance(first["budget"], str) else {}
+    per_space = spaced[spaced.role == "trial"].groupby("search_space").size()
+    if spaced.search_space.nunique() > 1:
+        mixed.append(f"{student} / {study}: {spaced.search_space.nunique()} spaces")
     both = final is not None and base is not None
     rows.append(
         {
@@ -194,16 +225,16 @@ for (student, study), group in study_runs.groupby(["student", "study"], dropna=F
             "dataset": dataset,
             "searched": first["searched_axes"] or "-",
             "default": first["space_is_default"],
-            "trials": f"{int((group.role == 'trial').sum())}/{budget.get('n_trials', '?')}",
+            "trials": f"{'+'.join(map(str, per_space)) or 0}/{budget.get('n_trials', '?')}",
             "baseline": pm(base),
             "final": pm(final),
             "gain_pt": 100 * (final["score"] - base["score"]) if both else np.nan,
             "sigma": sigma(base, final) if both else np.nan,
         }
     )
-    axes_rows.append(
-        {"student": student, "study": study, **space.loc[first.name].fillna("-")}
-    )
+    for _, run in spaced.drop_duplicates("search_space").iterrows():
+        axes = space.loc[run.name].dropna()
+        blocks.append((f"{student} / {study}", axes))
 studies = pd.DataFrame(rows)
 if studies.empty:
     print("no study runs (origin=study) submitted\n")
@@ -214,9 +245,17 @@ else:
         .to_string(index=False),
         "\n",
     )
-    per_axis = pd.DataFrame(axes_rows).set_index(["student", "study"])
-    per_axis = per_axis.loc[:, (per_axis != "-").any()]
-    print(per_axis.sort_index().to_string(), "\n")
+    print(
+        "more than one search space:",
+        "; ".join(mixed) if mixed else "no study",
+        "\n",
+    )
+    for label, axes in sorted(blocks, key=lambda b: b[0]):
+        print(f"== {label}")
+        print(
+            axes.rename_axis("axis").rename("space").to_frame().to_string(),
+            "\n",
+        )
     handed_out = runs[(runs.origin == "notebook") & runs.search_space.notna()]
     if len(handed_out):
         print(f"handed-out space: {handed_out.search_space.iloc[0]}\n")
@@ -236,11 +275,13 @@ print(
 # ## The runs as handed out
 #
 # Every student ran the same handed-out notebooks, so these runs should agree. Per run
-# name: the class median, how many students ran it with the same parameters, and how many
-# of those differ from the median by more than the tolerance. A student whose handed-out
-# baseline differs has a setup problem worth a look. `other_params` counts students whose
-# run of that name had different parameters (an unseeded search draws different trials),
-# which are left out of the comparison.
+# name: the class median, how many students ran it with the same parameters, the class's
+# median seed spread, and how many of those runs lie further from the median than
+# `--noise-factor` (3) times that spread. Only runs with seeds are judged: a single-seed run
+# has no spread to measure against. A student whose handed-out baseline deviates has a
+# setup problem worth a look. `other_params` counts students whose run of that name had
+# different parameters, which are left out of the comparison. Below the table, the
+# deviating runs counted per student, with the run names.
 
 # %%
 notebook = runs[(runs.origin == "notebook") & runs.score.notna()].copy()
@@ -251,7 +292,7 @@ else:
         params.loc[notebook.index].astype(str).agg("|".join, axis=1)
     )
     rows = []
-    deviating: list[str] = []
+    deviating: dict[str, list[str]] = {}
     for (exp, name, dataset), group in notebook.groupby(
         ["experiment", "name", "dataset"]
     ):
@@ -259,8 +300,17 @@ else:
         usual = group.params_key.mode().iloc[0]
         same = group[group.params_key == usual]
         median = same.score.median()
-        off = same[(same.score - median).abs() > args.tolerance]
-        deviating += [f"{s} ({exp}/{name})" for s in off.student]
+        seeded = same[same.n_seeds.fillna(1) > 1]
+        noise = seeded["std"].median() if len(seeded) else np.nan
+        off = (
+            seeded[(seeded.score - median).abs() > args.noise_factor * noise]
+            if noise > 0
+            else seeded.iloc[:0]
+        )
+        for student in off.student:
+            deviating.setdefault(student, []).append(
+                f"{exp.removeprefix(f'lesson{LESSON}-')}/{name}"
+            )
         rows.append(
             {
                 "experiment": exp,
@@ -269,29 +319,44 @@ else:
                 "role": group.role.iloc[0],
                 "students": len(same),
                 "median": median,
+                "seed_std": noise,
+                "judged": len(seeded),
                 "deviating": len(off),
                 "other_params": len(group) - len(same),
             }
         )
     print(pd.DataFrame(rows).round(4).to_string(index=False), "\n")
-    print(
-        "deviating by more than",
-        args.tolerance,
-        ":",
-        ", ".join(deviating) if deviating else "nobody",
-        "\n",
-    )
+    print(f"deviating by more than {args.noise_factor:g} x the median seed std:")
+    if deviating:
+        print(
+            pd.DataFrame(
+                [
+                    {"student": s, "runs": len(n), "names": ", ".join(sorted(n))}
+                    for s, n in deviating.items()
+                ]
+            )
+            .sort_values(["runs", "student"], ascending=[False, True])
+            .to_string(index=False),
+            "\n",
+        )
+    else:
+        print("nobody\n")
 
 # %% [markdown]
 # ## How much identical code varies
 #
-# Per handed-out run (the trials left out): one dot per student, with that student's own
-# seed spread as a bar, and the class median as a dashed line. Every panel has its own
-# axis, so read the spread within a panel, not across them. Dots that scatter more than
-# their bars says machines differ; bars wider than the scatter says seeds do.
+# Per run of notebook 05's Part 1 (`lesson1-notebook`, the trials left out): one dot per
+# student, with that student's own seed spread as a bar, and the class median as a dashed
+# line. Every panel has its own axis, so read the spread within a panel, not across them.
+# Dots that scatter more than their bars says machines differ; bars wider than the scatter
+# says seeds do.
 
 # %%
-shown = notebook[notebook.role != "trial"] if len(notebook) else notebook
+shown = (
+    notebook[(notebook.experiment == HANDED_OUT) & (notebook.role != "trial")]
+    if len(notebook)
+    else notebook
+)
 panels = sorted(shown.groupby(["experiment", "name", "dataset"]).groups)
 if panels:
     students = sorted(shown.student.dropna().unique())
@@ -303,6 +368,7 @@ if panels:
         figsize=(3.6 * ncols, 0.22 * len(students) * nrows + 1.2 * nrows),
         squeeze=False,
         sharey=True,
+        layout="constrained",
     )
     y = {s: i for i, s in enumerate(students)}
     for ax, (exp, name, dataset) in zip(axs.flat, panels):
@@ -333,14 +399,15 @@ if panels:
     for ax in axs[:, 0]:
         ax.set_yticks(range(len(students)), students, fontsize=7)
     fig.suptitle(f"lesson {LESSON}: the handed-out runs, per student ({METRIC})")
-    fig.tight_layout()
     fig.savefig(OUT / "handed_out_spread.png", dpi=150)
 
 # %% [markdown]
 # ## Baseline against final, per student and dataset
 #
 # The final is the run a student stands behind, rerun over seeds: the handed-out search's
-# winner, and the final of each study. `sigma` as in the studies table.
+# winner, and the final of each study. Each final is paired with the baseline of its own
+# study (or notebook), else with the student's `lesson1-notebook` baseline on that dataset.
+# `sigma` as in the studies table.
 
 
 # %%
@@ -349,23 +416,24 @@ def finals_table(sel: pd.DataFrame) -> pd.DataFrame:
     pairs = sel[["student", "dataset"]].drop_duplicates().itertuples(index=False)
     for student, dataset in pairs:
         group = sel[(sel.student == student) & (sel.dataset == dataset)]
-        base = latest(group[group.role == "baseline"])
-        for (origin, study), finals in group[group.role == "final"].groupby(
-            ["origin", group.study.fillna("-")]
-        ):
+        source = group.experiment + "|" + group.study.fillna("-")
+        for key, finals in group[group.role == "final"].groupby(source):
             final = latest(finals)
-            best_trial = group[
-                (group.role == "trial")
-                & (group.origin == origin)
-                & (group.study.fillna("-") == study)
-            ].score.max()
             if final is None:
                 continue
+            own = group[source == key]
+            base = latest(own[own.role == "baseline"])
+            if base is None:
+                base = handed_out_baseline(student, dataset)
+            best_trial = own[own.role == "trial"].score.max()
+            study = final["study"]
             out.append(
                 {
                     "dataset": dataset,
                     "student": student,
-                    "from": "handed out" if origin == "notebook" else study,
+                    "from": study
+                    if isinstance(study, str)
+                    else final["experiment"].removeprefix(f"lesson{LESSON}-"),
                     "baseline": base["score"] if base is not None else np.nan,
                     "final": final["score"],
                     "final_std": final["std"],
@@ -397,7 +465,7 @@ for dataset, t in finals.groupby("dataset") if len(finals) else []:
     t = t.dropna(subset=["baseline", "final"]).sort_values("final")
     if t.empty:
         continue
-    fig, ax = plt.subplots(figsize=(7, 0.35 * len(t) + 1.5))
+    fig, ax = plt.subplots(figsize=(8, 0.35 * len(t) + 1.5), layout="constrained")
     y = list(range(len(t)))
     ax.hlines(y, t.baseline, t.final, color="0.7")
     ax.plot(t.baseline, y, "o", label="baseline")
@@ -405,8 +473,9 @@ for dataset, t in finals.groupby("dataset") if len(finals) else []:
     ax.set_yticks(y, [f"{s} / {f}" for s, f in zip(t.student, t["from"])])
     ax.set_xlabel(METRIC)
     ax.legend()
-    ax.set_title(f"{dataset}: baseline and final per student, with seed spread")
-    fig.tight_layout()
+    ax.set_title(
+        f"{dataset}: baseline and final per student,\nwith seed spread", fontsize=10
+    )
     fig.savefig(OUT / f"baseline_vs_final_{dataset}.png", dpi=150)
 
 # %% [markdown]
