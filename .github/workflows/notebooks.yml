@@ -28,7 +28,7 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          all=$(find notebooks -name '*.ipynb' -not -path 'notebooks/legacy/*' | sort | tr '\n' ' ')
+          all=$(find notebooks -name '*.ipynb' | sort | tr '\n' ' ')
           if [ "$EVENT" != "pull_request" ]; then
             echo "mode=full" >> "$GITHUB_OUTPUT"
             echo "notebooks=$all" >> "$GITHUB_OUTPUT"
@@ -40,7 +40,7 @@ jobs:
             nbs="$all"
           else
             mode=changed
-            nbs=$(echo "$changed" | grep -E '^notebooks/.+\.ipynb$' | grep -v '^notebooks/legacy/' | tr '\n' ' ' || true)
+            nbs=$(echo "$changed" | grep -E '^notebooks/.+\.ipynb$' | tr '\n' ' ' || true)
             if [ -z "$nbs" ]; then
               mode=none
             fi

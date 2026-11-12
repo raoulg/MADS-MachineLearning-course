@@ -5,23 +5,31 @@ pre-commit:
       output: executing
       files: git ls-files
       glob: '*.ipynb'
+      exclude:
+        - 'archive/**'
       run: uv run notebooktester {staged_files} -t 240 -w 8 -pb
     clean-jupyter:
       priority: 2
       files: git ls-files
       glob: '*.ipynb'
+      exclude:
+        - 'archive/**'
       run: uv run jupyter nbconvert --clear-output --inplace {staged_files}
       stage_fixed: true
     format:
       priority: 2
       files: git ls-files
       glob: '*.{py,ipynb}'
+      exclude:
+        - 'archive/**'
       run: uv run ruff format {staged_files}
       stage_fixed: true
     ruff:
       priority: 2
       files: git ls-files
       glob: '*.py'
+      exclude:
+        - 'archive/**'
       run: uv run ruff check {staged_files} --fix
     typecheck:
       files: git ls-files
@@ -29,6 +37,7 @@ pre-commit:
       # research scripts import undeclared packages; see [tool.ruff] in pyproject.toml
       exclude:
         - 'planning/research/**/*.py'
+        - 'archive/**'
       run: uv run ty check {staged_files}
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --max-cache-age 7d
