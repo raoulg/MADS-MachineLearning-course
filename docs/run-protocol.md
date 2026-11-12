@@ -127,17 +127,19 @@ exercise notebook is the example).
 
 1. Create a public repository per cohort, for example `raoulg/mads-ml-runs-2026-11`, with
    a `main` branch. Copy in `docs/runs-repo-template/` (README and
-   `.github/workflows/validate.yml`); set `TEACHERS` in the workflow to the logins allowed
-   to write anywhere.
+   `.github/workflows/validate.yml`). The logins allowed to write in any directory are
+   set in one place: `TEACHERS` in the workflow's top-level `env`.
 2. In the repository's settings:
-   - **Actions → General → Workflow permissions**: *Read and write permissions*, so the
-     workflow's token can merge. The workflow itself declares, per job, the least it
-     needs.
+   - **Actions → General → Workflow permissions**: leave the default, read-only. The
+     workflow declares per job the permissions it needs, and only the merging job can
+     write.
+   - **General → Pull Requests**: keep *Allow squash merging* on; the workflow merges
+     with a squash.
    - **Rules → Rulesets**: a ruleset on `main` that **blocks force pushes and
      deletions**, so history stays intact.
-   - **Settings → Variables → Actions**: the variable `AUTO_MERGE`. Unset or anything but
-     `false`, a pull request that passes the check is merged by the workflow; `false`
-     leaves the passing ones for you to merge.
+   - **Settings → Secrets and variables → Actions → Variables**: the variable
+     `AUTO_MERGE`. Unset or anything but `false`, a pull request that passes the check is
+     merged by the workflow; `false` leaves the passing ones for you to merge.
 3. Add no collaborators: students submit from their own forks, and their GitHub login (the
    author of the pull request) is their identity in the protocol.
 4. Put the repository URL in the course announcement. `docs/submit-runs.md` tells the
@@ -150,22 +152,26 @@ The workflow, `validate.yml`, runs on every pull request against `main` and on e
 to `main`:
 
 - **A pull request** runs under `pull_request_target`: the workflow as it is on `main`,
-  with a token that can write. Nothing from the pull request runs as code. The workflow
-  lists the changed paths through the API, fetches the pull request's head into a
-  separate directory without credentials, lays its submission files over a checkout of
-  `main`, and runs the validator with `--actor <author of the pull request>`. Every
-  changed path must be a valid `lesson<N>/<author>/<run_id>.json`, and no run id may sit
-  in another student's directory. A failure is posted as one comment on the pull request
-  and fails the check; a pass is squash-merged, unless `AUTO_MERGE` is `false`.
+  with a token that can write. Nothing from the pull request is checked out or run. The
+  workflow fetches the pull request's commit into a checkout of `main` without
+  credentials, lists the changed paths with `git diff` from the merge base, writes the
+  submission files over that checkout with `git cat-file`, and runs the validator on
+  them with `--actor <author of the pull request>`. Every changed path must be a valid
+  `lesson<N>/<author>/<run_id>.json`, a regular file, with the author spelled exactly as
+  their login; no run, by id or by content, may sit in another student's directory; and
+  a pull request changes at most 200 files. A failure is posted as one comment on the
+  pull request and fails the check; a pass is squash-merged, unless `AUTO_MERGE` is
+  `false`.
 - **A push to `main`** (your own) is validated as a set of changed files under
   `lesson*`, with `github.actor` as the actor.
 
 The validator, `scripts/run_submission.py`, is taken from the course repository's
-default branch, so that file must be on `master`.
+default branch, so that file must be on `master`. The workflow's actions are pinned to
+commit SHAs, with the release tag in a comment.
 
 ## Opening a lesson
 
-Set a deadline before the lesson (the evening before works). Then:
+Set a deadline before the lesson. Then:
 
 ```bash
 uv run scripts/collect_runs.py --lesson 1          # pull and import; prints runs per student and per experiment

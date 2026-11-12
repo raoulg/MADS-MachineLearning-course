@@ -30,7 +30,24 @@ If `gh` is not installed or not logged in, ask the student for their GitHub logi
 guess it. The script also reads it from the fork's URL and stops when the sources
 disagree.
 
-## 2. One time: fork the runs repository and clone the fork
+## 2. One time: set up git and gh, fork the runs repository, clone the fork
+
+git must be able to push to GitHub as the student, and commits need an author. Check
+both, and set up what is missing:
+
+```bash
+gh auth status                          # logged in? If not:
+gh auth login                           # the student logs in, in the browser
+gh auth setup-git                       # git pushes to GitHub with gh's login
+git config --global user.name           # empty? Then set both, with the student:
+git config --global user.name "<the student's name>"
+git config --global user.email "<login>@users.noreply.github.com"
+```
+
+The `users.noreply.github.com` address keeps the student's own e-mail address out of
+the public runs repository. Without an identity the script commits as
+`<login> <<login>@users.noreply.github.com>` by itself. Without `gh`, git needs another
+way to authenticate to GitHub (a credential helper or SSH); the student sets that up.
 
 The runs repository of the current cohort (November 2026) is
 https://github.com/raoulg/mads-ml-runs-2026-11. It is public. The student forks it, and
@@ -82,8 +99,14 @@ Running it again later is safe. A run already in the class repository or on the 
 skipped. New runs are added to the branch, and so to the open pull request; once that
 pull request is merged, the next submission opens a new one.
 
-Without `gh`, add `--no-pr`: the script pushes the branch and prints the compare URL where
-the student opens the pull request in the browser.
+A run the student deleted from mlflow since the last submission is also removed from the
+branch, if it is not in the class repository yet; the script lists what it removed. That
+is how a pull request held up by a bad run gets out: delete the run in mlflow (or fix it)
+and submit again. This happens only without `--run-id` and `--experiment`, when the
+script sees all of the lesson's runs.
+
+Without `gh`, or with `--no-pr`, the script pushes the branch and prints the compare URL
+where the student opens the pull request in the browser.
 
 ## 5. The check on the pull request
 
@@ -119,7 +142,10 @@ same pull request, and the check runs again.
 | `these disagree about who you are` | `--student`, the login of `gh` and the owner of `origin` must be one account. Pass the student's own login, log `gh` in as the student (`gh auth login`), or point `origin` at the student's fork (`git -C ../mads-runs remote set-url origin https://github.com/<login>/mads-ml-runs-2026-11.git`). |
 | `... is not a git clone of your fork` | Do step 2, or pass `--runs-repo`. |
 | `... has no upstream remote` | Run the two commands the message names (the last two of step 2). |
-| `... has uncommitted changes` | Someone edited the clone by hand. Show `git -C ../mads-runs status` to the student; do not discard their work without asking. |
+| `... has uncommitted changes` | Someone edited the clone by hand: a tracked file, or a new file under `lesson*/` (other new files do not count). Show `git -C ../mads-runs status` to the student; do not discard their work without asking. |
+| `removed N run(s) that are no longer in your mlflow store` | Not an error: those runs were deleted from mlflow, so they leave the branch and the pull request. If that was not meant, restore the runs in mlflow and submit again. |
+| `` `gh` is not installed, so the pull request is not opened for you `` | The branch is pushed. Open the pull request at the URL printed next. |
+| `lesson<N> holds no runs that the class repository lacks` | Everything on the branch is in the class repository already. A pull request still open from the branch has nothing left to merge; the student may close it. |
 | `git fetch ... failed` / `Repository not found` / `403` | The fork does not exist yet, `origin` points somewhere else, or git is not authenticated for GitHub. `gh auth login` followed by `gh auth setup-git` fixes the last. |
 | `git push origin lesson<N> failed` | Show the git error to the student. Do not force-push. |
 | `merging ... into your branch failed` | Show it to the teacher; do not resolve it by hand. |
@@ -131,10 +157,18 @@ The check's comment on the pull request names each file with one of these proble
 
 | Problem in the comment | What it means |
 |---|---|
-| `outside lesson<N>/<student>/<run_id>.json; a submission changes nothing else` | The pull request changes another file (a README, `.github/`, ...). Take that change out of the branch. |
-| `written by <a>, but this directory belongs to <b>` | A file in someone else's directory. The pull request must hold only the author's own runs. |
+| `outside lesson<N>/<student>/<run_id>.json; a submission changes nothing else` | The pull request changes another file (a README, `.github/`, ...), or a path with characters a submission never has (shown quoted). Take that change out of the branch. |
+| `written by <a>, but this directory belongs to <b>` | A file in someone else's directory. The pull request must hold only the author's own runs. The directory must be spelled exactly as the login, upper and lower case included; the script uses `gh`'s spelling. |
 | `deleted by <a>, but this directory belongs to <b>` | The branch removes another student's file. Files are never deleted by hand; show this to the teacher. |
 | `this run id is already submitted by <other>` | The run is another student's. Submit only runs the student made. |
+| `this run is already submitted by <other>, under another run id` | The run's content is another student's, relabelled. Submit only runs the student made. |
+| `not a regular file (mode ...)` | The branch holds a link or something else instead of a file. Submit again with the script. |
+| `the change touches N files, more than 200` | Too much in one pull request. Submit per experiment (`--experiment`), one pull request at a time. |
+| `param key ...`, `tag key ...`, `metric key ...` | A name with characters mlflow does not accept, or longer than 250. Rename it in the notebook and log the run again. |
+| `... characters, limit 6000` (param) / `limit 5000` (tag) | A value longer than mlflow stores. Log a shorter one. |
+| `mlflow's own tags are not submitted` | The file holds an `mlflow.*` tag the script leaves out. Submit again with the script. |
+| `experiment must be named lesson<N>-<lowercase-name>` | Log the run in an experiment named like `lesson1-notebook` or `lesson1-study`. |
+| `the path must be relative, without . or ..` | An artifact path that points outside the run. Log the artifact under a plain relative name. |
 | `this file says it is <a>'s run; it sits in <b>'s directory` | The file was copied or edited by hand. Submit again with the script. |
 | `not valid JSON (...): submit again, do not edit by hand` | The file was edited by hand. Submit again with the script. |
 | `a symbolic link, not a file` | The branch holds a link instead of a file. Submit again with the script. |
