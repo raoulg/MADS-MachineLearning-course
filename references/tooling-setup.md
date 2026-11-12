@@ -17,10 +17,16 @@ student submits their training runs to. Read this whole file now, then follow th
 protocol below.
 
 > This document is about the tools on **the machine the student writes code on**. If
-> the student was given a lab VM, `references/lab-setup.md` covers the VM itself (keys,
-> SSH, Remote-SSH) and comes first. The two overlap on purpose: a student who finished
-> the lab setup already has some milestones below done. Verify those instead of redoing
-> them.
+> the student works on a lab VM, the lab guide covers the VM itself (keys, SSH,
+> Remote-SSH) and comes first:
+>
+> ```
+> https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md
+> ```
+>
+> The two overlap on purpose: a student who finished the lab setup already has some
+> milestones below done. Verify those instead of redoing them. Both guides keep their
+> progress in the same file, `~/mads-ml-setup.md`.
 
 ---
 
@@ -88,14 +94,20 @@ tracks. `CLAUDE.md` and `AGENTS.md` in the repository root are the teacher's fil
 **do not edit them**, they would conflict with every update.
 
 - **Claude Code**: `CLAUDE.local.md` in the repository root.
-- **Cursor**: a file in `.cursor/rules/`.
-- **Codex**: its user-level file `~/.codex/AGENTS.md`, under a heading that names this
-  repository, because the project's `AGENTS.md` is the teacher's.
+- **Cursor**: a rule file `.cursor/rules/<name>.mdc` whose frontmatter has
+  `alwaysApply: true`.
+- **Codex**: its user-level file `~/.codex/AGENTS.md`, because the project's `AGENTS.md`
+  is the teacher's.
 - **Anything else**: the tool's own local or user-level memory file.
 
-A file inside the repository that git does not ignore (`CLAUDE.local.md`, `.cursor/`) is
-added to `.git/info/exclude`, a per-clone ignore list that changes nothing in the
-repository:
+A rule that goes into a global file (Codex's `~/.codex/AGENTS.md`, or any user-level
+file) starts with *"In MADS-MachineLearning-course:"*, because that file is read in
+every project.
+
+The repository does not exist until M5. The Remember blocks of M2 and M3 are therefore
+kept in the progress file first, and written to the memory file in M5, once the clone
+is there. In M5, from the repository root, also add the student's local files to
+`.git/info/exclude`, a per-clone ignore list that changes nothing in the repository:
 
 ```bash
 printf 'CLAUDE.local.md\n.cursor/\n.lefthook-local.yml\n' >> .git/info/exclude
@@ -105,9 +117,19 @@ The rule about uv and Python is worth adding to the student's *user-level* memor
 (`~/.claude/CLAUDE.md` or the equivalent), because it applies to every project they will
 ever start, not only this one. Offer; do not decide for them.
 
-Do this at the end of each milestone that has a Remember block, not in one dump at the
-end. Show the student what you wrote. It is their assistant's rulebook and they should
-recognise every line.
+From M5 on, write a milestone's Remember block at the end of that milestone, not in one
+dump at the end. Show the student what you wrote. It is their assistant's rulebook and
+they should recognise every line.
+
+### If the student works on a VM
+
+The lab guide comes first for them (its raw URL is at the top of this file). Then:
+
+- **M1 to M4, and M7 (Atlas)**, happen on the laptop.
+- **M5, M6, M8 and M9** happen on the machine that trains and holds the mlflow store,
+  which is the VM: the clone, the hooks, the coaches and the runs clone live there.
+- Run checks on the VM through `ssh -o BatchMode=yes ml-vm '<cmd>'`, the host alias the
+  lab guide sets up.
 
 ### Be flexible about choices, strict about consequences
 
@@ -174,12 +196,19 @@ Tell the student that most of this is done once, ever.
 
 Ask, in one short message:
 
-1. Windows, Mac or Linux? On a Mac: Apple silicon or Intel? (Intel Macs cannot run
-   this course locally: `torch` and `ray` publish no macOS x86_64 wheels for the
-   versions it uses. They work on a Linux VM.)
+1. Windows, Mac or Linux? Then check the machine yourself:
+   - **Mac**: `uname -m` (`arm64` is Apple silicon, `x86_64` is Intel) and
+     `sw_vers -productVersion`. Apple silicon needs **macOS 14 or newer**: the torch
+     wheel in `uv.lock` is built for macOS 14. Older means updating macOS, or a VM.
+   - **Intel Mac**: not supported locally, because `torch` and `ray` publish no macOS
+     x86_64 wheels for the versions the course uses. Send the student to milestone 0 of
+     the lab guide, by URL:
+     `https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md`.
+   - **Windows on ARM** (`echo $PROCESSOR_ARCHITECTURE` prints `ARM64`): a VM, the same
+     route as an Intel Mac.
 2. Have they used a terminal before? Git? GitHub? Python — and if so, installed how?
-3. Did they do the lab setup (`references/lab-setup.md`)? If yes, M1 and parts of M2,
-   M3 and M5 are probably done on the VM; you will verify rather than redo.
+3. Did they do the lab setup? If yes, M1 and parts of M2, M3 and M5 are probably done
+   on the VM; you will verify rather than redo. See *If the student works on a VM* in §0.
 4. Did they do the setup of the *Data Analysis & Visualisation* course? Then uv, git,
    the editor and lefthook are likely installed already; verify them.
 
@@ -268,9 +297,14 @@ runs by login. So they need an account, and the GitHub command line `gh` logged 
 
 1. No account yet: they make one at https://github.com themselves. The login they pick
    is visible to the class.
-2. Install `gh`. This goes through the system's package manager, so ask first which one
-   they use: `brew install gh` (Mac), `winget install --id GitHub.cli` (Windows),
-   the installation section of https://github.com/cli/cli (Linux).
+2. Install `gh`. Ask first how they want it, because a package manager is theirs:
+   - **Mac**: `brew install gh` if they have Homebrew; otherwise the official installer,
+     the macOS `.pkg` from https://github.com/cli/cli/releases.
+   - **Windows**: `winget install --id GitHub.cli`, or the `.msi` from the same releases
+     page.
+   - **Linux**: the installation section of https://github.com/cli/cli.
+
+   After an installer, **open a new terminal**, so the shell finds `gh`.
 3. Log in. **The student runs this in their own terminal**, because it opens a browser
    and asks for their password:
 
@@ -317,7 +351,7 @@ account they want the class to see.
 *"In one sentence: what is a commit?"* Accept anything that contains *snapshot* or
 *saved state* plus *with a message*.
 
-**Remember** (memory file, created in M5):
+**Remember** (kept in the progress file now, written to the memory file in M5):
 
 - Commit small and often; messages say what changed and why.
 - The student's GitHub login is `<login>`; it is their identity for submitted runs.
@@ -408,13 +442,14 @@ pip?"* You are after: `uv add`, *because it also records it* (in `pyproject.toml
 the lockfile) so the environment can be rebuilt. "Because it is faster" is true and not
 the point; ask again.
 
-**Remember** (memory file):
+**Remember** (kept in the progress file now, written to the memory file in M5):
 
 - Python and packages are managed by uv only. Never `pip install`, `python -m venv`,
   `conda`, `brew install python`, or the python.org installer. Run code with `uv run`,
   add packages with `uv add`, rebuild with `uv sync`.
-- If `which python` resolves outside the project's `.venv`, that is the bug — do not
-  work around it by installing something else.
+- `uv run python -c "import sys; print(sys.prefix)"` prints the project's `.venv`. If it
+  prints anything else, that is the bug — do not work around it by installing something
+  else.
 
 **CHECKPOINT.** M3 is done when the verification passes and the student answered. Tick
 the box. Offer the user-level memory entry now (see §0).
@@ -438,7 +473,9 @@ the box. Offer the user-level memory entry now (see §0).
 ### Install VS Code
 
 https://code.visualstudio.com — accept the defaults. On Windows, keep *"Add to PATH"*
-ticked; it makes the `code` command work from Git Bash.
+ticked; it makes the `code` command work from Git Bash. On macOS the `code` command
+needs one more step: open VS Code, `cmd+shift+P` → **Shell Command: Install 'code'
+command in PATH**, then open a new terminal.
 
 ### Extensions
 
@@ -468,7 +505,9 @@ code --version && code --list-extensions | grep -E "ms-python.python|ms-toolsai.
 ```
 
 **CHECKPOINT.** M4 is done when the editor opens and the extensions are listed. Tick
-the box.
+the box. A student with another editor has no extensions to list: M4 is then ticked on
+their word, and the check comes in M5, where they show that the editor opens a `.ipynb`
+on the project's kernel.
 
 ---
 
@@ -483,7 +522,7 @@ workflow. Say that.
 Pick a folder together; `~/code` is a reasonable default. Then:
 
 ```bash
-cd ~/code
+mkdir -p ~/code && cd ~/code
 git clone https://github.com/raoulg/MADS-MachineLearning-course
 cd MADS-MachineLearning-course
 ```
@@ -562,22 +601,51 @@ uv run python -c "import vectormesh, ray, mlflow, notebooktester; print('env OK'
 
 The branch printed must not be `master`. Then have the student run the first cell of
 `notebooks/1_pytorch_intro/01_the_cache.ipynb` on the `.venv` kernel and tell you
-whether it finished without an error.
+whether it finished without an error. A student with another editor than VS Code shows
+you here that it opens this `.ipynb` on the project's kernel.
 
-**Remember** (memory file — this is the moment to *create* it; see §0 for which file):
+### Create the memory file
+
+The repository exists now. From its root:
+
+1. Create the memory file (see §0 for which file) and write into it the Remember blocks
+   of M2 and M3 from the progress file, plus the block below.
+2. Add the local files to the per-clone ignore list:
+
+   ```bash
+   printf 'CLAUDE.local.md\n.cursor/\n.lefthook-local.yml\n' >> .git/info/exclude
+   ```
+
+**Remember** (memory file):
 
 - Never commit on `master`. Work on the student's own branch; `master` is only for
   `git pull`.
-- Never edit a teacher's notebook or script in place. Copy it with a `_<name>` suffix in
-  the same folder and edit the copy.
+- Never edit a teacher's notebook in place. Copy it with a `_<name>` suffix in the same
+  folder and edit the copy.
 - Never `uv add` to this repository's `pyproject.toml`; that is the teacher's file.
 - Weekly update: clean status → switch to master → pull → switch to own branch → merge
   master.
 - The Jupyter kernel is this repository's `.venv`. Open the editor in the
   `MADS-MachineLearning-course` folder itself.
 
-**CHECKPOINT.** M5 is done when the branch is not `master`, the import check passes, and
-the cell ran. Tick the box.
+### Restart the assistant inside the repository
+
+This session started from a raw URL, before the clone existed, so the project's
+`.mcp.json` and the memory file are not loaded yet. Tick the box first, then tell the
+student how to restart, and stop:
+
+- **Claude Code**: quit the assistant, `cd ~/code/MADS-MachineLearning-course`, start
+  `claude` again, approve the project's MCP servers when asked, and say "resume the
+  setup from `~/mads-ml-setup.md`".
+- **Cursor**: open the `MADS-MachineLearning-course` folder (File → Open Folder) and
+  start a new chat there.
+- **Codex**: quit, start `codex` again in the repository folder, and trust the project
+  when asked, so `.codex/config.toml` loads.
+
+The next session reads the progress file and goes on with M6.
+
+**CHECKPOINT.** M5 is done when the branch is not `master`, the import check passes, the
+cell ran, and the memory file exists. Tick the box, then restart as above.
 
 ---
 
@@ -606,15 +674,15 @@ Then: *"First, one by one, what those hooks do. Fine?"*
 
 *"Do you know ruff?"*
 
-`ruff format` rewrites `.py` files and notebooks into one consistent style (spacing,
-quotes, line length), so style is never a discussion. The hook re-stages the formatted
-file for them.
+`ruff format` rewrites staged `.py` files and the code cells of staged notebooks into one
+consistent style (spacing, quotes, line length), so style is never a discussion. The
+hook re-stages the formatted file for them.
 
 ### Hook 2 — ruff (ruff check)
 
-`ruff check --fix` is a linter: it finds unused imports, variables assigned and never
-read, and the pitfalls selected in `pyproject.toml` under `[tool.ruff.lint]`. What it can
-fix, it fixes; the rest blocks the commit with file, line and rule. Read those messages
+`ruff check --fix` is a linter, run with ruff's default rules: it finds unused imports,
+undefined names, and similar mistakes. What it can fix, it fixes; the rest blocks the
+commit with file, line and rule. Read those messages
 to the student the first few times: they are a code review for free.
 
 ### Hook 3 — typecheck (ty)
@@ -681,9 +749,9 @@ the timeout, and blocks the commit. A test suite that is too slow to run is a te
 suite nobody runs.
 
 And one consequence for their results: a run logged while notebooktester runs is a run
-on test settings (one epoch, two trials). The course's `runlog.log_run` tags such a run
-`test_run=true`, and the submit script leaves it out. **A test-mode run is never
-submitted**, because its numbers mean nothing.
+on test settings (one epoch, two trials), and its numbers mean nothing. **Runs logged
+through `runlog.log_run` while the tester runs are tagged `test_run` and are left out
+of a submission.**
 
 ### Hook 6 — lychee: dead links
 
@@ -703,7 +771,7 @@ package manager, which is the student's territory. Check what they have (`which 
   https://github.com/lycheeverse/lychee/releases into `~/.local/bin`.
 
 If they decline, skip the hook with a local override that lefthook reads and git
-ignores (it is in `.git/info/exclude` since §0):
+ignores (it is in `.git/info/exclude` since M5):
 
 ```bash
 printf 'pre-commit:\n  commands:\n    lychee:\n      skip: true\n' > .lefthook-local.yml
@@ -738,8 +806,11 @@ git commit -m "hook demo"
 
 Predict with them first: what will ruff say about `import os`? About the spacing? Then
 run it and read the output together: the formatter rewrites the spacing, ruff removes
-the unused import, ty finds nothing, the notebook hooks skip (no `.ipynb` staged). If
-the commit was refused, read why, fix, and commit again. Then clean up:
+the unused import, ty finds nothing, the notebook hooks skip (no `.ipynb` staged), and
+lychee checks the links of every markdown file in the repository. Offline, lychee
+cannot reach those links and refuses the commit; skip it in `.lefthook-local.yml`
+(hook 6) for that machine, or commit again once online. If the commit was refused, read
+why, fix, and commit again. Then clean up:
 
 ```bash
 git rm -q hook_demo.py && git commit -q -m "remove hook demo"
@@ -757,9 +828,9 @@ Two questions, and do not tick the box until both answers hold:
 
 1. *"What does `param(20, test=1)` return when you run the notebook, and when
    notebooktester runs it? Why does every expensive constant go through it, and what
-   happens to a run made in test mode?"* Accept: *20 for me, 1 under the tester; because
-   one slow constant makes the test time out; it is tagged `test_run` and not
-   submitted.*
+   happens to a run logged in test mode?"* Accept: *20 for me, 1 under the tester;
+   because one slow constant makes the test time out; `log_run` tags it `test_run` and it
+   is left out of a submission.*
 2. *"Why does the commit clear notebook outputs?"* Accept at least two of the four
    reasons (unreadable diffs, a bloated repository, merge conflicts, leaked data), and
    *the hook does it for me.*
@@ -771,7 +842,8 @@ Two questions, and do not tick the box until both answers hold:
 - Notebooks are committed without outputs and must run top-to-bottom on a fresh kernel.
 - Any constant whose size scales runtime (epochs, steps, trials, seeds, dataset size)
   gets `from notebooktester import param` and `X = param(full, test=small)`.
-- Runs made under notebooktester are tagged `test_run` and are never submitted.
+- Runs logged through `runlog.log_run` while the tester runs are tagged `test_run` and
+  are left out of a submission.
 - `lychee` is installed through the student's own package manager, or skipped in
   `.lefthook-local.yml`.
 
@@ -819,7 +891,9 @@ Homebrew users may prefer the formula (ask first, it is their package manager):
 brew install raoulg/tap/atlas-code     # and later: brew upgrade atlas-code
 ```
 
-The script puts the binary in `~/.local/bin`.
+The Mac and Linux script puts the binary in `~/.local/bin`; the PowerShell one puts it
+in `%LOCALAPPDATA%\Programs\atlas-code`. Either way, **open a new terminal** afterwards,
+so the shell finds `atlas-code`.
 
 ### Is it current?
 
@@ -870,11 +944,29 @@ Once, for every project:
 
 ```bash
 claude mcp add --scope user atlas -- atlas-code mcp          # Claude Code
-codex mcp add atlas -- "$(command -v atlas-code)" mcp       # Codex
+codex mcp add atlas -- "$(command -v atlas-code)" mcp       # Codex, Mac and Linux
 ```
 
+If Claude Code says `atlas` already exists (an earlier registration), remove it first
+and add it again: `claude mcp remove atlas`, then the line above. Codex the same, with
+`codex mcp remove atlas`.
+
 Codex starts its servers without the shell's `PATH`, which is why it gets the full path.
-Studio users can do the same from Studio's Settings › Coding agents.
+On Windows, in Git Bash, Codex needs that path in Windows form:
+
+```bash
+codex mcp add atlas -- "$(cygpath -w "$(command -v atlas-code)")" mcp
+```
+
+**Cursor**: add Atlas to `~/.cursor/mcp.json` (create it if it is not there), with
+command `atlas-code` and args `["mcp"]`:
+
+```json
+{ "mcpServers": { "atlas": { "command": "atlas-code", "args": ["mcp"] } } }
+```
+
+If the file already has servers, add the `atlas` entry beside them. Studio users can do
+all of this from Studio's Settings › Coding agents.
 
 ### Verify (you run this)
 
@@ -883,7 +975,9 @@ atlas-code --version
 claude mcp list            # or: codex mcp list
 ```
 
-`atlas` must be listed as connected. Then show it working: in the course repository,
+What to look for depends on the client: `claude mcp list` shows `atlas: atlas-code mcp
+- ✔ Connected`; `codex mcp list` shows `atlas` with status `enabled`; Cursor's Settings →
+MCP shows `atlas` with a green dot. Then show it working: in the course repository,
 `atlas-code view .` opens the picture in the browser; ask the student what one box on it
 is.
 
@@ -931,14 +1025,19 @@ dependencies (the first start is slower; after that it is cached), and runs it. 
 lands in the project's `.venv`, and `stable` moves to each new release. No uv, no coach:
 another reason for M3.
 
+On Windows, each entry starts with `sh`, which Git Bash provides. **Start the assistant
+from Git Bash**, so `sh` is on its `PATH`; started from PowerShell or the Start menu, the
+servers fail with "sh not found".
+
 ### Connect
 
-- **Claude Code**: start `claude` in the `MADS-MachineLearning-course` folder. It sees
-  `.mcp.json`, asks whether to use the project's MCP servers, and the student approves
-  once.
-- **Codex**: reads `.codex/config.toml` in the repository, which holds the same servers.
+- **Claude Code**: started in the `MADS-MachineLearning-course` folder (the restart at
+  the end of M5), it sees `.mcp.json` and asks whether to use the project's MCP servers;
+  the student approves once.
+- **Codex**: reads `.codex/config.toml` in the repository, which holds the same servers,
+  once the project is trusted.
 - **Cursor**: `mkdir -p .cursor && cp .mcp.json .cursor/mcp.json` (`.cursor/` is in
-  `.git/info/exclude` since §0). Settings → MCP shows both servers with a green dot once
+  `.git/info/exclude` since M5). Settings → MCP shows both servers with a green dot once
   they have started.
 
 ### Verify (you run this)
@@ -947,16 +1046,27 @@ another reason for M3.
 claude mcp list            # or: codex mcp list
 ```
 
-`vectormesh` and `codestyle` must both say connected. If you are the assistant running
-inside the session, prove it instead: call one tool of each — `vectormesh_list_concepts`
-and `codestyle_list_topics` — and tell the student one title from each.
+Claude Code shows `✔ Connected` after each server, Codex shows each as `enabled`, Cursor a
+green dot. If you are the assistant running inside the session, prove it as well: call
+one tool of each — `vectormesh_list_concepts` and `codestyle_list_topics` — and tell the
+student one title from each.
 
 A server that fails to connect is diagnosed by running its command by hand: copy the
 `uv run --no-project ...` line out of `.mcp.json`, prefix the environment variable, run
 it in the terminal. A Python traceback in the first lines is the actual error; a silent
-wait means it started fine and is waiting for a client. A 404 when the vectormesh
-server starts means its `stable` release is not out yet: tell the student to tell their
-teacher, and go on.
+wait means it started fine and is waiting for a client.
+
+**When the vectormesh release is not out.** If the `stable` tag of vectormesh does not
+exist yet, uv downloads GitHub's 404 page and runs it as Python. The symptom is a
+`SyntaxError` on line 1 of a temporary `vectormesh_mcp….py`, and that line reads
+`404: Not Found`. That is not the student's to fix. Then:
+
+1. Mark M8 in the progress file as *"codestyle connected; vectormesh waiting for the
+   release"*.
+2. Tell the student to tell their teacher.
+3. Go on to M9 once the question below is answered.
+4. At the start of the next session, check vectormesh again before anything else, and
+   tick M8 when it connects.
 
 ### Then ask
 
@@ -1039,7 +1149,8 @@ fork, and reach the class repository through a pull request. Never push to `upst
 - The class runs clone is `../mads-runs` (relative to the course repository): a fork,
   with `origin` the student's fork and `upstream` `raoulg/mads-ml-runs-2026-11`.
 - Submitting a lesson's runs means following `docs/submit-runs.md` in the course
-  repository. Never submit test-mode runs.
+  repository. Runs logged through `runlog.log_run` while the tester runs are tagged
+  `test_run` and are left out of a submission.
 
 **CHECKPOINT.** M9 is done when both remotes show and the fork is confirmed. Tick the
 last box and tell the student the setup is finished.
@@ -1068,7 +1179,7 @@ the browser, or `references/01_git crash course.pdf` (Dutch, the teacher's own).
 | Symptom | Almost always |
 |---|---|
 | `uv: command not found` right after install | New PATH, old terminal. Open a new one |
-| `uv sync` fails on torch or ray on a Mac | An Intel Mac: no wheels. Use a Linux VM |
+| `uv sync` finds no torch or ray wheel on a Mac | Check `uname -m` and `sw_vers -productVersion`: an Intel Mac has no wheels (VM); Apple silicon needs macOS 14 or newer (update macOS, or a VM) |
 | Notebook kernel list has no `.venv` | Editor opened in the parent folder, or `uv sync` never ran; reload window |
 | Imports fail in the notebook but work in the terminal | Wrong kernel, or a second Python (conda) got in the way; select `.venv` |
 | `Please tell me who you are` on first commit | M2 identity not set |
@@ -1079,7 +1190,8 @@ the browser, or `references/01_git crash course.pdf` (Dutch, the teacher's own).
 | Merge conflict in a lesson notebook after `git merge master` | They edited the teacher's file in place. Resolve, then rename their copy |
 | `atlas-code --version` older than the latest release | Run the install command again, or `brew upgrade atlas-code` |
 | `atlas`, `vectormesh` or `codestyle` "failed to connect" | Run its command by hand; the traceback is the error |
-| 404 when the `vectormesh` server starts | Its `stable` release is not out yet; tell the teacher |
+| `vectormesh` fails with `SyntaxError` on line 1, `404: Not Found` | Its `stable` release is not out yet; tell the teacher; M8 |
+| A coach fails with "sh not found" (Windows) | The assistant was not started from Git Bash; start it from Git Bash |
 | `gh repo fork` says the fork exists | It does; go on with the clone |
 | `git push` to `../mads-runs` refused | `gh auth setup-git` was not run (M2), or `origin` is not their fork |
 
