@@ -10,8 +10,13 @@ is the failure to avoid.
 - **The student designs the search space and states the hypothesis.** Ask what they
   expect and why before you write a search or a model; write the code once they have
   said it in their own words.
-- **`codestyle`** (registered in `.mcp.json` and `.codex/config.toml`) is the code
-  coach. It asks first; put its questions to the student and wait for their answers.
+- **Use the vectormesh coach's `/vectormesh:design` and `/vectormesh:search`.** The
+  design coach asks the student about the problem and the acceptance bound, the tensor,
+  pretrained models, context, the architecture, the search space, search practice and
+  the results, one stage at a time, and code comes after the last stage.
+- **`codestyle`** is the code coach. Both coaches are registered in `.mcp.json` and
+  `.codex/config.toml`; they ask first, so put their questions to the student and wait
+  for their answers.
 - **Runs are submitted by following `docs/submit-runs.md`.** Never submit runs made
   under notebooktester (tagged `test_run`).
 - Setting up a machine for this course: `references/tooling-setup.md`.
