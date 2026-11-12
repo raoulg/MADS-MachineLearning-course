@@ -51,6 +51,7 @@ dev = [
     "mypy>=1.14.1",
     "notebooktester>=0.3.8",
     "pyright>=1.1.392",
+    "pytest>=9.2.0",
     "ruff>=0.15.16",
     "ty>=0.0.65",
 ]
