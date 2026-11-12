@@ -21,22 +21,24 @@ Project Organization
     ├── pyproject.toml     <- Human readable file. This specifies the libraries I installed to
     |                         let the code run, and their versions.
     ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── processed      <- The processed datasets
-    │   └── raw            <- The original, raw data
+    │   ├── external       <- Data from third party sources.
+    │   ├── processed      <- The processed datasets
+    │   └── raw            <- The original, raw data
     │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is xx_name_of_module.ipynb where
-    │                         xx is the number of the lesson
-    ├── presentations      <- Contains all powerpoint presentations in .pdf format
-    ├── references         <- background information
-    |  └── leerdoelen      <- Learning goals per lesson, including pages to read and videos to watch
+    ├── docs               <- How-tos: submitting your runs, the run protocol, publishing caches
+    ├── notebooks          <- Jupyter notebooks, one folder per lesson
+    ├── planning           <- The course's plan: principles, curriculum, evidence
+    ├── presentations      <- The presentations, in .html and .pdf format
+    ├── references         <- background information, and the setup guides
+    |  └── leerdoelen      <- Learning goals per lesson, including pages to read and videos to watch
     │
-    ├── reports            <- Generated analysis like PDF, LaTeX, etc.
-       └── figures         <- Generated graphics and figures to be used in reporting
+    ├── reports
+    │   └── figures        <- Figures
+    └── scripts            <- Building and publishing caches, submitting and collecting class runs
 
 --------
 
-The project uses Python `>=3.12` (`requires-python` in `pyproject.toml`), and all dependencies are defined within the `pyproject.toml` file.
+The project uses Python `>=3.12,<3.15` (`requires-python` in `pyproject.toml`), and all dependencies are defined within the `pyproject.toml` file.
 
 The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook): before every commit it formats, lints and type-checks the code, clears notebook outputs and runs the staged notebooks. The setup below installs it for you, and explains each hook.
 
@@ -62,7 +64,7 @@ https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/refe
 ```
 
 ## local
-The tools on the machine you write code on (git and GitHub, uv, an editor, the course repository, the pre-commit hooks, Atlas, the coach, and the class runs repository):
+The tools on the machine you write code on (git and GitHub, uv, an editor, the course repository, the pre-commit hooks, Atlas, the coaches, and the class runs repository):
 
 ```
 https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/tooling-setup.md
@@ -73,7 +75,9 @@ Two rules that matter from day one:
 - **Work on your own branch, never on `master`**, and copy a notebook under a new name before editing it. `master` receives new material every week; a renamed file never conflicts with it.
 - **Python and packages come from uv only.** No pip, no conda, no separately installed Python.
 
+New to the tools? [uv projects](https://docs.astral.sh/uv/guides/projects/), a [git tutorial](https://www.w3schools.com/git/git_getstarted.asp), and the [command line for beginners](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).
+
 ## Where the course runs
-The course is built to run on a laptop CPU: Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs, on Python `>=3.12`. A VM is optional: useful for a long training run that should not tie up your laptop, or when your laptop is old or short on memory.
+The course is built to run on a laptop CPU: Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs with macOS 14 or newer (the torch wheel the course uses needs it; on an older macOS, update it or use a VM), on Python `>=3.12,<3.15`. A VM is optional: useful for a long training run that should not tie up your laptop, or when your laptop is old or short on memory.
 
 **Intel Macs (x86_64) are not supported**: `torch` and `ray` publish no macOS x86_64 wheels for the versions the course uses. On an Intel Mac, use a VM and follow the VM guide above (`references/lab-setup.md`).
