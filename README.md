@@ -5,8 +5,7 @@ This course is part of a series of modules for data science.
 This course assumes you have a decent basis in Python and experience with something similar to this Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
 
 
-The lessons can be found inside the `notebooks`folder.
-The source code for the lessons can be found in the `src` folder.
+The lessons can be found inside the `notebooks` folder.
 
 The book we will be using is Understanding Deep Learning. It is available as pdf here: https://udlbook.github.io/udlbook/ but it is highly recommended to buy the book.
 
@@ -22,28 +21,26 @@ Project Organization
     ├── pyproject.toml     <- Human readable file. This specifies the libraries I installed to
     |                         let the code run, and their versions.
     ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── processed      <- The processed datasets
-    │   └── raw            <- The original, raw data
+    │   ├── external       <- Data from third party sources.
+    │   ├── processed      <- The processed datasets
+    │   └── raw            <- The original, raw data
     │
-    ├── models             <- Trained models
+    ├── docs               <- How-tos: submitting your runs, the run protocol, publishing caches
+    ├── notebooks          <- Jupyter notebooks, one folder per lesson
+    ├── planning           <- The course's plan: principles, curriculum, evidence
+    ├── presentations      <- The presentations, in .html and .pdf format
+    ├── references         <- background information, and the setup guides
+    |  └── leerdoelen      <- Learning goals per lesson, including pages to read and videos to watch
     │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is xx_name_of_module.ipynb where
-    │                         xx is the number of the lesson
-    ├── presentations      <- Contains all powerpoint presentations in .pdf format
-    ├── references         <- background information
-    |  └── codestyle       <- Some code Code style standards
-    |  └── leerdoelen      <- Learning goals per lesson, including pages to read and videos to watch
-    │
-    ├── reports            <- Generated analysis like PDF, LaTeX, etc.
-       └── figures         <- Generated graphics and figures to be used in reporting
+    ├── reports
+    │   └── figures        <- Figures
+    └── scripts            <- Building and publishing caches, submitting and collecting class runs
 
 --------
 
-For this project you will need some dependencies.
-The project uses python 3.11, 3.12 or 3.13, and all dependencies are defined within the `pyproject.toml` file.
+The project uses Python `>=3.12,<3.15` (`requires-python` in `pyproject.toml`), and all dependencies are defined within the `pyproject.toml` file.
 
-The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook), and automatically lints & cleans the code before I commit it. Because as a student you probably dont commit things, you can ignore it, but you might want to use lefthook in your own repositories.
+The `.lefthook.yml` file is used by [lefthook](https://github.com/evilmartians/lefthook): before every commit it formats, lints and type-checks the code, clears notebook outputs and runs the staged notebooks. The setup below installs it for you, and explains each hook.
 
 Data, representations and the training loop are separated out. You will find them as dependencies in the project:
 - [huggingface `datasets`](https://huggingface.co/docs/datasets) — every dataset in the course is loaded from the hub with `load_dataset`. Nothing is downloaded by hand.
@@ -55,55 +52,32 @@ In addition to that, you can consider `vectormesh` as "extra material": if you a
 
 In addition to that, there is a [codestyle repo](https://github.com/raoulg/codestyle) that covers most of the codestyle guidelines for the course. You will be expected to follow the codestyle guidelines for your own coding.
 
-# Installation
-The installation guide assumes a UNIX system (os x or linux).
-If you have the option to use a VM, see the references folder for lab setups (both for azure and surf, pick the one you are provided with).
-For the people that are stuck on a windows machine, please use [git bash](https://gitforwindows.org/) whenever I
-refer to a terminal or cli (command line interface).
+# Setup
 
-## install python with uv
-please note that uv might already be installed on your VM.
-1. check if uv is already installed with `which uv`. If it returns a location, eg `/Users/user/.cargo/bin/uv`, uv is installed.
-2. else, install [uv](https://docs.astral.sh/uv/) with `curl -LsSf https://astral.sh/uv/install.sh | sh` for macOS and Linux. For windows, see the uv docs.
-3. start a new terminal and test with `which uv` if the installation was succesful.
+The setup is meant to be done together with an assistant (Claude Code, Cursor, Codex). Hand it one of these URLs and ask it to walk you through; it takes one step at a time, explains why each tool is there, and keeps track of where you are between sessions.
 
-## add the git repo
-run in the cli:
+## VM
+The Linux lab VM, if you received one (do this first, then the tooling):
 
-`git clone https://github.com/raoulg/MADS-MachineLearning-course.git`
+```
+https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md
+```
 
-## add your username and email to git
-1. `git config --global user.name "Mona Lisa"`
-2. `git config --global user.email "m.lisa@pisa.com"`
+## local
+The tools on the machine you write code on (git and GitHub, uv, an editor, the course repository, the pre-commit hooks, Atlas, the coaches, and the class runs repository):
 
-## install all dependencies
-1. `cd MADS-MachineLearning-course/`
-2. `uv sync`
+```
+https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/tooling-setup.md
+```
 
-## add your own ssh key
-If you want easy access to the VM, add your ssh key to the VM:
-1. copy your local ssh key to the VM, see [github docs](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent) and/or the azure manual.
-2. `cd ~/.ssh`
-3. `nano authorized_keys` (or, [if you know how to use it](https://www.youtube.com/watch?v=m8C0Cq9Uv9o), install and use `nvim`)
-copy paste your key to the end of the file (leave existing keys) and save the file, then exit
-4. check with `cat authorized_keys` that your key is added.
+Two rules that matter from day one:
 
-## Make yourself familiar
+- **Work on your own branch, never on `master`**, and copy a notebook under a new name before editing it. `master` receives new material every week; a renamed file never conflicts with it.
+- **Python and packages come from uv only.** No pip, no conda, no separately installed Python.
 
-Get yourself familiar with the toolbox, if you arent already
-- uv: either read the docs [uv projects docs](https://docs.astral.sh/uv/guides/projects/) or watch a video on youtube, eg [uv for python](https://youtu.be/qh98qOND6MI?si=hjFMgpAYaUuV_Hgl)
-- git: do a [tutorial](https://www.w3schools.com/git/git_getstarted.asp) or watch a [video](https://youtu.be/r8jQ9hVA2qs?si=2GicBn0xNeG3wACD)
-- terminal/unix: get familiar with the terminal and the unix commands, again [video](https://youtu.be/gd7BXuUQ91w?si=9WqWNQk5MAKr-sF1) or some [tutorial](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview)
+New to the tools? [uv projects](https://docs.astral.sh/uv/guides/projects/), a [git tutorial](https://www.w3schools.com/git/git_getstarted.asp), and the [command line for beginners](https://ubuntu.com/tutorials/command-line-for-beginners#1-overview).
 
-## ⚠️ Intel Macs (x86_64) are not supported
-The course runs on Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs,
-on Python 3.11–3.13. 
+## Where the course runs
+The course is built to run on a laptop CPU: Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs with macOS 14 or newer (the torch wheel the course uses needs it; on an older macOS, update it or use a VM), on Python `>=3.12,<3.15`. A VM is optional: useful for a long training run that should not tie up your laptop, or when your laptop is old or short on memory.
 
-**Intel Macs are not supported**: `torch` and `ray` releases
-stopped publishing macOS x86_64 wheels (PyTorch's last Intel-Mac wheel was `2.2.2`)
-
-If you are on an Intel Mac, your options are:
-
-- **Use a Linux VM (recommended).** This is the supported path; see the `references`
-   folder for lab setups (azure / surf).
-- **Remove `ray[tune]` from the pyproject.toml** if your blocker is Ray rather than torch: the Ray hypertuning notebooks won't run, but the rest will.
+**Intel Macs (x86_64) are not supported**: `torch` and `ray` publish no macOS x86_64 wheels for the versions the course uses. On an Intel Mac, use a VM and follow the VM guide above (`references/lab-setup.md`).
