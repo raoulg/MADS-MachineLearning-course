@@ -119,7 +119,8 @@ log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
 - **cost and choices**: every run logs `train_seconds` (training only, the mean over
   seeds) and `n_params` as metrics, and every choice that tells runs apart as a param
   with one name and one kind of value across the lesson: `encoder`, `embed_dim`,
-  `dataset`, `hidden_dim`, `n_hidden_layers`, `norm`, `skip`, `gate`, `sigma`, `lr`. A
+  `dataset`, `hidden_dim`, `n_hidden_layers`, `activation`, `norm`, `skip`, `gate`, `sigma`,
+  `lr`. A
   switch that has no effect on a run is logged at its off value (`hidden_dim=0` on a
   linear head).
 - **session** tag: one value per execution of a notebook, so a rerun can be told apart
