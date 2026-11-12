@@ -116,7 +116,33 @@ log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
 - **model** + **example**: `n_params`, the one-line `architecture` tag
   (`GaussianNoise > Linear(384->128) > GELU > Linear(128->47)`) and `architecture.json`,
   traced by torchinfo through one example batch.
+- **cost and choices**: every run logs `train_seconds` (training only, the mean over
+  seeds) and `n_params` as metrics, and every choice that tells runs apart as a param
+  with one name and one kind of value across the lesson: `encoder`, `embed_dim`,
+  `dataset`, `hidden_dim`, `n_hidden_layers`, `norm`, `skip`, `gate`, `sigma`, `lr`. A
+  switch that has no effect on a run is logged at its off value (`hidden_dim=0` on a
+  linear head).
+- **session** tag: one value per execution of a notebook, so a rerun can be told apart
+  from the first run.
 - Runs logged while notebooktester runs get `test_run=true` and are not submitted.
+
+### Reading the runs as a parallel-coordinates plot
+
+A parallel-coordinates axis is a param or a metric, never a tag, which is why the
+choices above are params.
+
+1. Open the experiment and filter first, so the axes compare like with like:
+   `tags.dataset = 'dtd' and tags.origin = 'study'`, narrowed with `tags.study = '…'` or
+   a search-space tag such as `tags.searched_axes LIKE '%skip%'`.
+2. Chart view → Add chart → Parallel coordinates.
+3. Params as the axes (for example `encoder`, `n_hidden_layers`, `hidden_dim`, `norm`,
+   `skip`), and `accuracy`, `n_params` and `train_seconds` as the outcomes on the right.
+
+Questions it answers at a glance: where more width or depth stops paying in accuracy and
+starts costing in time; what a switch (`norm`, `skip`, `gate`) buys at equal width; how
+far another encoder moves the result compared with everything in the head. Read a gap
+against `accuracy_std` before calling it a result. mlflow leaves out a run that lacks a
+chosen axis, so a plot mixing notebooks shows only the runs that carry all of them.
 
 `runlog.py` sits in the lesson folder, as the course's other per-lesson helpers do. To
 bring a lesson into the protocol, copy it into that folder, log the exercise's runs
