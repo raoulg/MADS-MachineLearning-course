@@ -14,11 +14,11 @@ Azure lab VM for the course *Machine Learning*. Read this whole file now, then f
 protocol below.
 
 > If the student was invited to a **SURF** research cloud VM instead of an Azure lab,
-> this document does not apply — send them to `references/00-SURF-lab-setup.pdf` and the
-> teacher.
+> this document does not apply — send them to
+> <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/00-SURF-lab-setup.pdf> and the teacher.
 >
 > This document is about the VM. The tools on the student's own machine — git, uv,
-> the editor — have their own guide, `references/tooling-setup.md`, run the same way.
+> the editor — have their own guide, <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md>, run the same way.
 > Every student does that one; only students with a VM do this one as well.
 
 ---
@@ -39,7 +39,9 @@ the next step in the same message as a checkpoint.
 
 ### Verify rather than ask
 
-You are running on the student's own machine. Where you can check something yourself,
+You run in a **local terminal on the student's laptop**, not inside the Remote-SSH window
+of VS Code. Every check on the VM therefore goes through
+`ssh -o BatchMode=yes ml-vm '<cmd>'` once M6 is done. Where you can check something yourself,
 check it — do not make the student read output back to you. `git --version`,
 `ls ~/.ssh`, `code --version`, `ssh -o BatchMode=yes <host> true` are all yours to run.
 
@@ -50,7 +52,7 @@ whether a GUI dialog appeared, which button they clicked, how they feel about a 
 
 This session may span several days, and you will lose your memory between sessions. So
 before you start, agree on a file to track progress in. Ask the student where they want
-it; if they have no preference, propose `~/mads-ml-vm-setup.md`. Create it with the
+it; if they have no preference, propose `~/mads-ml-vm-setup.md`. It stays on the laptop. Create it with the
 milestone list from §1 as unchecked boxes, and tick a box the moment a milestone is
 verified — not when you *think* it worked.
 
@@ -108,7 +110,7 @@ time. Confusing local and remote is the single most common way this setup goes w
 ### The course runs on a laptop
 
 The course is built to run on a laptop CPU: every graded notebook runs on the weakest
-hardware a student is likely to have (see `planning/principles.md`, the hardware
+hardware a student is likely to have (see <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/planning/principles.md>, the hardware
 section). A VM is **optional**. It is useful for a long training run that should not tie
 up the laptop, and for a student whose laptop is old or short on memory. A student who is
 fine on their laptop skips this document entirely.
@@ -117,7 +119,7 @@ Ask the student: *do you want a VM, and if so, have you been told one is ready f
 
 ### If they do not want one
 
-They are done here. Point them to `references/tooling-setup.md` and stop.
+They are done here. Point them to <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md> and stop.
 
 ### If they want one and have no invitation yet
 
@@ -125,9 +127,10 @@ The teacher registers the VM on a **Microsoft account**. An invitation is bound 
 address, so the student must tell the teacher which Microsoft account the VM should be
 registered on. The student mails their teacher with exactly that address.
 
-Until the invitation arrives, the student continues with `references/tooling-setup.md`
-locally and does not wait for the VM. Note in the progress file that M1–M11 are parked
-and which date the mail was sent; resume at M1 when the invitation is in the inbox.
+Until the invitation arrives, the student continues with <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md>
+locally and does not wait for the VM. Without an invitation, M3 to M11 are parked; M1 and M2 can be done now. Note in the
+progress file that M3–M11 are parked and which date the mail was sent; resume at M3 when
+the invitation is in the inbox.
 
 ### If they have the invitation
 
@@ -349,10 +352,10 @@ When the tile says **Running / Actief**, click the small monitor icon at the bot
 right of the tile → **Connect via SSH**. Azure shows a long command, roughly:
 
 ```
-ssh -p 57696 azureuser@ml-lab-<uuid>.westeurope.cloudapp.azure.com
+ssh -p <port> azureuser@ml-lab-<uuid>.<region>.cloudapp.azure.com
 ```
 
-The `-p 57696` is not decoration; each student's VM listens on its own port and the
+The `-p <port>` part is not decoration; each student's VM listens on its own port and the
 command fails without it. Have them copy the whole line.
 
 ### First login
@@ -477,10 +480,10 @@ The generated entry has a hostname nobody can remember. `cmd+shift+P` / `ctrl+sh
 → "Remote-SSH: Open SSH Configuration File..." → pick the same file. It looks like:
 
 ```
-Host ml-lab-7bbe9b44-bd66-47cd-8573-eb30758bda57.northeurope.cloudapp.azure.com
-    HostName ml-lab-7bbe9b44-bd66-47cd-8573-eb30758bda57.northeurope.cloudapp.azure.com
+Host ml-lab-<uuid>.<region>.cloudapp.azure.com
+    HostName ml-lab-<uuid>.<region>.cloudapp.azure.com
     User azureuser
-    Port 57974
+    Port <its -p number>
 ```
 
 Change the name after `Host` to `ml-vm`. That name is now an alias usable everywhere —
@@ -489,9 +492,9 @@ non-default name, add the path so SSH knows which key to offer:
 
 ```
 Host ml-vm
-    HostName ml-lab-<uuid>.northeurope.cloudapp.azure.com
+    HostName <the host from the Azure command>
     User azureuser
-    Port 57974
+    Port <its -p number>
     IdentityFile ~/.ssh/id_ed25519
 ```
 
@@ -519,16 +522,9 @@ VS Code terminal (Terminal → New Terminal) is on the VM. Tick the box.
 
 ## M7 — The project runs
 
-### Open the right folder
+### Get the code onto the VM
 
-In VS Code (connected to the VM): File → Open Folder → the `MADS-MachineLearning-course`
-folder.
-
-**Not its parent.** Opening the parent folder is the single most common cause of "my
-notebook cannot find the environment", every single cohort. The teacher's standing rule:
-whoever needs help because VS Code was opened in the wrong folder brings treats to the
-next class. Pass that on — it is funnier from you than from a slide, and it makes the
-point stick.
+In a terminal on the VM (a local terminal with `ssh ml-vm`, or the VS Code terminal):
 
 If the folder is not already on the VM:
 
@@ -542,6 +538,17 @@ If it is there already, get the latest:
 ```bash
 cd ~/MADS-MachineLearning-course && git pull
 ```
+
+### Open the right folder
+
+Only now, in VS Code (connected to the VM): File → Open Folder → the
+`MADS-MachineLearning-course` folder.
+
+**Not its parent.** Opening the parent folder is the single most common cause of "my
+notebook cannot find the environment", every single cohort. The teacher's standing rule:
+whoever needs help because VS Code was opened in the wrong folder brings treats to the
+next class. Pass that on — it is funnier from you than from a slide, and it makes the
+point stick.
 
 ### The environment
 
@@ -591,17 +598,17 @@ Have them run the first cell of a notebook. Ask what it printed.
 ## M8 — What hardware do I have
 
 A VM is not a bigger laptop by definition: it may have few cores, little memory, and no
-GPU. The student should know what they have before they plan a run. These commands run
-**on the VM**, in the course folder.
+GPU. The student should know what they have before they plan a run.
+
+### You run it, the student reads it
+
+From the local terminal, on the laptop:
 
 ```bash
-nproc
-free -h
-nvidia-smi
-uv run python -c "import torch; print(torch.cuda.is_available(), torch.backends.mps.is_available())"
+ssh -o BatchMode=yes ml-vm 'nproc; free -h; nvidia-smi; cd ~/MADS-MachineLearning-course && uv run python -c "import torch; print(torch.cuda.is_available(), torch.backends.mps.is_available())"'
 ```
 
-What each one answers:
+Show the output to the student and let them say what each answer means:
 
 - `nproc` — the number of CPU cores.
 - `free -h` — the memory, and how much of it is free.
@@ -609,26 +616,27 @@ What each one answers:
   CPU-only VM has no GPU, and the course does not need one.
 - The `torch` line prints two booleans: whether CUDA (an NVIDIA GPU) is usable, and
   whether MPS (the GPU of an Apple laptop) is usable. On a CPU-only Linux VM it prints
-  `False False`. On an Apple laptop it prints `False True`.
+  `False False`.
 
 ### What follows from the answer
 
-- **The device argument.** Code that takes a `device` argument gets `"cpu"` on a VM
-  without a GPU, `"cuda"` when the first boolean is `True`, `"mps"` when the second is.
-  Ask the student to say which one they have and what they will therefore pass.
-- **Ray tune runs as many trials in parallel as there are cores.** With `nproc` showing 4,
-  a hyperparameter search runs four trials side by side, each of them slower than it
-  would be alone, and memory is shared among them. A search that is comfortable on a
-  laptop with many cores can be slow on a VM with few; the number of trials the student
-  asks for and the number of cores they have decide how long it takes.
+- **The device.** The course code picks the device with `detect_device()`. The student
+  should be able to say what it will pick on this VM: `cuda` when the first boolean is
+  `True`, `mps` when the second is, `cpu` otherwise.
+- **Ray tune runs as many trials in parallel as there are cores.** By default one trial
+  gets one core; a notebook that asks for more CPUs per trial runs fewer trials at a time.
+  With `nproc` showing 4, a search runs four trials side by side, each slower than it
+  would be alone, and memory is shared among them. The number of trials the student asks
+  for and the number of cores they have decide how long a search takes.
 
 Then ask: "Given these numbers, is this VM faster than your laptop for the course, or
 only different?" The honest answer is often *different*: a VM does not make a small
 notebook quicker, it keeps running while the laptop is closed. That is what the next
 milestone is for.
 
-**CHECKPOINT.** M8 is done when the student has run the four commands, read the answers
-to you in their own words, and said which device they will use. Tick the box.
+**CHECKPOINT.** M8 is done when you have run the command, the student has explained the
+answers in their own words, and has said which device `detect_device()` will pick. Tick
+the box.
 
 ---
 
@@ -637,37 +645,47 @@ to you in their own words, and said which device they will use. Tick the box.
 ### Why
 
 A command started in a plain SSH shell is a child of that shell. When the SSH connection
-drops — the laptop closes, the wifi flips, the VS Code window is shut — the shell is
-hung up, and everything it started is hung up with it. A long training run is gone
-just before it finishes.
+drops — the laptop closes, the wifi flips — the shell is hung up, and everything it
+started is hung up with it. A long training run is gone just before it finishes.
 
 **tmux** is a terminal multiplexer that lives on the VM. A tmux session keeps running
 when the connection that started it is gone, and you reattach to it later and find the
 run where you left it.
 
+### Where this is done
+
+In a **local terminal** on the laptop with plain `ssh ml-vm`, **not** in a VS Code
+terminal. VS Code keeps its remote terminals alive across a short disconnect, which would
+make the exercise prove nothing.
+
 ### On the VM — check that it is there
 
+You run this from the laptop:
+
 ```bash
-tmux -V
+ssh -o BatchMode=yes ml-vm 'tmux -V'
 ```
 
-It is normally pre-installed. If it is missing: `sudo apt install tmux` (this needs the
-VM password, which the student types).
+It is normally pre-installed. If it is missing: `sudo apt install tmux` on the VM (this
+needs the VM password, which the student types).
 
 ### Do it, in this order
 
-The student does every step; you check with `tmux ls`.
+The student does every step, in a local terminal.
 
-1. **Start a named session** (on the VM):
+1. **Connect**: `ssh ml-vm`.
+
+2. **Start a named session** (on the VM):
 
    ```bash
-   tmux new -s run
+   tmux new -A -s run
    ```
 
-   The prompt looks the same, with a green bar at the bottom. Naming it means that
-   `tmux ls` tomorrow says what it is.
+   `-A` attaches to the session `run` if it exists and creates it if not, so the same
+   line works every time, also after a reconnect. The prompt looks the same, with a green
+   bar at the bottom. Naming it means that `tmux ls` tomorrow says what it is.
 
-2. **Start a run in it.** A stand-in that needs no data:
+3. **Start a run in it.** A stand-in that needs no data:
 
    ```bash
    for i in $(seq 1 600); do echo "step $i"; sleep 1; done
@@ -675,37 +693,29 @@ The student does every step; you check with `tmux ls`.
 
    Let it print a few lines.
 
-3. **Detach**: press `ctrl+b`, release, then press `d`. The shell prompt returns, and
+4. **Detach**: press `ctrl+b`, release, then press `d`. The shell prompt returns, and
    tmux prints `[detached (from session run)]`. The run is still going.
 
-4. **Check from outside** (on the VM):
+5. **Close the SSH connection.** Type `exit`, or close the terminal window.
+
+6. **Check from outside**, while the student is disconnected. You run this from the
+   laptop:
 
    ```bash
-   tmux ls
+   ssh -o BatchMode=yes ml-vm tmux ls
    ```
 
    It lists `run`.
 
-5. **Close the SSH connection.** Type `exit`, or close the terminal, or close the VS Code
-   window.
-
-6. **Reconnect** from the laptop: `ssh ml-vm`, or VS Code → Connect to Host → `ml-vm`.
-
-7. **Run `tmux ls`** again. The session `run` is still listed.
-
-8. **Reattach**:
-
-   ```bash
-   tmux attach -t run
-   ```
+7. **Reconnect and reattach**: `ssh ml-vm`, then `tmux new -A -s run`.
 
    The loop is further along than when they left: the count went on while nobody was
    watching. That is the whole point.
 
-9. **End the session** when done: `ctrl+c` to stop the loop, then `exit` inside tmux.
+8. **End the session** when done: `ctrl+c` to stop the loop, then `exit` inside tmux.
    `tmux ls` prints `no server running`.
 
-A real run goes the same way: `tmux new -s train`, then `uv run` the notebook or script
+A real run goes the same way: `tmux new -A -s train`, then `uv run` the notebook or script
 inside it, detach, and come back later. If the run prints a lot, give the student
 `ctrl+b` then `[` to scroll back (`q` leaves scroll mode).
 
@@ -713,68 +723,96 @@ If the VM is stopped at the labs.azure.com site, or shuts down by itself at the 
 teacher gave you, the tmux session ends with it. Detaching survives a dropped connection,
 not a stopped VM.
 
-**CHECKPOINT.** M9 is done when the student has seen the counter continue after
-reattaching, and `tmux ls` showed the session while they were disconnected. Ask them to
-say in one sentence why the same loop in a plain SSH shell would not have survived. Tick
-the box.
+**CHECKPOINT.** M9 is done when your `ssh -o BatchMode=yes ml-vm tmux ls` listed the
+session while the student was disconnected, and the student has seen the counter continue
+after reattaching. Ask them to say in one sentence why the same loop in a plain SSH shell
+would not have survived. Tick the box.
 
 ---
 
 ## M10 — Reading mlflow from the VM
 
-The training runs write their results to a local mlflow store (see `docs/run-protocol.md`,
-where the store lives: `artefacts/mlflow/mlruns.db`). On the VM the store is on the VM's
-disk. To look at it, `mlflow ui` runs on the VM and the laptop's browser reaches it
-through an SSH port forward.
+The training runs write their results to a local mlflow store (see
+[`docs/run-protocol.md`](https://github.com/raoulg/MADS-MachineLearning-course/blob/master/docs/run-protocol.md),
+which says where the store lives: `artefacts/mlflow/mlruns.db` in the repository). On the
+VM the store is on the VM's disk. To look at it, `mlflow ui` runs on the VM and the
+laptop's browser reaches it through an SSH port forward. The port is **5050** everywhere
+in this guide.
 
 ### On the VM — start the UI inside tmux
 
 A UI started in a plain shell dies with the connection, like any other process, so it
-goes in its own tmux session:
+goes in its own tmux session. **Give the student these three lines one at a time**: the
+first one enters tmux, and the lines after it are typed inside it.
 
 ```bash
-tmux new -s mlflow
-cd ~/MADS-MachineLearning-course
-uv run mlflow ui --backend-store-uri sqlite:///artefacts/mlflow/mlruns.db
+ssh ml-vm
 ```
 
-The UI listens on port 5000 of the VM, on the VM only. It is not reachable from the
-internet, which is the intended state. Detach with `ctrl+b`, `d`.
+```bash
+tmux new -A -s mlflow
+```
+
+```bash
+cd ~/MADS-MachineLearning-course && uv run mlflow ui --port 5050 --backend-store-uri sqlite:///$HOME/MADS-MachineLearning-course/artefacts/mlflow/mlruns.db
+```
+
+The path is absolute on purpose: mlflow creates an empty store wherever it is started,
+so a relative path started from the wrong folder gives a UI that looks fine and shows
+nothing.
+
+The UI listens on port 5050 of the VM, on the VM only. It is not reachable from the
+internet, which is the intended state. Detach with `ctrl+b`, `d`. After a reconnect on
+the same day, `tmux new -A -s mlflow` attaches to the session that is already running.
 
 ### On the laptop — forward the port
 
 Either of these. Both do the same thing: send everything the laptop receives on its own
-port 5000 through the SSH connection to port 5000 on the VM.
+port 5050 through the SSH connection to port 5050 on the VM.
 
 - **In a local terminal**, and leave it open:
 
   ```bash
-  ssh -L 5000:localhost:5000 ml-vm
+  ssh -N -o ExitOnForwardFailure=yes -L 5050:localhost:5050 ml-vm
   ```
 
+  `-N` means no remote shell, so **no prompt appears**; that is correct, not a hang.
+  `ExitOnForwardFailure=yes` makes the command stop with an error when the forward cannot
+  be set up, instead of staying open and doing nothing.
+
 - **In VS Code**, connected to the VM: the **Ports** panel (next to Terminal) →
-  **Forward a Port** → `5000`. VS Code often detects the port by itself when the UI
+  **Forward a Port** → `5050`. VS Code often detects the port by itself when the UI
   starts.
 
 ### Verify
 
-Open `http://localhost:5000` in the **laptop's** browser. The mlflow page shows the
-experiments of the store on the VM. This is a place where you can verify with a browser
-tool if you have one, otherwise ask the student what the page shows.
+You run this on the laptop, with the forward open:
 
-If the browser says the connection was refused: the forward is not open (the terminal
-was closed), or `mlflow ui` is not running (`tmux ls` on the VM). If the laptop already
-uses port 5000 for something else, as macOS sometimes does for AirPlay, forward another
-local port instead (`ssh -L 5001:localhost:5000 ml-vm`, then open
-`http://localhost:5001`).
+```bash
+curl -s -o /dev/null -w '%{http_code}' http://localhost:5050/
+```
 
-If the store has no runs yet, the page is empty; that is correct before the first run.
+`200` means the page is served. Then the student opens `http://localhost:5050` in the
+**laptop's** browser. If you have a browser tool you can read the page; otherwise ask the
+student what it shows.
 
-To stop: reattach (`tmux attach -t mlflow`), `ctrl+c`, `exit`.
+A store with no runs yet shows one experiment named `Default` and no runs. That is
+correct before the first run. After the student runs the first notebook, for example
+`notebooks/1_pytorch_intro/01_the_cache.ipynb`, the lesson's experiment must appear in the
+list; if it does not, the UI is reading another store than the notebook writes to.
 
-**CHECKPOINT.** M10 is done when the mlflow page is open in the laptop's browser and the
-student can say which machine each part runs on: the store and the server on the VM,
-the browser on the laptop, the SSH connection between. Tick the box.
+If it fails: the forward is not open (the terminal was closed), or `mlflow ui` is not
+running (`ssh -o BatchMode=yes ml-vm tmux ls`). Port 5000 on a Mac is a trap: AirPlay
+answers there with a `403` and `Server: AirTunes`, so a failed forward does not look
+refused. If a student uses 5000 anyway and sees that answer, it is the Mac and not
+mlflow; use 5050.
+
+To stop: `tmux attach -t mlflow`, `ctrl+c`, `exit`.
+
+**CHECKPOINT.** M10 is done when your `curl` printed `200` and the mlflow page is open in
+the laptop's browser. The student can say which machine each part runs on: the store and
+the server on the VM, the browser on the laptop, the SSH connection between. Tick the
+box.
 
 ---
 
@@ -785,7 +823,8 @@ Two things left: a place to put their own work, and a way to keep learning.
 ### A branch of their own
 
 Students cannot push to the teacher's repository, but they can branch locally, which is
-what keeps their work and the incoming updates from colliding.
+what keeps their work and the incoming updates from colliding. On the VM, in the course
+folder:
 
 ```bash
 git checkout -b les1
@@ -794,9 +833,9 @@ git checkout -b les1
 The workflow to teach, and to make them repeat back:
 
 1. Work on their own branch.
-2. **Copy notebooks before editing them, under a new name** — `01_les1.ipynb` becomes
-   `01_les1_WillemvO.ipynb`. Editing the teacher's file in place is what produces merge
-   conflicts; a differently-named file never conflicts with anything.
+2. **Copy notebooks before editing them, under a new name** — `01_the_cache.ipynb`
+   becomes `01_the_cache_WillemvO.ipynb`. Editing the teacher's file in place is what
+   produces merge conflicts; a differently-named file never conflicts with anything.
 3. Save work: `git add .` then `git commit -m "..."`.
 4. Get updates: commit everything (`git status` must be clean), `git checkout master`,
    `git pull`, `git checkout les1`, `git merge master`.
@@ -805,25 +844,33 @@ Note the branch is `master`, not `main`.
 
 ### Coaches
 
-If the repository ships an `.mcp.json` or an `AGENTS.md`, the coaching servers and
-instructions in them are connected the way `references/tooling-setup.md` describes; do
-that there rather than here, and check that it was done on the VM's copy of the repository
-as well when the student works there with an assistant. A token or key belonging to such a
-server is a credential: it goes in a client config, never in the repository.
+The repository has an `.mcp.json` and an `AGENTS.md`. Connecting them on the VM follows
+the coaches milestone of
+[`references/tooling-setup.md`](https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md);
+do it there. A token or key belonging to such a server is a credential: it goes in a
+client config, never in the repository.
 
-**CHECKPOINT.** M11 is done when a branch exists. Tick the last box, and tell the student
-the setup is finished — from now on the routine is: start the VM in the browser →
-Remote-SSH connect → work (a long run in tmux) → close the connection → **stop the VM on
-the website**.
+**CHECKPOINT.** M11 is done when a branch exists and the coaches are connected. You check
+the branch from the laptop:
+
+```bash
+ssh -o BatchMode=yes ml-vm 'git -C ~/MADS-MachineLearning-course branch --show-current'
+```
+
+It prints `les1`. Tick the last box, and tell the student the setup is finished — from now
+on the routine is: start the VM in the browser → Remote-SSH connect → work (a long run in
+tmux) → close the connection → **stop the VM on the website**.
 
 ---
 
-## 3. After setup: the daily routine
+## 2. After setup: the daily routine
 
 1. Start the VM at https://labs.azure.com/virtualmachines (toggle to Running) and wait for
    the tile to say it is running.
 2. Connect: VS Code → `><` → Connect to Host → `ml-vm`, or `ssh ml-vm`.
-3. Work. A run that takes long goes in a tmux session; the mlflow UI goes in its own.
+3. Work. A run that takes long goes in a tmux session (`tmux new -A -s train`, which
+   attaches when it already exists); the mlflow UI goes in its own
+   (`tmux new -A -s mlflow`).
 4. When the work is done, check `tmux ls`: a session still running a training run means
    the VM must stay on until it is finished; otherwise end the sessions.
 5. Close the connection, and **stop the VM on the website**. A VM that is left running
@@ -831,7 +878,7 @@ the website**.
 
 ---
 
-## 4. After setup: practice, matched to how they learn
+## 3. After setup: practice, matched to how they learn
 
 Setup is not the point; being able to work is. Once M11 is ticked, take a moment
 finding out how this person actually learns, then build a small practice plan with them.
@@ -846,7 +893,7 @@ Then match. These map roughly onto the same material:
 |---|---|
 | **Doing** | A throwaway repo on the VM and the drills below. Nothing else first. |
 | **Interactive** | https://learngitbranching.js.org — visual, in-browser, genuinely good |
-| **Reading** | `references/01_git crash course.pdf` in this repo; then Pro Git, https://git-scm.com/book/en/v2 |
+| **Reading** | <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/01_git%20crash%20course.pdf>; then Pro Git, https://git-scm.com/book/en/v2 |
 | **Watching** | Offer to find a current video walkthrough — do not paste a link from memory, video URLs rot |
 | **Explaining** | Have them teach *you* the M2 keypair story, the tmux story from M9 and the branch workflow; correct only what is actually wrong |
 
@@ -884,7 +931,7 @@ than as a list to memorise.
 
 ---
 
-## 5. Troubleshooting index
+## 4. Troubleshooting index
 
 | Symptom | Almost always |
 |---|---|
@@ -898,8 +945,10 @@ than as a list to memorise.
 | Nothing appears while typing a password | Working as designed. Keep typing |
 | A run is gone after reconnecting | It was started outside tmux, or the VM was stopped; `tmux ls` shows what survived |
 | `tmux ls` says `no server running` | No session exists: it ended, or the VM restarted since |
-| mlflow page does not open on the laptop | The port forward is closed, or `mlflow ui` is not running on the VM |
+| mlflow page does not open on the laptop | The port forward on 5050 is closed, or `mlflow ui` is not running on the VM. A `403` from `Server: AirTunes` means port 5000 on a Mac: use 5050 |
 | `nvidia-smi: command not found` | Normal on a CPU-only VM; the course does not need a GPU |
+| `No space left on device` during `uv sync` | The lock file pulls the CUDA builds of torch on Linux, which are large. Tell the teacher; do not delete things on the VM to make room |
+| `Address already in use` when starting `mlflow ui` | mlflow is already running on the VM: `tmux attach -t mlflow` |
 | Ran out of hours | Ask the teacher; it can be extended. Do it well before a deadline |
 
 If something falls outside this table, do not guess in a loop. Read the actual error,
