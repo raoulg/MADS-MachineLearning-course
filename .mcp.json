@@ -1,5 +1,15 @@
 {
   "mcpServers": {
+    "vectormesh": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "uv run --no-project https://raw.githubusercontent.com/raoulg/vectormesh/$VECTORMESH_REF/vectormesh_mcp.py"
+      ],
+      "env": {
+        "VECTORMESH_REF": "stable"
+      }
+    },
     "codestyle": {
       "command": "sh",
       "args": [
