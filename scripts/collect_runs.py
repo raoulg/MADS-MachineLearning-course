@@ -133,7 +133,7 @@ def main() -> None:
         action="store_true",
         help="start `mlflow ui` on the class store afterwards",
     )
-    parser.add_argument("--port", type=int, default=5000)
+    parser.add_argument("--port", type=int, default=5050)
     args = parser.parse_args()
 
     repo = args.runs_repo.resolve()
@@ -166,6 +166,8 @@ def main() -> None:
 
     counts: Counter[str] = Counter()
     students: dict[int, set[str]] = {}
+    per_student: Counter[tuple[int, str]] = Counter()
+    per_experiment: Counter[str] = Counter()
     index: dict[str, dict] = {}
     for path in files:
         rel = path.relative_to(repo).as_posix()
@@ -193,13 +195,21 @@ def main() -> None:
             import_run(client, exp_id, sub, digest)
             index[exp_id][key] = ("", digest)
         students.setdefault(sub.lesson, set()).add(sub.student)
+        per_student[(sub.lesson, sub.student)] += 1
+        per_experiment[sub.run.experiment] += 1
 
     print(
         f"{len(files)} file(s) in {repo}: "
         + ", ".join(f"{v} {k}" for k, v in sorted(counts.items()))
     )
     for lesson, who in sorted(students.items()):
-        print(f"  lesson {lesson}: {len(who)} student(s)")
+        print(f"lesson {lesson}: {len(who)} student(s)")
+        for student in sorted(who, key=str.lower):
+            print(f"  {student:<40} {per_student[(lesson, student)]:>5} run(s)")
+    if per_experiment:
+        print("runs per experiment:")
+        for name, n in sorted(per_experiment.items()):
+            print(f"  {name:<40} {n:>5}")
     print(f"class store: {args.tracking_uri}")
 
     ui = [
