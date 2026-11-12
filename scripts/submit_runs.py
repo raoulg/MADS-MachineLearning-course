@@ -24,6 +24,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -39,7 +40,13 @@ from mlflow.entities import Run as MlflowRun
 from mlflow.exceptions import MlflowException
 from mlflow.tracking import MlflowClient
 from pydantic import ValidationError
-from run_submission import ARTIFACT_SUFFIXES, MAX_ARTIFACT_BYTES, Submission, load
+from run_submission import (
+    ARTIFACT_SUFFIXES,
+    KEEP_SYSTEM_TAGS,
+    MAX_ARTIFACT_BYTES,
+    Submission,
+    load,
+)
 
 COURSE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TRACKING_URI = f"sqlite:///{COURSE_ROOT / 'artefacts' / 'mlflow' / 'mlruns.db'}"
@@ -47,8 +54,6 @@ DEFAULT_RUNS_REPO = COURSE_ROOT.parent / "mads-runs"
 CLASS_REPO = "raoulg/mads-ml-runs-2026-11"
 BASE = "main"
 
-# mlflow's own tags carry local usernames and absolute paths; these are the ones kept.
-KEEP_SYSTEM_TAGS = {"mlflow.note.content", "mlflow.parentRunId"}
 GITHUB_REMOTE = re.compile(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/*$")
 SEED_SERIES = ("_per_seed", "_std")
 
@@ -70,12 +75,17 @@ def gh(*args: str) -> subprocess.CompletedProcess | None:
         return None
 
 
+def gh_available() -> bool:
+    return shutil.which("gh") is not None
+
+
 def strip_credentials(url: str) -> str:
     return re.sub(r"//[^/@]+@", "//", url)
 
 
 def remote_url(repo: Path, name: str) -> str | None:
-    out = git(repo, "remote", "get-url", name, check=False)
+    """The URL as configured, before any `url.<base>.insteadOf` rewriting."""
+    out = git(repo, "config", "--get", f"remote.{name}.url", check=False)
     return out.stdout.strip() if out.returncode == 0 else None
 
 
@@ -110,7 +120,9 @@ def resolve_login(student: str | None, repo: Path) -> str:
             + ". Pass the right --student, log `gh` in as yourself, "
             "or point origin at your own fork (docs/submit-runs.md)."
         )
-    return next(iter(found.values()))
+    # GitHub logins ignore case, but the directory and the check do not: gh knows the
+    # account's own spelling.
+    return found.get("gh api user") or next(iter(found.values()))
 
 
 def course_code() -> dict:
@@ -261,13 +273,13 @@ def summarize_metrics(metrics: dict[str, float], limit: int = 4) -> str:
 
 def show(runs: list[MlflowRun], names: dict[str, str]) -> None:
     print(
-        f"{'run_id':<10} {'experiment':<24} {'role':<11} {'study':<14} {'name':<24} metrics"
+        f"{'run_id':<10} {'experiment':<24} {'role':<11} {'study':<30} {'name':<24} metrics"
     )
     for r in runs:
         tags = r.data.tags
         print(
             f"{r.info.run_id[:8]:<10} {names[r.info.experiment_id]:<24} "
-            f"{tags.get('role', '-'):<11} {tags.get('study', '-')[:14]:<14} "
+            f"{tags.get('role', '-'):<11} {tags.get('study', '-')[:30]:<30} "
             f"{(r.info.run_name or '')[:24]:<24} {summarize_metrics(r.data.metrics)}"
         )
 
@@ -288,10 +300,24 @@ def is_ancestor(repo: Path, ref: str) -> bool:
     )
 
 
-def merge(repo: Path, ref: str) -> None:
+def identity(repo: Path, login: str) -> list[str]:
+    """`-c` options that give a commit an author when git has none configured."""
+    name = git(repo, "config", "user.name", check=False).stdout.strip()
+    email = git(repo, "config", "user.email", check=False).stdout.strip()
+    if name and email:
+        return []
+    return [
+        "-c",
+        f"user.name={login}",
+        "-c",
+        f"user.email={login}@users.noreply.github.com",
+    ]
+
+
+def merge(repo: Path, ref: str, ident: list[str]) -> None:
     if is_ancestor(repo, ref):
         return
-    result = git(repo, "merge", "--no-edit", "--quiet", ref, check=False)
+    result = git(repo, *ident, "merge", "--no-edit", "--quiet", ref, check=False)
     if result.returncode != 0:
         git(repo, "merge", "--abort", check=False)
         sys.exit(
@@ -312,14 +338,20 @@ def check_clone(repo: Path) -> None:
             f"  git -C {repo} remote add upstream https://github.com/{CLASS_REPO}.git\n"
             f"  git -C {repo} fetch upstream"
         )
-    if git(repo, "status", "--porcelain").stdout.strip():
+    status = git(repo, "status", "--porcelain", "--untracked-files=all").stdout
+    blocking = [
+        line
+        for line in status.splitlines()
+        if not line.startswith("?? ") or re.match(r'"?lesson[^/]*/', line[3:])
+    ]
+    if blocking:  # untracked files outside lesson*/ are not the script's business
         sys.exit(
             f"{repo} has uncommitted changes; the files there are generated, "
             "so do not edit them by hand. Show `git status` there to the teacher."
         )
 
 
-def prepare_branch(repo: Path, branch: str) -> None:
+def prepare_branch(repo: Path, branch: str, ident: list[str]) -> None:
     """Check out `branch`: the local one, else the fork's, else a new one from
     upstream/main; with the fork's commits merged in when it has any."""
     for remote in ("upstream", "origin"):
@@ -340,7 +372,26 @@ def prepare_branch(repo: Path, branch: str) -> None:
     if switched.returncode != 0:
         sys.exit(f"git switch {branch} in {repo} failed:\n{switched.stderr}")
     if ref_exists(repo, fork_branch):
-        merge(repo, fork_branch)
+        merge(repo, fork_branch, ident)
+
+
+def on_upstream(repo: Path, relpath: str) -> bool:
+    return (
+        git(
+            repo, "cat-file", "-e", f"upstream/{BASE}:{relpath}", check=False
+        ).returncode
+        == 0
+    )
+
+
+def stale_files(
+    repo: Path, branch: str, login: str, subs: list[Submission]
+) -> list[str]:
+    """Files in the student's directory on the branch that are neither in the class
+    repository nor among the runs submitted now: runs deleted from mlflow since."""
+    keep = {s.relpath() for s in subs}
+    tracked = git(repo, "ls-files", "--", f"{branch}/{login}/").stdout.split()
+    return [p for p in tracked if p not in keep and not on_upstream(repo, p)]
 
 
 def submitted_upstream(repo: Path, sub: Submission) -> bool:
@@ -409,51 +460,66 @@ def submit(
     subs: list[Submission],
     push: bool = True,
     open_pr: bool = True,
+    prune: bool = False,
 ) -> None:
     """Write `subs` on the branch lesson<N> of the clone at `repo`, commit, push to
-    origin, and open the pull request against upstream."""
+    origin, and open the pull request against upstream. With `prune`, `subs` are all of
+    the student's runs of the lesson, and a file on the branch that is not among them
+    (and not in the class repository) is removed."""
     branch = f"lesson{lesson}"
     check_clone(repo)
-    prepare_branch(repo, branch)
+    ident = identity(repo, login)
+    prepare_branch(repo, branch, ident)
 
     new = [
         s
         for s in subs
         if not submitted_upstream(repo, s) and not submitted_on_branch(repo, s)
     ]
-    if new:
-        merge(repo, f"upstream/{BASE}")
-        written = []
-        for sub in new:
-            path = repo / sub.relpath()
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(sub.dump())
-            load(path, repo)  # what was written must read back as valid, at its place
-            written.append(sub.relpath())
+    stale = stale_files(repo, branch, login, subs) if prune else []
+    if new or stale:
+        merge(repo, f"upstream/{BASE}", ident)
+    if stale:
+        git(repo, "rm", "--quiet", "--", *stale)
+        print(f"removed {len(stale)} run(s) that are no longer in your mlflow store:")
+        for path in stale:
+            print(f"  {path}")
+    written = []
+    for sub in new:
+        path = repo / sub.relpath()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(sub.dump())
+        load(path, repo)  # what was written must read back as valid, at its place
+        written.append(sub.relpath())
+    if written:
         git(repo, "add", "--", *written)
-        git(
-            repo,
-            "commit",
-            "--quiet",
-            "-m",
-            f"lesson {lesson}: {len(written)} run(s) from {login}",
-        )
-        print(f"committed {len(written)} new or changed run(s) on {branch} in {repo}")
+    if new or stale:
+        message = f"lesson {lesson}: {len(written)} run(s) from {login}"
+        if stale:
+            message += f", {len(stale)} removed"
+        git(repo, *ident, "commit", "--quiet", "-m", message)
+        if written:
+            print(
+                f"committed {len(written)} new or changed run(s) on {branch} in {repo}"
+            )
 
     pending = git(
         repo, "diff", "--name-only", "--diff-filter=AM", f"upstream/{BASE}", "HEAD",
         "--", f"{branch}/{login}/",
     ).stdout.split()  # fmt: skip
-    if not pending:
+    if not pending and not stale:
         print("nothing new: every run is already in the class runs repository")
         return
-    if not new:
+    if pending and not new and not stale:
         print(
             f"nothing new to write; {len(pending)} run(s) on {branch} wait for merging"
         )
     if not push:
         print("not pushed (--no-push)")
         return
+    if open_pr and not gh_available():
+        print("`gh` is not installed, so the pull request is not opened for you")
+        open_pr = False
 
     fork_branch = f"origin/{branch}"
     if not ref_exists(repo, fork_branch) or (
@@ -469,12 +535,18 @@ def submit(
             )
         git(repo, "fetch", "--quiet", "origin", check=False)
         print(f"pushed {branch} to your fork")
+    if not pending:
+        print(
+            f"{branch} holds no runs that the class repository lacks; "
+            "a pull request open from it has nothing left to merge"
+        )
+        return
 
     slug = github_slug(remote_url(repo, "upstream"))
     if not open_pr:
         url = compare_url(slug, login, branch)
         print(
-            "not opening a pull request (--no-pr). Open it in the browser"
+            "Open the pull request in the browser"
             + (f": {url}" if url else f", from your fork's branch {branch}")
         )
         return
@@ -518,7 +590,8 @@ def main() -> None:
     parser.add_argument(
         "--no-pr",
         action="store_true",
-        help="push the branch, but do not open the pull request (no `gh` needed)",
+        help="push the branch, but do not open the pull request "
+        "(the default when `gh` is not installed)",
     )
     parser.add_argument(
         "--no-push",
@@ -556,7 +629,13 @@ def main() -> None:
         except ValidationError as e:
             sys.exit(f"run {run.info.run_id} does not fit the submission format:\n{e}")
     submit(
-        repo, args.lesson, student, subs, push=not args.no_push, open_pr=not args.no_pr
+        repo,
+        args.lesson,
+        student,
+        subs,
+        push=not args.no_push,
+        open_pr=not args.no_pr,
+        prune=not (args.run_id or args.experiment),
     )
 
 
