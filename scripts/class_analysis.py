@@ -24,7 +24,7 @@
 #
 # In `mlflow ui` on the class store: open an experiment, the **Chart** view, then **Add
 # chart -> Parallel coordinates**. Filter first, on one dataset and one study
-# (`tags.dataset = 'dtd' and tags.study = 'depth-on-eurosat'`, or `tags.origin =
+# (`tags.dataset = 'dtd' and tags.study = 'sam-depth-on-eurosat'`, or `tags.origin =
 # 'notebook'` for the handed-out runs). Put the params on the axes: `encoder` and
 # `embed_dim` (the vectors a run starts from), `n_hidden_layers`, `hidden_dim`, `activation`, `sigma`,
 # `norm`, `dropout`, `skip`, `gate`, `lr`; and the metrics `accuracy`, `n_params` and `train_seconds`
@@ -274,7 +274,8 @@ print(
 # %% [markdown]
 # ## The runs as handed out
 #
-# Every student ran the same handed-out notebooks, so these runs should agree. Per run
+# Every student ran the same handed-out notebooks without a seed, so these runs should
+# agree within seed noise. Per run
 # name: the class median, how many students ran it with the same parameters, the class's
 # median seed spread, and how many of those runs lie further from the median than
 # `--noise-factor` (3) times that spread. Only runs with seeds are judged: a single-seed run
@@ -284,8 +285,8 @@ print(
 # deviating runs counted per student, with the run names.
 
 # %%
-# The handed-out search is not seeded, so its trials and its winner are compared per
-# student in the next section, not by run name here.
+# The handed-out search draws other trials per student, so its trials and its winner are
+# compared per student in the next section, not by run name here.
 notebook = runs[
     (runs.origin == "notebook")
     & runs.score.notna()
