@@ -141,6 +141,9 @@ ol.steps li.now b{font-family:var(--display);font-weight:800;font-size:1.12rem;c
 .co.chk{border:1px dashed var(--muted);background:transparent}
 .ess{font-family:var(--display);font-weight:700;font-size:1.2rem;line-height:1.28;letter-spacing:-.01em;border-left:6px solid var(--accent);padding:.15em 0 .15em .85em;max-width:40ch}
 .ess .lab{display:block;color:var(--accent);margin-bottom:.35em}
+.no{color:var(--accent);font-variant-numeric:tabular-nums}
+h2 .no,h3 .no{font-weight:inherit}
+.toc a .no{color:inherit;opacity:.7}
 .math{font-family:var(--mono);font-size:.9em;white-space:nowrap}
 
 /* references and review marks */
@@ -248,7 +251,7 @@ line,path{stroke-linecap:round}
 
 <div class="bar">
   <div class="in">
-    <nav class="toc" id="toc" aria-label="Onderwerpen"><a href="#harness">Agent in een harness</a><a href="#draad">De draad</a><a href="#statistiek">Statistiek</a><a href="#tijd">Het residu</a><a href="#vectorruimtes">Vectorruimtes</a><a href="#mcp">Coaches</a></nav>
+    <nav class="toc" id="toc" aria-label="Onderwerpen"><a href="#harness"><span class="no">1</span> Agent in een harness</a><a href="#draad"><span class="no">2</span> De draad</a><a href="#statistiek"><span class="no">3</span> Statistiek</a><a href="#tijd"><span class="no">4</span> Het residu</a><a href="#vectorruimtes"><span class="no">5</span> Vectorruimtes</a><a href="#mcp"><span class="no">6</span> Coaches</a></nav>
     <a class="cnt" id="cnt" href="#reviewlijst"><b id="n">0</b><span>reviewlijst</span></a>
     <button class="theme" type="button" id="theme" data-mode="light" aria-label="Wissel tussen licht en donker">
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
@@ -281,14 +284,14 @@ line,path{stroke-linecap:round}
   <header>
     <div class="hd">
       <div class="eyebrow"><span class="act">Agentic AI</span><span>DAV harnesses 101, les 4 tot 7</span></div>
-      <h2 id="h-harn">Samenwerken met een agent in een harness</h2>
+      <h2 id="h-harn"><span class="no">1</span> Samenwerken met een agent in een harness</h2>
       <p class="ml">Alle materiaal staat in de openbare repository <a href="https://github.com/raoulg/MADS-DAV">github.com/raoulg/MADS-DAV</a>.</p>
     </div>
   </header>
   <div class="cards">
     <article class="card first" id="agent" data-check="Welke tests zou jij verzinnen voor een join van twee tabellen, en welke daarvan is visueel en welke een tweede route?">
       <div class="txt">
-        <h3>De agent schrijft de code; jij verzint hoe je ziet of het klopt</h3>
+        <h3><span class="no">1.1</span> De agent schrijft de code; jij verzint hoe je ziet of het klopt</h3>
         <p class="inml"><span class="lab">In ML</span>Elke les: thuis bouw je met je agent, in de klas bespreken we je runs. De tests die jij verzint bepalen of een run iets bewijst.</p>
         <div class="co def"><span class="lab">Definitie</span><p>Agent = model + harness. De harness is alles rond het model dat tekst in actie omzet: de bestanden die het leest, de shell, de MCP-tools, het geheugen en de lus die beslist of het doorgaat.<a class="ref" href="#ag-1">1</a></p></div>
         <p>In een chatvenster ben jij de bottleneck: je plakt code heen en weer en draagt elke traceback zelf terug, en dat is zowel geestdodend als traag.</p>
@@ -319,7 +322,7 @@ line,path{stroke-linecap:round}
   <div class="cards">
     <article class="card first" id="draad-kaart" data-check="Wat laat deze methode zien als er niets is? En komt wat je vond terug in iets dat je op een andere manier mat?">
       <div class="txt">
-        <div class="lab">De draad door alle zeven lessen</div>
+        <div class="lab"><span class="no">2</span> De draad door alle zeven lessen</div>
         <blockquote id="h-draad">Als een methode altijd iets vindt, bewijst iets vinden niets.</blockquote>
         <p class="src-line">reader, les 6: "If a tool always finds something, finding something proves nothing"<a class="ref" href="#dr-3">3</a></p>
         <p class="inml"><span class="lab">In ML</span>Les 3: een zoektocht kroont altijd een beste trial. De vraag is wat je aanpassing opleverde, gemeten tegen een controle.</p>
@@ -344,7 +347,7 @@ line,path{stroke-linecap:round}
   <header>
     <div class="hd">
       <div class="eyebrow"><span class="act">Statistiek</span><span>DAV les 1, 2, 4, 5, 6</span></div>
-      <h2 id="h-stat">Ook over toeval kun je iets zeggen</h2>
+      <h2 id="h-stat"><span class="no">3</span> Ook over toeval kun je iets zeggen</h2>
       <p class="ml">Eén uitkomst van een toevalsproces is onvoorspelbaar, de distributie ervan niet. Die beschrijf je met een parametrische distributie, en daartegen leg je wat je meet.</p>
       <p class="inml"><span class="lab">In ML</span>Heel veel data wordt gegenereerd door toevalsprocessen. Algoritmes werken omdat ze die distributies zelfstandig kunnen leren.</p>
     </div>
@@ -353,7 +356,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="distributie" data-check="Waarom vlagt de boxplot-regel 9% van de taxiritten als uitschieter, en dezelfde regel op de logaritme van die ritten maar 0,8%?">
       <div class="txt">
-        <h3>Een distributie beschrijft een proces</h3>
+        <h3><span class="no">3.1</span> Een distributie beschrijft een proces</h3>
         <p class="inml"><span class="lab">In ML</span>Les 6: een model dat een distributie voorspelt in plaats van één getal, zoals een Gaussische kop of kwantielen, en dat je scoort op hoe goed die distributie klopt.</p>
         <div class="co def"><span class="lab">Definitie</span><p>Een distributie: alle mogelijke uitkomsten van een toevalsproces, met aandelen die optellen tot 1.<a class="ref" href="#vd-1">1</a></p></div>
         <div class="co def"><span class="lab">Definitie</span><p>Een parametrische distributie is een familie met een paar knoppen die de hele vorm vastleggen: een normale heeft er twee (gemiddelde en spreiding), een Poisson één (het tempo).<a class="ref" href="#vd-1">1</a></p></div>
@@ -374,7 +377,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="een-rij" data-check="Je hebt 200.000 berichten van zes mensen en wilt weten wie langere berichten schrijft in het weekend. Wat is één rij in je toets, en wat is je n?">
       <div class="txt">
-        <h3>Wat is één rij, en wat is je n?</h3>
+        <h3><span class="no">3.2</span> Wat is één rij, en wat is je n?</h3>
         <p class="inml"><span class="lab">In ML</span>In de lessen zul je veel datasets krijgen. In het echte leven zul je zelf je datasets moeten samenstellen, en moet je dus doorlopend deze vraag beantwoorden.</p>
         <p>Begin elke analyse met de vraag wat één rij is: een bericht, een persoon, een sessie.<a class="ref" href="#rij-1">1</a> Een claim over mensen toets je met één getal per persoon. Berichten tellen in plaats van mensen kan de uitkomst van teken laten wisselen, omdat wie het meest schrijft het gemiddelde bepaalt.<a class="ref" href="#rij-2">2</a></p>
         <p>Kies de rij die bij je vraag past: één bericht zoals "haha" is te klein om te dragen wie het schreef, een sessie van een gesprek niet.<a class="ref" href="#rij-4">4</a></p>
@@ -390,7 +393,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="toeval" data-check="Je classifier haalt 60% accuracy op zes klassen. Wat moet je nog weten voordat je kunt zeggen of dat goed is?">
       <div class="txt">
-        <h3>Vergelijk met toeval</h3>
+        <h3><span class="no">3.3</span> Vergelijk met toeval</h3>
         <p class="inml"><span class="lab">In ML</span>Les 1 en 2: eerst de vloer. Naaste buur en een lineaire baseline in les 1, eenvoudige voorspellers in les 2, voordat je iets traint.</p>
         <div class="ess"><span class="lab">Essentie</span>Twee steekproeven verschillen altijd een beetje. De vraag is of het verschil groter is dan wat toeval alleen maakt.</div>
         <p>Schud de labels (voor of na, groep A of B) duizenden keren, reken telkens het verschil uit, en kijk waar het echte verschil in die wolk valt.<a class="ref" href="#tv-1">1</a></p>
@@ -412,7 +415,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="genoeg" data-check="Honderdduizend mensen gooien elk zes keer met een dobbelsteen, en één van hen gooit zes zessen. Waarom is dat geen bewijs van gaven, en wanneer wel?">
       <div class="txt">
-        <h3>Kijk naar genoeg dingen en je vindt altijd iets</h3>
+        <h3><span class="no">3.4</span> Kijk naar genoeg dingen en je vindt altijd iets</h3>
         <p class="inml"><span class="lab">In ML</span>Les 1 en 3: een zoektocht over tientallen trials is dit op grotere schaal. Een validatieset en meerdere seeds houden je eerlijk; in les 3 bleek een resultaat met drie seeds fout, en vijf seeds vingen dat.</p>
         <p>Bij een grens van p &lt; 0,05 slaat een toets op toeval één op de twintig keer vals alarm. De kans op géén vals alarm is dus <span class="math">1 − 0,05 = 0,95</span> per toets. Vijftien onafhankelijke toetsen blijven samen maar <span class="math">0,95<sup>15</sup> = 0,46</span> van de keren stil: in 54% heb je minstens één vals alarm. Gemeten in de chat was het 42%, omdat de vijftien metingen deels hetzelfde meten.<a class="ref" href="#vt-1">1</a></p>
         <p>De verdediging:</p>
@@ -432,7 +435,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="subgroep" data-check="Hoe kan 'mannen worden vaker toegelaten' waar zijn voor de hele universiteit, terwijl vrouwen in de meeste afdelingen vaker worden toegelaten?">
       <div class="txt">
-        <h3>Elke trend kan omdraaien in een subgroep</h3>
+        <h3><span class="no">3.5</span> Elke trend kan omdraaien in een subgroep</h3>
         <p class="inml"><span class="lab">In ML</span>Les 7: "tot 20% beter" bleek het beste van drie datasets (+20,9, +2,7 en −1,6). Kijk per groep, niet naar het maximum of het gemiddelde.</p>
         <p>Alle pinguïns samen: hoe langer de snavel, hoe ondieper (r = −0,22). Per soort: hoe langer, hoe dieper (+0,40 tot +0,65). Van vijftien correlaties tussen pinguïnmetingen wisselen er zeven van teken als je binnen de soort kijkt.<a class="ref" href="#sg-2">2</a> Dat is Simpsons paradox, in les 2 als de toelatingen van Berkeley.<a class="ref" href="#sg-1">1</a></p>
         <div class="co def"><span class="lab">Definitie</span><p>Een verstorende variabele verschilt tussen de groepen die je vergelijkt en beïnvloedt ook de uitkomst. Zolang je er niet binnen vergelijkt, meet je totaal iets anders dan je denkt.<a class="ref" href="#sg-1">1</a></p></div>
@@ -454,14 +457,14 @@ line,path{stroke-linecap:round}
   <header>
     <div class="hd">
       <div class="eyebrow"><span class="act">Tijd en modellen</span><span>DAV les 3, 4, 5</span></div>
-      <h2 id="h-tijd">Lees het residu</h2>
+      <h2 id="h-tijd"><span class="no">4</span> Lees het residu</h2>
       <p class="ml">Trek af wat je verwacht. Wat overblijft vertelt je wat je model nog mist.</p>
     </div>
   </header>
   <div class="cards">
     <article class="card" id="residu" data-check="De lijn van positieve tests naar sterfgevallen past goed tot januari 2021, en voorspelt daarna maand na maand te veel. Wat zegt dat residu, en wat zegt het niet?">
       <div class="txt">
-        <h3>Een model is een som van bouwstenen; het residu wijst wat ontbreekt</h3>
+        <h3><span class="no">4.1</span> Een model is een som van bouwstenen; het residu wijst wat ontbreekt</h3>
         <p class="inml"><span class="lab">In ML</span>Les 2: decompositie en N-BEATS, een netwerk dat trend en seizoen uit basisfuncties opbouwt en wat het niet verklaart als residu doorgeeft aan het volgende blok. Dezelfde gedachte, nu geleerd uit data.</p>
         <p>Een dag-, week- of seizoenscyclus is het verwachte deel van een tijdreeks. Trek trend en cyclus af, en wat overblijft wordt leesbaar.<a class="ref" href="#td-1">1</a> Een cyclus die niemand je vertelde, vind je met autocorrelatie of een Fourier-transformatie.<a class="ref" href="#td-2">2</a></p>
         <div class="co def"><span class="lab">Definitie</span><p>Het residu is wat je model niet verklaart: <span class="math">residu = gemeten − model</span>.<a class="ref" href="#td-3">3</a></p></div>
@@ -483,7 +486,7 @@ line,path{stroke-linecap:round}
   <header class="with-fig">
     <div class="hd">
       <div class="eyebrow"><span class="act">Hoogdimensionale vectorruimtes</span><span>DAV les 6</span></div>
-      <h2 id="h-vec">Omhoog naar veel dimensies, en terug omlaag om te kijken</h2>
+      <h2 id="h-vec"><span class="no">5</span> Omhoog naar veel dimensies, en terug omlaag om te kijken</h2>
       <p class="ml">Dit is de ruimte waarin ML werkt, vanaf de eerste les.</p>
     </div>
     <figure style="margin:0"><svg viewBox="0 0 480 250" role="img" aria-label="Documenten omhoog naar 384 dimensies en terug omlaag naar twee" xmlns="http://www.w3.org/2000/svg"><defs><marker id="au" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="f-muted"/></marker></defs><rect x="22" y="168" width="40" height="50" rx="2" class="f-paper s-ink w15"/><rect x="28" y="162" width="40" height="50" rx="2" class="f-paper s-ink w15"/><rect x="34" y="156" width="40" height="50" rx="2" class="f-paper s-ink w15"/><line x1="40" y1="166" x2="70" y2="166" class="s-muted"/><line x1="40" y1="175" x2="62" y2="175" class="s-muted"/><line x1="40" y1="184" x2="70" y2="184" class="s-muted"/><line x1="40" y1="193" x2="62" y2="193" class="s-muted"/><text x="52" y="240" text-anchor="middle" class="t-xs">documenten</text><line x1="196.0" y1="70.0" x2="284.0" y2="70.0" class="s-rule"/><line x1="197.1" y1="63.3" x2="282.9" y2="76.7" class="s-rule"/><line x1="200.4" y1="57.0" x2="279.6" y2="83.0" class="s-rule"/><line x1="205.6" y1="51.3" x2="274.4" y2="88.7" class="s-rule"/><line x1="212.6" y1="46.5" x2="267.4" y2="93.5" class="s-rule"/><line x1="220.9" y1="43.0" x2="259.1" y2="97.0" class="s-rule"/><line x1="230.2" y1="40.8" x2="249.8" y2="99.2" class="s-rule"/><line x1="240.0" y1="40.0" x2="240.0" y2="100.0" class="s-rule"/><line x1="249.8" y1="40.8" x2="230.2" y2="99.2" class="s-rule"/><line x1="259.1" y1="43.0" x2="220.9" y2="97.0" class="s-rule"/><line x1="267.4" y1="46.5" x2="212.6" y2="93.5" class="s-rule"/><line x1="274.4" y1="51.3" x2="205.6" y2="88.7" class="s-rule"/><line x1="279.6" y1="57.0" x2="200.4" y2="83.0" class="s-rule"/><line x1="282.9" y1="63.3" x2="197.1" y2="76.7" class="s-rule"/><circle cx="263.5" cy="55.1" r="2" class="f-accent"/><circle cx="252.3" cy="75.4" r="2" class="f-accent"/><circle cx="246.8" cy="69.7" r="2" class="f-accent"/><circle cx="227.7" cy="94.2" r="2" class="f-accent"/><circle cx="256.0" cy="71.0" r="2" class="f-accent"/><circle cx="242.7" cy="77.4" r="2" class="f-accent"/><circle cx="209.7" cy="73.5" r="2" class="f-accent"/><circle cx="234.5" cy="77.8" r="2" class="f-accent"/><circle cx="253.4" cy="48.4" r="2" class="f-accent"/><circle cx="226.3" cy="66.3" r="2" class="f-accent"/><circle cx="209.4" cy="64.6" r="2" class="f-accent"/><circle cx="206.5" cy="80.5" r="2" class="f-accent"/><circle cx="218.0" cy="81.8" r="2" class="f-accent"/><circle cx="262.6" cy="82.8" r="2" class="f-accent"/><circle cx="243.5" cy="47.9" r="2" class="f-accent"/><circle cx="238.3" cy="95.9" r="2" class="f-accent"/><circle cx="235.1" cy="53.4" r="2" class="f-accent"/><circle cx="209.6" cy="81.7" r="2" class="f-accent"/><circle cx="254.4" cy="88.6" r="2" class="f-accent"/><circle cx="234.4" cy="51.7" r="2" class="f-accent"/><circle cx="259.1" cy="57.3" r="2" class="f-accent"/><circle cx="219.2" cy="73.0" r="2" class="f-accent"/><circle cx="259.7" cy="62.9" r="2" class="f-accent"/><circle cx="231.4" cy="54.3" r="2" class="f-accent"/><circle cx="275.8" cy="60.0" r="2" class="f-accent"/><circle cx="279.2" cy="74.9" r="2" class="f-accent"/><text x="240" y="120" text-anchor="middle" class="t-b">384 dimensies</text><text x="240" y="138" text-anchor="middle" class="t-xs">dichtbij = gelijk</text><text x="240" y="154" text-anchor="middle" class="t-xs">hier zoek en classificeer je</text><line x1="374" y1="218" x2="452" y2="218" class="s-muted"/><line x1="374" y1="218" x2="374" y2="160" class="s-muted"/><circle cx="390.3" cy="183.7" r="2" class="f-accent"/><circle cx="380.8" cy="196.7" r="2" class="f-accent"/><circle cx="403.2" cy="194.3" r="2" class="f-accent"/><circle cx="438.2" cy="200.6" r="2" class="f-accent"/><circle cx="395.9" cy="197.8" r="2" class="f-accent"/><circle cx="428.2" cy="183.3" r="2" class="f-accent"/><circle cx="398.7" cy="189.0" r="2" class="f-accent"/><circle cx="389.6" cy="203.2" r="2" class="f-accent"/><circle cx="378.3" cy="180.0" r="2" class="f-accent"/><circle cx="408.2" cy="188.0" r="2" class="f-accent"/><circle cx="414.3" cy="192.4" r="2" class="f-accent"/><circle cx="409.0" cy="200.2" r="2" class="f-accent"/><circle cx="382.0" cy="190.0" r="2" class="f-accent"/><circle cx="402.0" cy="191.2" r="2" class="f-accent"/><circle cx="415.1" cy="181.8" r="2" class="f-accent"/><circle cx="403.0" cy="197.1" r="2" class="f-accent"/><circle cx="416.9" cy="183.9" r="2" class="f-accent"/><circle cx="440.6" cy="210.8" r="2" class="f-accent"/><circle cx="391.5" cy="192.7" r="2" class="f-accent"/><circle cx="447.1" cy="197.1" r="2" class="f-accent"/><circle cx="415.1" cy="188.1" r="2" class="f-accent"/><circle cx="404.4" cy="188.1" r="2" class="f-accent"/><text x="412" y="240" text-anchor="middle" class="t-xs">2D: alleen om te kijken</text><path d="M78 160 Q 120 70 186 72" class="s-muted w15" fill="none" marker-end="url(#au)"/><text x="8" y="28" class="t-s">omhoog</text><text x="8" y="44" class="t-xs">encoder, trigrammen,</text><text x="8" y="58" class="t-xs">regexes als kolommen</text><path d="M294 72 Q 360 74 392 150" class="s-muted w15" fill="none" marker-end="url(#au)"/><text x="474" y="28" text-anchor="end" class="t-s">omlaag</text><text x="474" y="44" text-anchor="end" class="t-xs">PCA, t-SNE</text><text x="474" y="58" text-anchor="end" class="t-xs">zeg hoeveel % je toont</text></svg><figcaption><span class="lab fl">Omhoog en omlaag</span>Omhoog naar veel dimensies om te zoeken en te vergelijken, omlaag naar twee om te kijken.</figcaption></figure>
@@ -492,7 +495,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="nabijheid" data-check="Vier berichten: a, b (bijna hetzelfde als a, alleen bijna drie keer zo lang), c (dichter bij a, maar een andere richting) en d (haaks op a). Welke twee zeggen hetzelfde, en welke maat ziet dat?">
       <div class="txt">
-        <h3>Nabijheid betekent, hopelijk, gelijkenis</h3>
+        <h3><span class="no">5.1</span> Nabijheid betekent, hopelijk, gelijkenis</h3>
         <p class="inml"><span class="lab">In ML</span>Les 1: de cache. Een encoder ordent de ruimte zonder jouw labels. Les 7: zoeken in je eigen cache is retrieval.</p>
         <p>Data die nog geen getallen is, breng je naar een ruimte met veel dimensies: door te tellen (trigrammen), met je eigen regexes als kolommen, of met een encoder die iemand anders trainde, die van een foto of zin 384 getallen maakt.<a class="ref" href="#nb-1">1</a><a class="ref" href="#nb-2">2</a></p>
         <div class="ess"><span class="lab">Essentie</span>Nabijheid in een hoogdimensionale ruimte betekent, hopelijk, dat de dingen zelf op elkaar lijken. Daar zoek, vergelijk en classificeer je.</div>
@@ -507,7 +510,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="baseline" data-check="Waarom hoef je een bevroren encoder maar één keer te draaien, ook als je de kop honderd epochs traint? En waarom reken je eerst de naaste buur uit?">
       <div class="txt">
-        <h3>Een model van een ander: één keer draaien, eerst de baseline</h3>
+        <h3><span class="no">5.2</span> Een model van een ander: één keer draaien, eerst de baseline</h3>
         <p class="inml"><span class="lab">In ML</span>Les 1 begint hier: embed één keer, train veel koppen, en log naaste buur als vloer voordat je zoekt.</p>
         <p>Een bevroren encoder geeft voor dezelfde foto altijd dezelfde 384 getallen. Draai hem dus één keer, bewaar de vectoren in een cache, en train je kop daarop op een laptop. Honderd epochs kosten dan ongeveer evenveel als één keer de encoder.<a class="ref" href="#bl-1">1</a></p>
         <div class="ess"><span class="lab">Essentie</span>Zonder enige aanvullende training lost de embedding zelf de taak al bijna perfect op.</div>
@@ -523,7 +526,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="omlaag" data-check="Je PCA-plaatje van vier pinguïnmetingen toont twee componenten met samen 99,99% van de variantie. Waarom is dat een waarschuwing en geen triomf?">
       <div class="txt">
-        <h3>Omlaag om te kijken, en zeg hoeveel je laat zien</h3>
+        <h3><span class="no">5.3</span> Omlaag om te kijken, en zeg hoeveel je laat zien</h3>
         <p class="inml"><span class="lab">In ML</span>Les 1: dezelfde PCA en t-SNE op de vectoren van satellietbeelden, om te zien hoe de ruimte van een encoder eruitziet.</p>
         <p>PCA werpt een schaduw: nieuwe assen op volgorde van spreiding, in de eenheden die jij gaf. Zet de verklaarde variantie in de titel.<a class="ref" href="#om-1">1</a></p>
         <div class="co trap"><span class="lab">Valkuil</span><p>Standaardiseer eerst, anders meet PCA je eenheden. In gram varieert lichaamsgewicht met honderden, snaveldiepte met twee millimeter, en dan is de eerste component gewoon "gram".<a class="ref" href="#om-1">1</a></p></div>
@@ -540,7 +543,7 @@ line,path{stroke-linecap:round}
 
     <article class="card" id="terug-lezen" data-check="Iemand begint elk bericht met 'hey Claudia', en je model herkent die persoon perfect. Wat heeft het model dan geleerd, en wat doe je ermee?">
       <div class="txt">
-        <h3>Lees terug wat het werk deed</h3>
+        <h3><span class="no">5.4</span> Lees terug wat het werk deed</h3>
         <p class="inml"><span class="lab">In ML</span>Les 4: twee representaties samengevoegd, met de ablatie die je eerlijk houdt. Haal er één weg en kijk wat het werk deed.</p>
         <p>In 27.000 trigramdimensies leken de QAnon-posts van twee auteurs. Terugkijken welke trigrammen het verschil maakten gaf <code>htt</code>, <code>://</code> en <code>.com</code>: links. Zonder links verdween de splitsing.<a class="ref" href="#tl-1">1</a></p>
         <div class="co ins"><span class="lab">Inzicht</span><p>Je had URL's geteld op een heel ingewikkelde manier. Met 27.000 kolommen kun je niet alles bekijken, dus lees je terug welke kolommen het werk deden.<a class="ref" href="#tl-1">1</a></p></div>
@@ -563,14 +566,14 @@ line,path{stroke-linecap:round}
   <header>
     <div class="hd">
       <div class="eyebrow"><span class="act">MCP's</span><span>DAV setup, milestone M7</span></div>
-      <h2 id="h-mcp">Coaches via MCP: dit heb je gedaan, of nog niet</h2>
+      <h2 id="h-mcp"><span class="no">6</span> Coaches via MCP: dit heb je gedaan, of nog niet</h2>
       <p class="ml">Dit is een ervaring, geen begrip; een samenvatting helpt je hier niet.</p>
     </div>
   </header>
   <div class="cards">
     <article class="card" id="coaches" data-check="Wat doet een coach als je je assistent vraagt de plot voor je te maken? En waarom is dat de bedoeling?">
       <div class="txt">
-        <h3>Je hebt met de coaches gewerkt als</h3>
+        <h3><span class="no">6.1</span> Je hebt met de coaches gewerkt als</h3>
         <p class="inml"><span class="lab">In ML</span>Les 1: <code>/vectormesh:design</code> en <code>/vectormesh:search</code> vóór je eerste zoektocht.</p>
         <ol class="done">
           <li><code>claude mcp list</code>, of wat jouw harness daarvoor heeft, <code>goad</code> en <code>codestyle</code> als connected toonde, uit de <code>.mcp.json</code> van de DAV-repo.<a class="ref" href="#cc-1">1</a></li>
@@ -667,11 +670,10 @@ line,path{stroke-linecap:round}
       } else a.removeAttribute("aria-current");
     });
   }
-  var ticking = false;
-  window.addEventListener("scroll", function(){
-    if (!ticking) { ticking = true; requestAnimationFrame(function(){ ticking = false; markSection(); }); }
-  }, { passive: true });
+  window.addEventListener("scroll", markSection, { passive: true });
   window.addEventListener("resize", markSection);
+  window.addEventListener("load", markSection);
+  window.addEventListener("hashchange", function(){ setTimeout(markSection, 0); });
   markSection();
 
   var boxes = Array.prototype.slice.call(document.querySelectorAll(".ptr input[data-r]"));
