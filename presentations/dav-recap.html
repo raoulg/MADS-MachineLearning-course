@@ -55,16 +55,21 @@ ul,ol{margin:0}
 .eyebrow .act{color:var(--accent)}
 .lab{font-family:var(--mono);font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 
-/* ---- the review bar ---- */
+/* ---- the bar: topics, review count, theme ---- */
 .bar{position:sticky;top:0;z-index:20;background:var(--paper);border-bottom:1px solid var(--rule);
   padding-top:calc(8px + env(safe-area-inset-top, 0px));padding-bottom:8px;
   padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
-.bar .in{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:10px 16px;min-height:36px}
-.bar .cnt{font-family:var(--mono);font-size:.8rem;font-weight:700;display:flex;align-items:center;gap:.6em;min-width:0}
+.bar .in{max-width:1120px;margin:0 auto;display:flex;align-items:center;gap:8px 18px;min-height:36px}
+.toc{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.toc::-webkit-scrollbar{display:none}
+.toc a{font-family:var(--mono);font-size:.74rem;font-weight:700;letter-spacing:.02em;color:var(--muted);text-decoration:none;white-space:nowrap;
+  padding:.42rem .55rem .32rem;border-bottom:2px solid transparent}
+.toc a:hover{color:var(--ink)}
+.toc a[aria-current="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.bar .cnt{font-family:var(--mono);font-size:.78rem;font-weight:700;display:flex;align-items:center;gap:.55em;white-space:nowrap;color:var(--ink);text-decoration:none}
+.bar .cnt:hover span{text-decoration:underline}
 .bar .cnt b{display:inline-grid;place-items:center;min-width:1.8em;height:1.8em;padding:0 .4em;border-radius:2px;background:var(--raise);border:1px solid var(--rule);font-variant-numeric:tabular-nums}
 .bar .cnt.has b{background:var(--hot);border-color:var(--hot);color:var(--paper)}
-.bar a{font-family:var(--mono);font-size:.78rem;font-weight:700;white-space:nowrap}
-.bar .sp{flex:1}
 .theme{display:inline-flex;align-items:center;gap:.45em;font-family:var(--mono);font-size:.76rem;font-weight:700;letter-spacing:.04em;
   background:var(--ink);color:var(--paper);border:1px solid var(--ink);padding:.4rem .75rem;border-radius:2px;cursor:pointer}
 .theme svg{width:16px;height:16px;flex:none}
@@ -89,10 +94,6 @@ ol.how p{font-size:.95rem;line-height:1.5;max-width:46ch}
 .chip.k-ins{border-color:var(--info);color:var(--info);background:var(--info-wash)}
 .chip.k-chk{border:1px dashed var(--muted);color:var(--muted)}
 .chip.k-ml{border-color:var(--hot);color:var(--hot);background:var(--raise)}
-.toc{display:flex;flex-wrap:wrap;gap:8px}
-.toc a{font-family:var(--mono);font-size:.78rem;font-weight:700;letter-spacing:.04em;color:var(--ink);text-decoration:none;
-  background:var(--raise);border:1px solid var(--rule);padding:.42rem .8rem;border-radius:2px}
-.toc a:hover{border-color:var(--accent)}
 
 /* ---- topic bands ---- */
 .topic{padding:clamp(20px,3.4vw,40px);display:flex;flex-direction:column;gap:22px}
@@ -213,6 +214,12 @@ line,path{stroke-linecap:round}
 @media (max-width:820px){
   ol.how,.card,.topic > header.with-fig{grid-template-columns:minmax(0,1fr)}
 }
+@media (max-width:760px){
+  :root{--bar:92px}
+  .bar .in{flex-wrap:wrap}
+  .bar .cnt{margin-left:auto}
+  .toc{order:3;flex-basis:100%;margin-inline:-6px;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent);mask-image:linear-gradient(90deg,#000 88%,transparent)}
+}
 @media (max-width:560px){
   .topic{padding:18px 14px}
   .card figure:has(svg),.topic > header figure{margin-inline:-14px;padding-inline:4px;overflow-x:auto}
@@ -220,7 +227,7 @@ line,path{stroke-linecap:round}
   .card figcaption{padding-inline:10px}
   ol.steps{grid-template-columns:minmax(0,1fr)}
   .ptr li{grid-template-columns:1.1rem auto minmax(0,1fr);gap:4px 8px}
-  .bar .cnt .long,.theme .tl{display:none}
+  .theme .tl{display:none}
 }
 </style>
 </head>
@@ -239,11 +246,10 @@ line,path{stroke-linecap:round}
  </symbol>
 </svg>
 
-<div class="bar" role="region" aria-label="Reviewlijst">
+<div class="bar">
   <div class="in">
-    <span class="cnt" id="cnt"><b id="n">0</b><span>gemarkeerd<span class="long"> voor review</span></span></span>
-    <a href="#reviewlijst">Naar je reviewlijst</a>
-    <span class="sp"></span>
+    <nav class="toc" id="toc" aria-label="Onderwerpen"><a href="#harness">Agent in een harness</a><a href="#draad">De draad</a><a href="#statistiek">Statistiek</a><a href="#tijd">Het residu</a><a href="#vectorruimtes">Vectorruimtes</a><a href="#mcp">Coaches</a></nav>
+    <a class="cnt" id="cnt" href="#reviewlijst"><b id="n">0</b><span>reviewlijst</span></a>
     <button class="theme" type="button" id="theme" data-mode="light" aria-label="Wissel tussen licht en donker">
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
       <svg class="moon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg>
@@ -268,9 +274,6 @@ line,path{stroke-linecap:round}
     <span class="lab">Kaders</span>
     <span class="chip k-def">Definitie</span><span class="chip k-ess">Essentie</span><span class="chip k-trap">Valkuil</span><span class="chip k-ins">Inzicht</span><span class="chip k-chk">Check jezelf</span><span class="chip k-ml">In ML</span>
   </div>
-  <nav class="toc" aria-label="Onderwerpen">
-    <a href="#harness">Agent in een harness</a><a href="#draad">De draad</a><a href="#statistiek">Statistiek</a><a href="#tijd">Het residu</a><a href="#vectorruimtes">Vectorruimtes</a><a href="#mcp">Coaches via MCP</a><a href="#reviewlijst">Je reviewlijst</a>
-  </nav>
 </section>
 
 <!-- ============================================================ HARNESS -->
@@ -319,7 +322,7 @@ line,path{stroke-linecap:round}
         <div class="lab">De draad door alle zeven lessen</div>
         <blockquote id="h-draad">Als een methode altijd iets vindt, bewijst iets vinden niets.</blockquote>
         <p class="src-line">reader, les 6: "If a tool always finds something, finding something proves nothing"<a class="ref" href="#dr-3">3</a></p>
-        <p class="inml"><span class="lab">In ML</span>Les 3: een zoektocht kroont altijd een beste trial. De vraag is wat je extra capaciteit opleverde, gemeten tegen een controle.</p>
+        <p class="inml"><span class="lab">In ML</span>Les 3: een zoektocht kroont altijd een beste trial. De vraag is wat je aanpassing opleverde, gemeten tegen een controle.</p>
         <ul class="list">
           <li>Een fitter kroont altijd een winnaar, ook een beta-distributie voor flipperlengtes (les 4).<a class="ref" href="#dr-1">1</a></li>
           <li>Vijftien toetsen op willekeurige groepen vonden in 42% van de zoektochten iets "significants" (les 5).<a class="ref" href="#dr-2">2</a></li>
@@ -644,6 +647,31 @@ line,path{stroke-linecap:round}
     var mq = matchMedia("(prefers-color-scheme: dark)");
     if (mq.addEventListener) mq.addEventListener("change", paintTheme);
   }
+
+  var toc = document.getElementById("toc");
+  var tocLinks = Array.prototype.slice.call(toc.querySelectorAll("a"));
+  var secs = tocLinks.map(function(a){ return document.getElementById(a.getAttribute("href").slice(1)); });
+  function markSection(){
+    var y = document.querySelector(".bar").offsetHeight + 40, cur = -1;
+    secs.forEach(function(sec, i){ if (sec && sec.getBoundingClientRect().top <= y) cur = i; });
+    var last = secs[secs.length - 1];
+    if (last && last.getBoundingClientRect().bottom < y) cur = -1;
+    tocLinks.forEach(function(a, i){
+      if (i === cur) {
+        if (a.getAttribute("aria-current") !== "true") {
+          a.setAttribute("aria-current", "true");
+          var l = a.offsetLeft - toc.offsetLeft, r = l + a.offsetWidth;
+          if (l < toc.scrollLeft || r > toc.scrollLeft + toc.clientWidth) toc.scrollLeft = l - 8;
+        }
+      } else a.removeAttribute("aria-current");
+    });
+  }
+  var ticking = false;
+  window.addEventListener("scroll", function(){
+    if (!ticking) { ticking = true; requestAnimationFrame(function(){ ticking = false; markSection(); }); }
+  }, { passive: true });
+  window.addEventListener("resize", markSection);
+  markSection();
 
   var boxes = Array.prototype.slice.call(document.querySelectorAll(".ptr input[data-r]"));
   var marks = load(MARKS, {}) || {};
