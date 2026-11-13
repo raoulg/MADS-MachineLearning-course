@@ -514,7 +514,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">5.2</span> Een model van een ander: één keer draaien, eerst de baseline</h3>
         <p class="inml"><span class="lab">In ML</span>Er bestaan heel erg veel pretrained deep learning-modellen. Het is slim om het wiel niet opnieuw uit te vinden, maar verder te bouwen op die intelligentie.</p>
-        <p>Een frozen encoder geeft voor dezelfde foto altijd dezelfde 384 getallen. Draai hem dus één keer, bewaar de vectoren in een cache, en train je head daarop op een laptop. Honderd epochs kosten dan ongeveer evenveel als één keer de encoder.<a class="ref" href="#bl-1">1</a></p>
+        <p>Een frozen encoder geeft voor dezelfde foto altijd dezelfde 384 getallen. Draai hem dus één keer, bewaar de vectoren in een cache, en train je neurale netwerk op de vectoren in plaats van de afbeelding. Dit gebruikt ongeveer 100x minder rekenkracht en kan daardoor makkelijker op je eigen laptop gebeuren. Honderd epochs kosten dan ongeveer evenveel als één keer de encoder.<a class="ref" href="#bl-1">1</a></p>
         <div class="ess"><span class="lab">Essentie</span>Zonder enige aanvullende training lost alleen de embedding de taak soms al bijna perfect op.</div>
         <div class="co ins"><span class="lab">Inzicht</span><p>Nearest neighbour kopieert het label van de meest gelijkende trainingsfoto en traint niets. Dat haalde 99,1% op 102 bloemsoorten; de getrainde head 99,3%. Dat er weinig te leren viel, weet je alleen omdat je eerst de baseline uitrekende.<a class="ref" href="#bl-1">1</a></p></div>
       </div>
