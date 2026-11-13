@@ -17,9 +17,12 @@ protocol below.
 > this document does not apply — send them to
 > <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/00-SURF-lab-setup.pdf> and the teacher.
 >
-> This document is about the VM. The tools on the student's own machine have their own
-> guide, run the same way. Every student does that one; only students with a VM do this
-> one as well.
+> This document is about the VM, and the VM is **optional**. Most students are better off
+> on their own machine, which is usually faster than the VM, and never do this document.
+> The tools on the student's own machine have their own guide, run the same way. Every
+> student does that one, and starts with it, unless they already received a VM invitation
+> by e-mail; then this one comes first. A student who wants a VM requests it in M0 below
+> and carries on locally meanwhile.
 >
 > **How the two guides divide the work for a VM student.** From the tooling guide, the
 > laptop gets the terminal, git, uv, the editor and Atlas. The clone, the hooks, the
@@ -118,8 +121,11 @@ time. Confusing local and remote is the single most common way this setup goes w
 
 The course is built to run on a laptop CPU: every graded notebook runs on the weakest
 hardware a student is likely to have (see <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/planning/principles.md>, the hardware
-section). A VM is **optional**. It is useful for a long training run that should not tie
-up the laptop, and for a student whose laptop is old or short on memory. A student who is
+section). A VM is **optional**, and most students are better off on their own machine,
+which is usually faster than the VM. A VM is worth requesting when the laptop cannot run
+the course: it is managed by the student's organisation and does not allow installing the
+tools, it is an Intel Mac or a Windows on ARM machine, or it is old or short on memory. It
+can also take a long training run that should not tie up the laptop. A student who is
 fine on their laptop skips this document entirely.
 
 Ask the student: *do you want a VM, and if so, have you been told one is ready for you?*

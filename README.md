@@ -56,18 +56,20 @@ In addition to that, there is a [codestyle repo](https://github.com/raoulg/codes
 
 The setup is meant to be done together with an assistant (Claude Code, Cursor, Codex). Hand it one of these URLs and ask it to walk you through; it takes one step at a time, explains why each tool is there, and keeps track of where you are between sessions.
 
-## VM
-The Linux lab VM, if you received one (do this first, then the tooling):
-
-```
-https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md
-```
+Start with the local setup. If you did the setup of the DAV course, the guide first asks which topics you already have, so you only do what is left.
 
 ## local
 The tools on the machine you write code on (git and GitHub, uv, an editor, the course repository, the pre-commit hooks, Atlas, the coaches, and the class runs repository):
 
 ```
 https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/tooling-setup.md
+```
+
+## VM (optional)
+Most of you are better off on your own machine, which is usually faster than a VM. A VM is worth requesting when your laptop cannot run the course, for instance because it is managed by your organisation and does not let you install the tools. The lab guide covers requesting a VM and setting it up. Only if you already received a VM invitation by e-mail, do this guide first:
+
+```
+https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md
 ```
 
 Two rules that matter from day one:
