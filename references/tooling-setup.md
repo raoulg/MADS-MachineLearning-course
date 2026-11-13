@@ -16,16 +16,23 @@ guard code quality, Atlas, the coaching servers, and the class runs repository t
 student submits their training runs to. Read this whole file now, then follow the
 protocol below.
 
-> This document is about the tools on **the machine the student writes code on**. If
-> the student works on a lab VM, the lab guide covers the VM itself (keys, SSH,
-> Remote-SSH) and comes first:
+> This document is about the tools on **the machine the student writes code on**, which
+> for almost every student is their own laptop. Start here.
+>
+> A lab VM is **optional**. Most students are better off on their own machine, which is
+> usually faster than the VM. A VM is worth requesting when the laptop cannot run the
+> course: it is managed by the student's organisation and does not allow installing the
+> tools, it is an Intel Mac or a Windows on ARM machine (see §2), or it is old or short on
+> memory. The lab guide covers requesting the VM and setting it up (keys, SSH,
+> Remote-SSH):
 >
 > ```
 > https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md
 > ```
 >
-> The two overlap on purpose: a student who finished the lab setup already has some
-> milestones below done. Verify those instead of redoing them. Both guides keep their
+> Only a student who already received a VM invitation by e-mail does the lab guide first.
+> The two guides overlap on purpose: a student who finished the lab setup already has
+> some milestones below done. Verify those instead of redoing them. Both guides keep their
 > progress in the same file, `~/mads-ml-setup.md`.
 
 ---
@@ -44,6 +51,29 @@ Say this first, in your own words:
 That is the contract. You are allowed — encouraged — to run installers, edit config,
 and fix what breaks. You are not allowed to move on while the student does not know
 what just happened to their machine.
+
+### Then ask what they can skip
+
+Your first question, before any milestone: show the student the milestone list from §1
+and ask *"Which of these topics are no longer relevant to you, because you already know
+them and have them set up?"* Let them tick those off. They then do only what is left.
+
+Many students did the *Data Analysis & Visualisation* course (DAV) and its setup. For
+them, expect this:
+
+- **M1 terminal, M2 git and GitHub, M4 editor**: done. Verify, do not teach.
+- **M3 uv**: done; `uv self update` brings it current. Verify that uv provides the Python.
+- **M5 the course repository**: new, because this is another repository. Do it.
+- **M6 lefthook**: they know the hooks, so skip the hook-by-hook explanation. A new
+  clone has no hooks yet, so `lefthook install` still has to run in this repository, and
+  the verify commit still has to pass.
+- **M7 Atlas**: maybe installed. If so, bring it current and check that its MCP server
+  is registered; if not, install it.
+- **M8 the coaches, M9 the class runs repository**: new. Do them.
+
+A milestone the student ticks off is still verified: run its **Verify** block. A check
+that fails puts the milestone back on the list. Write what was ticked off in the progress
+file, so a later session does not ask again.
 
 ### The one rule
 
@@ -123,7 +153,9 @@ they should recognise every line.
 
 ### If the student works on a VM
 
-The lab guide comes first for them (its raw URL is at the top of this file). Then:
+A student with a VM invitation does the lab guide first (its raw URL is at the top of
+this file); a student who requests a VM later continues here meanwhile and moves the
+work to the VM once it is there. Either way:
 
 - **M1 to M4, and M7 (Atlas)**, happen on the laptop.
 - **M5, M6, M8 and M9** happen on the machine that trains and holds the mlflow store,
@@ -184,7 +216,7 @@ Track these. Each is a section below.
 - [ ] **M4 — An editor.** VS Code with Python, Jupyter, Remote - SSH; or their own choice.
 - [ ] **M5 — The course repository.** Cloned, own branch, `uv sync`, a notebook cell runs.
 - [ ] **M6 — Lefthook.** Hooks installed; each hook explained; one commit made through them; `param()` and cleared outputs explained back.
-- [ ] **M7 — Atlas.** `atlas-code` installed and current, Studio if wanted, its MCP server registered.
+- [ ] **M7 — Atlas.** Atlas Studio installed and current (Mac, Windows), or `atlas-code` (Linux); its MCP server registered.
 - [ ] **M8 — The coaches.** `vectormesh` and `codestyle` connected, and they know what a coach will and will not do.
 - [ ] **M9 — The class runs repository.** Their own fork, cloned to `../mads-runs`, with `upstream` set.
 
@@ -206,11 +238,12 @@ Ask, in one short message:
      `https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md`.
    - **Windows on ARM** (`echo $PROCESSOR_ARCHITECTURE` prints `ARM64`): a VM, the same
      route as an Intel Mac.
+   - **A laptop managed by their organisation** that does not let them install tools: a
+     VM, the same route.
 2. Have they used a terminal before? Git? GitHub? Python — and if so, installed how?
+   (Skip what the skip question in §0 already answered.)
 3. Did they do the lab setup? If yes, M1 and parts of M2, M3 and M5 are probably done
    on the VM; you will verify rather than redo. See *If the student works on a VM* in §0.
-4. Did they do the setup of the *Data Analysis & Visualisation* course? Then uv, git,
-   the editor and lefthook are likely installed already; verify them.
 
 The Python question matters most. *"I have Anaconda"* or *"I installed it from
 python.org for another course"* is not a problem to fix now — it is a thing to know
@@ -868,57 +901,18 @@ The effect they will notice: `atlas-code view .` opens a picture of a repository
 browser, and their assistant can read the same picture through Atlas's MCP server and
 point at a box on it.
 
-### The command line
+### Atlas Studio, the desktop app (Mac and Windows)
 
-The command is `atlas-code`. Install it, or update it if it is there already —
-updating is the same install command again:
+Prefer the desktop app where there is one: on macOS and Windows. Atlas Studio shows the
+picture, its history and a terminal in one window, carries its own `atlas-code` (so no
+separate command line is needed), and updates itself (Atlas Studio › Check for
+Updates…). Its releases are at <https://github.com/raoulg/atlas/releases>: a disk image
+(`atlas-studio-*.dmg`) for Mac, Apple silicon or Intel, and a setup program
+(`atlas-studio-*-setup.exe`) for Windows.
 
-Mac and Linux:
+Install it with the script, which fetches the latest release from that page:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/raoulg/atlas/main/install.sh | sh
-```
-
-Windows, in PowerShell:
-
-```powershell
-irm https://raw.githubusercontent.com/raoulg/atlas/main/install.ps1 | iex
-```
-
-Homebrew users may prefer the formula (ask first, it is their package manager):
-
-```bash
-brew install raoulg/tap/atlas-code     # and later: brew upgrade atlas-code
-```
-
-The Mac and Linux script puts the binary in `~/.local/bin`; the PowerShell one puts it
-in `%LOCALAPPDATA%\Programs\atlas-code`. Either way, **open a new terminal** afterwards,
-so the shell finds `atlas-code`.
-
-### Is it current?
-
-```bash
-atlas-code --version
-gh release view --repo raoulg/atlas --json tagName --jq .tagName
-```
-
-The first prints `atlas-code <version> (<commit>)`, the second the latest release tag,
-`v<version>`. They must match. If they do not, run the install command again (or
-`brew upgrade atlas-code`).
-
-### Atlas Studio, if they want the desktop app
-
-Ask: *"Would you like the desktop app as well — the picture, its history and a terminal
-in one window?"* It is optional; it carries its own `atlas-code` and updates itself
-(Atlas Studio › Check for Updates…).
-
-Mac, with Homebrew (into `/Applications`):
-
-```bash
-brew install --cask raoulg/tap/atlas-studio
-```
-
-or with the script (into `~/Applications`):
+Mac (into `~/Applications`):
 
 ```bash
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/raoulg/atlas/main/install-studio.sh)"
@@ -930,17 +924,54 @@ Windows, in PowerShell:
 irm https://raw.githubusercontent.com/raoulg/atlas/main/install-studio.ps1 | iex
 ```
 
-Linux (x86_64): the same `install-studio.sh` line as the Mac script.
+Homebrew users may prefer the cask, into `/Applications` (ask first, it is their package
+manager):
 
-Studio is not signed with a paid identity. An app from Homebrew or from a disk image
-downloaded in a browser is blocked on its first start: on macOS the student opens it
-once, then allows it in System Settings › Privacy & Security › Open Anyway; on Windows
-SmartScreen asks, and they choose More info, then Run anyway. What the install scripts
-put in place opens without asking.
+```bash
+brew install --cask raoulg/tap/atlas-studio
+```
+
+Studio is not signed with a paid identity. An app from Homebrew, or from a disk image or
+setup program downloaded from the releases page in a browser, is blocked on its first
+start: on macOS the student opens it once, then allows it in System Settings › Privacy &
+Security › Open Anyway; on Windows SmartScreen asks, and they choose More info, then Run
+anyway. What the install scripts put in place opens without asking.
+
+If Studio is already installed: Check for Updates… brings it current.
+
+### The command line (Linux)
+
+There is no Studio for Linux; there the command is `atlas-code`. Install it, or update it
+if it is there already — updating is the same install command again:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/raoulg/atlas/main/install.sh | sh
+```
+
+The script puts the binary in `~/.local/bin`. **Open a new terminal** afterwards, so the
+shell finds `atlas-code`. A Mac or Windows student who wants the command line beside
+Studio uses the same script (or `brew install raoulg/tap/atlas-code`) on Mac, and on
+Windows, in PowerShell, `irm https://raw.githubusercontent.com/raoulg/atlas/main/install.ps1 | iex`.
+
+Is it current?
+
+```bash
+atlas-code --version
+gh release view --repo raoulg/atlas --json tagName --jq .tagName
+```
+
+The first prints `atlas-code <version> (<commit>)`, the second the latest release tag,
+`v<version>`. They must match. If they do not, run the install command again.
 
 ### Register its MCP server
 
-Once, for every project:
+Once, for every project.
+
+**With Studio**: Settings › Coding agents shows whether Claude Code and Codex have Atlas;
+**Add Atlas** registers it, with Studio's own `atlas-code`. Then start a new session of
+the assistant (or `/mcp` in Claude Code). Cursor is not on that page; see below.
+
+**With the command line**:
 
 ```bash
 claude mcp add --scope user atlas -- atlas-code mcp          # Claude Code
@@ -965,21 +996,22 @@ command `atlas-code` and args `["mcp"]`:
 { "mcpServers": { "atlas": { "command": "atlas-code", "args": ["mcp"] } } }
 ```
 
-If the file already has servers, add the `atlas` entry beside them. Studio users can do
-all of this from Studio's Settings › Coding agents.
+If the file already has servers, add the `atlas` entry beside them. A Cursor user with
+Studio installs the command line as well, for this entry.
 
 ### Verify (you run this)
 
 ```bash
-atlas-code --version
+atlas-code --version       # command line only; Studio shows its version in its status bar
 claude mcp list            # or: codex mcp list
 ```
 
-What to look for depends on the client: `claude mcp list` shows `atlas: atlas-code mcp
-- ✔ Connected`; `codex mcp list` shows `atlas` with status `enabled`; Cursor's Settings →
-MCP shows `atlas` with a green dot. Then show it working: in the course repository,
-`atlas-code view .` opens the picture in the browser; ask the student what one box on it
-is.
+The version must be the latest release tag (`gh release view --repo raoulg/atlas --json
+tagName --jq .tagName`). What to look for in the MCP list depends on the client:
+`claude mcp list` shows `atlas` with `✔ Connected`; `codex mcp list` shows `atlas` with
+status `enabled`; Cursor's Settings → MCP shows `atlas` with a green dot. Then show it
+working: open the course repository in Studio, or run `atlas-code view .` in it, which
+opens the picture in the browser; ask the student what one box on it is.
 
 **CHECKPOINT.** M7 is done when the version matches the latest release, `atlas` is
 registered with their assistant, and they have seen the picture once. Tick the box.
