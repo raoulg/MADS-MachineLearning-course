@@ -13,6 +13,15 @@ docs/publishing-caches-to-huggingface.md §3.
 The encoder is read from metadata.json rather than parsed out of the folder name, so this
 keeps working when vectormesh starts naming the folders itself (raoulg/vectormesh#1).
 
+A cache with no hub source dataset and no encoder (raw signals, say) has nothing for the
+generated card to describe. Pass --card PATH to upload that hand-written card instead;
+--source is then optional:
+
+    uv run python scripts/publish_cache.py \
+        --dataset heartbeats-ptb --card scripts/cards/heartbeats-ptb.md \
+        --train artefacts/<newest *_heartbeats-ptb_train_raw_beat> \
+        --test  artefacts/<newest *_heartbeats-ptb_test_raw_beat>
+
 Add --dry-run to see the repo id and the card without touching the hub.
 """
 
@@ -69,7 +78,7 @@ def revision(api: HfApi, repo_id: str, repo_type: str) -> str:
     try:
         info = api.repo_info(repo_id, repo_type=repo_type)
         return info.sha or "unresolved"
-    except Exception as e:  # a private or renamed source should not kill the upload
+    except Exception as e:  # noqa: BLE001  # a private or renamed source should not kill the upload
         print(f"  ! could not resolve {repo_type} revision for {repo_id}: {e}")
         return "unresolved"
 
@@ -191,8 +200,13 @@ def main() -> None:
     )
     p.add_argument(
         "--source",
-        required=True,
-        help="hub id of the source dataset, e.g. zalando-datasets/fashion_mnist",
+        help="hub id of the source dataset, e.g. zalando-datasets/fashion_mnist; "
+        "required unless --card is given",
+    )
+    p.add_argument(
+        "--card",
+        type=Path,
+        help="hand-written dataset card to upload instead of the generated one",
     )
     p.add_argument("--train", type=Path, required=True, help="local train cache folder")
     p.add_argument("--test", type=Path, required=True, help="local test cache folder")
@@ -209,6 +223,10 @@ def main() -> None:
         help="print the repo id and card, upload nothing",
     )
     args = p.parse_args()
+    if args.card is None and args.source is None:
+        p.error("--source is required unless --card is given")
+    if args.card is not None and not args.card.is_file():
+        p.error(f"--card {args.card} is not a file")
 
     splits = {"train": args.train, "test": args.test}
     metas, column, model_tag = {}, args.column, None
@@ -225,9 +243,12 @@ def main() -> None:
     assert model_tag is not None
     repo = f"{args.org}/{args.dataset}-{model_tag.split('/')[-1]}"
     api = HfApi()
-    card = build_card(
-        api, repo, args.dataset, args.source, column, model_tag, metas, args.config
-    )
+    if args.card is not None:
+        card = args.card.read_text()
+    else:
+        card = build_card(
+            api, repo, args.dataset, args.source, column, model_tag, metas, args.config
+        )
 
     print(f"\nrepo:    {repo}")
     for split, folder in splits.items():
