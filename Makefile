@@ -1,4 +1,4 @@
-.PHONY: help publish-fashion publish-flowers publish-imdb publish-all list-caches \
+.PHONY: help share dashboard check-lesson publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
         build-heartbeats publish-heartbeats
 
@@ -27,11 +27,31 @@ ARGS ?=
 # ENCODERS ?= facebook/dinov2-small microsoft/resnet-18 google/mobilenet_v2_1.0_224
 ENCODERS ?= facebook/dinov2-base facebook/dinov2-large
 
+# The class's runs (docs/submit-runs.md, docs/run-protocol.md). Make takes variables, not
+# flags, so the lesson goes in as LESSON=<N>; ARGS passes anything else to the script.
+#
+#   make share LESSON=1                    # submit your runs as a pull request
+#   make share LESSON=1 ARGS=--list        # show what would be submitted, change nothing
+#   make dashboard LESSON=1                # import the class's runs, open mlflow on them
+
+LESSON ?=
+
+check-lesson:
+	@test -n "$(LESSON)" || { echo "name the lesson: make $(MAKECMDGOALS) LESSON=<N>"; exit 2; }
+
+share: check-lesson
+	uv run scripts/submit_runs.py --lesson $(LESSON) $(ARGS)
+
+dashboard: check-lesson
+	uv run scripts/collect_runs.py --lesson $(LESSON) --ui $(ARGS)
+
 # newest artefact folder matching a glob, or empty
 latest = $(shell ls -dt artefacts/$(1) 2>/dev/null | head -1)
 
 help:
 	@echo "targets:"
+	@echo "  share LESSON=<N>      submit your runs of lesson N (ARGS=--list to preview)"
+	@echo "  dashboard LESSON=<N>  import the class's runs of lesson N and open mlflow"
 	@echo "  list-caches      show the artefact folders these targets would pick"
 	@echo "  publish-fashion  fashion-mnist x \$$ENCODER  (default: $(ENCODER))"
 	@echo "  publish-flowers  oxford-flowers x \$$ENCODER"
