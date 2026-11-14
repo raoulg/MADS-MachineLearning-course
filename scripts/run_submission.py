@@ -253,15 +253,25 @@ def load(path: Path, root: Path | None = None) -> Submission:
     size = path.stat().st_size
     if size > MAX_FILE_BYTES:
         raise ValueError(f"{size} bytes, limit {MAX_FILE_BYTES}")
+    rel = None
+    if root is not None:
+        rel = path.resolve().relative_to(root.resolve()).as_posix()
+    return parse(path.read_bytes(), rel)
+
+
+def parse(raw: bytes, rel: str | None = None) -> Submission:
+    """Validate the bytes of one submission file. With `rel`, the path of the file in the
+    runs repository, also check that it sits where its own content says it belongs."""
+    if len(raw) > MAX_FILE_BYTES:
+        raise ValueError(f"{len(raw)} bytes, limit {MAX_FILE_BYTES}")
     try:
-        data = json.loads(path.read_text())
+        data = json.loads(raw.decode())
     except (json.JSONDecodeError, UnicodeDecodeError) as e:
         raise ValueError(
             f"not valid JSON ({e}): submit again, do not edit by hand"
         ) from None
     sub = Submission.model_validate(data)
-    if root is not None:
-        rel = path.resolve().relative_to(root.resolve()).as_posix()
+    if rel is not None:
         m = PATH.fullmatch(rel)
         if m and m.group(2) != sub.student:
             raise ValueError(
