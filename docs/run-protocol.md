@@ -101,8 +101,9 @@ log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
 ```
 
 - **experiment**: `lesson<N>-notebook` for the runs of the notebook as handed out,
-  `lesson<N>-study` for the student's own research. The submit script takes every
-  experiment with the prefix `lesson<N>-`.
+  `lesson<N>-study` for the student's own research. The submit script takes those two
+  by default; any other experiment (a lesson notebook's own, such as `lesson1-search`)
+  only when named with `--experiment`.
 - **origin** tag: `notebook` (the notebook as handed out) or `study` (the student's own
   research).
 - **dataset** tag, on every run: the dataset the run was trained and scored on.

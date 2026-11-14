@@ -10,11 +10,13 @@ the pull request validates it and merges it.
     uv run scripts/submit_runs.py --lesson 1            # submit it
 
 The clone has two remotes: `origin` (your fork) and `upstream` (the class repository).
-By default it submits every finished run in the experiments named `lesson<N>-...`,
-skipping runs logged while notebooktester was running and runs imported from the class
-repository by collect_runs.py (a classmate's work). Submitting again is safe: a run
-already in the class repository or on your branch is skipped, so only new runs are
-added, to the open pull request if there is one.
+By default it submits every finished run in the experiments `lesson<N>-notebook` (the
+handed-out part of the exercise) and `lesson<N>-study` (the student's own studies); any
+other experiment only when named with `--experiment`. It skips runs logged while
+notebooktester was running and runs imported from the class repository by
+collect_runs.py (a classmate's work). Submitting again is safe: a run already in the
+class repository or on your branch is skipped, so only new runs are added, to the open
+pull request if there is one.
 
 Instructions for a coding agent: docs/submit-runs.md. The format: scripts/run_submission.py.
 """
@@ -144,6 +146,11 @@ def course_code() -> dict:
     }
 
 
+def default_experiments(lesson: int) -> list[str]:
+    """What a lesson submits without `--experiment`: the exercise's two experiments."""
+    return [f"lesson{lesson}-notebook", f"lesson{lesson}-study"]
+
+
 def select_runs(
     client: MlflowClient,
     lesson: int,
@@ -154,17 +161,11 @@ def select_runs(
     if run_ids:
         return [client.get_run(r) for r in run_ids]
 
-    prefix = f"lesson{lesson}-"
-    exps = [
-        e
-        for e in client.search_experiments()
-        if (e.name in experiments if experiments else e.name.startswith(prefix))
-    ]
+    wanted = experiments or default_experiments(lesson)
+    exps = [e for e in client.search_experiments() if e.name in wanted]
     if not exps:
         known = sorted(e.name for e in client.search_experiments())
-        sys.exit(
-            f"no experiment matches {experiments or prefix + '*'}; this store has {known}"
-        )
+        sys.exit(f"no experiment matches {wanted}; this store has {known}")
 
     runs, token = [], None
     while True:
@@ -595,7 +596,10 @@ def main() -> None:
         default=os.environ.get("MLFLOW_TRACKING_URI", DEFAULT_TRACKING_URI),
     )
     parser.add_argument(
-        "--experiment", action="append", help="only this experiment (repeatable)"
+        "--experiment",
+        action="append",
+        help="this experiment instead of the default lesson<N>-notebook and "
+        "lesson<N>-study (repeatable)",
     )
     parser.add_argument("--run-id", action="append", help="only this run (repeatable)")
     parser.add_argument(
