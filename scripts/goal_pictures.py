@@ -371,7 +371,7 @@ for i, y in enumerate(ys):
 g += box(132, 70, 90, 52, "runs-repo", "p", PT) + arrow(224, 96, 262, 96)
 g += (
     f'<rect x="266" y="54" width="114" height="84" fill="{BG}" stroke="{P}" stroke-width="2"/>'
-    + t(323, 72, "mlflow", "l p", "middle")
+    + t(323, 72, "overzicht", "l p", "middle")
 )
 for i, h in enumerate([22, 34, 16, 42, 28]):
     g += f'<rect x="{280 + i * 18}" y="{128 - h}" width="12" height="{h}" fill="{V if i == 3 else PT}" stroke="{P}"/>'
@@ -986,7 +986,7 @@ for x in (200, 228, 256):
     g += arrow(x, 36, x, 60)
 g += box(188, 62, 80, 42, "runs-repo", "p", PT) + arrow(270, 83, 290, 83)
 g += f'<rect x="294" y="44" width="88" height="78" fill="{BG}" stroke="{P}" stroke-width="2"/>'
-g += t(338, 62, "mlflow", "l p", "middle")
+g += t(338, 62, "overzicht", "l p", "middle")
 for i, h in enumerate((22, 34, 16, 40, 28)):
     g += f'<rect x="{304 + i * 16}" y="{116 - h}" width="10" height="{h}" fill="{V if i == 3 else PT}" stroke="{P}"/>'
 g += path("M 338 124 C 338 180, 90 180, 70 124", "v", 2.5)
