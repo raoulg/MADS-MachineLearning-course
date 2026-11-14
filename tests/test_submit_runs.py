@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 import submit_runs  # ty: ignore[import-not-found]
+from mlflow.tracking import MlflowClient
 
 FAKE_GH = f"""#!{sys.executable}
 import json, os, re, sys
@@ -404,3 +405,36 @@ def test_list_folds_seed_series():
         }
     )
     assert line == "accuracy=0.8123 ± 0.012 (n=5), n_params=1000"
+
+
+def test_runs_imported_from_the_class_are_not_submitted(
+    world, tmp_path, monkeypatch, capsys
+):
+    uri = f"sqlite:///{tmp_path / 'mlruns.db'}"
+    client = MlflowClient(tracking_uri=uri)
+    exp = client.create_experiment(
+        "lesson1-notebook", artifact_location=(tmp_path / "artifacts").as_uri()
+    )
+    ids = {}
+    for name, tags in [
+        ("mine", {"role": "final"}),
+        ("bob:baseline", {"submission_ref": f"lesson1/bob/{'a' * 32}"}),
+        ("carol:baseline", {"source_run_id": "b" * 32}),
+    ]:
+        rid = client.create_run(exp, run_name=name, tags=tags).info.run_id
+        ids[name] = rid
+        client.log_metric(rid, "accuracy", 0.5)
+        client.log_text(rid, "model = 1\n", "design.py")
+        client.set_terminated(rid)
+
+    argv = ["submit_runs.py", "--lesson", "1", "--student", "alice", "--no-push"]
+    argv += ["--runs-repo", str(world.clone), "--tracking-uri", uri]
+    monkeypatch.setattr(sys, "argv", argv)
+    submit_runs.main()
+
+    out = capsys.readouterr().out
+    assert "not submitted: 2 run(s) imported from the class repository" in out
+    written = run("git", "ls-files", "lesson1", cwd=world.clone).split()
+    assert written == [f"lesson1/alice/{ids['mine']}.json"]
+    data = json.loads((world.clone / written[0]).read_text())
+    assert data["run"]["artifacts"] == {"design.py": "model = 1\n"}

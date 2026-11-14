@@ -11,7 +11,8 @@ the pull request validates it and merges it.
 
 The clone has two remotes: `origin` (your fork) and `upstream` (the class repository).
 By default it submits every finished run in the experiments named `lesson<N>-...`,
-skipping runs logged while notebooktester was running. Submitting again is safe: a run
+skipping runs logged while notebooktester was running and runs imported from the class
+repository by collect_runs.py (a classmate's work). Submitting again is safe: a run
 already in the class repository or on your branch is skipped, so only new runs are
 added, to the open pull request if there is one.
 
@@ -54,6 +55,8 @@ DEFAULT_RUNS_REPO = COURSE_ROOT.parent / "mads-runs"
 CLASS_REPO = "raoulg/mads-ml-runs-2026-11"
 BASE = "main"
 
+# collect_runs.py writes these on every run it imports from the class repository.
+IMPORTED_TAGS = ("submission_ref", "source_run_id")
 GITHUB_REMOTE = re.compile(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/*$")
 SEED_SERIES = ("_per_seed", "_std")
 
@@ -177,6 +180,18 @@ def select_runs(
     if not include_test_runs:
         runs = [r for r in runs if r.data.tags.get("test_run") != "true"]
     return sorted(runs, key=lambda r: r.info.start_time)
+
+
+def own_runs(runs: list[MlflowRun]) -> list[MlflowRun]:
+    """`runs` without the ones imported from the class repository: those are a
+    classmate's work, never the student's own."""
+    own = [r for r in runs if not any(t in r.data.tags for t in IMPORTED_TAGS)]
+    if len(own) < len(runs):
+        print(
+            f"not submitted: {len(runs) - len(own)} run(s) imported from the class "
+            "repository (tagged submission_ref or source_run_id); only your own runs are"
+        )
+    return own
 
 
 def read_artifacts(client: MlflowClient, run_id: str) -> dict:
@@ -604,8 +619,10 @@ def main() -> None:
     student = resolve_login(args.student, repo)
 
     client = MlflowClient(tracking_uri=args.tracking_uri)
-    runs = select_runs(
-        client, args.lesson, args.experiment, args.run_id, args.include_test_runs
+    runs = own_runs(
+        select_runs(
+            client, args.lesson, args.experiment, args.run_id, args.include_test_runs
+        )
     )
     names = {e.experiment_id: e.name for e in client.search_experiments()}
     if not runs:
