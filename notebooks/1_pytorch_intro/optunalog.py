@@ -24,7 +24,10 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import tempfile
+import time
+import uuid
 import warnings
 from collections.abc import Mapping, Sequence
 from pathlib import Path
@@ -41,7 +44,7 @@ from optuna.distributions import (
     IntDistribution,
 )
 from optuna_dashboard import save_note
-from runlog import ROLES, SESSION, _num, describe
+from torchinfo import summary
 
 # The axes of a search space, under the names a space reads best with:
 # `Int(0, 3)`, `Int(32, 1024, log=True)`, `Float(1e-4, 1e-2, log=True)`, `Choice([...])`.
@@ -52,6 +55,23 @@ Int = IntDistribution
 
 # set_metric_names and the artifact store are marked experimental in Optuna
 warnings.filterwarnings("ignore", category=optuna.exceptions.ExperimentalWarning)
+
+# What a run is for. The class view compares baselines with finals per student and reads
+# trials as the search space everyone explored.
+ROLES = ("baseline", "trial", "final", "ablation", "hypothesis")
+
+STUDY_PLACEHOLDER = "name-your-study"
+# <first name>-<what it studies>: who it is from, and what it is about
+STUDY_NAME = re.compile(r"[a-z]+-[a-z0-9][a-z0-9-]{1,38}")
+
+# One timestamp per execution of a notebook (this module is imported once, at the top):
+# every trial carries it as the user attr `session`, so a notebook run twice can be told
+# apart and the class view keeps only a student's latest session of the handed-out runs.
+SESSION = time.strftime("%Y-%m-%d %H:%M:%S")
+
+# The largest design script a submission carries; matches MAX_ARTIFACT_BYTES in
+# scripts/run_submission.py, which measures the text as JSON.
+MAX_DESIGN_BYTES = 256_000
 
 TESTING = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
 ROOT = Path(__file__).resolve().parents[2] / "artefacts" / "optuna"
@@ -64,6 +84,143 @@ ARTIFACTS = ROOT / ("test-artifacts" if TESTING else "artifacts")
 CHOICES: dict[str, list[Any]] = {}
 
 _current: optuna.Study | None = None
+
+# A classmate's run as the class store names it in its tag `submission_ref`: the class
+# runs repository's path of the run's file, without `.json`.
+SUBMISSION_REF = re.compile(
+    r"lesson\d+/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[0-9a-f]{32}", re.ASCII
+)
+
+
+def _builds_on(builds_on: str | Sequence[str] | None) -> list[str]:
+    """The submission_refs in `builds_on` (one string, comma-separated, or a list of
+    them), stripped and without empty entries; a `ValueError` names one that is not a
+    submission_ref."""
+    if builds_on is None:
+        return []
+    parts = [builds_on] if isinstance(builds_on, str) else list(builds_on)
+    refs = [ref.strip() for part in parts for ref in part.split(",") if ref.strip()]
+    for ref in refs:
+        if not SUBMISSION_REF.fullmatch(ref):
+            raise ValueError(
+                f"builds_on: {ref!r} is not a submission_ref lesson<N>/<login>/<run_id>; "
+                "copy the tag submission_ref from the classmate's run in mlflow"
+            )
+    return refs
+
+
+def _last_dim(shape: Any) -> int | None:
+    if isinstance(shape, (list, tuple)) and shape and isinstance(shape[-1], int):
+        return shape[-1]
+    return None
+
+
+def describe(model: torch.nn.Module, example: Any) -> dict[str, Any]:
+    """The architecture of `model` as data: every layer with its input and output shape.
+
+    `example` is one batch input, exactly what you would pass as `model(example)`: a
+    tensor, or a tuple of tensors for a model with two streams. Two rows are enough.
+    """
+    stats = summary(
+        model,
+        input_data=[example],
+        verbose=0,
+        depth=8,
+        mode="eval",
+        col_names=["input_size", "output_size", "num_params"],
+    )
+    layers = []
+    for info in stats.summary_list:
+        if info.class_name == "ModuleList":
+            continue
+        layers.append(
+            {
+                "depth": info.depth,
+                "type": info.class_name,
+                "name": info.var_name,
+                "input_shape": info.input_size,
+                "output_shape": info.output_size,
+                "params": info.num_params if info.is_leaf_layer else None,
+                "leaf": info.is_leaf_layer,
+            }
+        )
+
+    steps: list[str] = []
+    for layer in layers:
+        if not layer["leaf"]:
+            continue
+        d_in, d_out = _last_dim(layer["input_shape"]), _last_dim(layer["output_shape"])
+        if layer["params"] and d_in is not None and d_out is not None:
+            steps.append(f"{layer['type']}({d_in}->{d_out})")
+        else:
+            steps.append(str(layer["type"]))
+
+    return {
+        "signature": " > ".join(steps),
+        "n_params": int(stats.total_params),
+        "n_trainable": int(stats.trainable_params),
+        "input_shape": layers[0]["input_shape"] if layers else None,
+        "output_shape": layers[0]["output_shape"] if layers else None,
+        "layers": layers,
+        "summary": str(stats),
+    }
+
+
+def _num(x: Any) -> str:
+    if isinstance(x, bool):
+        return str(x).lower()
+    if isinstance(x, float) and 0 < abs(x) < 0.1:
+        mantissa, exponent = f"{x:e}".split("e")
+        return f"{mantissa.rstrip('0').rstrip('.')}e{int(exponent)}"
+    if isinstance(x, float):
+        return f"{x:g}"
+    return str(x)
+
+
+def check_study_name(name: Any) -> str:
+    """`name`, stripped and in lowercase, if it can name a study; otherwise a `ValueError`
+    that says what to do. The placeholder `name-your-study` passes only under notebooktester."""
+    testing = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
+    name = name.strip().lower() if isinstance(name, str) else ""
+    if not name or (name == STUDY_PLACEHOLDER and not testing):
+        raise ValueError(
+            f"name your study: set STUDY to your first name and what it studies "
+            f"instead of {STUDY_PLACEHOLDER!r}, for example 'sam-depth-on-eurosat'"
+        )
+    if not STUDY_NAME.fullmatch(name):
+        raise ValueError(
+            f"study name {name!r}: use your first name, a dash, and what the study "
+            "studies, in lowercase letters, digits and dashes, for example "
+            "'sam-depth-on-eurosat'"
+        )
+    return name
+
+
+def _builds_on(builds_on: str | Sequence[str] | None) -> list[str]:
+    """The submission_refs in `builds_on` (one string, comma-separated, or a list of
+    them), stripped and without empty entries; a `ValueError` names one that is not a
+    submission_ref."""
+    if builds_on is None:
+        return []
+    parts = [builds_on] if isinstance(builds_on, str) else list(builds_on)
+    refs = [ref.strip() for part in parts for ref in part.split(",") if ref.strip()]
+    for ref in refs:
+        if not SUBMISSION_REF.fullmatch(ref):
+            raise ValueError(
+                f"builds_on: {ref!r} is not a submission_ref lesson<N>/<login>/<run_id>; "
+                "copy the user attr submission_ref from the classmate's run in the class view"
+            )
+    return refs
+
+
+def _design_text(design: str | Path | None) -> str | None:
+    text = Path(design).read_text() if design is not None else None
+    if text is not None and len(json.dumps(text)) > MAX_DESIGN_BYTES:
+        raise ValueError(
+            f"design: {design} is {len(json.dumps(text))} bytes as JSON, more than a "
+            f"submission carries ({MAX_DESIGN_BYTES}); keep only the architectures in it"
+        )
+    return text
 
 
 def storage() -> str:
@@ -172,17 +329,34 @@ def record(
     train_seconds: float | None = None,
     curves: Mapping[str, Sequence[float]] | None = None,
     attrs: Mapping[str, Any] | None = None,
+    builds_on: str | Sequence[str] | None = None,
+    design: str | Path | None = None,
 ) -> None:
     """Write on `trial` what the class run protocol asks of a run.
 
-    User attrs: `role`, `session`, `dataset`, `train_seconds`, one list per entry of
-    `curves` (per epoch; the accuracy per epoch is the trial's own intermediate value),
-    everything in `attrs`, and with `model` + `example` the model's `n_params` and
-    one-line `architecture`. The layer table of the model becomes the trial's note and
-    the artifact `architecture.json`.
+    User attrs: `run_id` (32 hex characters, the id a classmate's `builds_on` and the
+    class view's `submission_ref` name; made once), `role`, `session`, `dataset`,
+    `train_seconds`, one list per entry of `curves` (per epoch; the accuracy per epoch is
+    the trial's own intermediate value), everything in `attrs`, and with `model` +
+    `example` the model's `n_params` and one-line `architecture`. The layer table of the
+    model becomes the trial's note and the artifact `architecture.json`.
+
+    - `builds_on`: the classmate's run (or runs) this one builds on, each named by its
+      `submission_ref` (`lesson1/<login>/<run_id>`); written as the user attr `builds_on`,
+      comma-separated. An entry that is not a submission_ref raises a `ValueError`
+      before anything is written.
+    - `design`: the path of your design script, the file that defines the architectures;
+      its text becomes the artifact `design.py`. A script larger than a submission
+      carries (`MAX_DESIGN_BYTES`) raises a `ValueError` before anything is written.
     """
     if role not in ROLES:
         raise ValueError(f"role must be one of {ROLES}, got {role!r}")
+    refs = _builds_on(builds_on)
+    design_text = _design_text(design)
+    if "run_id" not in trial.user_attrs:
+        trial.set_user_attr("run_id", uuid.uuid4().hex)
+    if refs:
+        trial.set_user_attr("builds_on", ",".join(refs))
     trial.set_user_attr("role", role)
     trial.set_user_attr("session", SESSION)
     if dataset is not None:
@@ -194,23 +368,29 @@ def record(
     for key, value in (attrs or {}).items():
         trial.set_user_attr(key, value)
 
-    if model is None:
+    artifacts: dict[str, str] = {}
+    if model is not None:
+        if example is None:
+            raise ValueError("describe(model) needs an example batch input")
+        arch = describe(model, example)
+        trial.set_user_attr("n_params", arch["n_params"])
+        trial.set_user_attr("architecture", arch["signature"])
+        save_note(trial, f"`{arch['signature']}`\n\n```\n{arch['summary']}\n```")
+        artifacts["architecture.json"] = json.dumps(arch, indent=1)
+    if design_text is not None:
+        artifacts["design.py"] = design_text
+    if not artifacts:
         return
-    if example is None:
-        raise ValueError("describe(model) needs an example batch input")
-    arch = describe(model, example)
-    trial.set_user_attr("n_params", arch["n_params"])
-    trial.set_user_attr("architecture", arch["signature"])
-    save_note(trial, f"`{arch['signature']}`\n\n```\n{arch['summary']}\n```")
     ARTIFACTS.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
-        path = Path(tmp) / "architecture.json"
-        path.write_text(json.dumps(arch, indent=1))
-        upload_artifact(
-            artifact_store=FileSystemArtifactStore(str(ARTIFACTS)),
-            file_path=str(path),
-            study_or_trial=trial,
-        )
+        for name, text in artifacts.items():
+            path = Path(tmp) / name
+            path.write_text(text)
+            upload_artifact(
+                artifact_store=FileSystemArtifactStore(str(ARTIFACTS)),
+                file_path=str(path),
+                study_or_trial=trial,
+            )
 
 
 def use_study(name: str) -> optuna.Study:
@@ -246,6 +426,8 @@ def log_run(
     train_seconds: float | None = None,
     attrs: Mapping[str, Any] | None = None,
     study: optuna.Study | None = None,
+    builds_on: str | Sequence[str] | None = None,
+    design: str | Path | None = None,
 ) -> int:
     """Write one run that is not a draw from a search space as a trial, and return its
     number. It goes to `study`, or to the study selected with `use_study`.
@@ -253,13 +435,16 @@ def log_run(
     - `params`: the choices the run was given, each under a stable name. They are the
       trial's params, so the dashboard can put them on an axis.
     - `scores`: `{"accuracy": [...]}`, one value per repeat. The mean is the trial's
-      value, every repeat an intermediate value (step = repeat), and the spread goes
-      into the user attrs `accuracy_std` and `n_seeds`.
-    - everything else as in `record`; `name` is the user attr `name`.
+      value, every repeat an intermediate value (step = repeat), and the spread between
+      the repeats goes into the user attrs `accuracy_std` and `n_repeats`.
+    - everything else as in `record`, `builds_on` and `design` included; `name` is the
+      user attr `name`.
     """
     target = study or _current
     if target is None:
         raise RuntimeError("select a study first: use_study('lesson1-notebook-runs')")
+    _builds_on(builds_on)  # a bad argument raises before a trial exists
+    _design_text(design)
     values = np.asarray(scores["accuracy"], dtype=float)
 
     given, distributions, loose = {}, {}, {}
@@ -282,10 +467,12 @@ def log_run(
         model=model,
         example=example,
         train_seconds=train_seconds,
+        builds_on=builds_on,
+        design=design,
         attrs={
             "name": name,
             "accuracy_std": round(float(values.std()), 5),
-            "n_seeds": len(values),
+            "n_repeats": len(values),
             **loose,
             **(attrs or {}),
         },
