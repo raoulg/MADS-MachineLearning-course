@@ -34,6 +34,10 @@ from huggingface_hub import HfApi
 
 ORG = "pttrn-io"
 
+# What a VectorCache folder holds. Anything else in it, such as the `cache-*.arrow`
+# files `datasets.map` leaves next to a loaded cache, stays local.
+CACHE_FILES = ["data-*.arrow", "dataset_info.json", "state.json", "metadata.json"]
+
 
 def read_metadata(folder: Path) -> tuple[dict, str, str]:
     """Return (metadata, embedding column, model tag) for a cache folder."""
@@ -270,6 +274,7 @@ def main() -> None:
             repo_type="dataset",
             folder_path=folder,
             path_in_repo=split,
+            allow_patterns=CACHE_FILES,
             commit_message=f"{model_tag} embeddings, {split} split",
         )
     api.upload_file(
