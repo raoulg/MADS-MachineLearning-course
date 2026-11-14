@@ -64,3 +64,25 @@ def test_without_them_neither_is_written(store):
     run_id = runlog.log_run("plain", "baseline", scores={"accuracy": [0.5]})
     assert "builds_on" not in store.get_run(run_id).data.tags
     assert store.list_artifacts(run_id) == []
+
+
+def logged_runs(client: MlflowClient) -> list:
+    exp = client.get_experiment_by_name("lesson1-notebook")
+    assert exp is not None
+    return client.search_runs([exp.experiment_id])
+
+
+def test_a_string_of_refs_is_split_stripped_and_emptied(store):
+    run_id = runlog.log_run(
+        "mine", "final", scores={"accuracy": [0.8]}, builds_on=f" {BOB}, {CAROL},"
+    )
+    assert store.get_run(run_id).data.tags["builds_on"] == f"{BOB},{CAROL}"
+
+
+@pytest.mark.parametrize(
+    "bad", [f"{BOB}.json", f"lesson1/bob_/{'a' * 32}", "bob", [BOB, "lesson1/bob"]]
+)
+def test_a_bad_ref_raises_before_anything_is_logged(store, bad):
+    with pytest.raises(ValueError, match="is not a submission_ref"):
+        runlog.log_run("mine", "final", scores={"accuracy": [0.8]}, builds_on=bad)
+    assert logged_runs(store) == []
