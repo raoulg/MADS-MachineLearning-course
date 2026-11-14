@@ -180,3 +180,42 @@ def test_content_limits(tmp_path, submission, field, value, expected):
 def test_kept_mlflow_tags_pass(tmp_path, submission):
     tags = {"mlflow.note.content": "n", "mlflow.parentRunId": "p", "role": "trial"}
     assert invalid(tmp_path, submission("alice"), tags=tags) == []
+
+
+def test_builds_on_classmates_runs_passes(tmp_path, submission):
+    refs = f"lesson1/bob/{'a' * 32},lesson2/Carol-1/{'b' * 32}"
+    tags = {"role": "final", "builds_on": refs}
+    assert invalid(tmp_path, submission("alice"), tags=tags) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        f"lesson1/bob/{'a' * 32}.json",
+        f"lesson1/bob/{'a' * 32}, lesson1/carol/{'b' * 32}",
+        f"lesson1/bob/{'a' * 32},",
+        f"lesson1/bob_/{'a' * 32}",
+        f"lesson1/bob/{'A' * 32}",
+        f"lessonX/bob/{'a' * 32}",
+        f"lesson1/bob/{'a' * 32}\n",
+        "",
+    ],
+)
+def test_malformed_builds_on_is_refused(tmp_path, submission, value):
+    problems = invalid(tmp_path, submission("alice"), tags={"builds_on": value})
+    assert any("is not a submission_ref" in p for p in problems), problems
+
+
+def test_builds_on_itself_is_refused(tmp_path, submission):
+    sub = submission("alice")
+    tags = {
+        "builds_on": f"lesson1/bob/{'a' * 32},{sub.relpath().removesuffix('.json')}"
+    }
+    [problem] = invalid(tmp_path, sub, tags=tags)
+    assert problem.startswith(f"{sub.relpath()}: ")
+    assert problem.endswith("tag 'builds_on' names this run itself")
+
+
+def test_design_script_is_an_allowed_artifact(tmp_path, submission):
+    design = "import torch\n\nmodel = torch.nn.Linear(4, 2)\n"
+    assert invalid(tmp_path, submission("alice"), artifacts={"design.py": design}) == []
