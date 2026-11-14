@@ -33,23 +33,41 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 SCHEMA = "mads-run/1"
 MAX_FILE_BYTES = 2_000_000
 MAX_ARTIFACT_BYTES = 256_000
 MAX_CHANGED_FILES = 200
-ARTIFACT_SUFFIXES = (".json", ".txt", ".md", ".yaml", ".yml")
+ARTIFACT_SUFFIXES = (".json", ".txt", ".md", ".yaml", ".yml", ".py")
 # Every pattern is used with fullmatch, so a trailing newline never slips through.
 LOGIN = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", re.ASCII)  # GitHub's login rule
 RUN_ID = re.compile(r"[0-9a-f]{32}", re.ASCII)
 PATH = re.compile(r"lesson(\d+)/([A-Za-z0-9-]+)/([0-9a-f]{32})\.json", re.ASCII)
+# A run another one builds on, as the tag `builds_on` names it: a submission's path
+# without `.json`. Login and run id follow LOGIN and RUN_ID.
+SUBMISSION_REF = re.compile(
+    r"lesson\d+/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[0-9a-f]{32}", re.ASCII
+)
 EXPERIMENT = re.compile(r"lesson\d+-[a-z0-9-]+", re.ASCII)
 KEY = re.compile(r"[\w\-. /]{1,250}")  # mlflow's rule for param, tag and metric keys
 MAX_PARAM_CHARS = 6000  # mlflow's limits on a value
 MAX_TAG_CHARS = 5000
 # mlflow's own tags carry local usernames and absolute paths; these are the ones kept.
 KEEP_SYSTEM_TAGS = {"mlflow.note.content", "mlflow.parentRunId"}
+
+
+def builds_on(tags: dict[str, str]) -> list[str]:
+    """The submission_refs the tag `builds_on` names, comma-separated; [] without it."""
+    value = tags.get("builds_on")
+    return [] if value is None else value.split(",")
 
 
 def shown(path: str) -> str:
@@ -125,6 +143,12 @@ class Run(BaseModel):
                 raise ValueError(
                     f"tag {key!r} is {len(value)} characters, limit {MAX_TAG_CHARS}"
                 )
+        for ref in builds_on(v):
+            if not SUBMISSION_REF.fullmatch(ref):
+                raise ValueError(
+                    f"tag 'builds_on': {ref!r} is not a submission_ref "
+                    "lesson<N>/<login>/<run_id>; copy it from the class run in mlflow"
+                )
         return v
 
     @field_validator("metrics")
@@ -185,8 +209,18 @@ class Submission(BaseModel):
             raise ValueError("student must be a GitHub login")
         return v
 
+    @model_validator(mode="after")
+    def _not_on_itself(self) -> Submission:
+        if self.ref().lower() in (r.lower() for r in builds_on(self.run.tags)):
+            raise ValueError("tag 'builds_on' names this run itself")
+        return self
+
+    def ref(self) -> str:
+        """The submission_ref: where the file sits, without `.json`."""
+        return f"lesson{self.lesson}/{self.student}/{self.run.run_id}"
+
     def relpath(self) -> str:
-        return f"lesson{self.lesson}/{self.student}/{self.run.run_id}.json"
+        return f"{self.ref()}.json"
 
     def dump(self) -> str:
         return (
@@ -336,6 +370,8 @@ def explain(error: Exception) -> list[str]:
     if isinstance(error, ValidationError):
         return [
             f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}"
+            if err["loc"]
+            else err["msg"]
             for err in error.errors()
         ]
     return [str(error)]
