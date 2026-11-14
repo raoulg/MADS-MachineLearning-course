@@ -3,3 +3,7 @@
 https://dl\.acm\.org/.*
 https://direct\.mit\.edu/.*
 https://www\.sciencedirect\.com/.*
+https://www\.deepdyve\.com/.*
+# George Moody's page on ecg.mit.edu times out to automated requests. The PhysioNet
+# citations point at it, so the cards keep the URL as PhysioNet gives it.
+http://ecg\.mit\.edu/.*
