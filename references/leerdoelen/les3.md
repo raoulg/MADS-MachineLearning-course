@@ -2,86 +2,73 @@
 
 Lees *Automated Machine Learning* hoofdstuk 1, en uit *Understanding Deep Learning*
 hoofdstuk 6, 8 en 9. Die hoofdstukken gaan over het trainingsproces in het algemeen en
-geven de theoretische achtergrond onder wat je in les 1 en 2 al aan het doen was.
+geven de theorie onder wat je in les 1 en 2 al deed.
 
-Je hebt ray.tune nu twee lessen gebruikt. Deze les gaat niet over het gereedschap maar
-over de vraag die elke meting in deze cursus dezelfde kant op beantwoordt: **je hebt
-parameters toegevoegd — laat zien dat je er iets voor terugkreeg.** Omdat een trainingsrun
-seconden kost, kun je de curve zelf tekenen in plaats van erover te lezen.
+Je hebt nu twee lessen gezocht. Deze les stelt de vraag die bij elke meting hoort: je
+hebt parameters, data of rekentijd toegevoegd — laat zien wat je ervoor terugkreeg. Omdat
+een run seconden kost, teken je de curve zelf in plaats van erover te lezen. De gate uit
+les 2 groeit hier uit tot routing: een netwerk dat per input een pad kiest.
 
 ## De student begrijpt
 
 3.1 Wat een capacity-matched control is, en waarom een architectuurclaim zonder zo'n
-control betekenisloos is: "de gate hielp" zegt niets als de vergelijking een model met
-minder parameters was.
+control niets zegt: "de gate hielp" is geen resultaat als het model ernaast minder
+parameters had.
 
-3.2 Wat scaling laws zijn: hoe accuracy zich verhoudt tot parameters, tot hoeveelheid
-data, en tot compute per run — en dat die curves empirisch zijn, niet gepostuleerd.
+3.2 Wat een scaling curve is: hoe de score beweegt met het aantal parameters, met de
+hoeveelheid data en met de rekentijd per run. Weet dat die curves gemeten zijn en niet
+afgeleid, dat ze afvlakken, en dat de as waarop je het meest wint per probleem verschilt.
 
-3.3 Dat het aantal *getrainde* parameters en het aantal *gebruikte* parameters per input
-verschillende grootheden zijn, en waarom sparse routing die twee loskoppelt.
+3.3 Dat een gate, een highway en een mixture of experts drie resoluties van hetzelfde idee
+zijn: een gate weegt een signaal, een highway mengt een blok met de skip eromheen, en een
+mixture of experts kiest per input een pad. Kan zeggen wat elk met de shape doet: niets.
 
-3.4 Hoe een gate, een highway en een mixture-of-experts werken, dat het drie resoluties
-van hetzelfde idee zijn, en waar ze vandaan komen (GRU, Highway Networks, Jacobs & Jordan,
-Switch Transformer).
+3.4 Dat het aantal *getrainde* en het aantal *gebruikte* parameters per input twee
+grootheden zijn, en dat sparse routing ze loskoppelt: specialisten en een generalist in
+één netwerk. Weet wat router collapse is en waarom een router zonder load balancing erin
+loopt.
 
-3.5 Wat router collapse is en waarom een sparse MoE zonder load-balancing loss erin kan
-lopen.
+3.5 Wat een search-algoritme weet: grid weet niets, random trekt in plaats van op te
+sommen, TPE leert van eerdere trials, een populatie houdt goede kandidaten vast. Kan bij
+elk zeggen welke tekortkoming van het vorige het oplost.
 
-3.6 Wat de curse of dimensionality is met betrekking tot de searchspace.
+3.6 De budgetvraag: bij een vast budget liever veel korte trials of weinig lange. Weet
+dat een scheduler als ASHA slechte trials vroeg stopt, en dat een zoekruimte met elke as
+erbij sneller groeit dan je budget.
 
-3.7 Wat een search-algoritme weet dat random search niet weet: grid → random → TPE →
-populatiemethodes (PSO, differential evolution, PBT) → multi-fidelity schedulers, elk
-gemotiveerd door een tekortkoming van de vorige.
+3.7 Wat een learning-rate scheduler doet: eerst grof, dan fijn — de kettingzaag voor de
+vorm, de guts voor het detail. Herkent hetzelfde idee in ASHA: besteed de eerste moeite
+breed en goedkoop, de laatste smal en precies.
 
-3.8 Hoe bayesian search en hyperband/ASHA werken, en welke vraag ASHA beantwoordt: bij
-een vast budget, liever 50 trials van 10 epochs of 10 trials van 50?
-
-3.9 Wat een learning rate scheduler is, hoe je herkent dat je er een nodig hebt, en kent
-er een aantal (cosine warm-up, reduce on plateau).
-
-3.10 Dat accuracy niet de enige as is: kan een Pareto-front over accuracy, parameters en
-latency lezen en uitleggen waarom "de beste trial" zonder tweede as een onvolledige vraag
+3.8 Dat de score niet de enige as is: kan een Pareto-front over score, parameters en
+latency lezen, en uitleggen waarom "de beste trial" zonder tweede as een onvolledige vraag
 is.
 
-3.11 De voor- en nadelen van swarm-algoritmes voor optimalisatie, en herkent situaties
-waarin gradient-based methodes falen.
+3.9 Welk getal je mag rapporteren: dat van één run op data waar de search nooit naar
+gekeken heeft. Weet dat een vlak search-resultaat informatie is en geen mislukking.
 
-3.12 Dat een vlak search-resultaat informatie is en geen mislukking.
+## De student kan
 
-## De student is in staat om
+3.10 Een capaciteitscurve meten en tekenen over minstens twee assen (parameters, data of
+rekentijd), en daaruit een conclusie trekken die groter is dan de spreiding tussen runs.
 
-3.13 Redeneren over de grootte van de hyperparameterruimte, daar afwegingen in maken en
-prioriteiten stellen — lossfuncties, learning rate, units, aantal lagen, mechanisme —
-en vooraf opschrijven welke as hij verwacht dat ertoe doet.
+3.11 Een search opzetten met een budget: welke assen voorrang krijgen, welk algoritme en
+welke scheduler, en hoeveel trials van hoeveel epochs.
 
-3.14 Een python-script bouwen dat een configureerbaar vectormesh-model via Ray hypertuned.
-
-3.15 Een capaciteitscurve meten en plotten over minstens twee assen (parameters, data,
-of compute) en daaruit een conclusie trekken die de seed-ruis overleeft.
-
-3.16 Een afweging maken tussen de verschillende manieren om een model te monitoren
-(tensorboard, mlflow, ray).
-
-3.17 Een resultaat rapporteren met een `+/-` uit minstens 3 seeds, en herkennen wanneer
-het aantal seeds te klein was om de conclusie te dragen.
+3.12 Routing toevoegen aan een eigen ontwerp op de hartslagen, met een capacity-matched
+control ernaast, en als klas uitzoeken wat die capaciteit opleverde: de runs publiceren,
+het werk van anderen bekijken en daarop voortbouwen met bronvermelding.
 
 ## Materiaal
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 3.1, 3.4, 3.5 | gate / highway / MoE, capacity-matched control | `05_gates_highways_moe` |
-| 3.2, 3.3, 3.15 | scaling curves, params trained vs used | les, `06_search` |
-| 3.6-3.9 | searchruimte, algoritmes, schedulers | `01_hypertuner`, `02_ray`, les |
-| 3.10 | multi-objective, Pareto | `06_search` |
-| 3.11 | swarm optimizers | `8_extras/swarms`, les |
-| 3.12, 3.17 | vlakke resultaten, seeds | `06_search` |
-| 3.13, 3.14, 3.16 | search opzetten en rapporteren | `hypertune.py`, exercises |
+| 3.1, 3.3, 3.4 | gate, highway, mixture of experts, de control | `01_gates_highways_moe` |
+| 3.2, 3.10 | scaling curves over parameters, data en rekentijd | `02_scaling_curves` |
+| 3.5, 3.9 | wat een algoritme weet, het getal dat je rapporteert | `03_what_does_the_algorithm_know` |
+| 3.6, 3.8, 3.11 | budget, scheduler, Pareto, de search | `04_search` |
+| 3.7 | learning-rate scheduler | presentatie les 3 |
+| 3.12 | de klasopdracht | `05_exercise` |
 
-De search draait op `solar_10_minutes` — de serie uit les 2 waar N-BEATS wél won. Als je
-in les 2 een eigen serie hebt gekozen, is dat de interessantere plek om deze search op
-los te laten.
-
-## Resources
-
-Nog te bepalen bij de herbouw van deze les.
+Optioneel: `8_extras/swarms` laat zoeken met een zwerm zien, voor problemen zonder
+bruikbare gradient.
