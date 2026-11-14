@@ -14,6 +14,9 @@ float32 `(187, 1)` tensor (sequence, channel), so the cache is rank 2 and a Data
 over it gives `(batch, 187, 1)`. Its model_name is `raw`, which names the repos
 `pttrn-io/heartbeats-ptb-raw` and `pttrn-io/heartbeats-mitbih-raw`.
 
+The beat column is a fixed-shape `Array2D((187, 1), float32)`, not nested lists: every
+beat has one shape, so a batch decodes as one block (vectormesh >= 0.14).
+
 Kept columns: the vector, `label` (int, from `target`) and `source_idx`, the row's
 position in its source parquet file. Nothing is shuffled or subsampled. After each
 build, every cached beat and label is compared with its source row by `source_idx`, and
@@ -30,7 +33,7 @@ import numpy as np
 import pandas as pd
 import torch
 from beartype import beartype
-from datasets import Dataset
+from datasets import Array2D, Dataset, Features
 from jaxtyping import Float, jaxtyped
 from pydantic import model_validator
 from torch import Tensor
@@ -43,6 +46,8 @@ SOURCE = ARTEFACTS / "sources" / "mads-exam-24" / "data"
 
 STEPS = 187
 INPUT_COL = "steps"
+BEAT_COL = "beat"
+BEAT_FEATURE = Array2D(shape=(STEPS, 1), dtype="float32")
 
 # dataset tag -> {split: parquet file}
 DATASETS = {
@@ -62,7 +67,7 @@ class RawSequenceVectorizer(ChunkedVectorizer):
     """
 
     model_name: str = "raw"
-    col_name: str = "beat"
+    col_name: str = BEAT_COL
     input_col: str = INPUT_COL
 
     @model_validator(mode="after")
@@ -112,23 +117,19 @@ def read_split(path: Path) -> tuple[Dataset, np.ndarray, np.ndarray]:
 
 def check_cache(folder: Path, steps: np.ndarray, labels: np.ndarray) -> None:
     """Exit unless every beat and label in the cache at `folder` equals its source row."""
-    # Read the Arrow columns directly: decoding the nested beats row by row through
-    # the numpy or torch format takes minutes on MIT-BIH train.
-    table = VectorCache.load(folder).dataset.data.table
-    idx = table["source_idx"].to_numpy()
-    rows = table["beat"].combine_chunks()
-    steps_per_row = rows.value_lengths().to_numpy()
-    channels = rows.flatten()
-    channels_per_step = channels.value_lengths().to_numpy()
+    dataset = VectorCache.load(folder).dataset
     problems = []
-    if len(rows) != len(steps):
-        problems.append(f"{len(rows)} rows, source has {len(steps)}")
+    if not isinstance(dataset.features[BEAT_COL], Array2D):
+        problems.append(f"beat column is {dataset.features[BEAT_COL]}, not Array2D")
+    columns = dataset.with_format("numpy")[:]
+    idx, beats = columns["source_idx"], columns[BEAT_COL]
+    if len(beats) != len(steps):
+        problems.append(f"{len(beats)} rows, source has {len(steps)}")
     elif not np.array_equal(np.sort(idx), np.arange(len(steps))):
         problems.append("source_idx is not a permutation of the source rows")
     else:
-        beats = channels.flatten().to_numpy().reshape(-1, STEPS, 1)
-        if (steps_per_row != STEPS).any() or (channels_per_step != 1).any():
-            problems.append("not every beat is (187, 1)")
+        if beats.shape[1:] != (STEPS, 1):
+            problems.append(f"beats are {beats.shape[1:]}, not ({STEPS}, 1)")
         elif beats.dtype != np.float32:
             problems.append(f"beats are {beats.dtype}")
         elif not np.array_equal(beats[:, :, 0], steps[idx]):
@@ -136,7 +137,7 @@ def check_cache(folder: Path, steps: np.ndarray, labels: np.ndarray) -> None:
             problems.append(
                 f"{len(bad)} beats differ from the source, first row {bad[0]}"
             )
-        if not np.array_equal(table["label"].to_numpy(), labels[idx]):
+        if not np.array_equal(columns["label"], labels[idx]):
             problems.append("labels differ from the source")
     if problems:
         sys.exit(f"{folder.name}: " + "; ".join(problems))
@@ -168,6 +169,7 @@ def main() -> None:
                 vectorizer=vectorizer,
                 dataset=dataset,
                 dataset_tag=name,
+                features=Features({**dataset.features, BEAT_COL: BEAT_FEATURE}),
                 remove_columns=[INPUT_COL],
                 map_batch=args.map_batch,
             )

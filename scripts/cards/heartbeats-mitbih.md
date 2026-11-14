@@ -23,7 +23,7 @@ are padding, not signal.
 
 | column | type | |
 |---|---|---|
-| `beat` | float32 `(187, 1)` | the signal as (sequence, channel) |
+| `beat` | float32 `(187, 1)`, a fixed-shape `Array2D` | the signal as (sequence, channel) |
 | `label` | int | 0 N, 1 S, 2 V, 3 F, 4 Q |
 | `source_idx` | int | the row in the course's source files (see provenance) |
 
@@ -40,7 +40,7 @@ A `DataLoader` over the cache gives `X` of shape `(batch, 187, 1)`.
 | tensordtype | 2, `(sequence, channel)`, every sequence 187 steps |
 | rows | 87.554 train / 21.892 test |
 | download | 133 MB train / 33 MB test |
-| built with | vectormesh 0.13.0, 2026-11-14 |
+| built with | vectormesh 0.14.0, 2026-11-14 |
 | licence | ODC-By 1.0 |
 
 ## Classes
@@ -74,8 +74,8 @@ collate = Collate(embedding_col="beat", target_col="onehot", padder=torch.stack)
 
 
 def labelled(cache):
-    # map in plain Python format: in torch format every (187, 1) row is converted to a
-    # tensor and back, which takes minutes on a full split
+    # map in plain Python format: in torch format every row is converted to a tensor
+    # and back, about five times slower
     return cache.dataset.with_format(None).map(onehot).with_format("torch")
 
 
