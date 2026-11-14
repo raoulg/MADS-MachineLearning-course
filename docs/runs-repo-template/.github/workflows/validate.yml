@@ -188,7 +188,7 @@ jobs:
             echo "$fence"
             cat <<'TEXT'
 
-          Fix the runs in mlflow (or rerun the notebook) and run `scripts/submit_runs.py`
+          Fix the runs in your Optuna store (or rerun the notebook) and run `scripts/submit_runs.py`
           again; do not edit the files by hand. The table in `docs/submit-runs.md` of the
           course repository says what each message means.
           TEXT

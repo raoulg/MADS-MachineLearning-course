@@ -32,7 +32,7 @@ ENCODERS ?= facebook/dinov2-base facebook/dinov2-large
 #
 #   make share LESSON=1                    # submit your runs as a pull request
 #   make share LESSON=1 ARGS=--list        # show what would be submitted, change nothing
-#   make dashboard LESSON=1                # import the class's runs, open mlflow on them
+#   make dashboard LESSON=1                # the class's runs: the class page, and optuna-dashboard on them
 
 LESSON ?=
 
@@ -43,9 +43,10 @@ share: check-lesson
 	uv run scripts/submit_runs.py --lesson $(LESSON) $(ARGS)
 
 dashboard: check-lesson
-	uv run scripts/collect_runs.py --lesson $(LESSON) --ui $(ARGS)
+	uv run scripts/class_analysis.py --lesson $(LESSON) --open
+	uv run scripts/collect_runs.py --lesson $(LESSON) --no-pull --ui $(ARGS)
 
-# The Optuna studies of notebooks/1_pytorch_intro/05_exercises_optuna.ipynb, in
+# The Optuna studies of notebooks/1_pytorch_intro/05_exercises.ipynb, in
 # optuna-dashboard on http://127.0.0.1:$(OPTUNA_PORT). The store exists once that notebook
 # has run.
 #
@@ -56,7 +57,7 @@ OPTUNA_DIR ?= artefacts/optuna
 OPTUNA_PORT ?= 8088
 
 optuna-dashboard:
-	@test -f $(OPTUNA_DIR)/studies.db || { echo "no studies yet: run notebooks/1_pytorch_intro/05_exercises_optuna.ipynb first"; exit 2; }
+	@test -f $(OPTUNA_DIR)/studies.db || { echo "no studies yet: run notebooks/1_pytorch_intro/05_exercises.ipynb first"; exit 2; }
 	uv run optuna-dashboard sqlite:///$(OPTUNA_DIR)/studies.db \
 		--artifact-dir $(OPTUNA_DIR)/artifacts --port $(OPTUNA_PORT) $(ARGS)
 
@@ -66,8 +67,8 @@ latest = $(shell ls -dt artefacts/$(1) 2>/dev/null | head -1)
 help:
 	@echo "targets:"
 	@echo "  share LESSON=<N>      submit your runs of lesson N (ARGS=--list to preview)"
-	@echo "  dashboard LESSON=<N>  import the class's runs of lesson N and open mlflow"
-	@echo "  optuna-dashboard      open optuna-dashboard on your Optuna studies (05_exercises_optuna)"
+	@echo "  dashboard LESSON=<N>  open the class page of lesson N, and optuna-dashboard on the class's runs"
+	@echo "  optuna-dashboard      open optuna-dashboard on your Optuna studies (05_exercises)"
 	@echo "  list-caches      show the artefact folders these targets would pick"
 	@echo "  publish-fashion  fashion-mnist x \$$ENCODER  (default: $(ENCODER))"
 	@echo "  publish-flowers  oxford-flowers x \$$ENCODER"
