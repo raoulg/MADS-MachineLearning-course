@@ -46,8 +46,9 @@ met een loss, en de gewichten bijstellen. De gradient zegt per gewicht welke kan
 optimizer bepaalt hoe ver.
 
 1.8 Waarom loss en metric niet hetzelfde zijn: de loss is er voor de optimizer en moet
-differentieerbaar zijn, de metric is er voor jou en moet interpreteerbaar zijn. Weet
-wanneer klassen met elkaar concurreren en wanneer niet, en dat dat de loss bepaalt.
+differentieerbaar zijn, de metric is er voor jou: een afstand tussen voorspelling en
+waarheid in een maat die je kunt lezen, zoals accuracy of MAPE. Weet wanneer klassen met
+elkaar concurreren en wanneer niet, en dat dat de loss bepaalt.
 
 1.9 Waarom we train-, valid- en testsplits maken, wat overfitting is en hoe regularisatie
 daarbij helpt — en waarom regularisatie niets oplevert als het plafond in de representatie
