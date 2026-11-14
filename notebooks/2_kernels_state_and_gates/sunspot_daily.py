@@ -46,8 +46,8 @@ CONFIG = "sunspot"
 FREQ = "D"
 
 TARGET_NAME = "sunspot number"
-PERIOD = 27          # ~solar synodic rotation, verified above -- not a calendar season
-CLEAN_FROM = 11307   # first index with no NaN remaining ahead of it (1848-12-22)
+PERIOD = 27  # ~solar synodic rotation, verified above -- not a calendar season
+CLEAN_FROM = 11307  # first index with no NaN remaining ahead of it (1848-12-22)
 
 TEST_YEARS = 10
 VAL_YEARS = 10
