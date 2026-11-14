@@ -25,7 +25,11 @@ are padding, not signal.
 |---|---|---|
 | `beat` | float32 `(187, 1)` | the signal as (sequence, channel) |
 | `label` | int | 0 N, 1 S, 2 V, 3 F, 4 Q |
-| `source_idx` | int | the row's position in its source parquet file (see provenance) |
+| `source_idx` | int | the row in the course's source files (see provenance) |
+
+The beat itself is the vector, so there is nothing to look up elsewhere: the cache holds
+the whole signal. `source_idx` only records which row of the course's source files a
+beat came from.
 
 A `DataLoader` over the cache gives `X` of shape `(batch, 187, 1)`.
 
@@ -35,7 +39,8 @@ A `DataLoader` over the cache gives `X` of shape `(batch, 187, 1)`.
 | hidden_size | 1 (one channel) |
 | tensordtype | 2, `(sequence, channel)`, every sequence 187 steps |
 | rows | 87.554 train / 21.892 test |
-| built with | vectormesh 0.13.0, 2026-11-14, `scripts/build_heartbeat_cache.py` |
+| download | 133 MB train / 33 MB test |
+| built with | vectormesh 0.13.0, 2026-11-14 |
 | licence | ODC-By 1.0 |
 
 ## Classes
@@ -66,10 +71,15 @@ train.metadata  # read this before writing any model code
 
 onehot = OneHot(num_classes=5, label_col="label", target_col="onehot")
 collate = Collate(embedding_col="beat", target_col="onehot", padder=torch.stack)
-# map in plain Python format: in torch format every (187, 1) row is converted to a
-# tensor and back, which takes minutes on a full split
-labelled = train.dataset.with_format(None).map(onehot).with_format("torch")
-loader = DataLoader(labelled, batch_size=64, shuffle=True, collate_fn=collate)
+
+
+def labelled(cache):
+    # map in plain Python format: in torch format every (187, 1) row is converted to a
+    # tensor and back, which takes minutes on a full split
+    return cache.dataset.with_format(None).map(onehot).with_format("torch")
+
+
+loader = DataLoader(labelled(train), batch_size=64, shuffle=True, collate_fn=collate)
 X, y = next(iter(loader))  # X (64, 187, 1), y (64, 5)
 ```
 
@@ -84,11 +94,18 @@ There is **no validation split**. Carve one from train, and leave test alone unt
 ```python
 from sklearn.model_selection import train_test_split
 
+trainset = labelled(train)
 labels = train.dataset.with_format(None)["label"]
 fit_idx, val_idx = train_test_split(
     list(range(len(labels))), test_size=0.2, stratify=labels, random_state=42
 )
-fit, val = train.dataset.select(fit_idx), train.dataset.select(val_idx)
+fit, val = trainset.select(fit_idx), trainset.select(val_idx)
+
+fitloader = DataLoader(fit, batch_size=64, shuffle=True, collate_fn=collate)
+valloader = DataLoader(val, batch_size=64, shuffle=False, collate_fn=collate)
+testloader = DataLoader(
+    labelled(test), batch_size=64, shuffle=False, collate_fn=collate
+)
 ```
 
 ## Provenance
@@ -108,18 +125,21 @@ fit, val = train.dataset.select(fit_idx), train.dataset.select(val_idx)
 
 This cache keeps every row of both files, in file order.
 
-## Licence and attribution
+## How it was built
 
-This cache is a derived database of the MIT-BIH Arrhythmia Database and is shared under
-the [Open Data Commons Attribution License v1.0](https://opendatacommons.org/licenses/by/1-0/)
-(<https://opendatacommons.org/licenses/by/1-0/>), the licence of that database. The
-Kaggle page states no licence of its own; ODC-By applies as the licence of the source
-database.
+`scripts/build_heartbeat_cache.py` in
+<https://github.com/raoulg/MADS-MachineLearning-course>, which checks every cached beat
+and label against its source row.
+
+## Licence and attribution
 
 Contains information from the
 [MIT-BIH Arrhythmia Database](https://physionet.org/content/mitdb/1.0.0/), which is made
 available under the
-[ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/).
+[ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/) (Open Data
+Commons Attribution License v1.0). This cache is a derived database of it and is shared
+under the same licence. The Kaggle page states no licence of its own; ODC-By applies as
+the licence of the source database.
 
 When you use it, cite:
 
@@ -127,9 +147,11 @@ When you use it, cite:
   RRID:SCR_007345. <https://doi.org/10.13026/C2F305>
 - Moody GB, Mark RG. The impact of the MIT-BIH Arrhythmia Database. IEEE Eng in Med and
   Biol 20(3):45-50 (May-June 2001). (PMID: 11446209)
+  <http://ecg.mit.edu/george/publications/mitdb-embs-2001.pdf>
 - Pollard, T., Moody, B. E., Lehman, L., Gow, B., Fernandes, C., Xie, C., Johnson, A.,
   Mark, R. G., & Heldt, T. (2026). PhysioNet as a global platform for biomedical
-  research. Nature Health. <https://doi.org/10.1038/s44360-026-00096-z>
+  research. Nature Health. <https://doi.org/10.1038/s44360-026-00096-z>. Available from:
+  <https://pmc.ncbi.nlm.nih.gov/articles/PMC13641116/>
 - Mohammad Kachuee, Shayan Fazeli, and Majid Sarrafzadeh. "ECG Heartbeat Classification:
   A Deep Transferable Representation." arXiv preprint arXiv:1805.00794 (2018).
   <https://arxiv.org/abs/1805.00794>
