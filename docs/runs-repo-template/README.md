@@ -1,6 +1,6 @@
 # MADS Machine Learning: class runs
 
-The runs everyone in the class submitted, one JSON file per mlflow run:
+The runs everyone in the class submitted, one JSON file per Optuna trial (schema `mads-run/2`):
 
     lesson<N>/<github-login>/<run_id>.json
 
@@ -13,7 +13,8 @@ format, or any change outside `lesson<N>/`.
 
 The class's runs are what `main` holds. `scripts/collect_runs.py` in the course
 repository reads them from `main` (from the remote `upstream` in a clone of a fork) and
-imports them into a local mlflow store, for student and teacher alike.
+imports them into a local Optuna store, `artefacts/optuna/class.db`, for student and
+teacher alike; `scripts/class_analysis.py` shows them as one page of pictures.
 
 How to submit, including the one-time fork: `docs/submit-runs.md` in the course
 repository. The format: `scripts/run_submission.py` there.

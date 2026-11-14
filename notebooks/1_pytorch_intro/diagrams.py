@@ -10,7 +10,7 @@ Two ideas:
   recording every layer it passes, so the shapes on the arrows are the shapes the model
   actually produces, not the ones we meant it to produce.
 
-`plot_search_space` draws a ray.tune `param_space` before any trial runs: one panel per
+`plot_search_space` draws an Optuna search space (a dict of `Int`, `Float` and `Choice` axes) before any trial runs: one panel per
 hyperparameter, filled with samples drawn from that axis's own distribution.
 """
 
@@ -24,6 +24,12 @@ import torch
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Patch
+from optuna.distributions import (
+    BaseDistribution,
+    CategoricalDistribution,
+    FloatDistribution,
+    IntDistribution,
+)
 from torch import nn
 
 # fill colour per kind of block; the legend in `draw_architectures` explains them
@@ -315,7 +321,36 @@ def trace(model: nn.Module, x: Any) -> list[Block]:
 
 
 def _is_domain(value: Any) -> bool:
-    return hasattr(value, "sample") and hasattr(value, "get_sampler")
+    """An axis that is searched: an Optuna distribution with more than one value."""
+    return isinstance(value, BaseDistribution) and not value.single()
+
+
+def _draw(dist: BaseDistribution, n: int, rng: np.random.Generator) -> np.ndarray:
+    """`n` independent draws from `dist`, as a random search samples it."""
+    if isinstance(dist, CategoricalDistribution):
+        return np.asarray(
+            [dist.choices[i] for i in rng.integers(len(dist.choices), size=n)]
+        )
+    if isinstance(dist, IntDistribution):
+        if dist.log:
+            x = np.exp(rng.uniform(np.log(dist.low - 0.5), np.log(dist.high + 0.5), n))
+            return np.clip(np.rint(x), dist.low, dist.high).astype(int)
+        steps = (dist.high - dist.low) // dist.step
+        return dist.low + dist.step * rng.integers(steps + 1, size=n)
+    if isinstance(dist, FloatDistribution):
+        if dist.log:
+            return np.exp(rng.uniform(np.log(dist.low), np.log(dist.high), n))
+        return rng.uniform(dist.low, dist.high, n)
+    raise TypeError(f"cannot draw from {dist!r}")
+
+
+def _value(axis: Any) -> Any:
+    """What a fixed axis is: its one value, or the entry itself when it is a constant."""
+    if isinstance(axis, BaseDistribution) and axis.single():
+        return axis.to_external_repr(
+            axis.to_internal_repr(axis.low if hasattr(axis, "low") else axis.choices[0])
+        )
+    return axis
 
 
 def sample_config(param_space: dict, seed: int = 0) -> dict:
@@ -323,7 +358,7 @@ def sample_config(param_space: dict, seed: int = 0) -> dict:
     rng = np.random.default_rng(seed)
     out = {}
     for key, value in param_space.items():
-        out[key] = value.sample(random_state=rng) if _is_domain(value) else value
+        out[key] = _draw(value, 1, rng)[0] if _is_domain(value) else _value(value)
         if isinstance(out[key], np.generic):
             out[key] = out[key].item()
     return out
@@ -341,9 +376,11 @@ def plot_search_space(
     """
     rng = np.random.default_rng(seed)
     searched = {k: v for k, v in param_space.items() if _is_domain(v)}
-    fixed = {k: v for k, v in param_space.items() if not _is_domain(v)}
+    fixed = {k: _value(v) for k, v in param_space.items() if not _is_domain(v)}
     log_keys = [
-        k for k, v in searched.items() if "Log" in type(v.get_sampler()).__name__
+        k
+        for k, v in searched.items()
+        if isinstance(v, FloatDistribution | IntDistribution) and v.log
     ]
 
     n_panels = len(searched) + len(log_keys)
@@ -357,13 +394,12 @@ def plot_search_space(
     axes = iter(grid.flat)
 
     for key, domain in searched.items():
-        samples = np.asarray(domain.sample(size=n, random_state=rng))
+        samples = _draw(domain, n, rng)
         picked = None if trial is None else trial[key]
-        sampler = type(domain.get_sampler()).__name__
 
-        if hasattr(domain, "categories"):
+        if isinstance(domain, CategoricalDistribution):
             ax = next(axes)
-            labels = [str(c) for c in domain.categories]
+            labels = [str(c) for c in domain.choices]
             freq = [np.mean(samples.astype(str) == lab) for lab in labels]
             colours = [
                 "crimson" if picked is not None and lab == str(picked) else "#7a9cc6"
@@ -377,14 +413,14 @@ def plot_search_space(
                 ax.tick_params(axis="x", rotation=35)
             continue
 
-        lo, hi = domain.lower, domain.upper
+        lo, hi = domain.low, domain.high
         is_log = key in log_keys
         bins = np.geomspace(lo, hi, 25) if is_log else np.linspace(lo, hi, 25)
         ax = next(axes)
         ax.hist(samples, bins=bins, color="#7a9cc6")
         if is_log:
             ax.set_xscale("log")
-        kind = "log-uniform" if is_log else sampler.strip("_").lower()
+        kind = "log-uniform" if is_log else "uniform"
         ax.set_title(f"{key}\n{kind} on [{lo:g}, {hi:g}]", fontsize=10)
         ax.set_yticks([])
         if picked is not None:

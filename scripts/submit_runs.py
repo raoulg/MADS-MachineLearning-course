@@ -1,22 +1,21 @@
-"""Submit your mlflow runs for a lesson to the class runs repository.
+"""Submit your Optuna runs for a lesson to the class runs repository.
 
-Reads the runs of one lesson from your local mlflow store and writes each as a JSON file
-(lesson<N>/<your-login>/<run_id>.json) into your clone of your fork of the class runs
-repository. It validates every file, commits on the branch `lesson<N>`, pushes that
-branch to your fork, and opens a pull request against the class repository. A check on
-the pull request validates it and merges it.
+Reads the trials of one lesson from your local Optuna store (artefacts/optuna/studies.db)
+and writes each as a JSON file (lesson<N>/<your-login>/<run_id>.json) into your clone of
+your fork of the class runs repository. It validates every file, commits on the branch
+`lesson<N>`, pushes that branch to your fork, and opens a pull request against the class
+repository. A check on the pull request validates it and merges it.
 
     uv run scripts/submit_runs.py --lesson 1 --list     # what would be submitted
     uv run scripts/submit_runs.py --lesson 1            # submit it
 
 The clone has two remotes: `origin` (your fork) and `upstream` (the class repository).
-By default it submits every finished run in the experiments `lesson<N>-notebook` (the
-handed-out part of the exercise) and `lesson<N>-study` (the student's own studies); any
-other experiment only when named with `--experiment`. It skips runs logged while
-notebooktester was running and runs imported from the class repository by
-collect_runs.py (a classmate's work). Submitting again is safe: a run already in the
-class repository or on your branch is skipped, so only new runs are added, to the open
-pull request if there is one.
+By default it submits every finished or pruned trial in the studies `lesson<N>-notebook*`
+(the handed-out part of the exercise) and `lesson<N>-study*` (the student's own studies);
+any other study only when named with `--experiment`. It skips trials imported from the
+class repository by collect_runs.py (a classmate's work) and trials without a `run_id`.
+Submitting again is safe: a run already in the class repository or on your branch is
+skipped, so only new runs are added, to the open pull request if there is one.
 
 Instructions for a coding agent: docs/submit-runs.md. The format: scripts/run_submission.py.
 """
@@ -24,44 +23,45 @@ Instructions for a coding agent: docs/submit-runs.md. The format: scripts/run_su
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
+import math
 import os
 import re
 import shutil
 import subprocess
 import sys
-import tempfile
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-# mlflow draws a progress bar per artifact and announces every database check; neither
-# says anything useful here.
-os.environ.setdefault("MLFLOW_ENABLE_ARTIFACTS_PROGRESS_BAR", "false")
-os.environ.setdefault("MLFLOW_LOGGING_LEVEL", "WARNING")
-
-from mlflow.entities import Run as MlflowRun
-from mlflow.exceptions import MlflowException
-from mlflow.tracking import MlflowClient
+import optuna
+from optuna.artifacts import FileSystemArtifactStore, get_all_artifact_meta
+from optuna.artifacts.exceptions import ArtifactNotFound
+from optuna.distributions import distribution_to_json
+from optuna.storages import RDBStorage
+from optuna.trial import FrozenTrial, TrialState
 from pydantic import ValidationError
 from run_submission import (
     ARTIFACT_SUFFIXES,
-    KEEP_SYSTEM_TAGS,
     MAX_ARTIFACT_BYTES,
     Submission,
     explain,
     load,
 )
 
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+
 COURSE_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_TRACKING_URI = f"sqlite:///{COURSE_ROOT / 'artefacts' / 'mlflow' / 'mlruns.db'}"
+DEFAULT_STORE = COURSE_ROOT / "artefacts" / "optuna" / "studies.db"
 DEFAULT_RUNS_REPO = COURSE_ROOT.parent / "mads-runs"
 CLASS_REPO = "raoulg/mads-ml-runs-2026-11"
 BASE = "main"
 
-# collect_runs.py writes these on every run it imports from the class repository.
-IMPORTED_TAGS = ("submission_ref", "source_run_id")
+# collect_runs.py writes these on every trial it imports from the class repository.
+IMPORTED_ATTRS = ("submission_ref", "source_run_id")
 GITHUB_REMOTE = re.compile(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/*$")
-SEED_SERIES = ("_per_seed", "_std")
+SPREAD_ATTRS = ("accuracy_std", "n_repeats")
 
 
 def git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -147,160 +147,194 @@ def course_code() -> dict:
 
 
 def default_experiments(lesson: int) -> list[str]:
-    """What a lesson submits without `--experiment`: the exercise's two experiments."""
-    return [f"lesson{lesson}-notebook", f"lesson{lesson}-study"]
+    """The study-name patterns a lesson submits without `--experiment`: the exercise's
+    handed-out studies and the student's own, each with its `-runs` study."""
+    return [f"lesson{lesson}-notebook*", f"lesson{lesson}-study*"]
+
+
+@dataclass
+class Found:
+    """One trial of the store, with the study it belongs to."""
+
+    study: str
+    direction: str
+    study_attrs: dict
+    trial: FrozenTrial
+
+    @property
+    def run_id(self) -> str:
+        return self.trial.user_attrs.get("run_id", "")
+
+    @property
+    def name(self) -> str:
+        return str(
+            self.trial.user_attrs.get("name") or f"trial-{self.trial.number:02d}"
+        )
+
+
+class Store:
+    """The student's Optuna store: a sqlite file, with its artifacts in the folder
+    `artifacts` next to it."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.storage = RDBStorage(f"sqlite:///{path}")
+        self.artifacts = FileSystemArtifactStore(str(path.parent / "artifacts"))
+
+    def study_names(self) -> list[str]:
+        return sorted(
+            s.study_name for s in optuna.get_all_study_summaries(self.storage)
+        )
 
 
 def select_runs(
-    client: MlflowClient,
-    lesson: int,
-    experiments: list[str] | None,
-    run_ids: list[str] | None,
-    include_test_runs: bool,
-) -> list[MlflowRun]:
+    store: Store, lesson: int, experiments: list[str] | None, run_ids: list[str] | None
+) -> list[Found]:
+    """The finished and the pruned trials of the studies a lesson submits: the studies
+    named by `experiments` (patterns), else `default_experiments`; with `run_ids`, those
+    trials of any study of the lesson."""
+    names = store.study_names()
     if run_ids:
-        return [client.get_run(r) for r in run_ids]
+        wanted = [f"lesson{lesson}-*"]
+    else:
+        wanted = experiments or default_experiments(lesson)
+    chosen = [n for n in names if any(fnmatch.fnmatchcase(n, w) for w in wanted)]
+    if not chosen:
+        sys.exit(f"no study matches {wanted}; this store has {names}")
 
-    wanted = experiments or default_experiments(lesson)
-    exps = [e for e in client.search_experiments() if e.name in wanted]
-    if not exps:
-        known = sorted(e.name for e in client.search_experiments())
-        sys.exit(f"no experiment matches {wanted}; this store has {known}")
-
-    runs, token = [], None
-    while True:
-        page = client.search_runs(
-            [e.experiment_id for e in exps],
-            filter_string="attributes.status = 'FINISHED'",
-            max_results=1000,
-            page_token=token,
-        )
-        runs.extend(page)
-        token = page.token
-        if not token:
-            break
-    if not include_test_runs:
-        runs = [r for r in runs if r.data.tags.get("test_run") != "true"]
-    return sorted(runs, key=lambda r: r.info.start_time)
+    found = []
+    for name in chosen:
+        study = optuna.load_study(study_name=name, storage=store.storage)
+        for trial in study.trials:
+            if trial.state not in (TrialState.COMPLETE, TrialState.PRUNED):
+                continue
+            hit = Found(
+                name, study.direction.name.lower(), dict(study.user_attrs), trial
+            )
+            if run_ids and hit.run_id not in run_ids:
+                continue
+            found.append(hit)
+    return sorted(found, key=lambda f: f.trial.datetime_start or datetime.min)
 
 
-def own_runs(runs: list[MlflowRun]) -> list[MlflowRun]:
-    """`runs` without the ones imported from the class repository: those are a
-    classmate's work, never the student's own."""
-    own = [r for r in runs if not any(t in r.data.tags for t in IMPORTED_TAGS)]
+def own_runs(runs: list[Found]) -> list[Found]:
+    """`runs` without the ones imported from the class repository, and without the ones
+    that carry no `run_id`: those are a classmate's work, or were not recorded through
+    optunalog."""
+    own = [r for r in runs if not any(t in r.trial.user_attrs for t in IMPORTED_ATTRS)]
     if len(own) < len(runs):
         print(
             f"not submitted: {len(runs) - len(own)} run(s) imported from the class "
-            "repository (tagged submission_ref or source_run_id); only your own runs are"
+            "repository (attrs submission_ref or source_run_id); only your own runs are"
         )
-    return own
+    recorded = [r for r in own if r.run_id]
+    if len(recorded) < len(own):
+        print(
+            f"not submitted: {len(own) - len(recorded)} trial(s) without a run_id, "
+            "which are not recorded through optunalog; rerun them from the notebook"
+        )
+    return recorded
 
 
-def read_artifacts(client: MlflowClient, run_id: str) -> dict:
+def read_artifacts(store: Store, found: Found) -> dict:
     out = {}
-    try:
-        todo = list(client.list_artifacts(run_id))
-    except (
-        OSError,
-        MlflowException,
-    ) as e:  # artifacts on another machine, a deleted folder, ...
-        print(f"  warning: cannot list artifacts of {run_id[:8]}: {e}", file=sys.stderr)
-        return out
-    with tempfile.TemporaryDirectory() as tmp:
-        while todo:
-            info = todo.pop()
-            if info.is_dir:
-                todo.extend(client.list_artifacts(run_id, info.path))
-                continue
-            if not info.path.endswith(ARTIFACT_SUFFIXES):
-                continue
-            if (info.file_size or 0) > MAX_ARTIFACT_BYTES:
-                print(
-                    f"  left out of {run_id[:8]}: the artifact {info.path} is "
-                    f"{info.file_size} bytes, limit {MAX_ARTIFACT_BYTES}"
-                )
-                continue
-            local = Path(client.download_artifacts(run_id, info.path, tmp))
-            text = local.read_text()
-            out[info.path] = json.loads(text) if info.path.endswith(".json") else text
+    for meta in get_all_artifact_meta(found.trial, storage=store.storage):
+        name = meta.filename
+        if not name.endswith(ARTIFACT_SUFFIXES):
+            continue
+        try:
+            raw = store.artifacts.open_reader(meta.artifact_id).read()
+        except (OSError, ArtifactNotFound) as e:  # artifacts on another machine, ...
+            print(
+                f"  warning: cannot read the artifact {name} of {found.run_id[:8]}: {e}",
+                file=sys.stderr,
+            )
+            continue
+        if len(raw) > MAX_ARTIFACT_BYTES:
+            print(
+                f"  left out of {found.run_id[:8]}: the artifact {name} is "
+                f"{len(raw)} bytes, limit {MAX_ARTIFACT_BYTES}"
+            )
+            continue
+        text = raw.decode()
+        out[name] = json.loads(text) if name.endswith(".json") else text
     return out
 
 
+def millis(moment: datetime | None) -> int | None:
+    return None if moment is None else int(moment.timestamp() * 1000)
+
+
 def to_submission(
-    client: MlflowClient,
-    run: MlflowRun,
+    store: Store,
+    found: Found,
     lesson: int,
     student: str,
     code: dict,
-    experiment_names: dict[str, str],
     now: datetime,
 ) -> Submission:
-    run_id = run.info.run_id
-    tags = run.data.tags
-    metrics = {
-        key: [
-            {"step": m.step, "value": m.value, "timestamp": m.timestamp}
-            for m in client.get_metric_history(run_id, key)
-        ]
-        for key in run.data.metrics
+    trial = found.trial
+    distributions = {
+        name: json.loads(distribution_to_json(dist))
+        for name, dist in trial.distributions.items()
+        if not dist.single()  # a param that was given, not drawn, has no distribution
     }
-    run_commit = tags.get("mlflow.source.git.commit")
     return Submission.model_validate(
         {
-            "schema": "mads-run/1",
+            "schema": "mads-run/2",
             "lesson": lesson,
             "student": student,
             "submitted_at": now,
-            "code": {**code, "commit": run_commit, "dirty": None, "source": "run"}
-            if run_commit
-            else {**code, "source": "submit"},
+            "code": code,
             "run": {
-                "run_id": run_id,
-                "run_name": run.info.run_name or "",
-                "experiment": experiment_names[run.info.experiment_id],
-                "status": run.info.status,
-                "start_time": run.info.start_time,
-                "end_time": run.info.end_time,
-                "params": dict(run.data.params),
-                "tags": {
-                    k: v
-                    for k, v in tags.items()
-                    if not k.startswith("mlflow.") or k in KEEP_SYSTEM_TAGS
-                },
-                "metrics": metrics,
-                "artifacts": read_artifacts(client, run_id),
+                "run_id": found.run_id,
+                "run_name": found.name,
+                "experiment": found.study,
+                "status": trial.state.name,
+                "start_time": millis(trial.datetime_start),
+                "end_time": millis(trial.datetime_complete),
+                "params": dict(trial.params),
+                "distributions": distributions,
+                "value": trial.value,
+                "intermediate": [
+                    {"step": step, "value": value}
+                    for step, value in sorted(trial.intermediate_values.items())
+                    if math.isfinite(value)
+                ],
+                "attrs": dict(trial.user_attrs),
+                "study": {"direction": found.direction, "attrs": found.study_attrs},
+                "artifacts": read_artifacts(store, found),
             },
         }
     )
 
 
-def summarize_metrics(metrics: dict[str, float], limit: int = 4) -> str:
-    """`accuracy=0.81 ± 0.012 (n=5)` for a metric scored over seeds, `k=v` otherwise;
-    the per-seed series, the spreads and `n_seeds` are folded into that one entry."""
-    n = metrics.get("n_seeds")
+def summarize(found: Found, limit: int = 4) -> str:
+    """`accuracy=0.81 ± 0.012 (n=5), n_params=1000` for a run scored over repeats,
+    `accuracy=0.81` for a trial, `pruned after 5 epochs` for a pruned one."""
+    attrs = found.trial.user_attrs
+    if found.trial.state == TrialState.PRUNED:
+        return f"pruned after {len(found.trial.intermediate_values)} epochs"
     shown = []
-    for key in sorted(metrics):
-        if key.endswith(SEED_SERIES) or key == "n_seeds":
-            continue
-        value = metrics[key]
-        std = metrics.get(f"{key}_std")
+    if found.trial.value is not None:
+        text = f"accuracy={found.trial.value:.4g}"
+        std, n = attrs.get("accuracy_std"), attrs.get("n_repeats")
         if std is not None and n is not None:
-            shown.append(f"{key}={value:.4g} ± {std:.2g} (n={int(n)})")
-        else:
-            shown.append(f"{key}={value:.4g}")
+            text += f" ± {std:.2g} (n={int(n)})"
+        shown.append(text)
+    for key in ("n_params", "train_seconds"):
+        if key in attrs:
+            shown.append(f"{key}={attrs[key]:.4g}")
     return ", ".join(shown[:limit])
 
 
-def show(runs: list[MlflowRun], names: dict[str, str]) -> None:
-    print(
-        f"{'run_id':<10} {'experiment':<24} {'role':<11} {'study':<30} {'name':<24} metrics"
-    )
+def show(runs: list[Found]) -> None:
+    print(f"{'run_id':<10} {'study':<34} {'role':<11} {'name':<24} outcome")
     for r in runs:
-        tags = r.data.tags
         print(
-            f"{r.info.run_id[:8]:<10} {names[r.info.experiment_id]:<24} "
-            f"{tags.get('role', '-'):<11} {tags.get('study', '-')[:30]:<30} "
-            f"{(r.info.run_name or '')[:24]:<24} {summarize_metrics(r.data.metrics)}"
+            f"{r.run_id[:8]:<10} {r.study[:34]:<34} "
+            f"{r.trial.user_attrs.get('role', '-')!s:<11} {r.name[:24]:<24} "
+            f"{summarize(r)}"
         )
 
 
@@ -408,7 +442,7 @@ def stale_files(
     repo: Path, branch: str, login: str, subs: list[Submission]
 ) -> list[str]:
     """Files in the student's directory on the branch that are neither in the class
-    repository nor among the runs submitted now: runs deleted from mlflow since."""
+    repository nor among the runs submitted now: runs deleted from the Optuna store since."""
     keep = {s.relpath() for s in subs}
     tracked = git(repo, "ls-files", "--", f"{branch}/{login}/").stdout.split()
     return [p for p in tracked if p not in keep and not on_upstream(repo, p)]
@@ -501,7 +535,7 @@ def submit(
         merge(repo, f"upstream/{BASE}", ident)
     if stale:
         git(repo, "rm", "--quiet", "--", *stale)
-        print(f"removed {len(stale)} run(s) that are no longer in your mlflow store:")
+        print(f"removed {len(stale)} run(s) that are no longer in your Optuna store:")
         for path in stale:
             print(f"  {path}")
     written = []
@@ -592,21 +626,18 @@ def main() -> None:
         help="your clone of your fork of the class runs repository (default: %(default)s)",
     )
     parser.add_argument(
-        "--tracking-uri",
-        default=os.environ.get("MLFLOW_TRACKING_URI", DEFAULT_TRACKING_URI),
+        "--store",
+        type=Path,
+        default=Path(os.environ.get("OPTUNA_STORE", DEFAULT_STORE)),
+        help="your Optuna store, a sqlite file (default: %(default)s)",
     )
     parser.add_argument(
         "--experiment",
         action="append",
-        help="this experiment instead of the default lesson<N>-notebook and "
-        "lesson<N>-study (repeatable)",
+        help="this study (a name or a pattern like 'lesson1-search*') instead of the "
+        "default lesson<N>-notebook* and lesson<N>-study* (repeatable)",
     )
     parser.add_argument("--run-id", action="append", help="only this run (repeatable)")
-    parser.add_argument(
-        "--include-test-runs",
-        action="store_true",
-        help="also runs logged by notebooktester",
-    )
     parser.add_argument(
         "--list", action="store_true", help="show what would be submitted and stop"
     )
@@ -626,21 +657,18 @@ def main() -> None:
     repo = args.runs_repo.resolve()
     student = resolve_login(args.student, repo)
 
-    client = MlflowClient(tracking_uri=args.tracking_uri)
-    runs = own_runs(
-        select_runs(
-            client, args.lesson, args.experiment, args.run_id, args.include_test_runs
-        )
-    )
-    names = {e.experiment_id: e.name for e in client.search_experiments()}
-    if not runs:
+    if not args.store.exists():
         sys.exit(
-            f"no finished runs to submit for lesson {args.lesson} in {args.tracking_uri}"
+            f"no Optuna store at {args.store}: run the lesson's exercise notebook first"
         )
+    store = Store(args.store)
+    runs = own_runs(select_runs(store, args.lesson, args.experiment, args.run_id))
+    if not runs:
+        sys.exit(f"no trials to submit for lesson {args.lesson} in {args.store}")
 
-    print(f"{len(runs)} run(s) from {args.tracking_uri}, as {student}")
+    print(f"{len(runs)} run(s) from {args.store}, as {student}")
     if args.list:
-        show(runs, names)
+        show(runs)
         return
 
     code = course_code()
@@ -648,13 +676,11 @@ def main() -> None:
     subs, skipped = [], 0
     for run in runs:
         try:
-            subs.append(
-                to_submission(client, run, args.lesson, student, code, names, now)
-            )
+            subs.append(to_submission(store, run, args.lesson, student, code, now))
         except ValidationError as e:
             skipped += 1
             print(
-                f"skipped run {run.info.run_id} ({run.info.run_name or '-'}), "
+                f"skipped run {run.run_id} ({run.name}), "
                 "it does not fit the submission format: " + "; ".join(explain(e))
             )
     if not subs:

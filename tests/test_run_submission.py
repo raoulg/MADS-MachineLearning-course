@@ -55,7 +55,7 @@ def test_file_naming_another_student(tmp_path, submission):
 
 def test_invalid_json(tmp_path, submission):
     rel = write(tmp_path, submission("alice"))
-    (tmp_path / rel).write_text('{"schema": "mads-run/1",')
+    (tmp_path / rel).write_text('{"schema": "mads-run/2",')
     [problem] = check(tmp_path, [rel], "alice", set())
     assert problem.startswith(f"{rel}: not valid JSON (")
     assert problem.endswith("): submit again, do not edit by hand")
@@ -158,36 +158,68 @@ def invalid(tmp_path, sub, **run_fields) -> list[str]:
     return check(tmp_path, [sub.relpath()], sub.student, set())
 
 
+FLOAT = {
+    "name": "FloatDistribution",
+    "attributes": {"low": 0.0001, "high": 0.01, "log": True, "step": None},
+}
+
+
 @pytest.mark.parametrize(
     ("field", "value", "expected"),
     [
-        ("params", {"bad\nkey": "1"}, "param key"),
-        ("params", {"k" * 251: "1"}, "param key"),
-        ("params", {"lr": "x" * 6001}, "limit 6000"),
-        ("tags", {"role": "x" * 5001}, "limit 5000"),
-        ("tags", {"mlflow.user": "alice"}, "mlflow's own tags"),
-        ("tags", {"a;b": "1"}, "tag key"),
-        ("metrics", {"acc\u2028": []}, "metric key"),
+        ("params", {"bad\nkey": 1}, "param key"),
+        ("params", {"k" * 251: 1}, "param key"),
+        ("params", {"lr": "x" * 20_001}, "limit 20000"),
+        ("params", {"lr": [1, 2]}, "params.lr"),
+        ("attrs", {"role": "x" * 20_001}, "limit 20000"),
+        ("attrs", {"a;b": 1}, "attr key"),
         ("experiment", "Lesson1-notebook", "lesson<N>-<lowercase-name>"),
         ("experiment", "lesson1-notebook\n", "lesson<N>-<lowercase-name>"),
+        ("status", "FINISHED", "status"),
+        ("value", None, "a COMPLETE trial has a value"),
+        ("run_id", "abc", "32-character"),
+        ("distributions", {"zz": FLOAT}, "distributions for params"),
+        ("params", {"lr": 0.01, "n": 1}, None),
         ("artifacts", {"/etc/x.json": {}}, "must be relative"),
         ("artifacts", {"a/../x.json": {}}, "must be relative"),
+        ("artifacts", {"weights.pt": "x"}, "only"),
     ],
 )
 def test_content_limits(tmp_path, submission, field, value, expected):
     problems = invalid(tmp_path, submission("alice"), **{field: value})
-    assert any(expected in p for p in problems), problems
+    if expected is None:
+        assert problems == []
+    else:
+        assert any(expected in p for p in problems), problems
 
 
-def test_kept_mlflow_tags_pass(tmp_path, submission):
-    tags = {"mlflow.note.content": "n", "mlflow.parentRunId": "p", "role": "trial"}
-    assert invalid(tmp_path, submission("alice"), tags=tags) == []
+def test_a_param_with_its_distribution_passes(tmp_path, submission):
+    run = {"params": {"lr": 0.003}, "distributions": {"lr": FLOAT}}
+    assert invalid(tmp_path, submission("alice"), **run) == []
+
+
+@pytest.mark.parametrize(
+    "dist",
+    [
+        {"name": "NormalDistribution", "attributes": {}},
+        {"name": "FloatDistribution", "attributes": {"low": 0, "high": 1}},
+        {"name": "CategoricalDistribution", "attributes": {"choices": ["a"], "x": 1}},
+    ],
+)
+def test_a_malformed_distribution_is_refused(tmp_path, submission, dist):
+    run = {"params": {"lr": 0.003}, "distributions": {"lr": dist}}
+    assert invalid(tmp_path, submission("alice"), **run) != []
+
+
+def test_a_pruned_trial_without_a_value_passes(tmp_path, submission):
+    run = {"status": "PRUNED", "value": None}
+    assert invalid(tmp_path, submission("alice"), **run) == []
 
 
 def test_builds_on_classmates_runs_passes(tmp_path, submission):
     refs = f"lesson1/bob/{'a' * 32},lesson2/Carol-1/{'b' * 32}"
-    tags = {"role": "final", "builds_on": refs}
-    assert invalid(tmp_path, submission("alice"), tags=tags) == []
+    attrs = {"role": "final", "builds_on": refs}
+    assert invalid(tmp_path, submission("alice"), attrs=attrs) == []
 
 
 @pytest.mark.parametrize(
@@ -204,33 +236,33 @@ def test_builds_on_classmates_runs_passes(tmp_path, submission):
     ],
 )
 def test_malformed_builds_on_is_refused(tmp_path, submission, value):
-    problems = invalid(tmp_path, submission("alice"), tags={"builds_on": value})
+    problems = invalid(tmp_path, submission("alice"), attrs={"builds_on": value})
     assert any("is not a submission_ref" in p for p in problems), problems
 
 
 def test_builds_on_itself_is_refused(tmp_path, submission):
     sub = submission("alice")
-    tags = {
+    attrs = {
         "builds_on": f"lesson1/bob/{'a' * 32},{sub.relpath().removesuffix('.json')}"
     }
-    [problem] = invalid(tmp_path, sub, tags=tags)
+    [problem] = invalid(tmp_path, sub, attrs=attrs)
     assert problem.startswith(f"{sub.relpath()}: ")
-    assert problem.endswith("tag 'builds_on' names this run itself")
+    assert problem.endswith("attr 'builds_on' names this run itself")
 
 
 def test_builds_on_itself_in_another_case_is_refused(tmp_path, submission):
     sub = submission("alice")
-    tags = {"builds_on": f"lesson1/Alice/{sub.run.run_id}"}
-    [problem] = invalid(tmp_path, sub, tags=tags)
-    assert problem.endswith("tag 'builds_on' names this run itself")
+    attrs = {"builds_on": f"lesson1/Alice/{sub.run.run_id}"}
+    [problem] = invalid(tmp_path, sub, attrs=attrs)
+    assert problem.endswith("attr 'builds_on' names this run itself")
 
 
 def test_explain_gives_a_model_level_error_without_a_location(submission):
     data = json.loads(submission("alice").dump())
-    data["run"]["tags"]["builds_on"] = f"lesson1/alice/{data['run']['run_id']}"
+    data["run"]["attrs"]["builds_on"] = f"lesson1/alice/{data['run']['run_id']}"
     with pytest.raises(ValidationError) as e:
         Submission.model_validate(data)
-    assert explain(e.value) == ["Value error, tag 'builds_on' names this run itself"]
+    assert explain(e.value) == ["Value error, attr 'builds_on' names this run itself"]
 
 
 def test_design_script_is_an_allowed_artifact(tmp_path, submission):
