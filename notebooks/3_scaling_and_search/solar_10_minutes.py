@@ -1,4 +1,4 @@
-"""Solar power production, ten-minute resolution — the series `03_decomposition_and_nbeats`
+"""Solar power production, ten-minute resolution — the series `2_kernels_state_and_gates/optional_decomposition_and_nbeats`
 and `06_search` use in place of `pedestrian_counts` (main_principles.md D20).
 
 `Monash-University/monash_tsf`, config `solar_10_minutes` — 137 series, each one full

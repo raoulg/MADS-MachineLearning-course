@@ -12,7 +12,10 @@ import torch
 
 
 def window_index(n: int, size: int, stride: int = 1) -> torch.Tensor:
-    """(n_windows, size) index matrix — the broadcast trick derived in `01_windowing`.
+    """(n_windows, size) index matrix — the broadcast trick of `6_uncertainty/00_forecasting_baselines`.
+
+    Section 0.1 there derives it: a `(1, size)` row of offsets plus an `(n_windows, 1)`
+    column of start positions broadcasts to one row of indices per window.
 
     `stride` exists because consecutive windows overlap by everything but one step: at
     W=96 two neighbours share 95/96 of their content, so striding by 24 costs almost no
