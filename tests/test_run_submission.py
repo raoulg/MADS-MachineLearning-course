@@ -2,9 +2,11 @@ import json
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 from run_submission import (  # ty: ignore[import-not-found]
     Submission,
     check,
+    explain,
     read_files,
 )
 
@@ -214,6 +216,21 @@ def test_builds_on_itself_is_refused(tmp_path, submission):
     [problem] = invalid(tmp_path, sub, tags=tags)
     assert problem.startswith(f"{sub.relpath()}: ")
     assert problem.endswith("tag 'builds_on' names this run itself")
+
+
+def test_builds_on_itself_in_another_case_is_refused(tmp_path, submission):
+    sub = submission("alice")
+    tags = {"builds_on": f"lesson1/Alice/{sub.run.run_id}"}
+    [problem] = invalid(tmp_path, sub, tags=tags)
+    assert problem.endswith("tag 'builds_on' names this run itself")
+
+
+def test_explain_gives_a_model_level_error_without_a_location(submission):
+    data = json.loads(submission("alice").dump())
+    data["run"]["tags"]["builds_on"] = f"lesson1/alice/{data['run']['run_id']}"
+    with pytest.raises(ValidationError) as e:
+        Submission.model_validate(data)
+    assert explain(e.value) == ["Value error, tag 'builds_on' names this run itself"]
 
 
 def test_design_script_is_an_allowed_artifact(tmp_path, submission):
