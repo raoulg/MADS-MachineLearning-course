@@ -1,0 +1,129 @@
+---
+license: odc-by
+tags:
+  - vectormesh
+  - vector-cache
+  - ecg
+  - time-series
+---
+
+# Heartbeats, PTB Diagnostic ECG: raw `(187, 1)` sequences
+
+Single ECG heartbeats from the PTB Diagnostic ECG Database, labelled normal or abnormal
+(myocardial infarction), as a vectormesh cache. There is no encoder: every row holds
+the signal itself, ready for a sequence model.
+
+Built for the [MADS MachineLearning course](https://github.com/raoulg/MADS-MachineLearning-course).
+
+## What a row is
+
+One heartbeat: 187 steps sampled at 125 Hz (about 1.5 s), amplitudes scaled to [0, 1],
+and zero-padded at the end when the beat is shorter than 187 steps. The trailing zeros
+are padding, not signal.
+
+| column | type | |
+|---|---|---|
+| `beat` | float32 `(187, 1)` | the signal as (sequence, channel) |
+| `label` | int | 0 normal, 1 abnormal |
+| `source_idx` | int | the row's position in its source parquet file (see provenance) |
+
+A `DataLoader` over the cache gives `X` of shape `(batch, 187, 1)`.
+
+| | |
+|---|---|
+| model_tag | `raw`: the steps unchanged, no encoder |
+| hidden_size | 1 (one channel) |
+| tensordtype | 2, `(sequence, channel)`, every sequence 187 steps |
+| rows | 11.641 train / 2.911 test |
+| built with | vectormesh 0.13.0, 2026-11-14, `scripts/build_heartbeat_cache.py` |
+| licence | ODC-By 1.0 |
+
+## Classes
+
+| label | class | train | test |
+|---|---|---|---|
+| 0 | normal | 3.240 | 806 |
+| 1 | abnormal | 8.401 | 2.105 |
+| | total | 11.641 | 2.911 |
+
+The classes are unbalanced, about 28% normal to 72% abnormal in both splits.
+
+## Load it
+
+```python
+import torch
+from torch.utils.data import DataLoader
+from vectormesh import VectorCache
+from vectormesh.data import Collate, OneHot
+
+train = VectorCache.from_hub("pttrn-io/heartbeats-ptb-raw", split="train")
+test = VectorCache.from_hub("pttrn-io/heartbeats-ptb-raw", split="test")
+train.metadata          # read this before writing any model code
+
+onehot = OneHot(num_classes=2, label_col="label", target_col="onehot")
+collate = Collate(embedding_col="beat", target_col="onehot", padder=torch.stack)
+# map in plain Python format: in torch format every (187, 1) row is converted to a
+# tensor and back, which takes minutes on a full split
+labelled = train.dataset.with_format(None).map(onehot).with_format("torch")
+loader = DataLoader(labelled, batch_size=64, shuffle=True, collate_fn=collate)
+X, y = next(iter(loader))   # X (64, 187, 1), y (64, 2)
+```
+
+Pin `revision=` to a commit for anything graded. This is a `save_to_disk` layout, not
+parquet: `load_dataset()` will **not** read it, `VectorCache.load()` and
+`VectorCache.from_hub()` will.
+
+## Validation
+
+There is **no validation split**. Carve one from train, and leave test alone until the end:
+
+```python
+from sklearn.model_selection import train_test_split
+
+labels = train.dataset.with_format(None)["label"]
+fit_idx, val_idx = train_test_split(
+    list(range(len(labels))), test_size=0.2, stratify=labels, random_state=42
+)
+fit, val = train.dataset.select(fit_idx), train.dataset.select(val_idx)
+```
+
+## Provenance
+
+1. **PTB Diagnostic ECG Database** on PhysioNet (<https://physionet.org/content/ptbdb/1.0.0/>,
+   doi:10.13026/C28C71): 15-lead ECG recordings from the Physikalisch-Technische
+   Bundesanstalt, Berlin.
+2. **Kachuee, Fazeli and Sarrafzadeh (2018)** cut the recordings into single beats,
+   downsampled to 125 Hz, scaled to [0, 1] and zero-padded to a fixed length.
+3. **Kaggle, "ECG Heartbeat Categorization Dataset"**
+   (<https://www.kaggle.com/datasets/shayanfazeli/heartbeat>) publishes those beats as
+   `ptbdb_normal.csv` (4.046 beats) and `ptbdb_abnormal.csv` (10.506 beats), with no
+   train/test split.
+4. **raoulg/mads-exam-24** (a private course repository, commit `6652bd8f`) holds them
+   as `data/heart_train.parq` and `data/heart_test.parq`: both classes together, shuffled
+   and split into train and test. `source_idx` is a row's position in those files.
+
+This cache keeps every row of both files, in file order.
+
+## Licence and attribution
+
+This cache is a derived database of the PTB Diagnostic ECG Database and is shared under
+the [Open Data Commons Attribution License v1.0](https://opendatacommons.org/licenses/by/1-0/)
+(<https://opendatacommons.org/licenses/by/1-0/>), the licence of that database. The
+Kaggle page states no licence of its own; ODC-By applies as the licence of the source
+database.
+
+Contains information from the
+[PTB Diagnostic ECG Database](https://physionet.org/content/ptbdb/1.0.0/), which is made
+available under the
+[ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/).
+
+When you use it, cite:
+
+- Bousseljot R, Kreiseler D, Schnabel, A. Nutzung der EKG-Signaldatenbank CARDIODAT der
+  PTB über das Internet. Biomedizinische Technik, Band 40, Ergänzungsband 1 (1995) S 317
+- Pollard, T., Moody, B. E., Lehman, L., Gow, B., Fernandes, C., Xie, C., Johnson, A.,
+  Mark, R. G., & Heldt, T. (2026). PhysioNet as a global platform for biomedical
+  research. Nature Health. <https://doi.org/10.1038/s44360-026-00096-z>
+- Mohammad Kachuee, Shayan Fazeli, and Majid Sarrafzadeh. "ECG Heartbeat Classification:
+  A Deep Transferable Representation." arXiv preprint arXiv:1805.00794 (2018).
+  <https://arxiv.org/abs/1805.00794>
