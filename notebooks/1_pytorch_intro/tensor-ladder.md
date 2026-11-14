@@ -52,9 +52,9 @@ have `(B, 1, S, D)`: a one-channel "image" whose height is time and whose width 
 will not complain. It will train. It is a real technique.
 
 ```python
-x = torch.rand(32, 200, 3)               # (B, S, D): 32 series, 200 steps, 3 sensors
-nn.Conv1d(3, 16, kernel_size=5)(x.permute(0, 2, 1)).shape   # (32, 16, 196)
-nn.Conv2d(1, 16, kernel_size=3)(x.unsqueeze(1)).shape       # (32, 16, 198, 1)
+x = torch.rand(32, 200, 3)  # (B, S, D): 32 series, 200 steps, 3 sensors
+nn.Conv1d(3, 16, kernel_size=5)(x.permute(0, 2, 1)).shape  # (32, 16, 196)
+nn.Conv2d(1, 16, kernel_size=3)(x.unsqueeze(1)).shape  # (32, 16, 198, 1)
 ```
 
 That `unsqueeze(1)` is free. An axis of length 1 adds an index that can only be 0, and moves
@@ -175,8 +175,8 @@ Two things worth saying out loud:
 
 ```python
 layer = torch.nn.Linear(384, 2)
-layer(torch.rand(32, 384)).shape       # (32, 2)     -- (B, D) -> (B, K),  what you meant
-layer(torch.rand(32, 7, 384)).shape    # (32, 7, 2)  -- (B, C, D) -> (B, C, K),  no error
+layer(torch.rand(32, 384)).shape  # (32, 2)     -- (B, D) -> (B, K),  what you meant
+layer(torch.rand(32, 7, 384)).shape  # (32, 7, 2)  -- (B, C, D) -> (B, C, K),  no error
 ```
 
 The second call is formally fine and semantically a bug: you now have a prediction *per chunk*
@@ -196,9 +196,11 @@ enforced formally.
 from beartype import beartype
 from jaxtyping import Float, jaxtyped
 
+
 @jaxtyped(typechecker=beartype)
 def head(x: Float[Tensor, "batch dim"]) -> Float[Tensor, "batch classes"]:
     return layer(x)
+
 
 head(torch.rand(32, 7, 384))
 # jaxtyping.TypeCheckError:

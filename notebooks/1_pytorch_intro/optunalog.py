@@ -92,23 +92,6 @@ SUBMISSION_REF = re.compile(
 )
 
 
-def _builds_on(builds_on: str | Sequence[str] | None) -> list[str]:
-    """The submission_refs in `builds_on` (one string, comma-separated, or a list of
-    them), stripped and without empty entries; a `ValueError` names one that is not a
-    submission_ref."""
-    if builds_on is None:
-        return []
-    parts = [builds_on] if isinstance(builds_on, str) else list(builds_on)
-    refs = [ref.strip() for part in parts for ref in part.split(",") if ref.strip()]
-    for ref in refs:
-        if not SUBMISSION_REF.fullmatch(ref):
-            raise ValueError(
-                f"builds_on: {ref!r} is not a submission_ref lesson<N>/<login>/<run_id>; "
-                "copy the tag submission_ref from the classmate's run in mlflow"
-            )
-    return refs
-
-
 def _last_dim(shape: Any) -> int | None:
     if isinstance(shape, (list, tuple)) and shape and isinstance(shape[-1], int):
         return shape[-1]
