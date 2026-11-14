@@ -62,7 +62,7 @@ from vectormesh.data import Collate, OneHot
 
 train = VectorCache.from_hub("pttrn-io/heartbeats-mitbih-raw", split="train")
 test = VectorCache.from_hub("pttrn-io/heartbeats-mitbih-raw", split="test")
-train.metadata          # read this before writing any model code
+train.metadata  # read this before writing any model code
 
 onehot = OneHot(num_classes=5, label_col="label", target_col="onehot")
 collate = Collate(embedding_col="beat", target_col="onehot", padder=torch.stack)
@@ -70,7 +70,7 @@ collate = Collate(embedding_col="beat", target_col="onehot", padder=torch.stack)
 # tensor and back, which takes minutes on a full split
 labelled = train.dataset.with_format(None).map(onehot).with_format("torch")
 loader = DataLoader(labelled, batch_size=64, shuffle=True, collate_fn=collate)
-X, y = next(iter(loader))   # X (64, 187, 1), y (64, 5)
+X, y = next(iter(loader))  # X (64, 187, 1), y (64, 5)
 ```
 
 Pin `revision=` to a commit for anything graded. This is a `save_to_disk` layout, not
