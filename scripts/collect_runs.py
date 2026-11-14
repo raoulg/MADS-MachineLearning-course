@@ -121,8 +121,9 @@ def experiment_id(client: MlflowClient, name: str, artifact_root: Path) -> str:
 
 def imported_runs(
     client: MlflowClient, exp_id: str
-) -> dict[tuple[str, str], tuple[str, str]]:
-    """(student, source_run_id) -> (run_id in this store, content hash)."""
+) -> dict[tuple[str, str], tuple[str, str, str]]:
+    """(student, source_run_id) -> (run_id in this store, content hash, submission_ref,
+    empty for a run imported without one)."""
     out, token = {}, None
     while True:
         page = client.search_runs([exp_id], max_results=1000, page_token=token)
@@ -132,6 +133,7 @@ def imported_runs(
                 out[(t["student"], t["source_run_id"])] = (
                     r.info.run_id,
                     t.get("submission_hash", ""),
+                    t.get("submission_ref", ""),
                 )
         token = page.token
         if not token:
@@ -261,12 +263,14 @@ def main() -> None:
             existing = index[exp_id].get(key)
             if existing and existing[1] == digest:
                 counts["unchanged"] += 1
+                if not existing[2]:  # a run imported without the tag gets it
+                    client.set_tag(existing[0], "submission_ref", sub.ref())
             else:
                 import_run(client, exp_id, sub, digest)
                 if existing:
                     client.delete_run(existing[0])
                 counts["updated" if existing else "new"] += 1
-                index[exp_id][key] = ("", digest)
+                index[exp_id][key] = ("", digest, sub.ref())
         except MlflowException as e:
             print(f"failed {rel}: {e}")
             counts["failed"] += 1
