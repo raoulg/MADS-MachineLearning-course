@@ -95,6 +95,10 @@ If the list is empty, the notebook has not been run yet, or it was run with a di
 uv run scripts/submit_runs.py --lesson <N> --student <login>
 ```
 
+A student who submits by hand types `make share LESSON=<N>`: the same script, with the
+login from `gh` or from the owner of the fork (`make share LESSON=<N> ARGS=--list` shows the list of
+step 3).
+
 It fetches the class repository, works on the branch `lesson<N>` of the clone, writes and
 validates the files, commits, pushes the branch to the fork, and opens a pull request
 against the class repository titled `lesson <N>: <login>`. Its last line is the pull
@@ -134,10 +138,10 @@ The runs the class repository holds (its `main`: every merged pull request) can 
 imported into a separate local store, `artefacts/mlflow/class.db`, and opened in mlflow:
 
 ```bash
-uv run scripts/collect_runs.py --lesson <N> --ui
+make dashboard LESSON=<N>
 ```
 
-It fetches `main` from the clone's `upstream` and reads the files from there, so it works
+That is `uv run scripts/collect_runs.py --lesson <N> --ui`. It fetches `main` from the clone's `upstream` and reads the files from there, so it works
 on any branch the clone is on and changes nothing in it. Running it again imports only
 what is new. Without `--ui` it prints the `mlflow ui` command to open the store later.
 

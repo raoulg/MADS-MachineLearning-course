@@ -231,7 +231,7 @@ Set a deadline before the lesson. Then:
 ```bash
 uv run scripts/collect_runs.py --lesson 1          # fetch main and import; prints runs per student and per experiment
 uv run scripts/class_analysis.py --lesson 1        # tables in the terminal, figures in artefacts/class-analysis/lesson1/
-uv run scripts/collect_runs.py --lesson 1 --ui     # import again (a no-op) and open mlflow ui on the class store
+make dashboard LESSON=1                            # import again (a no-op) and open mlflow ui on the class store
 ```
 
 `class_analysis.py` also runs cell by cell (`# %%`) in VS Code or Jupyter, which is the
