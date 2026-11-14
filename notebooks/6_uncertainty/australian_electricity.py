@@ -1,38 +1,26 @@
 """One Australian state's half-hourly electricity demand, loaded once and imported by
-`04_probabilistic`.
+`6_uncertainty/00_forecasting_baselines`, `6_uncertainty/01_probabilistic` and
+`3_scaling_and_search/01_gates_highways_moe`.
 
 `Monash-University/monash_tsf`, config `australian_electricity_demand` — five states'
-worth of half-hourly demand (MW), 2002 onward, CC-BY-4.0. This module picks one series,
-**T1**, and follows exactly the pattern `ett.py` uses for ETTh1: read the loader
-docstring there for the rolling-eval-convention rationale (splits are prefixes of one
-another, not disjoint, so the honest move is to take the longest row and cut it in time
-yourself). The two things worth restating here because they differ from ETT:
+worth of half-hourly demand (MW), 2002 onward, CC-BY-4.0. Three things worth knowing:
 
-**1. No script-based-dataset problem here** — `australian_electricity_demand` already
-ships as a plain dataset, so no `refs/convert/parquet` escape hatch is strictly needed,
-but this module uses the same revision anyway for consistency with `ett.py` and because
-it is the more-tested path in this repo.
+**1. Read from the parquet-convert branch.** The dataset ships as a plain dataset; this
+module reads it through `refs/convert/parquet`, the revision the other Monash loaders in
+this course use.
 
-**2. There are five series (`T1`-`T5`), not one.** This module always loads `T1`. The
-choice is arbitrary among five near-identical demand series — if you want a different
-one, change `ITEM_ID` below and nothing else changes shape-wise.
+**2. There are five series (`T1`-`T5`); this module loads `T1`.** The choice is arbitrary
+among five near-identical demand series. To use another, change `ITEM_ID` below; nothing
+else changes shape.
 
-**3. The rolling-eval increment here is 60 steps (30 hours), not months.** ETT's
-train/validation/test rows differ by whole months, which is what lets `ett.py` read
-clean 12/4/4-month boundaries straight off the row lengths. This dataset's rows differ
-by only 60 half-hourly steps between splits — a single short rolling-evaluation window,
-not a usable train/val/test boundary. Reusing ETT's trick here would leave 30 hours each
-for validation and test, nowhere near enough to window. So this module does **not**
-follow `ett.py`'s pattern for splitting: it takes the single longest row (`test`, the
-whole series) and cuts it in *calendar* time itself — the last full year is test, the
-year before that is validation, everything earlier is train. Simpler than ETT's
-convention, and correct for what this dataset's splits actually contain.
+**3. The splits are cut in calendar time here, not taken from the dataset.** Monash's
+train/validation/test rows follow the GluonTS rolling-evaluation convention: they are
+prefixes of one another and differ by 60 half-hourly steps (30 hours), far too little to
+window. This module takes the longest row (`test`, the whole series) and cuts it itself:
+the last full year is test, the year before that validation, everything earlier train.
 
-D15 (main_principles.md §3.8): replaces ETTh1 as `04_probabilistic`'s primary series.
-Not because ETTh1 measured noisier point-to-point — it didn't — but because its
-difficulty is regime drift between train/val/test spans, a confound that makes a first
-calibration lesson harder to read than it needs to be. This series has 3x tighter CoV
-and a clean daily+weekly pattern instead.
+The series has a clean daily and weekly pattern, which makes it a good first series to
+read calibration on.
 """
 
 from __future__ import annotations

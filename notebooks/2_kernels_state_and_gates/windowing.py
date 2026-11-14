@@ -17,9 +17,9 @@ def window_index(n: int, size: int, stride: int = 1) -> torch.Tensor:
     Section 0.1 there derives it: a `(1, size)` row of offsets plus an `(n_windows, 1)`
     column of start positions broadcasts to one row of indices per window.
 
-    `stride` exists because consecutive windows overlap by everything but one step: at
-    W=96 two neighbours share 95/96 of their content, so striding by 24 costs almost no
-    information and shrinks an epoch 24x.
+    `stride` exists because consecutive windows overlap by everything but one step: two
+    neighbours at stride 1 share `size - 1` of their `size` steps, so a stride of `s`
+    costs little information and makes an epoch about `s` times shorter.
     """
     starts = torch.arange(0, n - size + 1, stride).reshape(-1, 1)
     return torch.arange(size).reshape(1, -1) + starts
