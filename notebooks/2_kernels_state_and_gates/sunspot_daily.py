@@ -1,5 +1,5 @@
-"""Daily sunspot counts, windowed for forecasting -- the same series `03_decomposition_
-and_nbeats` §3.7 uses at yearly resolution, at the resolution it was actually recorded.
+"""Daily sunspot counts, windowed for forecasting -- the same series
+`2_kernels_state_and_gates/optional_decomposition_and_nbeats` §3.7 uses at yearly resolution, at the resolution it was actually recorded.
 
 `Monash-University/monash_tsf`, config `sunspot` — daily Wolf/Zurich sunspot number,
 1818 onward, CC-BY-4.0. Two things worth knowing before windowing it, both checked
@@ -9,7 +9,7 @@ against the data rather than assumed:
 (roughly 1818-1848) are missing — 19th-century observation was not continuous. Every
 day from **1848-12-22 onward is complete**: 62,617 consecutive daily readings, 171.4
 years. This module starts there; the earlier, gappy stretch is what
-`03_decomposition_and_nbeats` §3.7 uses instead, because that section aggregates to
+`2_kernels_state_and_gates/optional_decomposition_and_nbeats` §3.7 uses instead, because that section aggregates to
 yearly means (a few missing days inside a year barely move an annual mean) rather than
 windowing day by day (where a gap breaks a window outright).
 
