@@ -1,4 +1,4 @@
-.PHONY: help share dashboard check-lesson publish-fashion publish-flowers publish-imdb publish-all list-caches \
+.PHONY: help share dashboard optuna-dashboard check-lesson publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
         build-heartbeats publish-heartbeats
 
@@ -45,6 +45,21 @@ share: check-lesson
 dashboard: check-lesson
 	uv run scripts/collect_runs.py --lesson $(LESSON) --ui $(ARGS)
 
+# The Optuna studies of notebooks/1_pytorch_intro/05_exercises_optuna.ipynb, in
+# optuna-dashboard on http://127.0.0.1:$(OPTUNA_PORT). The store exists once that notebook
+# has run.
+#
+#   make optuna-dashboard
+#   make optuna-dashboard OPTUNA_PORT=8089
+
+OPTUNA_DIR ?= artefacts/optuna
+OPTUNA_PORT ?= 8088
+
+optuna-dashboard:
+	@test -f $(OPTUNA_DIR)/studies.db || { echo "no studies yet: run notebooks/1_pytorch_intro/05_exercises_optuna.ipynb first"; exit 2; }
+	uv run optuna-dashboard sqlite:///$(OPTUNA_DIR)/studies.db \
+		--artifact-dir $(OPTUNA_DIR)/artifacts --port $(OPTUNA_PORT) $(ARGS)
+
 # newest artefact folder matching a glob, or empty
 latest = $(shell ls -dt artefacts/$(1) 2>/dev/null | head -1)
 
@@ -52,6 +67,7 @@ help:
 	@echo "targets:"
 	@echo "  share LESSON=<N>      submit your runs of lesson N (ARGS=--list to preview)"
 	@echo "  dashboard LESSON=<N>  import the class's runs of lesson N and open mlflow"
+	@echo "  optuna-dashboard      open optuna-dashboard on your Optuna studies (05_exercises_optuna)"
 	@echo "  list-caches      show the artefact folders these targets would pick"
 	@echo "  publish-fashion  fashion-mnist x \$$ENCODER  (default: $(ENCODER))"
 	@echo "  publish-flowers  oxford-flowers x \$$ENCODER"
