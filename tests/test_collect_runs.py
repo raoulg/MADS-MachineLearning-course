@@ -135,3 +135,25 @@ def test_a_failed_import_is_reported_removed_and_fails_the_run(
     assert exp is not None
     runs = client.search_runs([exp.experiment_id])
     assert [r.data.tags["student"] for r in runs] == ["alice"]
+
+
+def test_an_import_without_submission_ref_gets_it_unchanged(
+    world, submission, tmp_path, monkeypatch, capsys
+):
+    bob = submission("bob")
+    world.teacher_push(bob)
+    clone = teacher_clone(world)
+    uri = f"sqlite:///{tmp_path / 'class.db'}"
+    collect(monkeypatch, clone, uri)
+    client = MlflowClient(tracking_uri=uri)
+    exp = client.get_experiment_by_name("lesson1-notebook")
+    assert exp is not None
+    [before] = client.search_runs([exp.experiment_id])
+    client.delete_tag(before.info.run_id, "submission_ref")
+    capsys.readouterr()
+
+    collect(monkeypatch, clone, uri)
+    assert "1 unchanged" in capsys.readouterr().out
+    [after] = client.search_runs([exp.experiment_id])
+    assert after.info.run_id == before.info.run_id
+    assert after.data.tags["submission_ref"] == ref(bob)
