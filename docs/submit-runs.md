@@ -10,11 +10,14 @@ show the student what will be submitted, and handle the errors described below.
 ## What you are submitting
 
 Each lesson's notebooks log their runs to the student's local mlflow store,
-`artefacts/mlflow/mlruns.db`, in experiments named `lesson<N>-notebook` (the notebook as
-handed out) and `lesson<N>-study` (the student's own research). `scripts/submit_runs.py`
-turns each finished run into one small JSON file holding its params, metrics, tags,
-architecture and design script, at `lesson<N>/<github-login>/<run_id>.json`. No model weights and no data
-are submitted.
+`artefacts/mlflow/mlruns.db`. The lesson's exercise logs to two experiments:
+`lesson<N>-notebook` (the part of the exercise as handed out) and `lesson<N>-study` (the
+student's own studies). Those two are what `scripts/submit_runs.py --lesson <N>` submits.
+The lesson's other notebooks log to experiments of their own (`lesson1-search`,
+`lesson1-representation-quality`, ...), which are not submitted unless named with
+`--experiment`. The script turns each finished run into one small JSON file holding its
+params, metrics, tags, architecture and design script, at
+`lesson<N>/<github-login>/<run_id>.json`. No model weights and no data are submitted.
 
 The files reach the class runs repository through a pull request from the student's own
 fork. The student needs no access to the class repository: a check on the pull request
@@ -77,9 +80,11 @@ uv run scripts/submit_runs.py --lesson <N> --student <login> --list
 This changes nothing. Show the student the list: one line per run, with its role
 (baseline, trial, final, ablation, hypothesis), its study tag if it has one, and its main
 metrics; a score over seeds shows as `accuracy=<mean> ± <std> (n=<seeds>)`. By default
-every finished run of the lesson's experiments is included, and runs from automated
-notebook tests are left out. That default is what the teacher wants. Narrow it only if
-the student asks, with `--run-id <id>` (repeatable) or `--experiment <name>`.
+every finished run of `lesson<N>-notebook` and `lesson<N>-study` is included, and runs
+from automated notebook tests are left out. That default is what the teacher wants.
+Change it only if the student asks: `--run-id <id>` (repeatable) for single runs, or
+`--experiment <name>` (repeatable) for exactly the experiments named, in place of the two,
+for example `--experiment lesson1-search`.
 
 If the list is empty, the notebook has not been run yet, or it was run with a different
 `MLFLOW_TRACKING_URI`. Tell the student; do not fabricate runs.
@@ -182,7 +187,7 @@ from the class, and is left out with one line saying so.
 | `git push origin lesson<N> failed` | Show the git error to the student. Do not force-push. |
 | `merging ... into your branch failed` | Show it to the teacher; do not resolve it by hand. |
 | `pushed, but opening the pull request failed` | Open the pull request in the browser at the URL the message gives. |
-| `no experiment matches lesson<N>-*` | The notebook has not logged anything yet; it lists the experiments it did find. |
+| `no experiment matches ['lesson<N>-notebook', 'lesson<N>-study']` | The exercise has not logged anything yet; it lists the experiments it did find. |
 | `skipped run <id> (<name>), it does not fit the submission format: ...` | That run is left out and the others are submitted. The message says what the format does not accept; tell the student, and do not work around it. A wrong tag is fixed on the logged run, without training again (below); submit again afterwards. |
 | `not submitted: N run(s) imported from the class repository` | Not an error: runs imported by `collect_runs.py` ended up in the student's store (for example with `MLFLOW_TRACKING_URI` pointing at `class.db`). They are a classmate's runs and are left out; the student's own runs are submitted. |
 | `... has no upstream/main` | `collect_runs.py` with `--no-pull` on a clone that never fetched; leave out `--no-pull`. |

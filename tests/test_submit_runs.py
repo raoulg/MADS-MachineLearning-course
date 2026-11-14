@@ -314,3 +314,20 @@ def test_an_artifact_over_the_limit_is_left_out_with_a_line(tmp_path, capsys):
     assert (
         f"left out of {ids['big'][:8]}: the artifact notes.txt is 256001 bytes" in out
     )
+
+
+def test_by_default_only_the_notebook_and_the_study(world, tmp_path, monkeypatch):
+    uri, ids = local_store(
+        tmp_path,
+        [
+            ("lesson1-notebook", "handed-out", {}),
+            ("lesson1-study", "mine", {}),
+            ("lesson1-search", "notebook-04", {}),
+        ],
+    )
+    path = {name: f"lesson1/alice/{rid}.json" for name, rid in ids.items()}
+    written = submit_main(monkeypatch, world, uri)
+    assert written == sorted([path["handed-out"], path["mine"]])
+
+    written = submit_main(monkeypatch, world, uri, "--experiment", "lesson1-search")
+    assert path["notebook-04"] in written
