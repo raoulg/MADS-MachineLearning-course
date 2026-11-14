@@ -1,42 +1,62 @@
-deep learning course
-==============================
+<p align="center">
+  <img src="presentations/img/course-map.svg" width="100%" alt="The seven lessons of the course as one tensor passing through seven operations: representation and head, kernels state and gates, capacity, language, self-supervised learning, uncertainty, generalists and memory">
+</p>
 
-This course is part of a series of modules for data science.
-This course assumes you have a decent basis in Python and experience with something similar to this Data Analyses & Visualisation course https://github.com/raoulg/MADS-DAV
+<h1 align="center">MADS · Machine Learning</h1>
 
+<p align="center"><b>Deep learning as a flow of vectors you design, search and defend</b></p>
 
-The lessons can be found inside the `notebooks` folder.
+<p align="center">
+  <a href="#setup"><b>Set up</b></a> ·
+  <a href="#the-lessons">Lessons</a> ·
+  <a href="https://learn.pttrn.io">learn.pttrn.io</a> ·
+  <a href="https://raoulg.github.io/MADS-MachineLearning-course/dav-recap.html">DAV recap</a> ·
+  <a href="docs/submit-runs.md">Submit your runs</a>
+</p>
 
-The book we will be using is Understanding Deep Learning. It is available as pdf here: https://udlbook.github.io/udlbook/ but it is highly recommended to buy the book.
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.12%20–%203.14-1d5a73" alt="Python 3.12 to 3.14">
+  <a href="https://docs.astral.sh/uv/"><img src="https://img.shields.io/badge/packages-uv-1d5a73" alt="Packages through uv"></a>
+  <a href="https://github.com/raoulg/vectormesh"><img src="https://img.shields.io/badge/built%20on-vectormesh-c43a14" alt="Built on vectormesh"></a>
+  <a href="https://github.com/raoulg/MADS-MachineLearning-course/actions/workflows/pages.yml"><img src="https://github.com/raoulg/MADS-MachineLearning-course/actions/workflows/pages.yml/badge.svg" alt="Pages"></a>
+  <a href="#where-the-course-runs"><img src="https://img.shields.io/badge/runs%20on-a%20laptop%20CPU-555" alt="Runs on a laptop CPU"></a>
+</p>
 
-To help you track your study progress, I have created this https://learn.pttrn.io web-app. Sign up for the `Machine Learning` course. There you will find an overview of everything you can watch, listen and read for every lesson and check the material when you are done.
+A pretrained model has already ordered the vector space; you design what happens to those
+vectors next. Each lesson adds one operation on the axes of a tensor, and each lesson ends in a
+problem the class searches together: you publish your runs, look at the others', and the next
+lesson opens on what the class found.
 
+The course follows [MADS-DAV](https://github.com/raoulg/MADS-DAV) and assumes a decent basis in
+Python. The book is [Understanding Deep Learning](https://udlbook.github.io/udlbook/), free as a
+pdf and worth buying.
 
-Project Organization
-------------
+## The lessons
 
-    ├── README.md          <- This file
-    ├── .gitignore         <- Stuff not to add to git
-    ├── .lefthook.yml      <- Config file for lefthook
-    ├── pyproject.toml     <- Human readable file. This specifies the libraries I installed to
-    |                         let the code run, and their versions.
-    ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── processed      <- The processed datasets
-    │   └── raw            <- The original, raw data
-    │
-    ├── docs               <- How-tos: submitting your runs, the run protocol, publishing caches
-    ├── notebooks          <- Jupyter notebooks, one folder per lesson
-    ├── planning           <- The course's plan: principles, curriculum, evidence
-    ├── presentations      <- The presentations, in .html and .pdf format
-    ├── references         <- background information, and the setup guides
-    |  └── leerdoelen      <- Learning goals per lesson, including pages to read and videos to watch
-    │
-    ├── reports
-    │   └── figures        <- Figures
-    └── scripts            <- Building and publishing caches, submitting and collecting class runs
+| | lesson | notebooks | learning goals |
+|---|---|---|---|
+| 1 | Representation and head | [`1_pytorch_intro`](notebooks/1_pytorch_intro) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les1.html) · [text](references/leerdoelen/les1.md) |
+| 2 | Kernels, state and gates | [`2_kernels_state_and_gates`](notebooks/2_kernels_state_and_gates) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les2.html) · [text](references/leerdoelen/les2.md) |
+| 3 | What did that capacity buy you | [`3_scaling_and_search`](notebooks/3_scaling_and_search) | |
+| 4 | Language | [`4_language`](notebooks/4_language) | |
+| 5 | Self-supervised learning | [`5_unsupervised`](notebooks/5_unsupervised) | |
+| 6 | Uncertainty | [`6_uncertainty`](notebooks/6_uncertainty) | |
+| 7 | Generalists and memory | [`7_generalists_and_memory`](notebooks/7_generalists_and_memory) | |
 
---------
+The learning goals are in Dutch. A lesson's goals appear here once they are final.
+
+Handy to have open:
+
+- [learn.pttrn.io](https://learn.pttrn.io): sign up for the `Machine Learning` course to see
+  what to read and watch per lesson, and to tick off what you have done.
+- [DAV recap](https://raoulg.github.io/MADS-MachineLearning-course/dav-recap.html): what this
+  course takes for granted from Data Analysis & Visualisation.
+- [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-tensors.html).
+- [Submitting your runs](docs/submit-runs.md) to the class repository.
+- [`0-baseline`](notebooks/0-baseline): check your Python and numpy before lesson 1.
+- [`8_extras`](notebooks/8_extras): material that is good and not examined.
+
+## How the repository is built
 
 The project uses Python `>=3.12,<3.15` (`requires-python` in `pyproject.toml`), and all dependencies are defined within the `pyproject.toml` file.
 
