@@ -54,9 +54,10 @@ elkaar concurreren en wanneer niet, en dat dat de loss bepaalt.
 daarbij helpt — en waarom regularisatie niets oplevert als het plafond in de representatie
 zit en niet in de head.
 
-1.10 Wanneer een verschil een resultaat is: een marge binnen de eigen seed-spreiding is
-geen resultaat, het maximum van een search is geen eerlijke vergelijking met het
-gemiddelde van een baseline, en "het simpelere model won" is een volwaardige uitkomst.
+1.10 Wanneer een verschil een resultaat is: een marge binnen de spreiding tussen runs van
+hetzelfde model is geen resultaat, het maximum van een search is geen eerlijke vergelijking
+met het gemiddelde van een baseline, en "het simpelere model won" is een volwaardige
+uitkomst.
 
 1.11 Hoe deep learning past in de geschiedenis van AI, en welke soorten leerproblemen er
 zijn (classificatie, regressie, reinforcement, (semi-)unsupervised).
@@ -70,13 +71,14 @@ streams elk een eigen tak krijgen en via concatenatie in één head samenkomen. 
 er tussen de DataLoader en de loss nodig zijn, vóórdat er code draait.
 
 1.13 Een baseline neerzetten vóór er iets gezocht wordt: een cache van de hub laden, de
-1-nearest-neighbour-baseline en een lineaire head met seed-spreiding meten, en die runs in
-MLflow loggen als vergelijkingspunt voor alles wat volgt.
+1-nearest-neighbour-baseline en een lineaire head meten, die head een paar keer draaien om
+de spreiding tussen runs te zien, en die runs in MLflow loggen als vergelijkingspunt voor
+alles wat volgt.
 
 1.14 Een zoekruimte ontwerpen en verdedigen: welke assen erin, welke eruit, welke ranges,
 en wat je verwacht en waarom. Kan het resultaat van een ray.tune search per as lezen —
-ook als de search niets vindt — en draait de winnaar over meerdere seeds opnieuw voordat
-het een winst heet.
+ook als de search niets vindt — en draait de winnaar een paar keer opnieuw voordat het een
+winst heet.
 
 1.15 Het eigen werk publiceren naar de runs-repository van de klas
 (`docs/submit-runs.md`), het werk van anderen bekijken in het MLflow-overzicht waarmee de
@@ -91,7 +93,7 @@ volgende les opent, en daarop voortbouwen met bronvermelding.
 | 1.6 | lineaire collapse, nonlineariteit, capaciteit | 25-30, 35, 41-50 | `02_nonlinearity` |
 | 1.7, 1.8 | de trainingsstap, loss en metric | 22-23, 77-80, 91, hfst 5 | `03_training` |
 | 1.9 | splits, overfitting, regularisatie | 118-120, 138, 147-149 | `03_training`, `05_exercises` |
-| 1.10 | seeds, eerlijke vergelijking, negatieve resultaten | les | `04_search`, `05_exercises` |
+| 1.10 | spreiding tussen runs, eerlijke vergelijking, negatieve resultaten | les | `04_search`, `05_exercises` |
 | 1.11 | geschiedenis van AI, soorten leerproblemen | 3-5 | presentatie les 1 |
 | 1.12 | architecturen lezen met shapes, fusie | les | `04_search`, `05_exercises` |
 | 1.13 | de baseline | les | `03_training`, `04_search`, `05_exercises` |
