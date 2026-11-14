@@ -46,6 +46,7 @@ from run_submission import (
     KEEP_SYSTEM_TAGS,
     MAX_ARTIFACT_BYTES,
     Submission,
+    explain,
     load,
 )
 
@@ -637,14 +638,21 @@ def main() -> None:
 
     code = course_code()
     now = datetime.now(UTC).replace(microsecond=0)
-    subs = []
+    subs, skipped = [], 0
     for run in runs:
         try:
             subs.append(
                 to_submission(client, run, args.lesson, student, code, names, now)
             )
         except ValidationError as e:
-            sys.exit(f"run {run.info.run_id} does not fit the submission format:\n{e}")
+            skipped += 1
+            print(
+                f"skipped run {run.info.run_id} ({run.info.run_name or '-'}), "
+                "it does not fit the submission format: " + "; ".join(explain(e))
+            )
+    if not subs:
+        sys.exit("no run fits the submission format; fix the runs above")
+    # A skipped run is still in the store, so its file on the branch is not stale.
     submit(
         repo,
         args.lesson,
@@ -652,7 +660,7 @@ def main() -> None:
         subs,
         push=not args.no_push,
         open_pr=not args.no_pr,
-        prune=not (args.run_id or args.experiment),
+        prune=not (args.run_id or args.experiment or skipped),
     )
 
 

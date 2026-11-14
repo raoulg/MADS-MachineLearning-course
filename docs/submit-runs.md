@@ -183,7 +183,7 @@ from the class, and is left out with one line saying so.
 | `merging ... into your branch failed` | Show it to the teacher; do not resolve it by hand. |
 | `pushed, but opening the pull request failed` | Open the pull request in the browser at the URL the message gives. |
 | `no experiment matches lesson<N>-*` | The notebook has not logged anything yet; it lists the experiments it did find. |
-| `does not fit the submission format` | A run has something the format does not accept (the message says what). Tell the student; do not work around it. |
+| `skipped run <id> (<name>), it does not fit the submission format: ...` | That run is left out and the others are submitted. The message says what the format does not accept; tell the student, and do not work around it. A wrong tag is fixed on the logged run, without training again (below); submit again afterwards. |
 | `not submitted: N run(s) imported from the class repository` | Not an error: runs imported by `collect_runs.py` ended up in the student's store (for example with `MLFLOW_TRACKING_URI` pointing at `class.db`). They are a classmate's runs and are left out; the student's own runs are submitted. |
 | `... has no upstream/main` | `collect_runs.py` with `--no-pull` on a clone that never fetched; leave out `--no-pull`. |
 
@@ -202,10 +202,19 @@ The check's comment on the pull request names each file with one of these proble
 | `... characters, limit 6000` (param) / `limit 5000` (tag) | A value longer than mlflow stores. Log a shorter one. |
 | `mlflow's own tags are not submitted` | The file holds an `mlflow.*` tag the script leaves out. Submit again with the script. |
 | `experiment must be named lesson<N>-<lowercase-name>` | Log the run in an experiment named like `lesson1-notebook` or `lesson1-study`. |
-| `tag 'builds_on': ... is not a submission_ref` | `builds_on` names a run that is not written as `lesson<N>/<login>/<run_id>`. Copy the `submission_ref` tag from the classmate's run in mlflow and log the run again. |
-| `tag 'builds_on' names this run itself` | A run cannot build on itself. Name the classmate's run it builds on. |
+| `tag 'builds_on': ... is not a submission_ref` | `builds_on` names a run that is not written as `lesson<N>/<login>/<run_id>`. Copy the `submission_ref` tag from the classmate's run in mlflow and set it on the run (below). |
+| `tag 'builds_on' names this run itself` | A run cannot build on itself. Set the tag to the classmate's run it builds on (below). |
 | `the path must be relative, without . or ..` | An artifact path that points outside the run. Log the artifact under a plain relative name. |
 | `this file says it is <a>'s run; it sits in <b>'s directory` | The file was copied or edited by hand. Submit again with the script. |
 | `not valid JSON (...): submit again, do not edit by hand` | The file was edited by hand. Submit again with the script. |
 | `a symbolic link, not a file` | The branch holds a link instead of a file. Submit again with the script. |
 | any other field message (`run.metrics...`, `student: ...`) | The file does not fit the format; show it to the student. |
+
+A tag on a run already logged is fixed in the student's own store, without training
+again; the student says which classmate's run it builds on:
+
+```bash
+uv run python -c "from mlflow import MlflowClient; MlflowClient('sqlite:///artefacts/mlflow/mlruns.db').set_tag('<run_id>', 'builds_on', 'lesson1/bob/<run_id>')"
+```
+
+Then submit again.

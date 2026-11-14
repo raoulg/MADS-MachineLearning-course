@@ -233,34 +233,71 @@ def test_list_folds_seed_series():
     assert line == "accuracy=0.8123 ± 0.012 (n=5), n_params=1000"
 
 
-def test_runs_imported_from_the_class_are_not_submitted(
-    world, tmp_path, monkeypatch, capsys
-):
+def local_store(tmp_path, runs) -> tuple[str, dict[str, str]]:
+    """A student's mlflow store with `runs`, (experiment, name, tags) each, finished,
+    with an accuracy and a design script; the URI and run id by name."""
     uri = f"sqlite:///{tmp_path / 'mlruns.db'}"
     client = MlflowClient(tracking_uri=uri)
-    exp = client.create_experiment(
-        "lesson1-notebook", artifact_location=(tmp_path / "artifacts").as_uri()
-    )
     ids = {}
-    for name, tags in [
-        ("mine", {"role": "final"}),
-        ("bob:baseline", {"submission_ref": f"lesson1/bob/{'a' * 32}"}),
-        ("carol:baseline", {"source_run_id": "b" * 32}),
-    ]:
-        rid = client.create_run(exp, run_name=name, tags=tags).info.run_id
+    for experiment, name, tags in runs:
+        exp = client.get_experiment_by_name(experiment)
+        exp_id = (
+            exp.experiment_id
+            if exp
+            else client.create_experiment(
+                experiment, artifact_location=(tmp_path / "artifacts").as_uri()
+            )
+        )
+        rid = client.create_run(exp_id, run_name=name, tags=tags).info.run_id
         ids[name] = rid
         client.log_metric(rid, "accuracy", 0.5)
         client.log_text(rid, "model = 1\n", "design.py")
         client.set_terminated(rid)
+    return uri, ids
 
+
+def submit_main(monkeypatch, world, uri: str, *extra: str) -> list[str]:
+    """`submit_runs.py --lesson 1` without pushing; the files it wrote on lesson1."""
     argv = ["submit_runs.py", "--lesson", "1", "--student", "alice", "--no-push"]
-    argv += ["--runs-repo", str(world.clone), "--tracking-uri", uri]
+    argv += ["--runs-repo", str(world.clone), "--tracking-uri", uri, *extra]
     monkeypatch.setattr(sys, "argv", argv)
     submit_runs.main()
+    return run("git", "ls-files", "lesson1", cwd=world.clone).split()
+
+
+def test_runs_imported_from_the_class_are_not_submitted(
+    world, tmp_path, monkeypatch, capsys
+):
+    uri, ids = local_store(
+        tmp_path,
+        [
+            ("lesson1-notebook", "mine", {"role": "final"}),
+            ("lesson1-notebook", "bob:baseline",
+             {"submission_ref": f"lesson1/bob/{'a' * 32}"}),
+            ("lesson1-notebook", "carol:baseline", {"source_run_id": "b" * 32}),
+        ],
+    )  # fmt: skip
+    written = submit_main(monkeypatch, world, uri)
 
     out = capsys.readouterr().out
     assert "not submitted: 2 run(s) imported from the class repository" in out
-    written = run("git", "ls-files", "lesson1", cwd=world.clone).split()
     assert written == [f"lesson1/alice/{ids['mine']}.json"]
     data = json.loads((world.clone / written[0]).read_text())
     assert data["run"]["artifacts"] == {"design.py": "model = 1\n"}
+
+
+def test_a_run_that_does_not_fit_is_skipped_and_the_rest_submitted(
+    world, tmp_path, monkeypatch, capsys
+):
+    uri, ids = local_store(
+        tmp_path,
+        [
+            ("lesson1-notebook", "good", {"role": "final"}),
+            ("lesson1-notebook", "bad", {"builds_on": "lesson1/bob"}),
+        ],
+    )
+    written = submit_main(monkeypatch, world, uri)
+    assert written == [f"lesson1/alice/{ids['good']}.json"]
+    [line] = [x for x in capsys.readouterr().out.splitlines() if "skipped" in x]
+    assert line.startswith(f"skipped run {ids['bad']} (bad), it does not fit")
+    assert "tag 'builds_on': 'lesson1/bob' is not a submission_ref" in line
