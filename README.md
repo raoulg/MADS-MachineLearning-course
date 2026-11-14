@@ -37,13 +37,13 @@ pdf and worth buying.
 |---|---|---|---|
 | 1 | Representation and head | [`1_pytorch_intro`](notebooks/1_pytorch_intro) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les1.html) · [text](references/leerdoelen/les1.md) |
 | 2 | Kernels, state and gates | [`2_kernels_state_and_gates`](notebooks/2_kernels_state_and_gates) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les2.html) · [text](references/leerdoelen/les2.md) |
-| 3 | What did that capacity buy you | [`3_scaling_and_search`](notebooks/3_scaling_and_search) | |
-| 4 | Language | [`4_language`](notebooks/4_language) | |
-| 5 | Self-supervised learning | [`5_unsupervised`](notebooks/5_unsupervised) | |
-| 6 | Uncertainty | [`6_uncertainty`](notebooks/6_uncertainty) | |
-| 7 | Generalists and memory | [`7_generalists_and_memory`](notebooks/7_generalists_and_memory) | |
+| 3 | What did that capacity buy you | [`3_scaling_and_search`](notebooks/3_scaling_and_search) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les3.html) · [text](references/leerdoelen/les3.md) |
+| 4 | Language | [`4_language`](notebooks/4_language) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les4.html) · [text](references/leerdoelen/les4.md) |
+| 5 | Self-supervised learning | [`5_unsupervised`](notebooks/5_unsupervised) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les5.html) · [text](references/leerdoelen/les5.md) |
+| 6 | Uncertainty | [`6_uncertainty`](notebooks/6_uncertainty) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les6.html) · [text](references/leerdoelen/les6.md) |
+| 7 | Generalists and memory | [`7_generalists_and_memory`](notebooks/7_generalists_and_memory) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les7.html) · [text](references/leerdoelen/les7.md) |
 
-The learning goals are in Dutch. A lesson's goals appear here once they are final.
+The learning goals are in Dutch, one picture per goal.
 
 Handy to have open:
 
