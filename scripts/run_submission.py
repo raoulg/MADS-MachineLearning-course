@@ -6,7 +6,8 @@ One submitted mlflow run is one JSON file in the class runs repository, at
 
 where <student> is the student's GitHub login. The file holds everything needed to
 recreate the run in another mlflow store: params, tags, the full history of every
-metric, small text/JSON artifacts (the architecture), and where the code came from.
+metric, small text/JSON artifacts (the architecture, the design script `design.py`),
+and where the code came from.
 
 This module depends on pydantic and the standard library only, so the runs repository's
 CI can validate a push or a pull request without installing mlflow:
