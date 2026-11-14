@@ -23,11 +23,14 @@ receives every write. This protocol has no shared database, so it needs no serve
    request and merges it when its files are valid runs in its author's own directory.
    Students need no access to the class repository, and the teacher merges nothing by
    hand.
-4. **The teacher's collect step is the only writer to the class mlflow store.**
-   `scripts/collect_runs.py` pulls the repository and imports every file into a separate
-   local store (`artefacts/mlflow/class.db`). It is idempotent: a run already imported
-   unchanged is skipped, and a run whose file changed replaces its earlier import. Run it
-   as often as you like.
+4. **Collecting is for student and teacher alike, each into their own class store.**
+   `scripts/collect_runs.py` fetches the class repository's `main` and imports every file
+   on it into a separate local store (`artefacts/mlflow/class.db`), the only thing that
+   writes there. It reads the files from the git ref `<remote>/main` (`upstream` in a
+   student's clone of their fork, `origin` in the teacher's clone of the class
+   repository), never from the working tree, so it works on any branch and leaves the
+   clone as it was. It is idempotent: a run already imported unchanged is skipped, and a
+   run whose file changed replaces its earlier import. Run it as often as you like.
 
 Git and GitHub do the work a tracking server would do: they receive writes
 asynchronously, keep them in order, and authenticate who wrote what (the author of the
@@ -40,7 +43,7 @@ sqlite file.
  submit_runs.py --push--> alice/mads-ml-runs (fork), branch lesson1
                             |  pull request, checked and merged by validate.yml
                             v
-                          raoulg/mads-ml-runs: lesson1/alice/<run>.json --pull--> collect_runs.py
+                          raoulg/mads-ml-runs: lesson1/alice/<run>.json --fetch--> collect_runs.py
                                                lesson1/bob/<run>.json             --> class.db
                                                                                   --> mlflow ui
                                                                                   --> class_analysis.py
@@ -54,7 +57,7 @@ sqlite file.
 | `scripts/run_submission.py` | both, and CI | the file format (pydantic) and the validator |
 | `scripts/submit_runs.py` | student | local mlflow → JSON files → commit on `lesson<N>` → push to the fork → pull request |
 | `docs/submit-runs.md` | student's coding agent | step-by-step instructions, including the one-time setup |
-| `scripts/collect_runs.py` | teacher | pull → validate → import into `class.db` → optionally `mlflow ui` |
+| `scripts/collect_runs.py` | both | fetch `main` → validate → import into `class.db` → optionally `mlflow ui` |
 | `scripts/class_analysis.py` | teacher | the opening analysis: tables and figures for one lesson |
 | `docs/runs-repo-template/` | teacher, once | README and the workflow that validates and merges pull requests |
 
@@ -69,12 +72,20 @@ scripts/run_submission.py schema` prints the JSON schema):
   started (`run`) or the script read it at submission (`submit`; notebooks do not record
   it, so this is the usual case).
 - **run**: run id, name, experiment, status, start and end time, params, tags, the full
-  history of every metric (so per-epoch curves survive), and the small text/JSON
-  artifacts: in practice `architecture.json`, the layer table with input and output shapes.
+  history of every metric (so per-epoch curves survive), and the small text artifacts:
+  in practice `architecture.json`, the layer table with input and output shapes,
+  `search_space.json` for a search, and `design.py`, the student's design script.
 
 mlflow's own system tags are dropped, because they carry the student's local username and
-absolute paths. Artifacts other than `.json`/`.txt`/`.md`/`.yaml` files under 256 KB are
-never submitted, so weights cannot end up in git.
+absolute paths. Artifacts other than `.json`/`.txt`/`.md`/`.yaml`/`.py` files under
+256 KB are never submitted, so weights cannot end up in git. A `.py` artifact is read,
+never run: CI only validates the JSON around it.
+
+A run imported from the class repository is never submitted again: `submit_runs.py`
+leaves out every run that carries `submission_ref` or `source_run_id`, the tags
+`collect_runs.py` writes, with one line saying how many it left out. That keeps a
+classmate's run out of a submission even when the student's store and the class store
+are mixed up.
 
 ## Logging conventions
 
@@ -125,6 +136,18 @@ log_run("winner", "final", params=best, scores={"accuracy": per_seed_scores},
 - **session** tag: one value per execution of a notebook, so a rerun can be told apart
   from the first run.
 - Runs logged while notebooktester runs get `test_run=true` and are not submitted.
+- **design**: `log_run(..., design="my_design.py")` logs the text of the student's
+  design script, the file that defines their architectures, as the artifact `design.py`.
+- **builds_on** tag: the classmates' runs a run builds on, `log_run(...,
+  builds_on="lesson1/bob/<run_id>")` (one or a list), written comma-separated. Each entry
+  is the `submission_ref` of a run in the class store; the validator checks that every
+  entry has that form and that none names the run itself, not that the run exists (it
+  may sit in a pull request not merged yet).
+- **submission_ref** tag, written by `collect_runs.py` on every imported run:
+  `lesson<N>/<login>/<run_id>`, the path of its file without `.json`. It is what a
+  student copies from mlflow to build on that run. The import also writes `student`,
+  `lesson`, `source_run_id`, `source_run_name`, `submission_hash`, `submitted_at` and
+  `code_*`.
 
 ### Reading the runs as a parallel-coordinates plot
 
@@ -176,8 +199,8 @@ exercise notebook is the example).
 4. Put the repository URL in the course announcement. `docs/submit-runs.md` tells the
    student's agent to fork it and clone the fork to `../mads-runs`, next to the course
    repository.
-5. Clone the class repository itself to `../mads-runs` (or set `MADS_RUNS_REPO`); that
-   clone is what `collect_runs.py` pulls.
+5. Clone the class repository itself to `../mads-runs` (or set `MADS_RUNS_REPO`);
+   `collect_runs.py` fetches its `origin/main` and reads the runs from there.
 
 The workflow, `validate.yml`, runs on every pull request against `main` and on every push
 to `main`:
@@ -205,7 +228,7 @@ commit SHAs, with the release tag in a comment.
 Set a deadline before the lesson. Then:
 
 ```bash
-uv run scripts/collect_runs.py --lesson 1          # pull and import; prints runs per student and per experiment
+uv run scripts/collect_runs.py --lesson 1          # fetch main and import; prints runs per student and per experiment
 uv run scripts/class_analysis.py --lesson 1        # tables in the terminal, figures in artefacts/class-analysis/lesson1/
 uv run scripts/collect_runs.py --lesson 1 --ui     # import again (a no-op) and open mlflow ui on the class store
 ```
@@ -214,6 +237,9 @@ uv run scripts/collect_runs.py --lesson 1 --ui     # import again (a no-op) and 
 easier way to walk through it in front of the class. It shows:
 
 - **who submitted what**: runs per student and role;
+- **who built on whom**: per `builds_on` link, the student's run and the classmate's
+  run it builds on, both scores and the difference; a link to a run not in the class
+  store is listed as such;
 - **baseline against final, per student**: the gain, the gain in pooled seed sigmas, and
   how much of the best single-seed trial survived the rerun over seeds;
 - **score against parameters** for every run, with the baselines' two-sigma band;
