@@ -7,6 +7,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
+from gitworld import World, make_world
 from run_submission import Submission  # ty: ignore[import-not-found]  (scripts/ is put on sys.path above)
 
 
@@ -43,3 +44,9 @@ def make_submission(
 @pytest.fixture
 def submission():
     return make_submission
+
+
+@pytest.fixture
+def world(tmp_path, monkeypatch) -> World:
+    """The git world of `gitworld.py`: class repository, alice's fork and her clone."""
+    return make_world(tmp_path, monkeypatch)
