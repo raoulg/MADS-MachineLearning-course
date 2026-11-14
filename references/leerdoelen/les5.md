@@ -1,72 +1,65 @@
-# Les 5 — Self-supervised: waar de representatie vandaan komt
+# Les 5 — Self-supervised: de data als eigen leraar
 
 Lees uit *Understanding Deep Learning* hoofdstuk 14, en de blog over I-JEPA:
 https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/
 
-Les 1 gaf je een representatie in handen en liet zien dat die elke andere keuze
-domineert. De voor de hand liggende vervolgvraag — waar kwam die vandaan, en zou ik er
-zelf een kunnen maken voor een domein dat er geen heeft — is deze les.
+Les 1 gaf je een representatie in handen en liet zien dat die elke andere keuze domineert.
+Deze les beantwoordt de vraag die daarop volgt: waar kwam die representatie vandaan, en
+zou je er zelf een kunnen maken voor een domein dat er geen heeft?
 
 ## De student begrijpt
 
-5.1 Hoe de architectuur van een autoencoder in elkaar zit, en dat het niet meer is dan
-een encoder en een decoder achter elkaar.
+5.1 Wat een pretext task is: een taak waarvan de data zelf het antwoord levert, zodat een
+encoder zonder labels een bruikbare ruimte leert.
 
-5.2 Wat een latent space is, en hoe je die kunt visualiseren.
+5.2 Dat de keuze van de pretext task de keuze is van wat de ruimte *vergeet*:
+reconstructie ordent op gelijkenis in de input, contrastief leren ordent op wat gelijk
+blijft onder de augmentatie die jij koos.
 
-5.3 Wat het contrast is tussen een autoencoder en supervised learning, op de latent space
-en op de lossfunctie.
+5.3 Dat een autoencoder een encoder en een decoder achter elkaar is, met een smalle latent
+space ertussen, en dat de loss de input zelf als doel heeft.
 
-5.4 **Waarom een pretext task een bruikbare ruimte oplevert**, en dat de keuze van de
-pretext task de keuze is van wat de ruimte *vergeet*: reconstructie ordent op gelijkenis
-in de input, contrastief leren ordent op invariantie onder de augmentatie die jij koos.
+5.4 Hoe twee views van hetzelfde item door één encoder met gedeelde gewichten gaan, en
+dat de augmentatie de enige creatieve keuze is: een augmentatie die de taak kapotmaakt,
+levert een ruimte op die de taak vergeet.
 
-5.5 Wat een lineaire probe is en waarom die het meetinstrument is van deze les.
+5.5 Wat representation collapse is — alle items op dezelfde vector — hoe je het ziet, en
+waarom een dalende loss niets bewijst.
 
-5.6 Wat de elementen van een siamese network zijn, en wanneer je er een zou willen
-gebruiken.
+5.6 Dat een lineaire probe het meetinstrument van deze les is: de kwaliteit van een ruimte
+lees je niet af aan haar meetkunde, wel aan wat een lineaire head eruit haalt.
 
-5.7 Wat representation collapse is, hoe je het detecteert, en waarom een dalende loss
-niets bewijst.
+5.7 Wat JEPA anders doet dan een autoencoder: voorspellen in de *latente* ruimte in plaats
+van in pixels, met views die door maskeren ontstaan in plaats van door augmenteren.
 
-5.8 Wat de motivatie voor JEPA is, en hoe JEPA zich verhoudt tot autoencoders en tot
-generatieve modellen: voorspellen in de *latente* ruimte in plaats van in pixels.
+5.8 Wat pooling weggooit: de plaats. Weet dat het behouden van de patch-as het verschil
+is tussen weten *wat* er op een afbeelding staat en weten *waar*.
 
-5.9 Waarom een patch-as behouden blijven soms beter is dan poolen, en wat pooling weggooit.
+5.9 Dat een geleerde representatie een halffabrikaat is: de bevroren encoder en de cache
+van les 1 zijn het resultaat van precies zo'n training.
 
-5.10 Wat praktische toepassingen zijn van een geleerde representatie, en hoe de latent
-space als halffabrikaat voor andere modellen gebruikt kan worden.
+## De student kan
 
-5.11 Hoe anomaly detection en unsupervised classification met een geleerde representatie
-werken.
-
-5.12 Dat de kwaliteit van een representatie zich niet betrouwbaar laat aflezen aan de
-meetkunde van de vectorruimte zelf, en dat een lineaire probe daarvoor de eerlijke — en
-goedkope — meting is.
-
-## De student is in staat om
-
-5.13 Een autoencoder bouwen uit vectormesh-componenten (`Serial` van twee `NeuralNet`s)
-en trainen op een cache.
-
-5.14 Drie ruimtes op dezelfde data bouwen — autoencoder, contrastief, supervised — en ze
+5.10 Drie ruimtes op dezelfde data bouwen — autoencoder, contrastief en supervised — en ze
 met dezelfde lineaire probe tegen elkaar afzetten.
 
-5.15 Een encoder uit een getraind model hergebruiken voor een andere taak.
+5.11 Een self-supervised model trainen met een collapse-detector aan de meting gekoppeld,
+en zoeken op die meting in plaats van op de loss.
 
-5.16 Een SSL-model hypertunen, met een collapse-detector aan de meting gekoppeld.
+5.12 Kiezen tussen een gepoolde embedding en een embedding met patch-as, voor een taak
+waarin de plaats ertoe doet.
 
 ## Materiaal
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 5.1-5.5, 5.13, 5.14 | waarom pretext tasks werken; AE vs contrastief vs supervised | `01_why_pretext_tasks_work` |
-| 5.6, 5.7, 5.16 | siamese, collapse, hypertunen | `02_selfsupervised` |
-| 5.9, 5.10, 5.11 | patch tokens, wat pooling weggooit | `03_patch_tokens` |
-| 5.8 | I-JEPA | `04_ijepa` |
-| 5.12, 5.15 | de ruimte zelf meten, encoder hergebruiken | les |
+| 5.1, 5.2, 5.3, 5.6, 5.10 | waarom een pretext task werkt, de lineaire probe | `01_why_pretext_tasks_work` |
+| 5.4, 5.5, 5.11 | twee views, collapse, zoeken op de meting | `02_selfsupervised` |
+| 5.8, 5.12 | de patch-as behouden | `03_patch_tokens` |
+| 5.7 | I-JEPA | `04_ijepa` |
+| 5.9 | de representatie als halffabrikaat | les |
 
 ## Resources
 
-- https://youtu.be/qiUEgSCyY5o
-- https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/
+- Self-supervised learning: https://youtu.be/qiUEgSCyY5o
+- I-JEPA: https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/

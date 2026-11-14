@@ -1,77 +1,61 @@
-# Les 6 — Onzekerheid: modelleren, scoren, en ermee beslissen
+# Les 6 — Onzekerheid: van verdeling naar beslissing
 
 Een puntvoorspelling is een antwoord op een vraag die niemand gesteld heeft. Deze les
-gaat over kunnen zeggen hóe zeker je bent, die claim scoren, en er vervolgens naar
-handelen. Hij loopt over beide helften van de cursus heen, omdat dezelfde instrumenten
-werken op een voorspelde verdeling en op een stochastische generator.
+gaat over kunnen zeggen hoe zeker je bent, die claim scoren, en ernaar handelen. Ze begint
+bij forecasting, waar de breedte van een voorspelling het duidelijkst het eigenlijke
+antwoord is, en eindigt bij een beslissing op de hartslagen.
 
 ## De student begrijpt
 
-6.1 Het verschil tussen een puntvoorspelling en een voorspelde verdeling, en wanneer de
+6.1 Hoe een reeks een forecasting-probleem wordt: eerst splitsen in de tijd, dan
+windowen, en normaliseren op de statistiek van de trainset alleen. Weet welk naïef model
+de baseline is die verslagen moet worden.
+
+6.2 Het verschil tussen een puntvoorspelling en een voorspelde verdeling, en wanneer de
 breedte van die verdeling het eigenlijke antwoord is.
 
-6.2 Het verschil tussen aleatorische onzekerheid (de wereld is variabel) en epistemische
+6.3 Het verschil tussen aleatorische onzekerheid (de wereld is variabel) en epistemische
 onzekerheid (het model weet het niet), en dat meer data alleen de tweede verkleint.
 
-6.3 Wat CRPS is en waarom je een verdeling niet met MAE kunt scoren.
+6.4 Dat een verdeling een eigen metric nodig heeft: CRPS scoort de hele verdeling, MAE
+alleen het midden.
 
-6.4 Hoe een Gaussische head met NLL getraind wordt, en welke aanname je daarmee doet.
+6.5 Hoe een Gaussische head met NLL getraind wordt en welke aanname je daarmee doet, en
+dat een quantile head die aanname niet nodig heeft.
 
-6.5 Hoe een quantile head werkt, en waarom die de Gaussische aanname niet nodig heeft.
+6.6 Wat kalibratie is: een interval van 90% hoort in 90% van de gevallen de waarheid te
+bevatten. Weet dat een model scherp én slecht gekalibreerd kan zijn.
 
-6.6 Wat kalibratie is, hoe je het meet (coverage tegen nominaal niveau), en dat een model
-scherp én slecht gekalibreerd kan zijn.
+6.7 Wat conformal prediction doet: een dekkingsgarantie zonder aanname over de verdeling.
+Weet wat je ervoor inlevert, dat de grootte van de set het signaal is, en onder welke
+aanname de garantie vervalt.
 
-6.7 Wat conformal prediction doet: een dekkingsgarantie zonder aanname over de verdeling,
-en wat je ervoor inlevert.
+6.8 Dat een drempel een *beslissing* is en geen modelparameter: bij ongelijke kosten ligt
+de beste drempel niet op 0.5, en waar hij wel ligt volgt uit de kosten. Kan de afweging
+tussen precision en recall daarmee uitleggen.
 
-6.8 De precision-recall trade-off, de confusion matrix, en de ethische problemen die aan
-die trade-off hangen.
+6.9 Dat "niet antwoorden" een volwaardige uitkomst is: een model dat weet wanneer het iets
+niet weet, kan doorverwijzen.
 
-6.9 Dat een drempel een *beslissing* is en geen modelparameter: bij asymmetrische kosten
-ligt de optimale drempel niet op 0.5, en waar hij wel ligt volgt uit de kosten.
+## De student kan
 
-6.10 Hoe je van een verdeling naar een beslissing komt (newsvendor-achtige problemen), en
-dat "niet antwoorden" een legitieme uitkomst is.
+6.10 Een Gaussische en een quantile head bouwen op een reeks en beide met CRPS afzetten
+tegen de naïeve baseline.
 
-6.11 Dat het trekken van *k* samples uit een stochastische generator een Monte
-Carlo-schatting is, dat self-consistency daarmee een ensemble is, en dat "is dit model
-goed gekalibreerd?" dezelfde vraag is als bij de Gaussische head — met dezelfde
-instrumenten te beantwoorden.
+6.11 Een kalibratieplot maken en aflezen of de nominale dekking gehaald wordt, conformal
+intervallen bouwen op een validatieset en de dekking op de testset controleren.
 
-6.12 Het onderscheid tussen willekeur *door constructie* (sampling temperature) en
-onzekerheid *over de wereld* (de spreiding van een voorspelling). Zelfde gereedschap,
-ander object.
-
-## De student is in staat om
-
-6.13 Een Gaussische en een quantile head bouwen op een timeseries en beide tegen een
-gratis baseline scoren met CRPS.
-
-6.14 Een kalibratieplot maken en aflezen of de nominale dekking gehaald wordt.
-
-6.15 Conformal intervallen construeren op een validatieset en de dekking op de testset
-verifiëren.
-
-6.16 Een drempel kiezen op basis van een kostenmatrix in plaats van op basis van accuracy,
-en het verschil in verwachte kosten rapporteren.
-
-6.17 Uit een gepubliceerde cache van *k* gesamplede generaties de spreiding, de
-self-consistency-uitkomst en de kalibratie van de zelfgerapporteerde zekerheid berekenen.
+6.12 Op de hartslagen een drempel kiezen uit een kostenmatrix — een gemiste patiënt tegen
+een vals alarm — met doorverwijzen als derde optie, en als klas vergelijken wat dat
+oplevert: de runs publiceren, het werk van anderen bekijken en daarop voortbouwen met
+bronvermelding.
 
 ## Materiaal
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 6.1-6.6, 6.13, 6.14 | CRPS, Gaussische en quantile heads, kalibratie | `01_probabilistic` |
-| 6.7, 6.15 | conformal prediction | `02_conformal` |
-| 6.8-6.10, 6.16 | metrics, drempels, kosten, beslissen | `03_decisions` |
-| 6.11, 6.12, 6.17 | sampling als verdeling | nog te bouwen |
-
-De serie die je in les 2 koos is hier de natuurlijke plek om verder te werken: daar
-beoordeelde je of een puntvoorspelling volstond, hier bouw je de machinerie voor het
-geval dat hij dat niet deed.
-
-## Resources
-
-Nog te bepalen bij de bouw van deze les.
+| 6.1 | windowen, splitsen, de naïeve baseline | `00_forecasting_baselines` |
+| 6.2, 6.3, 6.4, 6.5, 6.6, 6.10 | verdeling, CRPS, Gaussische en quantile head, kalibratie | `01_probabilistic` |
+| 6.7, 6.11 | conformal prediction | `02_conformal` |
+| 6.8, 6.9 | kosten, drempel, weigeren | `03_decisions` |
+| 6.12 | de klasopdracht | `04_exercise` |

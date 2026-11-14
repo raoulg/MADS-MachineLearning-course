@@ -1,85 +1,58 @@
-# Les 7 — Generalisten die je niet traint, en het geheugen dat je ze geeft
+# Les 7 — Generalisten en hun geheugen
 
-> **Deze les wordt als laatste gebouwd en deze leerdoelen zijn voorlopig.** Elk ander
-> hoofdstuk van deze cursus rust op getallen die op deze machine gemeten zijn; les 7 nog
-> niet. Doelen waar geen meting onder komt te liggen, sneuvelen.
+De hele cursus ging over "bevroren representatie plus een goedkope head". Een generalist
+is hetzelfde patroon, één niveau hoger. Je traint hem niet, dus zit alle hefboom in wat je
+hem voert en in wanneer je hem inzet.
 
-De hele cursus ging tot nu toe over "bevroren representatie plus een goedkope head". Een
-generalistisch model is hetzelfde patroon, één niveau hoger. Je kunt hem niet trainen —
-dus zit alle hefboom in *wat je hem voert*.
-
-Alles wat gecijferd wordt draait op een gepubliceerde cache van modeluitvoer: CPU,
-deterministisch, gratis. Wie de hardware heeft kan die cache optioneel zelf opnieuw
-genereren met een lokaal ~3B-model via ollama, maar dat is nooit verplicht.
+Alles in deze les draait op een gepubliceerde cache van modeluitvoer: op een CPU,
+herhaalbaar en gratis. Wie de hardware heeft kan die cache zelf opnieuw maken met een
+lokaal model; nodig is dat niet.
 
 ## De student begrijpt
 
-7.1 Wat een foundation model is, en wat het betekent dat het zero-shot op jouw taak
-werkt zonder dat jij iets getraind hebt.
+7.1 Wat een generalist is: een model dat zero-shot op jouw taak werkt zonder dat jij iets
+getraind hebt. Weet dat je hem niet verbetert door te trainen, wel door wat je hem
+meegeeft.
 
-7.2 Waarom een zero-shot generalist vergeleken moet worden met een getrainde head op
-*zowel* accuracy als kosten, en niet alleen op accuracy.
+7.2 Waarom je een generalist met een getrainde head vergelijkt op score *en* kosten: de
+generalist is duur per item, de head bijna gratis.
 
-7.3 Wat contaminatie is bij foundation models — dat jouw serie of corpus in de
-pretraining-mix kan hebben gezeten — en hoe je dat controleert in plaats van aanneemt.
+7.3 Hoe je uitvoer van een generatief model beoordeelt: waar een goed antwoord bestaat
+gebruik je dat, uitvoer die je niet kunt lezen is ook een resultaat, en een model dat als
+beoordelaar dient, moet zelf beoordeeld worden.
 
-7.4 De vraag "comprimeert deze encoder, of expandeert hij?", en waarom een geleerde
-embedding van een window slechter kan zijn dan het ruwe window.
+7.4 Voor wie de head volstaat: de recall per klasse zegt welke gevallen de goedkope head
+aankan en welke niet, en dat is de beslissing over de route.
 
-7.5 Dat een `VectorCache` een retrieval-index *is*, en dat RAG dus hergebruik is van de
-infrastructuur uit les 1 en niet nieuwe machinerie.
+7.5 Wat een cascade is: een router stuurt de makkelijke gevallen naar de head en de
+moeilijke naar de generalist. Weet dat de drempel van de router een knop is die je tegen
+echte kosten afregelt, en dat een router zijn plek moet verdienen tegen een control.
 
-7.6 Hoe je retrieval meet zonder ook maar één keer een LLM aan te roepen: recall@k, MRR,
-nDCG over een index.
+7.6 Dat de cache uit les 1 een geheugen is: de dichtstbijzijnde gelabelde voorbeelden
+ophalen en aan de generalist meegeven is retrieval, en dat is hergebruik van wat je al
+had. Weet dat je de retrieval kunt meten zonder de generalist aan te roepen.
 
-7.7 Waarom platte chunk-gebaseerde RAG faalt: geen relaties, geen tijd, geen herkomst —
-en welke van die faalwijzen op een kleine corpus aantoonbaar zijn.
+## De student kan
 
-7.8 De definitie van een graph, wat een adjacency- en degree-matrix zijn, en een
-intuïtief begrip van degree, betweenness en clustering coefficient.
+7.7 Een zero-shot generalist en een zelf getrainde head op dezelfde taak vergelijken, op
+score en op kosten.
 
-7.9 Dat je met de eigenvectoren van een Laplaciaan een graph kunt clusteren (spectral
-clustering), en waarvoor je dat bij een kennisgraaf zou gebruiken.
+7.8 Een cascade bouwen van head, router en generalist, de drempel kiezen uit de kosten,
+en met een control laten zien dat de router iets oplevert.
 
-7.10 Hoe entiteiten en relaties met een LLM uit tekst gehaald worden, **en hoe fout dat
-gaat** — en wat die foutmarge doet met de retrieval-kwaliteit erachter.
+7.9 De generalist een geheugen geven: de dichtstbijzijnde gelabelde uitspraken uit de
+cache ophalen, meegeven, en meten wat dat oplevert.
 
-7.11 Wat hybride retrieval is (vector + graph, vector + BM25, vector + symbolisch filter)
-en wanneer het niet helpt.
-
-7.12 Wat geheugen over tijd vereist: wat bewaar je, wat vat je samen, wat vergeet je —
-en dat vergeten een ontwerpkeuze met meetbare kosten is, geen bug.
-
-7.13 Wat RAG, LoRA en MCP zijn en waar ze zich tot elkaar verhouden.
-
-7.14 Wat distillatie is: de uitvoer van de generalist als labels, een goedkope head
-erop, en hoe groot het gat is dat je gratis kreeg.
-
-7.15 Kan redeneren over AI alignment-uitdagingen.
-
-## De student is in staat om
-
-7.16 Een zero-shot generalist en een zelfgetrainde head op dezelfde taak vergelijken, op
-accuracy én kosten, in minstens twee modaliteiten.
-
-7.17 Een retrieval-index bouwen op een bestaande cache en de kwaliteit ervan meten.
-
-7.18 Een kennisgraaf uit een gepubliceerde extractie-cache opbouwen, clusteren, en de
-retrieval ervan afzetten tegen platte RAG — met een getal, in beide richtingen eerlijk.
-
-7.19 Een goedkope head distilleren op de uitvoer van een generalist en het prestatiegat
-rapporteren.
+7.10 Als klas head, generalist en retrieval combineren op de SCOTUS-uitspraken: de runs
+publiceren, het werk van anderen bekijken en daarop voortbouwen met bronvermelding.
 
 ## Materiaal
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 7.1-7.4, 7.16 | de generalist, gemeten | `01_foundation_models` |
-| 7.5-7.7, 7.17 | retrieval over je eigen cache | nog te bouwen |
-| 7.8-7.11, 7.18 | structuur, graaf, hybride retrieval | nog te bouwen |
-| 7.12 | geheugen, samenvatten, vergeten | nog te bouwen |
-| 7.13-7.15, 7.19 | RAG/LoRA/MCP, distillatie, alignment | nog te bouwen, les |
-
-## Resources
-
-Nog te bepalen bij de bouw van deze les.
+| 7.1, 7.2, 7.7 | de generalist tegenover de head | `03_who_can_the_head_serve`, `04_the_cascade` |
+| 7.3 | generatieve uitvoer beoordelen | `02_evaluating_generative_output` |
+| 7.4 | voor wie de head volstaat | `03_who_can_the_head_serve` |
+| 7.5, 7.8 | de cascade | `04_the_cascade` |
+| 7.6, 7.9 | retrieval als geheugen | les |
+| 7.10 | de klasopdracht | les |
