@@ -599,7 +599,9 @@ g += (
 for x in (70, 270):
     g += t(x, 168, "baseline", "m", "middle") + t(x + 60, 168, "model", "m", "middle")
 g += line("M 200 24 L 200 172", RULE, 1)
-g += t(200, 205, "de marge moet groter zijn dan de seed-spreiding", "c", "middle")
+g += t(
+    200, 205, "de marge moet groter zijn dan de spreiding tussen runs", "c", "middle"
+)
 PICTURES["1.10"] = ("Ruis of resultaat", g)
 
 # 1.11 kinds of learning problems
@@ -672,7 +674,7 @@ g += (
     f'<rect x="168" y="100" width="44" height="20" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
     + t(190, 84, "lineaire head", "l p", "middle")
 )
-g += t(190, 140, "± over seeds", "m", "middle")
+g += t(190, 140, "± tussen runs", "m", "middle")
 g += f'<rect x="236" y="94" width="120" height="32" fill="none" stroke="{V}" stroke-width="2" stroke-dasharray="5 4"/>'
 g += t(296, 84, "je search", "l v", "middle") + t(296, 146, "pas daarna", "m", "middle")
 g += t(200, 205, "zonder vergelijkingspunt zegt een score niets", "c", "middle")
