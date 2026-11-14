@@ -1,5 +1,6 @@
 .PHONY: help publish-fashion publish-flowers publish-imdb publish-all list-caches \
-        build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1
+        build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
+        build-heartbeats
 
 # Publishing course caches to https://huggingface.co/pttrn-io
 #
@@ -90,6 +91,16 @@ build-dtd:
 		uv run python scripts/build_cache.py \
 			--source tanganke/dtd --encoder $$enc --tag dtd --full || exit 1; \
 	done
+
+# ECG heartbeats (PTB, MIT-BIH) from the private repo raoulg/mads-exam-24: no encoder, the
+# 187 steps of a beat go into the cache as a (187, 1) sequence. Cloned on first use.
+HEARTBEAT_SOURCE = artefacts/sources/mads-exam-24
+
+$(HEARTBEAT_SOURCE):
+	gh repo clone raoulg/mads-exam-24 $(HEARTBEAT_SOURCE)
+
+build-heartbeats: | $(HEARTBEAT_SOURCE)
+	uv run python scripts/build_heartbeat_cache.py
 
 publish-eurosat:
 	@for enc in $(ENCODERS); do \
