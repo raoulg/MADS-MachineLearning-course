@@ -1,4 +1,4 @@
-"""Import the class's runs into a local mlflow store, for student and teacher alike.
+"""Import the class's runs into a local Optuna store, for student and teacher alike.
 
     uv run scripts/collect_runs.py --lesson 1 --ui
 
@@ -9,45 +9,64 @@ from `origin` (the teacher's clone of the class repository), and reads the files
 `<remote>/main` with git. It never switches branch or touches the working tree, so it
 works on whatever branch the clone is on, `lesson<N>` from `submit_runs.py` included.
 
-Each run lands in the experiment it was logged under, named `<student>:<run name>` and
-tagged with `student`, `lesson`, `source_run_id`, `submission_ref`
-(`lesson<N>/<student>/<run_id>`, the name a run that builds on this one gives it),
-`code_commit` and a content hash. Re-running is safe: a submission already imported
-unchanged is skipped, a changed one replaces its earlier import. Invalid files are
-reported and skipped.
+The class store is rebuilt from those files on every run, so it always holds exactly what
+`main` holds (Optuna cannot replace one trial). The handed-out studies of the exercise
+(`lesson<N>-notebook` and `lesson<N>-notebook-runs`) are pooled: one study with every
+student's trials, the way the class's runs are read together. Every other study is kept
+per student, as `<study>@<student>`, because each student searched another space; a trial
+that does not fit the pooled study (a param of another kind) goes there as well. Each
+trial carries its own user attrs and `student`, `lesson`, `source_run_id`,
+`source_run_name`, `submission_ref` (`lesson<N>/<student>/<run_id>`, the name a run that
+builds on this one gives it), `submission_hash`, `submitted_at` and `code_*`; its note and
+artifacts are restored. Invalid files are reported and skipped.
 
-The class store is separate from your own runs: artefacts/mlflow/class.db by default.
+The class store is separate from your own runs: artefacts/optuna/class.db by default.
 `docs/run-protocol.md` describes the protocol.
 """
 
 from __future__ import annotations
 
 import argparse
+import io
+import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import uuid
+import warnings
 from collections import Counter
 from pathlib import Path
 
-# mlflow draws a progress bar per artifact and announces every database check; neither
-# says anything useful here.
-os.environ.setdefault("MLFLOW_ENABLE_ARTIFACTS_PROGRESS_BAR", "false")
-os.environ.setdefault("MLFLOW_LOGGING_LEVEL", "WARNING")
-
-from mlflow.entities import Metric, Param, RunTag
-from mlflow.exceptions import MlflowException
-from mlflow.tracking import MlflowClient
+import optuna
+from optuna.artifacts import FileSystemArtifactStore
+from optuna.artifacts._upload import ARTIFACTS_ATTR_PREFIX
+from optuna.distributions import (
+    BaseDistribution,
+    CategoricalDistribution,
+    FloatDistribution,
+    IntDistribution,
+    check_distribution_compatibility,
+    json_to_distribution,
+)
+from optuna.trial import TrialState, create_trial
+from optuna_dashboard._note import save_note_with_version
 from run_submission import Submission, explain, parse
 
+optuna.logging.set_verbosity(optuna.logging.WARNING)
+# set_metric_names is marked experimental in Optuna
+warnings.filterwarnings("ignore", category=optuna.exceptions.ExperimentalWarning)
+
 COURSE_ROOT = Path(__file__).resolve().parents[1]
-CLASS_DIR = COURSE_ROOT / "artefacts" / "mlflow"
-DEFAULT_TRACKING_URI = f"sqlite:///{CLASS_DIR / 'class.db'}"
+CLASS_DIR = COURSE_ROOT / "artefacts" / "optuna"
+DEFAULT_STORE = CLASS_DIR / "class.db"
 DEFAULT_RUNS_REPO = COURSE_ROOT.parent / "mads-runs"
-BATCH = 1000  # mlflow's log_batch limit for metrics; params and tags are capped at 100
 BASE = "main"
 # A submission sits at lesson<N>/<student>/<file>.json; the validator checks the rest.
 SUBMISSION_PATH = re.compile(r"lesson(\d+)/[^/]+/[^/]+\.json")
+# The studies every student runs the same way: one pooled study for the whole class.
+POOLED = re.compile(r"lesson\d+-notebook(-runs)?")
 
 
 def git(repo: Path, *args: str) -> subprocess.CompletedProcess:
@@ -110,84 +129,128 @@ def read_submission(repo: Path, ref: str, path: str, mode: str) -> Submission:
     return parse(shown.stdout, path)
 
 
-def experiment_id(client: MlflowClient, name: str, artifact_root: Path) -> str:
-    exp = client.get_experiment_by_name(name)
-    if exp is not None:
-        return exp.experiment_id
-    return client.create_experiment(
-        name, artifact_location=(artifact_root / name).as_uri()
-    )
+def given(value: bool | float | str | None) -> BaseDistribution:
+    """The distribution of a param that was given, not drawn: one value."""
+    if isinstance(value, bool):
+        return CategoricalDistribution([False, True])
+    if isinstance(value, int):
+        return IntDistribution(value, value)
+    if isinstance(value, float):
+        return FloatDistribution(value, value)
+    return CategoricalDistribution([value])
 
 
-def imported_runs(
-    client: MlflowClient, exp_id: str
-) -> dict[tuple[str, str], tuple[str, str, str]]:
-    """(student, source_run_id) -> (run_id in this store, content hash, submission_ref,
-    empty for a run imported without one)."""
-    out, token = {}, None
-    while True:
-        page = client.search_runs([exp_id], max_results=1000, page_token=token)
-        for r in page:
-            t = r.data.tags
-            if "source_run_id" in t:
-                out[(t["student"], t["source_run_id"])] = (
-                    r.info.run_id,
-                    t.get("submission_hash", ""),
-                    t.get("submission_ref", ""),
-                )
-        token = page.token
-        if not token:
-            return out
+class ClassStore:
+    """The class store being built: Optuna studies in one sqlite file, their artifacts
+    next to it."""
 
+    def __init__(self, path: Path):
+        for old in (path, path.parent / "class-artifacts"):
+            if old.is_file():
+                old.unlink()
+            elif old.is_dir():
+                shutil.rmtree(old)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self.url = f"sqlite:///{path}"
+        self.artifacts = FileSystemArtifactStore(str(path.parent / "class-artifacts"))
+        (path.parent / "class-artifacts").mkdir()
+        self.studies: dict[str, optuna.Study] = {}
+        self.seen: dict[str, dict[str, BaseDistribution]] = {}
 
-def import_run(client: MlflowClient, exp_id: str, sub: Submission, digest: str) -> None:
-    run = sub.run
-    tags = {
-        **run.tags,
-        "student": sub.student,
-        "lesson": str(sub.lesson),
-        "source_run_id": run.run_id,
-        "source_run_name": run.run_name,
-        "submission_ref": sub.ref(),
-        "submission_hash": digest,
-        "submitted_at": sub.submitted_at.isoformat(),
-        "code_commit": sub.code.commit or "",
-        "code_dirty": "" if sub.code.dirty is None else str(sub.code.dirty).lower(),
-        "code_remote": sub.code.remote or "",
-    }
-    created = client.create_run(
-        exp_id, start_time=run.start_time, run_name=f"{sub.student}:{run.run_name}"
-    )
-    rid = created.info.run_id
-    try:
-        fill_run(client, rid, sub, tags)
-    except MlflowException:
-        client.delete_run(rid)  # no half-imported run stays in the class store
-        raise
+    def study(self, name: str, sub: Submission) -> optuna.Study:
+        if name not in self.studies:
+            study = optuna.create_study(
+                study_name=name,
+                storage=self.url,
+                direction=sub.run.study.direction,
+            )
+            study.set_metric_names(["accuracy"])
+            for key, value in sub.run.study.attrs.items():
+                study.set_user_attr(key, value)
+            study.set_user_attr("pooled", name == sub.run.experiment)
+            if name != sub.run.experiment:
+                study.set_user_attr("student", sub.student)
+            self.studies[name] = study
+            self.seen[name] = {}
+        return self.studies[name]
 
+    def home(self, sub: Submission, distributions: dict[str, BaseDistribution]) -> str:
+        """The study a trial goes to: the pooled one when it is a handed-out study and
+        its params fit what the study holds, else the student's own."""
+        pooled = sub.run.experiment
+        own = f"{pooled}@{sub.student}"
+        if not POOLED.fullmatch(pooled):
+            return own
+        for name, dist in distributions.items():
+            old = self.seen.get(pooled, {}).get(name)
+            if old is None:
+                continue
+            try:
+                check_distribution_compatibility(old, dist)
+            except ValueError:
+                return own
+        return pooled
 
-def fill_run(client: MlflowClient, rid: str, sub: Submission, tags: dict) -> None:
-    run = sub.run
-    params = [Param(k, v) for k, v in run.params.items()]
-    tag_list = [RunTag(k, v) for k, v in tags.items()]
-    metrics = [
-        Metric(k, p.value, p.timestamp, p.step)
-        for k, points in run.metrics.items()
-        for p in points
-    ]
-    for i in range(0, len(params), 100):
-        client.log_batch(rid, params=params[i : i + 100])
-    for i in range(0, len(tag_list), 100):
-        client.log_batch(rid, tags=tag_list[i : i + 100])
-    for i in range(0, len(metrics), BATCH):
-        client.log_batch(rid, metrics=metrics[i : i + BATCH])
+    def add(self, sub: Submission, digest: str) -> None:
+        run = sub.run
+        distributions = {
+            name: (
+                json_to_distribution(json.dumps(run.distributions[name].model_dump()))
+                if name in run.distributions
+                else given(value)
+            )
+            for name, value in run.params.items()
+        }
+        name = self.home(sub, distributions)
+        study = self.study(name, sub)
+        self.seen[name].update(distributions)
 
-    for path, content in run.artifacts.items():
-        if path.endswith(".json"):
-            client.log_dict(rid, content, path)
-        else:
-            client.log_text(rid, content, path)
-    client.set_terminated(rid, status=run.status, end_time=run.end_time)
+        attrs = {
+            **run.attrs,
+            "student": sub.student,
+            "lesson": sub.lesson,
+            "source_run_id": run.run_id,
+            "source_run_name": run.run_name,
+            "submission_ref": sub.ref(),
+            "submission_hash": digest,
+            "submitted_at": sub.submitted_at.isoformat(),
+            "code_commit": sub.code.commit or "",
+            "code_dirty": "" if sub.code.dirty is None else str(sub.code.dirty).lower(),
+            "code_remote": sub.code.remote or "",
+        }
+        system_attrs = {}
+        blobs = {}
+        for path, content in run.artifacts.items():
+            artifact_id = str(uuid.uuid4())
+            text = json.dumps(content, indent=1) if path.endswith(".json") else content
+            blobs[artifact_id] = text.encode()
+            meta = {
+                "artifact_id": artifact_id,
+                "filename": path.rsplit("/", 1)[-1],
+                "mimetype": "application/json"
+                if path.endswith(".json")
+                else "text/plain",
+                "encoding": None,
+            }
+            system_attrs[ARTIFACTS_ATTR_PREFIX + artifact_id] = json.dumps(meta)
+        for artifact_id, raw in blobs.items():
+            self.artifacts.write(artifact_id, io.BytesIO(raw))
+
+        trial = create_trial(
+            state=TrialState[run.status],
+            value=run.value,
+            params=run.params,
+            distributions=distributions,
+            user_attrs=attrs,
+            system_attrs=system_attrs,
+            intermediate_values={p.step: p.value for p in run.intermediate},
+        )
+        study.add_trial(trial)
+        architecture = run.artifacts.get("architecture.json")
+        if isinstance(architecture, dict):
+            trial_id = study.trials[-1]._trial_id
+            body = f"`{architecture.get('signature', '')}`\n\n```\n{architecture.get('summary', '')}\n```"
+            save_note_with_version(study._storage, study._study_id, trial_id, 1, body)
 
 
 def main() -> None:
@@ -208,9 +271,10 @@ def main() -> None:
         help="only this lesson (repeatable; default all)",
     )
     parser.add_argument(
-        "--tracking-uri",
-        default=DEFAULT_TRACKING_URI,
-        help="class store (default: %(default)s)",
+        "--store",
+        type=Path,
+        default=DEFAULT_STORE,
+        help="class store, rebuilt on every run (default: %(default)s)",
     )
     parser.add_argument(
         "--no-pull",
@@ -220,9 +284,9 @@ def main() -> None:
     parser.add_argument(
         "--ui",
         action="store_true",
-        help="start `mlflow ui` on the class store afterwards",
+        help="start optuna-dashboard on the class store afterwards",
     )
-    parser.add_argument("--port", type=int, default=5050)
+    parser.add_argument("--port", type=int, default=8089)
     args = parser.parse_args()
 
     repo = args.runs_repo.resolve()
@@ -233,19 +297,12 @@ def main() -> None:
     ref = class_ref(repo, fetch=not args.no_pull)
     files = submission_files(repo, ref, args.lesson)
 
-    # The architecture files go next to a sqlite store, in class-artifacts/<experiment>.
-    artifact_root = CLASS_DIR / "class-artifacts"
-    if args.tracking_uri.startswith("sqlite:///"):
-        db_dir = Path(args.tracking_uri.removeprefix("sqlite:///")).parent
-        db_dir.mkdir(parents=True, exist_ok=True)
-        artifact_root = db_dir / "class-artifacts"
-    client = MlflowClient(tracking_uri=args.tracking_uri)
+    store = ClassStore(args.store)
 
     counts: Counter[str] = Counter()
     students: dict[int, set[str]] = {}
     per_student: Counter[tuple[int, str]] = Counter()
     per_experiment: Counter[str] = Counter()
-    index: dict[str, dict] = {}
     for rel, mode in files:
         try:
             sub = read_submission(repo, ref, rel, mode)
@@ -254,27 +311,8 @@ def main() -> None:
             counts["invalid"] += 1
             continue
 
-        try:
-            exp_id = experiment_id(client, sub.run.experiment, artifact_root)
-            if exp_id not in index:
-                index[exp_id] = imported_runs(client, exp_id)
-            key = (sub.student, sub.run.run_id)
-            digest = sub.content_hash()
-            existing = index[exp_id].get(key)
-            if existing and existing[1] == digest:
-                counts["unchanged"] += 1
-                if not existing[2]:  # a run imported without the tag gets it
-                    client.set_tag(existing[0], "submission_ref", sub.ref())
-            else:
-                import_run(client, exp_id, sub, digest)
-                if existing:
-                    client.delete_run(existing[0])
-                counts["updated" if existing else "new"] += 1
-                index[exp_id][key] = ("", digest, sub.ref())
-        except MlflowException as e:
-            print(f"failed {rel}: {e}")
-            counts["failed"] += 1
-            continue
+        store.add(sub, sub.content_hash())
+        counts["new"] += 1
         students.setdefault(sub.lesson, set()).add(sub.student)
         per_student[(sub.lesson, sub.student)] += 1
         per_experiment[sub.run.experiment] += 1
@@ -291,22 +329,20 @@ def main() -> None:
         print("runs per experiment:")
         for name, n in sorted(per_experiment.items()):
             print(f"  {name:<40} {n:>5}")
-    print(f"class store: {args.tracking_uri}")
-    if counts["failed"]:
-        sys.exit(
-            f"{counts['failed']} file(s) could not be imported; see 'failed' above"
-        )
+    print(f"class store: {args.store}")
 
     ui = [
-        "mlflow",
-        "ui",
-        "--backend-store-uri",
-        args.tracking_uri,
+        "optuna-dashboard",
+        store.url,
+        "--artifact-dir",
+        str(args.store.parent / "class-artifacts"),
         "--port",
         str(args.port),
     ]
     if args.ui:
-        print(f"starting mlflow ui on http://127.0.0.1:{args.port} (ctrl-c to stop)")
+        print(
+            f"starting optuna-dashboard on http://127.0.0.1:{args.port} (ctrl-c to stop)"
+        )
         os.execvp(ui[0], ui)
     print("browse with: uv run " + " ".join(ui))
 

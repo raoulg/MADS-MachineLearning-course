@@ -5,24 +5,40 @@ import sys
 from pathlib import Path
 
 import collect_runs  # ty: ignore[import-not-found]
-import pytest
+import optuna
 import submit_runs  # ty: ignore[import-not-found]
 from gitworld import run
-from mlflow.exceptions import MlflowException
-from mlflow.tracking import MlflowClient
+from optuna.artifacts import FileSystemArtifactStore, get_all_artifact_meta
+from optuna.distributions import FloatDistribution
 
 
-def collect(monkeypatch, repo: Path, uri: str, *extra: str) -> None:
-    argv = ["collect_runs.py", "--runs-repo", str(repo), "--tracking-uri", uri]
+def collect(monkeypatch, repo: Path, store: Path, *extra: str) -> None:
+    argv = ["collect_runs.py", "--runs-repo", str(repo), "--store", str(store)]
     monkeypatch.setattr(sys, "argv", [*argv, *extra])
     collect_runs.main()
 
 
-def imported(uri: str) -> dict[str, dict[str, str]]:
-    """submission_ref -> tags of every run in the class store."""
-    client = MlflowClient(tracking_uri=uri)
-    runs = client.search_runs([e.experiment_id for e in client.search_experiments()])
-    return {r.data.tags["submission_ref"]: r.data.tags for r in runs}
+def trials(store: Path) -> dict[str, optuna.trial.FrozenTrial]:
+    """submission_ref -> trial, over every study of the class store."""
+    optuna.logging.set_verbosity(optuna.logging.ERROR)
+    out = {}
+    for summary in optuna.get_all_study_summaries(f"sqlite:///{store}"):
+        study = optuna.load_study(
+            study_name=summary.study_name, storage=f"sqlite:///{store}"
+        )
+        for trial in study.trials:
+            out[trial.user_attrs["submission_ref"]] = trial
+    return out
+
+
+def studies(store: Path) -> list[str]:
+    summaries = optuna.get_all_study_summaries(f"sqlite:///{store}")
+    return sorted(s.study_name for s in summaries)
+
+
+def imported(store: Path) -> dict[str, dict]:
+    """submission_ref -> user attrs of every trial in the class store."""
+    return {ref: t.user_attrs for ref, t in trials(store).items()}
 
 
 def ref(sub) -> str:
@@ -60,7 +76,7 @@ def test_a_students_clone_on_its_lesson_branch_reads_upstream_main(
     before = state(world.clone)
     assert before[0] == "lesson1"
 
-    uri = f"sqlite:///{tmp_path / 'class.db'}"
+    uri = tmp_path / "class.db"
     collect(monkeypatch, world.clone, uri, "--lesson", "1")
     # the fork's main has no runs and lesson1 holds the pending one: neither is read
     assert sorted(imported(uri)) == sorted([ref(merged), ref(bob), ref(carol)])
@@ -77,7 +93,7 @@ def test_the_teachers_clone_with_only_origin(world, submission, tmp_path, monkey
     world.teacher_push(later)
     before = state(clone)
 
-    uri = f"sqlite:///{tmp_path / 'class.db'}"
+    uri = tmp_path / "class.db"
     collect(monkeypatch, clone, uri, "--no-pull")
     assert sorted(imported(uri)) == [ref(first)]
     collect(monkeypatch, clone, uri)
@@ -93,79 +109,139 @@ def test_the_design_script_lands_as_design_py(world, submission, tmp_path, monke
     sub = sub.model_copy(update={"run": run_})
     world.teacher_push(sub)
 
-    uri = f"sqlite:///{tmp_path / 'class.db'}"
-    collect(monkeypatch, teacher_clone(world), uri)
-    client = MlflowClient(tracking_uri=uri)
-    exp = client.get_experiment_by_name("lesson1-notebook")
-    assert exp is not None
-    [only] = client.search_runs([exp.experiment_id])
-    assert only.data.tags["submission_ref"] == ref(sub)
-    run_id = only.info.run_id
-    [artifact] = client.list_artifacts(run_id)
-    assert artifact.path == "design.py"
-    local = client.download_artifacts(run_id, "design.py", str(tmp_path))
-    assert Path(local).read_text() == design
+    store = tmp_path / "class.db"
+    collect(monkeypatch, teacher_clone(world), store)
+    [only] = trials(store).values()
+    assert only.user_attrs["submission_ref"] == ref(sub)
+    storage = optuna.storages.RDBStorage(f"sqlite:///{store}")
+    [meta] = get_all_artifact_meta(only, storage=storage)
+    assert meta.filename == "design.py"
+    reader = FileSystemArtifactStore(str(tmp_path / "class-artifacts")).open_reader(
+        meta.artifact_id
+    )
+    assert reader.read().decode() == design
 
 
-def test_a_failed_import_is_reported_removed_and_fails_the_run(
+def test_the_architecture_becomes_the_trials_note(
+    world, submission, tmp_path, monkeypatch
+):
+    sub = submission("alice")
+    arch = {"signature": "Linear(4->2)", "summary": "layer table"}
+    run_ = sub.run.model_copy(update={"artifacts": {"architecture.json": arch}})
+    world.teacher_push(sub.model_copy(update={"run": run_}))
+    store = tmp_path / "class.db"
+    collect(monkeypatch, teacher_clone(world), store)
+
+    from optuna_dashboard._note import get_note_from_system_attrs
+
+    storage = optuna.storages.RDBStorage(f"sqlite:///{store}")
+    (study_id,) = [storage.get_study_id_from_name(n) for n in studies(store)]
+    attrs = storage.get_study_system_attrs(study_id)
+    [trial] = trials(store).values()
+    note = get_note_from_system_attrs(attrs, trial._trial_id)
+    assert "Linear(4->2)" in note["body"] and "layer table" in note["body"]
+
+
+def test_the_handed_out_studies_are_pooled_and_the_others_kept_per_student(
+    world, submission, tmp_path, monkeypatch
+):
+    def in_study(sub, name):
+        return sub.model_copy(
+            update={"run": sub.run.model_copy(update={"experiment": name})}
+        )
+
+    for sub in (
+        in_study(submission("alice"), "lesson1-notebook"),
+        in_study(submission("bob"), "lesson1-notebook"),
+        in_study(submission("alice"), "lesson1-notebook-runs"),
+        in_study(submission("alice"), "lesson1-study-alice-depth"),
+        in_study(submission("bob"), "lesson1-study-bob-width"),
+    ):
+        world.teacher_push(sub)
+    store = tmp_path / "class.db"
+    collect(monkeypatch, teacher_clone(world), store)
+    assert studies(store) == [
+        "lesson1-notebook",
+        "lesson1-notebook-runs",
+        "lesson1-study-alice-depth@alice",
+        "lesson1-study-bob-width@bob",
+    ]
+    pooled = {
+        t.user_attrs["student"]
+        for t in trials(store).values()
+        if t.user_attrs["lesson"] == 1
+    }
+    assert pooled == {"alice", "bob"}
+
+
+def test_a_trial_that_does_not_fit_the_pooled_study_goes_to_the_students_own(
+    world, submission, tmp_path, monkeypatch
+):
+    ok, odd = submission("alice"), submission("bob")
+    run_ = odd.run.model_copy(
+        update={"params": {"lr": "fast", "encoder": "dinov2-small"}}
+    )
+    world.teacher_push(ok)
+    world.teacher_push(odd.model_copy(update={"run": run_}))
+    store = tmp_path / "class.db"
+    collect(monkeypatch, teacher_clone(world), store)
+    assert studies(store) == ["lesson1-notebook-runs", "lesson1-notebook-runs@bob"]
+
+
+def test_collecting_again_rebuilds_exactly_what_main_holds(
     world, submission, tmp_path, monkeypatch, capsys
 ):
-    good, bad = submission("alice"), submission("bob")
-    world.teacher_push(good)
-    world.teacher_push(bad)
-
-    fill = collect_runs.fill_run
-
-    def fail_for_bob(client, rid, sub, tags):
-        if sub.student == "bob":
-            raise MlflowException("disk full")
-        fill(client, rid, sub, tags)
-
-    monkeypatch.setattr(collect_runs, "fill_run", fail_for_bob)
-    uri = f"sqlite:///{tmp_path / 'class.db'}"
-    with pytest.raises(SystemExit) as e:
-        collect(monkeypatch, teacher_clone(world), uri)
-    assert e.value.code != 0
-    out = capsys.readouterr().out
-    assert f"failed {bad.relpath()}: disk full" in out
-    assert "1 failed" in out and "1 new" in out
-
-    client = MlflowClient(tracking_uri=uri)
-    exp = client.get_experiment_by_name("lesson1-notebook")
-    assert exp is not None
-    runs = client.search_runs([exp.experiment_id])
-    assert [r.data.tags["student"] for r in runs] == ["alice"]
-
-
-def test_an_import_without_submission_ref_gets_it_unchanged(
-    world, submission, tmp_path, monkeypatch, capsys
-):
-    bob = submission("bob")
-    world.teacher_push(bob)
+    first = submission("alice")
+    world.teacher_push(first)
     clone = teacher_clone(world)
-    uri = f"sqlite:///{tmp_path / 'class.db'}"
-    collect(monkeypatch, clone, uri)
-    client = MlflowClient(tracking_uri=uri)
-    exp = client.get_experiment_by_name("lesson1-notebook")
-    assert exp is not None
-    [before] = client.search_runs([exp.experiment_id])
-    client.delete_tag(before.info.run_id, "submission_ref")
-    capsys.readouterr()
+    store = tmp_path / "class.db"
+    collect(monkeypatch, clone, store)
+    collect(monkeypatch, clone, store)
+    assert sorted(imported(store)) == [ref(first)]
+    assert "1 new" in capsys.readouterr().out
 
-    collect(monkeypatch, clone, uri)
-    assert "1 unchanged" in capsys.readouterr().out
-    [after] = client.search_runs([exp.experiment_id])
-    assert after.info.run_id == before.info.run_id
-    assert after.data.tags["submission_ref"] == ref(bob)
+
+def test_a_trial_keeps_what_the_run_says(world, submission, tmp_path, monkeypatch):
+    sub = submission("alice")
+    run_ = sub.run.model_copy(
+        update={
+            "status": "PRUNED",
+            "value": 0.4,
+            "params": {"lr": 0.003},
+            "distributions": {
+                "lr": {
+                    "name": "FloatDistribution",
+                    "attributes": {
+                        "low": 0.0001,
+                        "high": 0.01,
+                        "log": True,
+                        "step": None,
+                    },
+                }
+            },
+            "intermediate": [
+                {"step": 0, "value": 0.3},
+                {"step": 1, "value": 0.4},
+            ],
+        }
+    )
+    world.teacher_push(sub.model_copy(update={"run": run_}))
+    store = tmp_path / "class.db"
+    collect(monkeypatch, teacher_clone(world), store)
+    [t] = trials(store).values()
+    assert t.state == optuna.trial.TrialState.PRUNED
+    assert t.params == {"lr": 0.003}
+    assert t.intermediate_values == {0: 0.3, 1: 0.4}
+    assert t.distributions["lr"] == FloatDistribution(0.0001, 0.01, log=True)
 
 
 def test_only_the_lessons_asked_for(world, submission, tmp_path, monkeypatch):
     one, two = submission("alice", lesson=1), submission("bob", lesson=2)
     world.teacher_push(one)
     world.teacher_push(two)
-    uri = f"sqlite:///{tmp_path / 'class.db'}"
-    collect(monkeypatch, teacher_clone(world), uri, "--lesson", "1")
-    assert sorted(imported(uri)) == [ref(one)]
+    store = tmp_path / "class.db"
+    collect(monkeypatch, teacher_clone(world), store, "--lesson", "1")
+    assert sorted(imported(store)) == [ref(one)]
 
 
 def test_submit_after_collect_on_a_fork_clone(world, submission, tmp_path, monkeypatch):
@@ -173,7 +249,7 @@ def test_submit_after_collect_on_a_fork_clone(world, submission, tmp_path, monke
     submit_runs.submit(world.clone, 1, "alice", [first])
     world.squash_merge()
     world.teacher_push(submission("bob"))
-    collect(monkeypatch, world.clone, f"sqlite:///{tmp_path / 'class.db'}")
+    collect(monkeypatch, world.clone, tmp_path / "class.db")
 
     submit_runs.submit(world.clone, 1, "alice", [first, second])
     assert second.relpath() in world.files_in_pr()
