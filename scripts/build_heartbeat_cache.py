@@ -15,7 +15,9 @@ over it gives `(batch, 187, 1)`. Its model_name is `raw`, which names the repos
 `pttrn-io/heartbeats-ptb-raw` and `pttrn-io/heartbeats-mitbih-raw`.
 
 Kept columns: the vector, `label` (int, from `target`) and `source_idx`, the row's
-position in its source parquet file. Nothing is shuffled or subsampled.
+position in its source parquet file. Nothing is shuffled or subsampled. After each
+build, every cached beat and label is compared with its source row by `source_idx`, and
+a mismatch stops the script.
 """
 
 import argparse
@@ -80,8 +82,12 @@ class RawSequenceVectorizer(ChunkedVectorizer):
         return {self.col_name: list(batch)}
 
 
-def read_split(path: Path) -> Dataset:
-    """The parquet file as a Dataset of `steps`, `label` and `source_idx`, in file order."""
+def read_split(path: Path) -> tuple[Dataset, np.ndarray, np.ndarray]:
+    """The parquet file as a Dataset of `steps`, `label` and `source_idx`, in file order.
+
+    Also returns the steps `(rows, 187)` and labels `(rows,)` as arrays, to check the
+    built cache against.
+    """
     if not path.exists():
         sys.exit(
             f"{path} not found; clone the source first:\n"
@@ -93,13 +99,48 @@ def read_split(path: Path) -> Dataset:
         sys.exit(f"{path} has {steps.shape[1]} step columns, expected {STEPS}")
     # The PTB files carry a shuffled pandas index; source_idx is the position, which is
     # what `pd.read_parquet(path).iloc[source_idx]` resolves.
-    return Dataset.from_dict(
+    labels = df["target"].astype(int).to_numpy()
+    dataset = Dataset.from_dict(
         {
             INPUT_COL: list(steps),
-            "label": df["target"].astype(int).tolist(),
+            "label": labels.tolist(),
             "source_idx": list(range(len(df))),
         }
     )
+    return dataset, steps, labels
+
+
+def check_cache(folder: Path, steps: np.ndarray, labels: np.ndarray) -> None:
+    """Exit unless every beat and label in the cache at `folder` equals its source row."""
+    # Read the Arrow columns directly: decoding the nested beats row by row through
+    # the numpy or torch format takes minutes on MIT-BIH train.
+    table = VectorCache.load(folder).dataset.data.table
+    idx = table["source_idx"].to_numpy()
+    rows = table["beat"].combine_chunks()
+    steps_per_row = rows.value_lengths().to_numpy()
+    channels = rows.flatten()
+    channels_per_step = channels.value_lengths().to_numpy()
+    problems = []
+    if len(rows) != len(steps):
+        problems.append(f"{len(rows)} rows, source has {len(steps)}")
+    elif not np.array_equal(np.sort(idx), np.arange(len(steps))):
+        problems.append("source_idx is not a permutation of the source rows")
+    else:
+        beats = channels.flatten().to_numpy().reshape(-1, STEPS, 1)
+        if (steps_per_row != STEPS).any() or (channels_per_step != 1).any():
+            problems.append("not every beat is (187, 1)")
+        elif beats.dtype != np.float32:
+            problems.append(f"beats are {beats.dtype}")
+        elif not np.array_equal(beats[:, :, 0], steps[idx]):
+            bad = np.flatnonzero((beats[:, :, 0] != steps[idx]).any(axis=1))
+            problems.append(
+                f"{len(bad)} beats differ from the source, first row {bad[0]}"
+            )
+        if not np.array_equal(table["label"].to_numpy(), labels[idx]):
+            problems.append("labels differ from the source")
+    if problems:
+        sys.exit(f"{folder.name}: " + "; ".join(problems))
+    print(f"  checked: all {len(steps)} beats and labels equal their source rows")
 
 
 def main() -> None:
@@ -118,7 +159,7 @@ def main() -> None:
     vectorizer = RawSequenceVectorizer()
     for tag in args.dataset or DATASETS:
         for split, filename in DATASETS[tag].items():
-            dataset = read_split(SOURCE / filename)
+            dataset, steps, labels = read_split(SOURCE / filename)
             name = f"{tag}_{split}_{vectorizer.model_name}"
             print(f"building {name}: {len(dataset)} rows from {filename}")
             start = time.time()
@@ -134,6 +175,7 @@ def main() -> None:
                 f"  {cache.name}  ({time.time() - start:.0f}s)\n"
                 f"  columns: {cache.column_names}"
             )
+            check_cache(ARTEFACTS / cache.name, steps, labels)
 
     print("\nnow check the cards:\n  make publish-heartbeats ARGS=--dry-run")
 
