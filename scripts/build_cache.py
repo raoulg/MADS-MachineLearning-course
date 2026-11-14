@@ -27,7 +27,6 @@ import time
 from pathlib import Path
 
 from datasets import load_dataset
-
 from vectormesh import ImageVectorizer, VectorCache
 from vectormesh.data import DatasetSchema
 
