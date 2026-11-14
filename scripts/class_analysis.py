@@ -13,8 +13,10 @@
 # hypothesis), `origin` (`notebook` for the runs as handed out, `study` for a student's own
 # study, which also carries `study`, `search_space`, `searched_axes`, `space_<axis>`,
 # `space_is_default` and `budget`), `dataset`, the score metric with `<metric>_std` and
-# `n_seeds` when there were seeds, `n_params`, and the one-line `architecture` tag. Runs
-# without them still show up in the counts; they just have less to say.
+# `n_seeds` when there were seeds, `n_params`, the one-line `architecture` tag, and
+# `builds_on`, the `submission_ref` tags (written by `collect_runs.py`) of the classmates'
+# runs a run builds on. Runs without them still show up in the counts; they just have less
+# to say.
 #
 # Scores of different datasets are never ranked or plotted against each other: every table
 # and figure that compares scores does so per dataset, and runs without a `dataset` tag
@@ -270,6 +272,63 @@ print(
     ).to_string(),
     "\n",
 )
+
+# %% [markdown]
+# ## Who built on whom
+#
+# One row per link: a run of this lesson whose `builds_on` tag names a classmate's run by
+# its `submission_ref`. Both scores on the lesson's metric, and `diff_pt`, the run's score
+# minus the one it built on, in points. The run built on may come from any lesson in the
+# class store; one that is not there (not merged yet, or mistyped) is listed as such.
+
+
+# %%
+def submission_refs() -> dict[str, dict]:
+    """Every run in the class store, of any lesson, by its `submission_ref`: the
+    student, the run name and the score."""
+    every = pd.DataFrame(
+        mlflow.search_runs(search_all_experiments=True, output_format="pandas")
+    )
+    empty = pd.Series([None] * len(every), index=every.index, dtype=object)
+    refs = every.get("tags.submission_ref", empty)
+    students = every.get("tags.student", empty)
+    names = every.get("tags.source_run_name", empty)
+    scores = pd.to_numeric(every.get(f"metrics.{METRIC}", empty), errors="coerce")
+    return {
+        ref: {"student": student, "name": name, "score": score}
+        for ref, student, name, score in zip(refs, students, names, scores)
+        if isinstance(ref, str)
+    }
+
+
+def links_table(sel: pd.DataFrame, targets: dict[str, dict]) -> pd.DataFrame:
+    """One row per run in `sel` and run it builds on, with both scores."""
+    out = []
+    for i, refs in col("tags", "builds_on").loc[sel.index].dropna().items():
+        run = sel.loc[i]
+        for target in str(refs).split(","):
+            on = targets.get(target)
+            missing = {"student": target.split("/")[1], "name": "-", "score": np.nan}
+            out.append(
+                {
+                    "student": run["student"],
+                    "run": run["name"],
+                    "builds_on": (on or missing)["student"],
+                    "on_run": (on or missing)["name"],
+                    "score": run["score"],
+                    "on_score": (on or missing)["score"],
+                    "diff_pt": 100 * (run["score"] - on["score"]) if on else np.nan,
+                    "target": "found" if on else f"not in the class store: {target}",
+                }
+            )
+    return pd.DataFrame(out)
+
+
+links = links_table(runs, submission_refs())
+if links.empty:
+    print("no run builds on another (tag builds_on)\n")
+else:
+    print(links.sort_values(["student", "run"]).round(4).to_string(index=False), "\n")
 
 # %% [markdown]
 # ## The runs as handed out
