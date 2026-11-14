@@ -157,3 +157,24 @@ def test_an_import_without_submission_ref_gets_it_unchanged(
     [after] = client.search_runs([exp.experiment_id])
     assert after.info.run_id == before.info.run_id
     assert after.data.tags["submission_ref"] == ref(bob)
+
+
+def test_only_the_lessons_asked_for(world, submission, tmp_path, monkeypatch):
+    one, two = submission("alice", lesson=1), submission("bob", lesson=2)
+    world.teacher_push(one)
+    world.teacher_push(two)
+    uri = f"sqlite:///{tmp_path / 'class.db'}"
+    collect(monkeypatch, teacher_clone(world), uri, "--lesson", "1")
+    assert sorted(imported(uri)) == [ref(one)]
+
+
+def test_submit_after_collect_on_a_fork_clone(world, submission, tmp_path, monkeypatch):
+    first, second = submission("alice"), submission("alice")
+    submit_runs.submit(world.clone, 1, "alice", [first])
+    world.squash_merge()
+    world.teacher_push(submission("bob"))
+    collect(monkeypatch, world.clone, f"sqlite:///{tmp_path / 'class.db'}")
+
+    submit_runs.submit(world.clone, 1, "alice", [first, second])
+    assert second.relpath() in world.files_in_pr()
+    assert run("git", "branch", "--show-current", cwd=world.clone) == "lesson1"
