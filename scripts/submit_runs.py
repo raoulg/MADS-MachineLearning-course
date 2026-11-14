@@ -211,10 +211,13 @@ def read_artifacts(client: MlflowClient, run_id: str) -> dict:
             if info.is_dir:
                 todo.extend(client.list_artifacts(run_id, info.path))
                 continue
-            if (
-                not info.path.endswith(ARTIFACT_SUFFIXES)
-                or (info.file_size or 0) > MAX_ARTIFACT_BYTES
-            ):
+            if not info.path.endswith(ARTIFACT_SUFFIXES):
+                continue
+            if (info.file_size or 0) > MAX_ARTIFACT_BYTES:
+                print(
+                    f"  left out of {run_id[:8]}: the artifact {info.path} is "
+                    f"{info.file_size} bytes, limit {MAX_ARTIFACT_BYTES}"
+                )
                 continue
             local = Path(client.download_artifacts(run_id, info.path, tmp))
             text = local.read_text()

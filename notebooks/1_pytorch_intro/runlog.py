@@ -47,6 +47,10 @@ STUDY_NAME = re.compile(r"[a-z]+-[a-z0-9][a-z0-9-]{1,38}")
 # the class analysis keeps only a student's latest session of the handed-out runs.
 SESSION = time.strftime("%Y-%m-%d %H:%M:%S")
 
+# The largest design script a submission carries; matches MAX_ARTIFACT_BYTES in
+# scripts/run_submission.py, which measures the text as JSON.
+MAX_DESIGN_BYTES = 256_000
+
 # A classmate's run as the class store names it in its tag `submission_ref`; the same
 # rule as SUBMISSION_REF in scripts/run_submission.py.
 SUBMISSION_REF = re.compile(
@@ -197,7 +201,9 @@ def log_run(
       the tag `builds_on`, comma-separated. An entry that is not a submission_ref raises
       a `ValueError` before anything is logged.
     - `design`: the path of your design script, the file that defines the architectures;
-      its text is logged as the artifact `design.py`.
+      its text is logged as the artifact `design.py`. A script larger than a
+      submission carries (`MAX_DESIGN_BYTES`) raises a `ValueError` before anything is
+      logged.
     """
     return _log_run(
         name,
@@ -243,6 +249,12 @@ def _log_run(
         raise ValueError(f"{sorted(both)} given as both a score and a curve; pick one")
     refs = _builds_on(builds_on)
     design_text = Path(design).read_text() if design is not None else None
+    if design_text is not None and len(json.dumps(design_text)) > MAX_DESIGN_BYTES:
+        raise ValueError(
+            f"design: {design} is {len(json.dumps(design_text))} bytes as JSON, more "
+            f"than a submission carries ({MAX_DESIGN_BYTES}); keep only the "
+            "architectures in it"
+        )
 
     with mlflow.start_run(run_name=name, experiment_id=experiment_id) as run:
         mlflow.set_tag("role", role)
