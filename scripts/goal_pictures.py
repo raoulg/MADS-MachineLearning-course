@@ -270,32 +270,37 @@ g += (
 g += t(200, 208, "zelfde data, andere buren voor de kernel", "c", "middle")
 PICTURES["2.8"] = ("1D of 2D: een keuze", g)
 
-# 2.9 no encoder
+# 2.9 encoder or train it yourself
 g = (
-    t(20, 34, "images", "l p")
-    + box(20, 46, 60, 40, "foto", "g")
+    t(20, 34, "met encoder", "l p")
+    + box(20, 46, 60, 40, "data", "g")
     + arrow(82, 66, 106, 66)
     + box(110, 36, 170, 60, "encoder, bevroren", "p", PT)
     + arrow(282, 66, 306, 66)
     + box(310, 50, 70, 32, "head", "v")
 )
-g += (
-    t(20, 128, "timeseries", "l p")
-    + box(20, 140, 60, 40, "reeks", "g")
-    + arrow(82, 160, 106, 160)
-    + box(110, 144, 110, 32, "klein model", "v")
-    + arrow(222, 160, 246, 160)
-    + t(252, 164, "vaak al goed", "c")
+g += t(
+    200,
+    112,
+    "weeg af: hoeveel data · afstand tot pretraining · baseline",
+    "c",
+    "middle",
 )
 g += (
-    f'<rect x="300" y="196" width="12" height="12" fill="{BG}" stroke="{V}" stroke-width="2"/>'
-    + t(318, 207, "train jij", "c")
+    t(20, 136, "zelf trainen", "l v")
+    + box(20, 146, 60, 40, "data", "g")
+    + arrow(82, 166, 106, 166)
+    + box(110, 150, 270, 32, "het hele model", "v")
 )
 g += (
-    f'<rect x="20" y="196" width="12" height="12" fill="{PT}" stroke="{P}" stroke-width="2"/>'
-    + t(38, 207, "iemand anders trainde dit", "c")
+    f'<rect x="300" y="200" width="12" height="12" fill="{BG}" stroke="{V}" stroke-width="2"/>'
+    + t(318, 211, "train jij", "c")
 )
-PICTURES["2.9"] = ("Zonder encoder: vaak prima", g)
+g += (
+    f'<rect x="20" y="200" width="12" height="12" fill="{PT}" stroke="{P}" stroke-width="2"/>'
+    + t(38, 211, "iemand anders trainde dit", "c")
+)
+PICTURES["2.9"] = ("Encoder gebruiken of zelf trainen", g)
 
 # 2.10 design script -> atlas
 code = [
@@ -548,11 +553,15 @@ g += arrow(262, 58, 296, 58) + t(302, 62, "optimizer", "l")
 g += t(160, 96, "glad: differentieerbaar", "c")
 g += box(20, 124, 80, 36, "metric", "p", PT) + arrow(102, 142, 150, 142)
 g += (
-    line("M 160 158 L 190 158 L 190 142 L 220 142 L 220 128 L 250 128", P)
+    dot(166, 142)
+    + dot(244, 142, 5, BG, P)
+    + line("M 174 142 L 236 142", P, 2, "4 3")
+    + t(166, 126, "echt", "c", "middle")
+    + t(244, 126, "voorspeld", "c", "middle")
     + arrow(262, 142, 296, 142)
     + t(302, 146, "jij", "l")
 )
-g += t(160, 180, "in stappen: interpreteerbaar", "c")
+g += t(160, 180, "een afstand die je kunt lezen: MAPE 4 %", "c")
 g += t(200, 216, "twee getallen, twee lezers", "c", "middle")
 PICTURES["1.8"] = ("Loss is geen metric", g)
 

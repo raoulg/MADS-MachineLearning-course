@@ -48,9 +48,9 @@ idee: benut de geometrie van je data.
 2.8 Dat dezelfde reeks als 1D-reeks of als 2D-raster aanbieden een ontwerpkeuze is: de
 shape verandert, de data niet, en welke buren een kernel ziet verandert mee.
 
-2.9 Dat je zonder voorgetrainde encoder het hele model zelf traint, en dat dat vaak geen
-probleem is: veel timeseries zijn met een simpel model of een GRU al goed te leren. Kan
-uitleggen waarom een foundation model voor images veel meer uitmaakt dan voor zo'n reeks.
+2.9 Dat een voorgetrainde encoder een keuze is: kan afwegen wanneer je er een gebruikt en
+wanneer je het hele model zelf traint, aan de hand van hoeveel data je hebt, hoe dicht die
+bij de pretraining-data ligt, en wat een simpel model zonder encoder al haalt.
 
 ## De student kan
 
@@ -76,7 +76,7 @@ bronvermelding.
 | 2.5, 2.6 | state en gate | les | `02_state_and_gates` |
 | 2.7 | inductive bias als weddenschap | les | presentatie les 2, `01_kernels` |
 | 2.8, 2.10 | 1D of 2D, design script, atlas | les | `03_design` |
-| 2.9 | zelf trainen zonder encoder | les | `01_kernels` |
+| 2.9 | encoder gebruiken of zelf trainen | les | `01_kernels` |
 | 2.11, 2.12 | ontwerpen, verdedigen, werken als klas | les | `04_exercise`, `docs/submit-runs.md` |
 
 Optioneel: `03_decomposition_and_nbeats` bouwt de decompositie uit MADS-DAV in een
