@@ -61,8 +61,9 @@ def has_remote(repo: Path, name: str) -> bool:
 
 
 def class_ref(repo: Path, fetch: bool) -> str:
-    """`<remote>/main`, the class repository's main: from `upstream` when the clone has
-    it, else from `origin`. With `fetch`, it is fetched first; nothing else changes."""
+    """`refs/remotes/<remote>/main`, the class repository's main: from `upstream` when
+    the clone has it, else from `origin`. With `fetch`, it is fetched first; nothing else
+    changes."""
     remote = next((r for r in ("upstream", "origin") if has_remote(repo, r)), None)
     if remote is None:
         sys.exit(f"{repo} has neither an `upstream` nor an `origin` remote")
@@ -75,7 +76,7 @@ def class_ref(repo: Path, fetch: bool) -> str:
             sys.exit(f"git fetch {remote} in {repo} failed:\n{fetched.stderr.decode()}")
     if git(repo, "rev-parse", "--verify", "--quiet", tracking).returncode != 0:
         sys.exit(f"{repo} has no {remote}/{BASE}; fetch it, or leave out --no-pull")
-    return f"{remote}/{BASE}"
+    return tracking
 
 
 def submission_files(
@@ -275,7 +276,7 @@ def main() -> None:
         per_experiment[sub.run.experiment] += 1
 
     print(
-        f"{len(files)} file(s) in {repo} at {ref}: "
+        f"{len(files)} file(s) in {repo} at {ref.removeprefix('refs/remotes/')}: "
         + ", ".join(f"{v} {k}" for k, v in sorted(counts.items()))
     )
     for lesson, who in sorted(students.items()):
