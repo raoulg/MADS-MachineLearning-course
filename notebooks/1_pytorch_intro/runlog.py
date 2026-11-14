@@ -148,6 +148,8 @@ def log_run(
     example: Any = None,
     tags: Mapping[str, str] | None = None,
     train_seconds: float | None = None,
+    builds_on: str | Sequence[str] | None = None,
+    design: str | Path | None = None,
 ) -> str:
     """Log one run in the protocol's shape, tagged `origin=notebook`, and return its id.
 
@@ -167,6 +169,11 @@ def log_run(
       with step = epoch.
     - `model` + `example`: logs `n_params`, the one-line `architecture` tag and the full
       layer table as the artifact `architecture.json`.
+    - `builds_on`: the classmate's run (or runs) this one builds on, each named by its
+      `submission_ref` tag in the class store (`lesson1/<login>/<run_id>`); written as
+      the tag `builds_on`, comma-separated.
+    - `design`: the path of your design script, the file that defines the architectures;
+      its text is logged as the artifact `design.py`.
     """
     return _log_run(
         name,
@@ -179,6 +186,8 @@ def log_run(
         example=example,
         tags={**(tags or {}), "origin": "notebook"},
         train_seconds=train_seconds,
+        builds_on=builds_on,
+        design=design,
     )
 
 
@@ -200,12 +209,17 @@ def _log_run(
     train_seconds: float | None,
     experiment_id: str | None = None,
     artifacts: Mapping[str, Any] | None = None,
+    builds_on: str | Sequence[str] | None = None,
+    design: str | Path | None = None,
 ) -> str:
     if role not in ROLES:
         raise ValueError(f"role must be one of {ROLES}, got {role!r}")
     both = set(scores or {}) & set(curves or {})
     if both:
         raise ValueError(f"{sorted(both)} given as both a score and a curve; pick one")
+    refs = [builds_on] if isinstance(builds_on, str) else list(builds_on or [])
+    refs = [ref.strip() for ref in refs if ref.strip()]
+    design_text = Path(design).read_text() if design is not None else None
 
     with mlflow.start_run(run_name=name, experiment_id=experiment_id) as run:
         mlflow.set_tag("role", role)
@@ -215,6 +229,8 @@ def _log_run(
         if dataset is not None:
             mlflow.set_tag("dataset", dataset)
         mlflow.set_tags(dict(tags))
+        if refs:
+            mlflow.set_tag("builds_on", ",".join(refs))
         if params:
             mlflow.log_params({k: _param(v) for k, v in params.items()})
         if train_seconds is not None:
@@ -242,6 +258,8 @@ def _log_run(
 
         for path, content in (artifacts or {}).items():
             mlflow.log_dict(content, path)
+        if design_text is not None:
+            mlflow.log_text(design_text, "design.py")
 
         return run.info.run_id
 
@@ -454,6 +472,8 @@ class Study:
         example: Any = None,
         tags: Mapping[str, str] | None = None,
         train_seconds: float | None = None,
+        builds_on: str | Sequence[str] | None = None,
+        design: str | Path | None = None,
     ) -> str:
         """`log_run` for this study: same arguments, into `lesson<N>-study`, with the
         study's tags and its `search_space.json`. The selected experiment stays as it is.
@@ -479,4 +499,6 @@ class Study:
             train_seconds=train_seconds,
             experiment_id=_experiment_id(self.experiment),
             artifacts=artifacts,
+            builds_on=builds_on,
+            design=design,
         )
