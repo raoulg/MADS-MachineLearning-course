@@ -64,8 +64,8 @@ gemiste patiënt zwaarder dan een vals alarm), en elke keuze in het ontwerp kunn
 uitleggen zonder de agent erbij.
 
 2.12 Werken als klas: de eigen runs en het design script publiceren naar de
-runs-repository, het werk van anderen bekijken in MLflow, en daarop voortbouwen met
-bronvermelding.
+runs-repository, het werk van anderen bekijken in het overzicht van de klas, en daarop
+voortbouwen met bronvermelding.
 
 ## Materiaal
 

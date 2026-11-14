@@ -72,8 +72,8 @@ er tussen de DataLoader en de loss nodig zijn, vóórdat er code draait.
 
 1.13 Een baseline neerzetten vóór er iets gezocht wordt: een cache van de hub laden, de
 1-nearest-neighbour-baseline en een lineaire head meten, die head een paar keer draaien om
-de spreiding tussen runs te zien, en die runs in MLflow loggen als vergelijkingspunt voor
-alles wat volgt.
+de spreiding tussen runs te zien, en die runs loggen als vergelijkingspunt voor alles wat
+volgt.
 
 1.14 Een zoekruimte ontwerpen en verdedigen: welke assen erin, welke eruit, welke ranges,
 en wat je verwacht en waarom. Kan het resultaat van een ray.tune search per as lezen —
@@ -81,8 +81,8 @@ ook als de search niets vindt — en draait de winnaar een paar keer opnieuw voo
 winst heet.
 
 1.15 Het eigen werk publiceren naar de runs-repository van de klas
-(`docs/submit-runs.md`), het werk van anderen bekijken in het MLflow-overzicht waarmee de
-volgende les opent, en daarop voortbouwen met bronvermelding.
+(`docs/submit-runs.md`), het werk van anderen bekijken in het overzicht van de klas waarmee
+de volgende les opent, en daarop voortbouwen met bronvermelding.
 
 ## Materiaal
 
