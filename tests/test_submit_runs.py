@@ -2,12 +2,14 @@
 
 import json
 import sys
+import uuid
 from datetime import UTC, datetime
 
+import optuna
 import pytest
 import submit_runs  # ty: ignore[import-not-found]
 from gitworld import gitconfig, run
-from mlflow.tracking import MlflowClient
+from optuna.artifacts import FileSystemArtifactStore, upload_artifact
 
 
 def test_submit_cycle(world, submission, capsys):
@@ -220,46 +222,58 @@ def test_github_slug():
     assert submit_runs.github_slug("/tmp/fork.git") is None
 
 
-def test_list_folds_seed_series():
-    line = submit_runs.summarize_metrics(
-        {
-            "accuracy": 0.8123,
-            "accuracy_std": 0.0123,
-            "accuracy_per_seed": 0.83,
-            "n_seeds": 5.0,
-            "n_params": 1000.0,
-        }
+def test_list_shows_the_outcome_of_a_run_over_repeats(tmp_path):
+    store, _ = local_store(
+        tmp_path,
+        [("lesson1-notebook-runs", "base", {"n_repeats": 5, "accuracy_std": 0.0123})],
     )
-    assert line == "accuracy=0.8123 ± 0.012 (n=5), n_params=1000"
+    [found] = submit_runs.select_runs(store, 1, None, None)
+    assert submit_runs.summarize(found) == "accuracy=0.5 ± 0.012 (n=5)"
 
 
-def local_store(tmp_path, runs) -> tuple[str, dict[str, str]]:
-    """A student's mlflow store with `runs`, (experiment, name, tags) each, finished,
-    with an accuracy and a design script; the URI and run id by name."""
-    uri = f"sqlite:///{tmp_path / 'mlruns.db'}"
-    client = MlflowClient(tracking_uri=uri)
+def local_store(tmp_path, trials) -> tuple["submit_runs.Store", dict[str, str]]:
+    """A student's Optuna store with `trials`, (study, name, attrs) each, complete, with
+    the value 0.5 and a design script; the store and the run id by name."""
+    optuna.logging.set_verbosity(optuna.logging.ERROR)
+    path = tmp_path / "studies.db"
+    artifacts = FileSystemArtifactStore(str(tmp_path / "artifacts"))
+    (tmp_path / "artifacts").mkdir(exist_ok=True)
+    storage = f"sqlite:///{path}"
     ids = {}
-    for experiment, name, tags in runs:
-        exp = client.get_experiment_by_name(experiment)
-        exp_id = (
-            exp.experiment_id
-            if exp
-            else client.create_experiment(
-                experiment, artifact_location=(tmp_path / "artifacts").as_uri()
-            )
+    for study_name, name, attrs, *extra in trials:
+        study = optuna.create_study(
+            study_name=study_name,
+            storage=storage,
+            direction="maximize",
+            load_if_exists=True,
         )
-        rid = client.create_run(exp_id, run_name=name, tags=tags).info.run_id
-        ids[name] = rid
-        client.log_metric(rid, "accuracy", 0.5)
-        client.log_text(rid, "model = 1\n", "design.py")
-        client.set_terminated(rid)
-    return uri, ids
+        trial = study.ask()
+        ids[name] = attrs.get("run_id") or uuid.uuid4().hex
+        for key, value in {
+            "run_id": ids[name],
+            "name": name,
+            "role": "final",
+            **attrs,
+        }.items():
+            trial.set_user_attr(key, value)
+        files = {"design.py": "model = 1\n", **(extra[0] if extra else {})}
+        for filename, text in files.items():
+            folder = tmp_path / "upload" / uuid.uuid4().hex
+            folder.mkdir(parents=True)
+            (folder / filename).write_text(text)
+            upload_artifact(
+                artifact_store=artifacts,
+                file_path=str(folder / filename),
+                study_or_trial=trial,
+            )
+        study.tell(trial, 0.5)
+    return submit_runs.Store(path), ids
 
 
-def submit_main(monkeypatch, world, uri: str, *extra: str) -> list[str]:
+def submit_main(monkeypatch, world, store, *extra: str) -> list[str]:
     """`submit_runs.py --lesson 1` without pushing; the files it wrote on lesson1."""
     argv = ["submit_runs.py", "--lesson", "1", "--student", "alice", "--no-push"]
-    argv += ["--runs-repo", str(world.clone), "--tracking-uri", uri, *extra]
+    argv += ["--runs-repo", str(world.clone), "--store", str(store.path), *extra]
     monkeypatch.setattr(sys, "argv", argv)
     submit_runs.main()
     return run("git", "ls-files", "lesson1", cwd=world.clone).split()
@@ -268,66 +282,122 @@ def submit_main(monkeypatch, world, uri: str, *extra: str) -> list[str]:
 def test_runs_imported_from_the_class_are_not_submitted(
     world, tmp_path, monkeypatch, capsys
 ):
-    uri, ids = local_store(
+    store, ids = local_store(
         tmp_path,
         [
-            ("lesson1-notebook", "mine", {"role": "final"}),
-            ("lesson1-notebook", "bob:baseline",
-             {"submission_ref": f"lesson1/bob/{'a' * 32}"}),
+            ("lesson1-notebook", "mine", {}),
+            (
+                "lesson1-notebook",
+                "bob:baseline",
+                {"submission_ref": f"lesson1/bob/{'a' * 32}"},
+            ),
             ("lesson1-notebook", "carol:baseline", {"source_run_id": "b" * 32}),
         ],
-    )  # fmt: skip
-    written = submit_main(monkeypatch, world, uri)
+    )
+    written = submit_main(monkeypatch, world, store)
 
     out = capsys.readouterr().out
     assert "not submitted: 2 run(s) imported from the class repository" in out
     assert written == [f"lesson1/alice/{ids['mine']}.json"]
     data = json.loads((world.clone / written[0]).read_text())
     assert data["run"]["artifacts"] == {"design.py": "model = 1\n"}
+    assert data["schema"] == "mads-run/2"
+    assert data["run"]["experiment"] == "lesson1-notebook"
+    assert data["run"]["status"] == "COMPLETE"
+    assert data["run"]["value"] == 0.5
+
+
+def test_a_trial_without_a_run_id_is_left_out_with_a_line(
+    world, tmp_path, monkeypatch, capsys
+):
+    store, ids = local_store(tmp_path, [("lesson1-notebook", "mine", {})])
+    study = optuna.load_study(
+        study_name="lesson1-notebook", storage=f"sqlite:///{store.path}"
+    )
+    plain = study.ask()
+    study.tell(plain, 0.4)
+    written = submit_main(monkeypatch, world, store)
+    assert written == [f"lesson1/alice/{ids['mine']}.json"]
+    assert "1 trial(s) without a run_id" in capsys.readouterr().out
+
+
+def test_a_pruned_trial_is_submitted_with_the_epochs_it_ran(
+    world, tmp_path, monkeypatch
+):
+    store, _ = local_store(tmp_path, [])
+    study = optuna.create_study(
+        study_name="lesson1-study-sam-x",
+        storage=f"sqlite:///{store.path}",
+        direction="maximize",
+    )
+    trial = study.ask(
+        {"lr": optuna.distributions.FloatDistribution(1e-4, 1e-2, log=True)}
+    )
+    trial.set_user_attr("run_id", "c" * 32)
+    trial.report(0.3, 0)
+    trial.report(0.4, 1)
+    study.tell(trial, state=optuna.trial.TrialState.PRUNED)
+    [path] = submit_main(monkeypatch, world, store)
+    data = json.loads((world.clone / path).read_text())["run"]
+    assert data["status"] == "PRUNED"
+    assert data["value"] == 0.4  # a pruned trial's value is its last reported one
+    assert data["intermediate"] == [
+        {"step": 0, "value": 0.3},
+        {"step": 1, "value": 0.4},
+    ]
+    assert data["distributions"]["lr"]["name"] == "FloatDistribution"
+    assert list(data["params"]) == ["lr"]
 
 
 def test_a_run_that_does_not_fit_is_skipped_and_the_rest_submitted(
     world, tmp_path, monkeypatch, capsys
 ):
-    uri, ids = local_store(
+    store, ids = local_store(
         tmp_path,
         [
-            ("lesson1-notebook", "good", {"role": "final"}),
+            ("lesson1-notebook", "good", {}),
             ("lesson1-notebook", "bad", {"builds_on": "lesson1/bob"}),
         ],
     )
-    written = submit_main(monkeypatch, world, uri)
+    written = submit_main(monkeypatch, world, store)
     assert written == [f"lesson1/alice/{ids['good']}.json"]
     [line] = [x for x in capsys.readouterr().out.splitlines() if "skipped" in x]
     assert line.startswith(f"skipped run {ids['bad']} (bad), it does not fit")
-    assert "tag 'builds_on': 'lesson1/bob' is not a submission_ref" in line
+    assert "attr 'builds_on': 'lesson1/bob' is not a submission_ref" in line
 
 
 def test_an_artifact_over_the_limit_is_left_out_with_a_line(tmp_path, capsys):
-    uri, ids = local_store(tmp_path, [("lesson1-notebook", "big", {})])
-    client = MlflowClient(tracking_uri=uri)
-    client.log_text(ids["big"], "x" * 256_001, "notes.txt")
-    assert submit_runs.read_artifacts(client, ids["big"]) == {
-        "design.py": "model = 1\n"
-    }
+    store, ids = local_store(
+        tmp_path, [("lesson1-notebook", "big", {}, {"notes.txt": "x" * 256_001})]
+    )
+    [found] = submit_runs.select_runs(store, 1, None, None)
+    assert submit_runs.read_artifacts(store, found) == {"design.py": "model = 1\n"}
     out = capsys.readouterr().out
     assert (
         f"left out of {ids['big'][:8]}: the artifact notes.txt is 256001 bytes" in out
     )
 
 
-def test_by_default_only_the_notebook_and_the_study(world, tmp_path, monkeypatch):
-    uri, ids = local_store(
+def test_by_default_only_the_notebook_and_the_study_studies(
+    world, tmp_path, monkeypatch
+):
+    store, ids = local_store(
         tmp_path,
         [
             ("lesson1-notebook", "handed-out", {}),
-            ("lesson1-study", "mine", {}),
+            ("lesson1-notebook-runs", "baseline", {}),
+            ("lesson1-study-sam-depth", "mine", {}),
+            ("lesson1-study-sam-depth-runs", "winner", {}),
             ("lesson1-search", "notebook-04", {}),
+            ("lesson2-notebook", "other-lesson", {}),
         ],
     )
     path = {name: f"lesson1/alice/{rid}.json" for name, rid in ids.items()}
-    written = submit_main(monkeypatch, world, uri)
-    assert written == sorted([path["handed-out"], path["mine"]])
+    written = submit_main(monkeypatch, world, store)
+    assert written == sorted(
+        path[n] for n in ("handed-out", "baseline", "mine", "winner")
+    )
 
-    written = submit_main(monkeypatch, world, uri, "--experiment", "lesson1-search")
+    written = submit_main(monkeypatch, world, store, "--experiment", "lesson1-search")
     assert path["notebook-04"] in written
+    assert path["other-lesson"] not in written

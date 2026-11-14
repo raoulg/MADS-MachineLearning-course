@@ -158,7 +158,7 @@ this file); a student who requests a VM later continues here meanwhile and moves
 work to the VM once it is there. Either way:
 
 - **M1 to M4, and M7 (Atlas)**, happen on the laptop.
-- **M5, M6, M8 and M9** happen on the machine that trains and holds the mlflow store,
+- **M5, M6, M8 and M9** happen on the machine that trains and holds the Optuna store,
   which is the VM: the clone, the hooks, the coaches and the runs clone live there.
 - Run checks on the VM through `ssh -o BatchMode=yes ml-vm '<cmd>'`, the host alias the
   lab guide sets up.
@@ -608,7 +608,7 @@ uv sync
 
 Point at what happens: uv reads `pyproject.toml` and `uv.lock`, picks a Python that fits
 `requires-python`, creates `.venv`, and installs exactly the locked versions — torch,
-ray, mlflow, vectormesh and the rest. The first sync downloads a lot, once. Have them
+ray, optuna, vectormesh and the rest. The first sync downloads a lot, once. Have them
 open `pyproject.toml` and look at the `dependencies` list; that list is what "the
 project needs" means.
 
@@ -629,7 +629,7 @@ Then open `notebooks/1_pytorch_intro/01_the_cache.ipynb`, top right → **Select
 
 ```bash
 git branch --show-current
-uv run python -c "import vectormesh, ray, mlflow, notebooktester; print('env OK')"
+uv run python -c "import vectormesh, ray, optuna, notebooktester; print('env OK')"
 ```
 
 The branch printed must not be `master`. Then have the student run the first cell of
@@ -749,7 +749,7 @@ Why, and say all four:
 
 The hook does it for them. The consequence for their workflow: a notebook must run
 **top to bottom from a fresh kernel**, because that is the only state it is saved in.
-Results that matter go to a file or to mlflow, not to a cell output.
+Results that matter go to a file or to the Optuna store, not to a cell output.
 
 ### Hook 5 — notebooktester: every staged notebook runs
 
@@ -783,8 +783,8 @@ suite nobody runs.
 
 And one consequence for their results: a run logged while notebooktester runs is a run
 on test settings (one epoch, two trials), and its numbers mean nothing. **Runs logged
-through `runlog.log_run` while the tester runs are tagged `test_run` and are left out
-of a submission.**
+through `optunalog` while the tester runs go to the separate store
+`artefacts/optuna/test.db`, so they are left out of a submission.**
 
 ### Hook 6 — lychee: dead links
 
@@ -862,8 +862,8 @@ Two questions, and do not tick the box until both answers hold:
 1. *"What does `param(20, test=1)` return when you run the notebook, and when
    notebooktester runs it? Why does every expensive constant go through it, and what
    happens to a run logged in test mode?"* Accept: *20 for me, 1 under the tester;
-   because one slow constant makes the test time out; `log_run` tags it `test_run` and it
-   is left out of a submission.*
+   because one slow constant makes the test time out; `optunalog` writes it to the separate
+   store `artefacts/optuna/test.db`, so it is left out of a submission.*
 2. *"Why does the commit clear notebook outputs?"* Accept at least two of the four
    reasons (unreadable diffs, a bloated repository, merge conflicts, leaked data), and
    *the hook does it for me.*
@@ -875,8 +875,8 @@ Two questions, and do not tick the box until both answers hold:
 - Notebooks are committed without outputs and must run top-to-bottom on a fresh kernel.
 - Any constant whose size scales runtime (epochs, steps, trials, seeds, dataset size)
   gets `from notebooktester import param` and `X = param(full, test=small)`.
-- Runs logged through `runlog.log_run` while the tester runs are tagged `test_run` and
-  are left out of a submission.
+- Runs logged through `optunalog` while the tester runs go to the separate store
+  `artefacts/optuna/test.db`, so they are left out of a submission.
 - `lychee` is installed through the student's own package manager, or skipped in
   `.lefthook-local.yml`.
 
@@ -1137,7 +1137,7 @@ lesson's exercise — parameters, scores, the architecture, no weights or data. 
 lesson opens with what the whole class built and how much of each search winner
 survived a rerun over seeds. The runs are filed under their GitHub login (M2).
 
-The effect they will notice: their runs from their own mlflow show up, with everyone
+The effect they will notice: their runs from their own Optuna store show up, with everyone
 else's, on the screen at the start of the next lesson.
 
 ### Fork and clone
@@ -1181,8 +1181,8 @@ fork, and reach the class repository through a pull request. Never push to `upst
 - The class runs clone is `../mads-runs` (relative to the course repository): a fork,
   with `origin` the student's fork and `upstream` `raoulg/mads-ml-runs-2026-11`.
 - Submitting a lesson's runs means following `docs/submit-runs.md` in the course
-  repository. Runs logged through `runlog.log_run` while the tester runs are tagged
-  `test_run` and are left out of a submission.
+  repository. Runs logged through `optunalog` while the tester runs go to the separate store
+  `artefacts/optuna/test.db`, so they are left out of a submission.
 
 **CHECKPOINT.** M9 is done when both remotes show and the fork is confirmed. Tick the
 last box and tell the student the setup is finished.

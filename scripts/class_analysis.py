@@ -1,738 +1,727 @@
-# %% [markdown]
-# # What the class did
-#
-# The opening analysis for a lesson, over the runs `collect_runs.py` imported into the
-# class store. Runs as a script:
-#
-#     uv run scripts/class_analysis.py --lesson 1
-#
-# or cell by cell (`# %%`) in VS Code or Jupyter, to show it in class. It prints the tables
-# and writes the figures to artefacts/class-analysis/lesson<N>/.
-#
-# It reads the conventions `runlog` writes: a `role` tag (baseline, trial, final, ablation,
-# hypothesis), `origin` (`notebook` for the runs as handed out, `study` for a student's own
-# study, which also carries `study`, `search_space`, `searched_axes`, `space_<axis>`,
-# `space_is_default` and `budget`), `dataset`, the score metric with `<metric>_std` and
-# `n_seeds` when there were seeds, `n_params`, the one-line `architecture` tag, and
-# `builds_on`, the classmates' runs a run builds on. `builds_on` names each by its
-# `submission_ref`, the tag `collect_runs.py` writes on every imported run. Runs without
-# them still show up in the counts; they just have less to say.
-#
-# Scores of different datasets are never ranked or plotted against each other: every table
-# and figure that compares scores does so per dataset, and runs without a `dataset` tag
-# form the dataset `unknown`.
-#
-# ## Reading the runs as a parallel-coordinates plot
-#
-# In `mlflow ui` on the class store: open an experiment, the **Chart** view, then **Add
-# chart -> Parallel coordinates**. Filter first, on one dataset and one study
-# (`tags.dataset = 'dtd' and tags.study = 'sam-depth-on-eurosat'`, or `tags.origin =
-# 'notebook'` for the handed-out runs). Put the params on the axes: `encoder` and
-# `embed_dim` (the vectors a run starts from), `n_hidden_layers`, `hidden_dim`, `activation`, `sigma`,
-# `norm`, `dropout`, `skip`, `gate`, `lr`; and the metrics `accuracy`, `n_params` and `train_seconds`
-# (seconds in training steps, evaluation not counted) as the outcomes. Notebook 05
-# (`lesson1-notebook`, `lesson1-study`) logs every one of these params, so a study that
-# varied one switch differs from its neighbours on one axis. Notebook 04 (`lesson1-search`)
-# logs `encoder`, `embed_dim`, `head`, `n_hidden_layers`, `hidden_dim`, `sigma` and `lr`;
-# notebook 01 (`lesson1-representation-quality`) logs `encoder`, `embed_dim`,
-# `n_hidden_layers`, `lr` and `epochs`. A run without hidden layers logs `hidden_dim=0`
-# and the switches as off, whatever its config drew. `tags.searched_axes LIKE
-# '%hidden_dim%'` finds the studies that searched an axis.
+"""The class view: one page that shows what the whole class did in a lesson.
 
-# %%
+    uv run scripts/class_analysis.py --lesson 1          # fetch main, write the page, print its path
+    uv run scripts/class_analysis.py --lesson 1 --open   # ... and open it in the browser
+    uv run scripts/class_analysis.py --demo              # the page on made-up data
+
+The class's runs are the `lesson<N>/<student>/<run_id>.json` files on the class
+repository's `main`; they are read with git exactly as `collect_runs.py` reads them. The
+result is one self-contained HTML page, `artefacts/class-analysis/lesson<N>/index.html`,
+read from top to bottom in the lesson: who submitted what; the handed-out baselines side
+by side, each with its spread between runs; baseline against final per student, with the
+spread drawn; the handed-out search pooled over the class; each student's own study;
+who built on whom; which architectures appeared and what they cost.
+
+optuna-dashboard (`make dashboard LESSON=<N>` opens both) shows one study at a time; this
+page is what it cannot show: the class pooled, and a student, a role or a dataset as the
+thing to filter on.
+
+Scores of different datasets are never compared with each other: every picture that
+compares scores does so per dataset.
+"""
+
 from __future__ import annotations
 
 import argparse
-import json
+import html
+import math
 import os
+import re
 import sys
+import webbrowser
+from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
+from types import SimpleNamespace
 
-import matplotlib.pyplot as plt
 import numpy as np
-
-os.environ.setdefault("MLFLOW_LOGGING_LEVEL", "WARNING")
-import mlflow
 import pandas as pd
+import plotly.graph_objects as go
+from plotly.offline import get_plotlyjs
+from plotly.subplots import make_subplots
 
-COURSE_ROOT = (
-    Path(__file__).resolve().parents[1] if "__file__" in globals() else Path.cwd()
-)
-parser = argparse.ArgumentParser(
-    description="Opening analysis of the class runs for one lesson."
-)
-parser.add_argument("--lesson", type=int, default=1)
-parser.add_argument(
-    "--metric", default="accuracy", help="the score to compare (default: %(default)s)"
-)
-parser.add_argument(
-    "--tracking-uri",
-    default=f"sqlite:///{COURSE_ROOT / 'artefacts' / 'mlflow' / 'class.db'}",
-)
-parser.add_argument(
-    "--noise-factor",
-    type=float,
-    default=3.0,
-    help="a handed-out run with seeds counts as deviating when it is further from the class "
-    "median than this many times the class's median seed std (default: %(default)s)",
-)
-args, _ = parser.parse_known_args(sys.argv[1:] if "__file__" in globals() else [])
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-LESSON, METRIC = args.lesson, args.metric
-OUT = COURSE_ROOT / "artefacts" / "class-analysis" / f"lesson{LESSON}"
-OUT.mkdir(parents=True, exist_ok=True)
-pd.set_option(
-    "display.width", 200, "display.max_columns", 30, "display.max_colwidth", 70
-)
+from run_submission import Submission, explain
 
-mlflow.set_tracking_uri(args.tracking_uri)
-experiments = [
-    e for e in mlflow.search_experiments() if e.name.startswith(f"lesson{LESSON}-")
-]
-if not experiments:
-    sys.exit(
-        f"no lesson{LESSON}-* experiments in {args.tracking_uri}; run scripts/collect_runs.py first"
-    )
+COURSE_ROOT = Path(__file__).resolve().parents[1]
+METRIC = "accuracy"
 
-raw = pd.DataFrame(
-    mlflow.search_runs([e.experiment_id for e in experiments], output_format="pandas")
-)
-names = {e.experiment_id: e.name for e in experiments}
+ROLE_COLORS = {
+    "baseline": "#8a8f98",
+    "trial": "#9db7d5",
+    "final": "#1f5fa8",
+    "ablation": "#d98e3b",
+    "hypothesis": "#7a5aa6",
+}
+GAIN = "#2a8a5a"
+LOSS = "#b8463c"
+INK = "#1d2330"
+MUTED = "#6a7280"
+FONT = "system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
 
-
-def col(prefix: str, name: str) -> pd.Series:
-    key = f"{prefix}.{name}"
-    return raw[key] if key in raw else pd.Series([None] * len(raw), index=raw.index)
-
-
-runs = pd.DataFrame(
-    {
-        "student": col("tags", "student"),
-        "experiment": raw["experiment_id"].map(names),
-        "name": col("tags", "source_run_name"),
-        "role": col("tags", "role").fillna("-"),
-        "origin": col("tags", "origin").fillna("-"),
-        "dataset": col("tags", "dataset").fillna("unknown"),
-        "study": col("tags", "study"),
-        "search_space": col("tags", "search_space"),
-        "searched_axes": col("tags", "searched_axes"),
-        "space_is_default": col("tags", "space_is_default"),
-        "budget": col("tags", "budget"),
-        "session": col("tags", "session"),
-        "score": pd.to_numeric(col("metrics", METRIC), errors="coerce"),
-        "std": pd.to_numeric(col("metrics", f"{METRIC}_std"), errors="coerce"),
-        "n_seeds": pd.to_numeric(col("metrics", "n_seeds"), errors="coerce"),
-        "n_params": pd.to_numeric(col("metrics", "n_params"), errors="coerce"),
-        "architecture": col("tags", "architecture"),
-        "start": raw["start_time"],
-    }
-)
-# A student who ran a handed-out notebook twice submits both sessions; only the latest
-# counts, per experiment, so the class compares one execution per student.
-handed = runs.origin == "notebook"
-latest_session = (
-    runs[handed]
-    .groupby(["student", "experiment"], dropna=False)
-    .session.transform("max")
-    .reindex(runs.index)
-)
-stale = handed & runs.session.notna() & (runs.session != latest_session)
-runs = runs[~stale]
-params = raw[[c for c in raw.columns if c.startswith("params.")]].rename(
-    columns=lambda c: c[len("params.") :]
-)
-# The search space per axis, as `runlog.space_tags` writes it: tags.space_<axis>.
-space = raw[[c for c in raw.columns if c.startswith("tags.space_")]].rename(
-    columns=lambda c: c[len("tags.space_") :]
-)
-space = space.drop(columns=[c for c in ["is_default"] if c in space.columns])
-print(
-    f"lesson {LESSON}: {runs.student.nunique()} students, {len(runs)} runs, metric `{METRIC}`, "
-    f"datasets {sorted(runs.dataset.unique())}\n"
-)
-
-
-def sigma(a: pd.Series, b: pd.Series) -> float:
-    """(b - a) in units of the standard error of the difference, as the notebooks print it:
-    `std` is the spread over seeds (ddof 0), so std**2 / (n - 1) is var(ddof 1) / n."""
-    se2 = 0.0
-    for run in (a, b):
-        n = run["n_seeds"]
-        if not (n and n > 1) or pd.isna(run["std"]):
-            return float("nan")
-        se2 += run["std"] ** 2 / (n - 1)
-    return float((b["score"] - a["score"]) / np.sqrt(se2)) if se2 > 0 else float("nan")
-
-
-def latest(sel: pd.DataFrame) -> pd.Series | None:
-    sel = sel[sel.score.notna()].sort_values("start")
-    return None if sel.empty else sel.iloc[-1]
-
-
-def pm(run: pd.Series | None) -> str:
-    if run is None:
-        return "-"
-    if pd.isna(run["std"]):
-        return f"{run['score']:.3f}"
-    return f"{run['score']:.3f}±{run['std']:.3f}"
-
-
-# %% [markdown]
-# ## The studies
-#
-# One row per student and study: the axes it searched, whether its space is the handed-out
-# one, and how it came out. `baseline` is the study's own baseline run, or else the
-# student's baseline from `lesson1-notebook` on the same dataset. `sigma` is the gain in
-# units of the standard error of the difference: inside about two, the difference is not
-# measured, whatever its sign. `trials` counts the trials per search space against the
-# budget; a study whose runs carry more than one space was run with a changed space, and
-# its trials do not come from one search. After the table, each study's space, axis by
-# axis.
-
-# %%
-HANDED_OUT = f"lesson{LESSON}-notebook"
-
-
-def handed_out_baseline(student: str, dataset: str) -> pd.Series | None:
-    return latest(
-        runs[
-            (runs.student == student)
-            & (runs.experiment == HANDED_OUT)
-            & (runs.role == "baseline")
-            & (runs.dataset == dataset)
-        ]
-    )
-
-
-study_runs = runs[runs.origin == "study"]
-rows, blocks, mixed = [], [], []
-for (student, study), group in study_runs.groupby(["student", "study"], dropna=False):
-    group = group.sort_values("start")
-    final = latest(group[group.role == "final"])
-    dataset = final["dataset"] if final is not None else group.dataset.mode().iloc[0]
-    base = latest(group[(group.role == "baseline") & (group.dataset == dataset)])
-    if base is None:
-        base = handed_out_baseline(student, dataset)
-    spaced = group[group.search_space.notna()]  # hypothesis runs carry no space
-    first = spaced.iloc[-1] if len(spaced) else group.iloc[-1]
-    budget = json.loads(first["budget"]) if isinstance(first["budget"], str) else {}
-    per_space = spaced[spaced.role == "trial"].groupby("search_space").size()
-    if spaced.search_space.nunique() > 1:
-        mixed.append(f"{student} / {study}: {spaced.search_space.nunique()} spaces")
-    both = final is not None and base is not None
-    rows.append(
-        {
-            "student": student,
-            "study": study,
-            "dataset": dataset,
-            "searched": first["searched_axes"] or "-",
-            "default": first["space_is_default"],
-            "trials": f"{'+'.join(map(str, per_space)) or 0}/{budget.get('n_trials', '?')}",
-            "baseline": pm(base),
-            "final": pm(final),
-            "gain_pt": 100 * (final["score"] - base["score"]) if both else np.nan,
-            "sigma": sigma(base, final) if both else np.nan,
-        }
-    )
-    for _, run in spaced.drop_duplicates("search_space").iterrows():
-        axes = space.loc[run.name].dropna()
-        blocks.append((f"{student} / {study}", axes))
-studies = pd.DataFrame(rows)
-if studies.empty:
-    print("no study runs (origin=study) submitted\n")
-else:
-    print(
-        studies.sort_values(["dataset", "sigma"], ascending=[True, False])
-        .round(2)
-        .to_string(index=False),
-        "\n",
-    )
-    print(
-        "more than one search space:",
-        "; ".join(mixed) if mixed else "no study",
-        "\n",
-    )
-    for label, axes in sorted(blocks, key=lambda b: b[0]):
-        print(f"== {label}")
-        print(
-            axes.rename_axis("axis").rename("space").to_frame().to_string(),
-            "\n",
-        )
-    handed_out = runs[(runs.origin == "notebook") & runs.search_space.notna()]
-    if len(handed_out):
-        print(f"handed-out space: {handed_out.search_space.iloc[0]}\n")
-
-# %% [markdown]
-# ## Who submitted what
-
-# %%
-print(
-    pd.crosstab(
-        runs.student, [runs.origin, runs.role], margins=True, margins_name="total"
-    ).to_string(),
-    "\n",
-)
-
-# %% [markdown]
-# ## Who built on whom
-#
-# One row per link: a run of this lesson whose `builds_on` tag names a classmate's run by
-# its `submission_ref`. Both scores on the lesson's metric, and `diff_pt`, the run's score
-# minus the one it built on, in points. The run built on may come from any lesson in the
-# class store; one that is not there (not merged yet, or mistyped) is listed as such.
-
-
-# %%
-def submission_refs() -> dict[str, dict]:
-    """Every run in the class store, of any lesson, by its `submission_ref` in lower
-    case: the student, the run name and the score."""
-    every = pd.DataFrame(
-        mlflow.search_runs(search_all_experiments=True, output_format="pandas")
-    )
-    empty = pd.Series([None] * len(every), index=every.index, dtype=object)
-    refs = every.get("tags.submission_ref", empty)
-    students = every.get("tags.student", empty)
-    names = every.get("tags.source_run_name", empty)
-    scores = pd.to_numeric(every.get(f"metrics.{METRIC}", empty), errors="coerce")
-    return {
-        ref.lower(): {"student": student, "name": name, "score": score}
-        for ref, student, name, score in zip(refs, students, names, scores)
-        if isinstance(ref, str)
-    }
-
-
-def links_table(sel: pd.DataFrame, targets: dict[str, dict]) -> pd.DataFrame:
-    """One row per run in `sel` and run it builds on, with both scores."""
-    out = []
-    for i, refs in col("tags", "builds_on").loc[sel.index].dropna().items():
-        run = sel.loc[i]
-        for target in str(refs).split(","):
-            on = targets.get(target.lower())  # GitHub logins ignore case
-            missing = {"student": target.split("/")[1], "name": "-", "score": np.nan}
-            out.append(
-                {
-                    "student": run["student"],
-                    "run": run["name"],
-                    "builds_on": (on or missing)["student"],
-                    "on_run": (on or missing)["name"],
-                    "score": run["score"],
-                    "on_score": (on or missing)["score"],
-                    "diff_pt": 100 * (run["score"] - on["score"]) if on else np.nan,
-                    "target": "found" if on else f"not in the class store: {target}",
-                }
-            )
-    return pd.DataFrame(out)
-
-
-links = links_table(runs, submission_refs())
-if links.empty:
-    print("no run builds on another (tag builds_on)\n")
-else:
-    print(links.sort_values(["student", "run"]).round(4).to_string(index=False), "\n")
-
-# %% [markdown]
-# ## The runs as handed out
-#
-# Every student ran the same handed-out notebooks without a seed, so these runs should
-# agree within seed noise. Per run
-# name: the class median, how many students ran it with the same parameters, the class's
-# median seed spread, and how many of those runs lie further from the median than
-# `--noise-factor` (3) times that spread. Only runs with seeds are judged: a single-seed run
-# has no spread to measure against. A student whose handed-out baseline deviates has a
-# setup problem worth a look. `other_params` counts students whose run of that name had
-# different parameters, which are left out of the comparison. Below the table, the
-# deviating runs counted per student, with the run names.
-
-# %%
-# The handed-out search draws other trials per student, so its trials and its winner are
-# compared per student in the next section, not by run name here.
-notebook = runs[
-    (runs.origin == "notebook")
-    & runs.score.notna()
-    & ~runs.role.isin(["trial", "final"])
-].copy()
-if notebook.empty:
-    print("no handed-out runs (origin=notebook) submitted\n")
-else:
-    notebook["params_key"] = (
-        params.loc[notebook.index].astype(str).agg("|".join, axis=1)
-    )
-    rows = []
-    deviating: dict[str, list[str]] = {}
-    for (exp, name, dataset), group in notebook.groupby(
-        ["experiment", "name", "dataset"]
-    ):
-        group = group.sort_values("start").groupby("student").tail(1)
-        usual = group.params_key.mode().iloc[0]
-        same = group[group.params_key == usual]
-        median = same.score.median()
-        seeded = same[same.n_seeds.fillna(1) > 1]
-        noise = seeded["std"].median() if len(seeded) else np.nan
-        off = (
-            seeded[(seeded.score - median).abs() > args.noise_factor * noise]
-            if noise > 0
-            else seeded.iloc[:0]
-        )
-        for student in off.student:
-            deviating.setdefault(student, []).append(
-                f"{exp.removeprefix(f'lesson{LESSON}-')}/{name}"
-            )
-        rows.append(
-            {
-                "experiment": exp,
-                "name": name,
-                "dataset": dataset,
-                "role": group.role.iloc[0],
-                "students": len(same),
-                "median": median,
-                "seed_std": noise,
-                "judged": len(seeded),
-                "deviating": len(off),
-                "other_params": len(group) - len(same),
-            }
-        )
-    print(pd.DataFrame(rows).round(4).to_string(index=False), "\n")
-    print(f"deviating by more than {args.noise_factor:g} x the median seed std:")
-    if deviating:
-        print(
-            pd.DataFrame(
-                [
-                    {"student": s, "runs": len(n), "names": ", ".join(sorted(n))}
-                    for s, n in deviating.items()
-                ]
-            )
-            .sort_values(["runs", "student"], ascending=[False, True])
-            .to_string(index=False),
-            "\n",
-        )
-    else:
-        print("nobody\n")
-
-
-# %% [markdown]
-# ## The handed-out search, one draw per student
-#
-# Every student searched the same space without a seed: other trials, other starting
-# weights. One row per student: the best trial (a single seed, the maximum of the draws),
-# the configuration it drew, and the winner rerun over seeds. Read down the columns: a
-# choice that every student's winner shares is a property of the problem; one that changes
-# from row to row was the draw. The spread of `best_trial` against `final` is how much a
-# single search's leaderboard number overstates. Below the table, the trials of every
-# student pooled, per axis: the search samples at random, so together they are one search
-# of the space, and a continuous axis shows its trend in four bins of equal count.
-
-
-# %%
-def quartile_labels(numeric: pd.Series) -> pd.Series:
-    """Four bins of equal count, each labelled by the range of values it holds."""
-    bins = pd.qcut(numeric, 4, duplicates="drop")
-    low = numeric.min()  # qcut widens the lowest edge a little below the smallest value
-    return bins.map(lambda b: f"{max(b.left, low):.3g} to {b.right:.3g}").astype(str)
-
-
-def per_axis(index: pd.Index) -> None:
-    """For every param the runs at `index` varied: how often each value was tried and what
-    it scored. A continuous axis is cut into four bins of equal count."""
-    for name in params.columns:
-        values = params.loc[index.intersection(params.index), name].dropna()
-        if values.nunique() < 2:
-            continue
-        numeric = pd.to_numeric(values, errors="coerce")
-        key = values
-        if numeric.notna().all() and values.nunique() > 4:
-            key = quartile_labels(numeric)
-        elif numeric.notna().all() and (numeric % 1 != 0).any():
-            key = numeric.map(lambda x: f"{x:.3g}")
-        elif numeric.notna().all():
-            key = numeric.astype(int)  # sorts 64, 256, 1024 as numbers
-        stats = runs.loc[values.index].groupby(key).score.agg(["size", "median", "max"])
-        print(f"-- {name}")
-        print(stats.round(4).to_string(), "\n")
-
-
+# The params every study of lesson 1 can search, in the order of the parallel plot.
 AXES = [
     "n_hidden_layers",
     "hidden_dim",
     "activation",
     "norm",
+    "skip",
     "dropout",
     "sigma",
     "lr",
-    "skip",
 ]
-CHOICES = ["n_hidden_layers", "activation", "norm", "skip"]
-handed = runs[(runs.origin == "notebook") & runs.score.notna()]
-trials = handed[handed.role == "trial"]
-if trials.empty:
-    print("no handed-out search trials submitted\n")
-else:
+CATEGORICAL = {"activation", "norm", "skip", "encoder", "dataset", "gate"}
+
+
+# ---- the runs as a table ---------------------------------------------------------------
+
+
+def origin_of(experiment: str) -> str:
+    """`notebook` for the studies of the notebook as handed out, `study` for a student's
+    own, `other` for anything else."""
+    if re.fullmatch(r"lesson\d+-notebook(-runs)?", experiment):
+        return "notebook"
+    if re.match(r"lesson\d+-study", experiment):
+        return "study"
+    return "other"
+
+
+def study_of(experiment: str) -> str | None:
+    """The student's name for a study: `lesson1-study-sam-depth-runs` -> `sam-depth`."""
+    m = re.fullmatch(r"lesson\d+-study-(.+?)(-runs)?", experiment)
+    return m.group(1) if m else None
+
+
+def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame:
+    """One row per submitted run, with the params as `p_<name>` columns."""
     rows = []
-    for student, group in trials.groupby("student"):
-        best = group.loc[group.score.idxmax()]
-        final = handed[(handed.student == student) & (handed.role == "final")]
-        final = final.sort_values("start").tail(1)
-        row = {"student": student, "trials": len(group), "best_trial": best.score}
-        row |= {a: params.at[best.name, a] if a in params else None for a in AXES}
-        for axis, fmt in (
-            ("dropout", "{:.2f}"),
-            ("sigma", "{:.2f}"),
-            ("lr", "{:.1e}"),
-        ):
-            if row[axis] is not None and pd.notna(row[axis]):
-                row[axis] = fmt.format(float(row[axis]))
-        row["final"] = final.score.iloc[0] if len(final) else np.nan
-        row["final_std"] = final["std"].iloc[0] if len(final) else np.nan
+    for sub in subs:
+        run = sub.run
+        attrs = run.attrs
+        row = {
+            "student": sub.student,
+            "lesson": sub.lesson,
+            "ref": sub.ref(),
+            "experiment": run.experiment,
+            "origin": origin_of(run.experiment),
+            "study": study_of(run.experiment),
+            "name": run.run_name,
+            "role": attrs.get("role", "-"),
+            "dataset": attrs.get("dataset") or "unknown",
+            "session": attrs.get("session"),
+            "status": run.status,
+            "score": run.value,
+            "std": attrs.get(f"{metric}_std"),
+            "n": attrs.get("n_repeats"),
+            "n_params": attrs.get("n_params"),
+            "train_seconds": attrs.get("train_seconds"),
+            "architecture": attrs.get("architecture"),
+            "builds_on": attrs.get("builds_on", ""),
+            "search_space": sub.run.study.attrs.get("search_space"),
+            "searched_axes": sub.run.study.attrs.get("searched_axes"),
+            "space_is_default": sub.run.study.attrs.get("space_is_default"),
+            "epochs_run": len(run.intermediate),
+            "start": run.start_time,
+            "design": "design.py" in run.artifacts,
+        }
+        row.update({f"p_{k}": v for k, v in run.params.items()})
+        # a trial's fixed axes (the dataset, ...) are in its config, not its params
+        for k, v in (attrs.get("config") or {}).items():
+            row.setdefault(f"p_{k}", v)
         rows.append(row)
-    table = pd.DataFrame(rows).sort_values("final", ascending=False)
-    print(table.round(4).to_string(index=False), "\n")
-    for axis in CHOICES:
-        counts = table[axis].astype(str).value_counts()
-        print(f"winners' {axis:<16}", ", ".join(f"{v}: {n}" for v, n in counts.items()))
-    print()
-
-    # The trials were sampled at random and independently, so the class's trials pooled
-    # are one random search of the space: per axis, what the pooled trials scored.
-    print(
-        f"== the class's handed-out trials pooled: {len(trials)} trials, "
-        f"{trials.student.nunique()} students"
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    for col in ("score", "std", "n", "n_params", "train_seconds"):
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    # A student who ran a handed-out notebook twice submits both sessions; only the latest
+    # counts, so the class compares one execution per student.
+    handed = df.origin == "notebook"
+    latest = (
+        df[handed]
+        .groupby(["student", "experiment"])
+        .session.transform("max")
+        .reindex(df.index)
     )
-    for dataset, group in trials.groupby("dataset"):
-        print(f"-- dataset {dataset}")
-        per_axis(group.index)
-
-# %% [markdown]
-# ## How much identical code varies
-#
-# Per run of notebook 05's Part 1 (`lesson1-notebook`, the trials left out): one dot per
-# student, with that student's own seed spread as a bar, and the class median as a dashed
-# line. Every panel has its own axis, so read the spread within a panel, not across them.
-# Dots that scatter more than their bars says machines differ; bars wider than the scatter
-# says seeds do.
-
-# %%
-shown = (
-    notebook[(notebook.experiment == HANDED_OUT) & (notebook.role != "trial")]
-    if len(notebook)
-    else notebook
-)
-panels = sorted(shown.groupby(["experiment", "name", "dataset"]).groups)
-if panels:
-    students = sorted(shown.student.dropna().unique())
-    ncols = min(4, len(panels))
-    nrows = -(-len(panels) // ncols)
-    fig, axs = plt.subplots(
-        nrows,
-        ncols,
-        figsize=(3.6 * ncols, 0.22 * len(students) * nrows + 1.2 * nrows),
-        squeeze=False,
-        sharey=True,
-        layout="constrained",
+    return df[~(handed & df.session.notna() & (df.session != latest))].reset_index(
+        drop=True
     )
-    y = {s: i for i, s in enumerate(students)}
-    for ax, (exp, name, dataset) in zip(axs.flat, panels):
-        group = shown[
-            (shown.experiment == exp)
-            & (shown.name == name)
-            & (shown.dataset == dataset)
-        ]
-        group = group.sort_values("start").groupby("student").tail(1)
-        ax.errorbar(
-            group.score,
-            group.student.map(y),
-            xerr=group["std"].fillna(0),
-            fmt="o",
-            ms=4,
-            capsize=2,
-            lw=1,
+
+
+def sigma(diff_a: pd.Series, diff_b: pd.Series) -> float:
+    """`a` against `b` in pooled standard errors of their repeats; NaN without a spread."""
+    se = math.sqrt(
+        (diff_a["std"] ** 2) / diff_a["n"] + (diff_b["std"] ** 2) / diff_b["n"]
+    )
+    return (diff_a["score"] - diff_b["score"]) / se if se > 0 else float("nan")
+
+
+def comparisons(df: pd.DataFrame) -> pd.DataFrame:
+    """Baseline against final, per student and study: both scores with their spread
+    between runs, the gain in points and in sigmas, and how much of the best single trial
+    is left in the final. Own studies only; one row per student and study."""
+    rows = []
+    own = df[df.origin == "study"]
+    for (student, study), group in own.groupby(["student", "study"]):
+        base = group[(group.role == "baseline") & group.score.notna()]
+        final = group[(group.role == "final") & group.score.notna()]
+        if base.empty or final.empty:
+            continue
+        b, f = base.sort_values("start").iloc[-1], final.sort_values("start").iloc[-1]
+        trials = group[(group.role == "trial") & (group.status == "COMPLETE")]
+        best = trials.score.max() if len(trials) else float("nan")
+        gain = f.score - b.score
+        rows.append(
+            {
+                "student": student,
+                "study": study,
+                "dataset": f.dataset,
+                "base": b.score,
+                "base_std": b["std"],
+                "final": f.score,
+                "final_std": f["std"],
+                "gain_pt": 100 * gain,
+                "sigma": sigma(f, b),
+                "best_trial": best,
+                "survived": gain / (best - b.score) if best > b.score else float("nan"),
+                "n_trials": len(trials),
+                "pruned": int((group.role == "trial").sum() - len(trials)),
+                "search_space": f.search_space,
+                "searched_axes": f.searched_axes,
+            }
         )
-        ax.axvline(group.score.median(), color="k", ls="--", lw=0.8)
-        ax.set_title(
-            f"{name}\n{exp.removeprefix(f'lesson{LESSON}-')}, {dataset}", fontsize=8
-        )
-        ax.tick_params(axis="x", labelsize=7)
-        ax.xaxis.set_major_locator(plt.MaxNLocator(4))
-        ax.grid(axis="x", alpha=0.3)
-    for ax in axs.flat[len(panels) :]:
-        ax.set_visible(False)
-    for ax in axs[:, 0]:
-        ax.set_yticks(range(len(students)), students, fontsize=7)
-    fig.suptitle(f"lesson {LESSON}: the handed-out runs, per student ({METRIC})")
-    fig.savefig(OUT / "handed_out_spread.png", dpi=150)
-
-# %% [markdown]
-# ## Baseline against final, per student and dataset
-#
-# The final is the run a student stands behind, rerun over seeds: the handed-out search's
-# winner, and the final of each study. Each final is paired with the baseline of its own
-# study (or notebook), else with the student's `lesson1-notebook` baseline on that dataset.
-# `sigma` as in the studies table.
+    return pd.DataFrame(rows)
 
 
-# %%
-def finals_table(sel: pd.DataFrame) -> pd.DataFrame:
-    out = []
-    pairs = sel[["student", "dataset"]].drop_duplicates().itertuples(index=False)
-    for student, dataset in pairs:
-        group = sel[(sel.student == student) & (sel.dataset == dataset)]
-        source = group.experiment + "|" + group.study.fillna("-")
-        for key, finals in group[group.role == "final"].groupby(source):
-            final = latest(finals)
-            if final is None:
-                continue
-            own = group[source == key]
-            base = latest(own[own.role == "baseline"])
-            if base is None:
-                base = handed_out_baseline(student, dataset)
-            best_trial = own[own.role == "trial"].score.max()
-            study = final["study"]
-            out.append(
+def handed_out_baselines(df: pd.DataFrame) -> pd.DataFrame:
+    sel = df[(df.origin == "notebook") & (df.role == "baseline") & df.score.notna()]
+    return sel.sort_values("score").reset_index(drop=True)
+
+
+def handed_out_trials(df: pd.DataFrame) -> pd.DataFrame:
+    """The trials of the handed-out search, pooled over the class: one search of the
+    space many times the size. Pruned trials are not scores and stay out."""
+    sel = df[
+        (df.origin == "notebook")
+        & (df.role == "trial")
+        & (df.status == "COMPLETE")
+        & df.score.notna()
+    ]
+    return sel.reset_index(drop=True)
+
+
+def links(df: pd.DataFrame) -> pd.DataFrame:
+    """Who built on whom: per `builds_on` entry, the run, the classmate's run it names
+    and both scores. A target that is not among the submissions has no score."""
+    by_ref = df.set_index("ref")
+    rows = []
+    for _, r in df[df.builds_on.astype(bool)].iterrows():
+        for ref in r.builds_on.split(","):
+            target = by_ref.loc[ref] if ref in by_ref.index else None
+            if isinstance(target, pd.DataFrame):
+                target = target.iloc[0]
+            rows.append(
                 {
-                    "dataset": dataset,
-                    "student": student,
-                    "from": study
-                    if isinstance(study, str)
-                    else final["experiment"].removeprefix(f"lesson{LESSON}-"),
-                    "baseline": base["score"] if base is not None else np.nan,
-                    "final": final["score"],
-                    "final_std": final["std"],
-                    "gain_pt": 100 * (final["score"] - base["score"])
-                    if base is not None
-                    else np.nan,
-                    "sigma": sigma(base, final) if base is not None else np.nan,
-                    "trial_minus_final_pt": 100 * (best_trial - final["score"]),
+                    "student": r.student,
+                    "run": r["name"],
+                    "builds_on": ref.split("/")[1],
+                    "on_run": None if target is None else target["name"],
+                    "score": r.score,
+                    "on_score": np.nan if target is None else target.score,
+                    "found": target is not None,
                 }
             )
-    return pd.DataFrame(out)
+    out = pd.DataFrame(rows)
+    if not out.empty:
+        out["diff_pt"] = 100 * (out.score - out.on_score)
+    return out
 
 
-finals = finals_table(runs)
-for dataset, group in finals.groupby("dataset") if len(finals) else []:
-    print(f"-- dataset {dataset}")
-    print(
-        group.drop(columns="dataset")
-        .sort_values("gain_pt", ascending=False)
-        .round(4)
-        .to_string(index=False),
-        "\n",
+def rows(df: pd.DataFrame) -> list[SimpleNamespace]:
+    """The rows of `df` as objects with the columns as attributes."""
+    return [SimpleNamespace(**r) for r in df.to_dict("records")]
+
+
+# ---- the pictures ----------------------------------------------------------------------
+
+
+def style(fig: go.Figure, height: int, **layout) -> go.Figure:
+    layout = {"margin": {"l": 70, "r": 30, "t": 50, "b": 55}, **layout}
+    fig.update_layout(
+        height=height,
+        paper_bgcolor="white",
+        plot_bgcolor="white",
+        font={"family": FONT, "size": 13, "color": INK},
+        legend={"orientation": "h", "y": 1.08, "x": 0},
+        **layout,
     )
-print(
-    "trial_minus_final_pt: how much of the single-seed search maximum did not survive the rerun.\n"
-)
-
-for dataset, t in finals.groupby("dataset") if len(finals) else []:
-    t = t.dropna(subset=["baseline", "final"]).sort_values("final")
-    if t.empty:
-        continue
-    fig, ax = plt.subplots(figsize=(8, 0.35 * len(t) + 1.5), layout="constrained")
-    y = list(range(len(t)))
-    ax.hlines(y, t.baseline, t.final, color="0.7")
-    ax.plot(t.baseline, y, "o", label="baseline")
-    ax.errorbar(t.final, y, xerr=t.final_std, fmt="o", label="final", capsize=3)
-    ax.set_yticks(y, [f"{s} / {f}" for s, f in zip(t.student, t["from"])])
-    ax.set_xlabel(METRIC)
-    ax.legend()
-    ax.set_title(
-        f"{dataset}: baseline and final per student,\nwith seed spread", fontsize=10
+    fig.update_xaxes(
+        showline=True, linecolor="#c9ced6", gridcolor="#eef0f3", zeroline=False
     )
-    fig.savefig(OUT / f"baseline_vs_final_{dataset}.png", dpi=150)
+    fig.update_yaxes(
+        showline=True, linecolor="#c9ced6", gridcolor="#eef0f3", zeroline=False
+    )
+    return fig
 
-# %% [markdown]
-# ## Score against parameters, per dataset
-#
-# The study runs, coloured per student, with the handed-out baselines drawn on top. A cloud
-# with no slope says capacity bought nothing; the grey band, two seed spreads around the
-# baselines, is what a run has to clear.
 
-# %%
-sized = runs.dropna(subset=["score", "n_params"])
-for dataset, group in sized.groupby("dataset"):
-    mine = group[group.origin == "study"]
-    bases = group[(group.origin == "notebook") & (group.role == "baseline")]
-    if mine.empty and bases.empty:
-        continue
-    fig, ax = plt.subplots(figsize=(9, 4.5))
-    colours = plt.get_cmap(
-        "tab20"
-    )  # 20 distinct colours: one per student in a class of 15
-    for i, (student, s) in enumerate(mine.groupby("student")):
-        ax.scatter(
-            s.n_params,
-            s.score,
-            label=f"{student} ({len(s)})",
-            alpha=0.7,
-            s=22,
-            color=colours(i % 20),
-        )
-    if len(bases):
-        mid, spread = bases.score.mean(), bases["std"].mean()
-        ax.axhline(mid, color="k", ls="--", lw=1, zorder=5)
-        if not np.isnan(spread):
-            ax.axhspan(
-                mid - 2 * spread,
-                mid + 2 * spread,
-                color="k",
-                alpha=0.08,
-                label="baselines: mean +/- 2 seed std",
-                zorder=4,
+def fig_who_submitted(df: pd.DataFrame) -> go.Figure:
+    counts = df.groupby(["student", "role"]).size().unstack(fill_value=0)
+    counts = counts.loc[counts.sum(axis=1).sort_values().index]
+    fig = go.Figure()
+    for role, color in ROLE_COLORS.items():
+        if role in counts:
+            fig.add_bar(
+                y=counts.index, x=counts[role], name=role, orientation="h",
+                marker_color=color,
+            )  # fmt: skip
+    fig.update_layout(barmode="stack")
+    fig.update_xaxes(title="submitted runs")
+    return style(fig, max(260, 26 * len(counts) + 110))
+
+
+def fig_baselines(df: pd.DataFrame) -> go.Figure:
+    """The handed-out baseline of every student, each with its spread between runs: how
+    far one model fluctuates, and so how big a difference has to be to mean anything."""
+    base = handed_out_baselines(df)
+    fig = go.Figure()
+    if base.empty:
+        return style(fig, 200)
+    median = base.score.median()
+    spread = base["std"].median()
+    fig.add_hrect(
+        y0=median - 2 * spread, y1=median + 2 * spread, fillcolor="#1f5fa8",
+        opacity=0.10, line_width=0,
+    )  # fmt: skip
+    fig.add_hline(y=median, line_color="#1f5fa8", line_width=1, line_dash="dot")
+    fig.add_scatter(
+        x=base.student, y=base.score, mode="markers",
+        marker={"size": 11, "color": ROLE_COLORS["final"]},
+        error_y={"type": "data", "array": base["std"].fillna(0), "color": "#6f93c0", "thickness": 2},
+        hovertemplate="%{x}: %{y:.4f}<extra></extra>", showlegend=False,
+    )  # fmt: skip
+    fig.add_annotation(
+        x=1, xref="paper", y=median + 2 * spread, yref="y", xanchor="right", yanchor="bottom",
+        text=f"band: class median ± 2 × the median spread between runs ({100 * spread:.2f} pt)",
+        showarrow=False, font={"size": 12, "color": MUTED},
+    )  # fmt: skip
+    fig.update_yaxes(title="handed-out baseline, accuracy")
+    fig.update_xaxes(categoryorder="array", categoryarray=list(base.student))
+    return style(fig, 380)
+
+
+def fig_baseline_vs_final(cmp: pd.DataFrame) -> go.Figure:
+    """Per student's study: the baseline and the final, each with its spread between
+    runs. A gain inside the spread is drawn as no gain."""
+    fig = go.Figure()
+    if cmp.empty:
+        return style(fig, 200)
+    cmp = cmp.sort_values("gain_pt").reset_index(drop=True)
+    labels = [f"{r.student} · {r.study}" for r in rows(cmp)]
+    for i, r in enumerate(rows(cmp)):
+        real = (not math.isnan(r.sigma)) and r.sigma >= 2
+        color = GAIN if real else (LOSS if r.gain_pt < 0 and r.sigma <= -2 else MUTED)
+        fig.add_scatter(
+            x=[r.base, r.final], y=[labels[i]] * 2, mode="lines",
+            line={"color": color, "width": 3}, showlegend=False, hoverinfo="skip",
+        )  # fmt: skip
+    for key, std, name, color in (
+        ("base", "base_std", "baseline", ROLE_COLORS["baseline"]),
+        ("final", "final_std", "final", ROLE_COLORS["final"]),
+    ):
+        fig.add_scatter(
+            x=cmp[key], y=labels, mode="markers", name=name,
+            marker={"size": 11, "color": color},
+            error_x={"type": "data", "array": cmp[std].fillna(0), "color": color, "thickness": 2},
+            customdata=cmp[["gain_pt", "sigma"]],
+            hovertemplate="%{y}<br>%{x:.4f}<br>gain %{customdata[0]:+.2f} pt, %{customdata[1]:+.1f} σ<extra></extra>",
+        )  # fmt: skip
+    fig.update_xaxes(title="accuracy (bars: spread between runs)")
+    return style(fig, max(260, 34 * len(cmp) + 120))
+
+
+def parcoords(trials: pd.DataFrame, axes: list[str], color: str = "score") -> go.Figure:
+    dims = []
+    for axis in axes:
+        col = trials.get(f"p_{axis}")
+        if col is None or col.isna().all():
+            continue
+        if axis in CATEGORICAL or col.dtype == object or col.dtype == bool:
+            cats = sorted(col.dropna().astype(str).unique())
+            codes = col.astype(str).map({c: i for i, c in enumerate(cats)})
+            dims.append(
+                {
+                    "label": axis, "values": codes,
+                    "tickvals": list(range(len(cats))), "ticktext": cats,
+                    "range": [-0.2, max(len(cats) - 0.8, 0.8)],
+                }
+            )  # fmt: skip
+        elif axis in ("lr", "hidden_dim") and (col.dropna() > 0).all():
+            dims.append(
+                {"label": f"{axis} (log)", "values": np.log10(col.clip(lower=1e-12))}
             )
-        ax.scatter(
-            bases.n_params,
-            bases.score,
-            marker="*",
-            s=160,
-            color="k",
-            label=f"baseline ({len(bases)})",
-            zorder=6,
+        else:
+            dims.append({"label": axis, "values": col})
+    dims.append({"label": METRIC, "values": trials[color]})
+    fig = go.Figure(
+        go.Parcoords(
+            line={
+                "color": trials[color], "colorscale": "Viridis", "showscale": True,
+                "colorbar": {"title": METRIC, "thickness": 12},
+            },
+            dimensions=dims,
         )
-    ax.set_xscale("log")
-    ax.set_xlabel("parameters")
-    ax.set_ylabel(METRIC)
-    ax.legend(fontsize=7, loc="center left", bbox_to_anchor=(1.01, 0.5))
-    ax.set_title(f"lesson {LESSON}, {dataset}: {METRIC} against parameters")
-    fig.tight_layout()
-    fig.savefig(OUT / f"score_vs_params_{dataset}.png", dpi=150)
+    )  # fmt: skip
+    return style(fig, 430, margin={"l": 70, "r": 70, "t": 60, "b": 30})
 
-# %% [markdown]
-# ## Which architectures appear, per dataset
-#
-# The distinct architectures across the class, by the one-line signature, with how many
-# students built each and the best and median score it reached. A class of 15 builds many;
-# the table keeps the best `TOP`.
 
-# %%
-TOP = 15
-arch = runs.dropna(subset=["architecture", "score"])
-for dataset, group in arch.groupby("dataset"):
-    summary = (
-        group.groupby("architecture")
-        .agg(
-            students=("student", "nunique"),
-            runs=("score", "size"),
-            best=("score", "max"),
-            median=("score", "median"),
-            n_params=("n_params", "first"),
-        )
-        .sort_values("best", ascending=False)
+def fig_axes(trials: pd.DataFrame, baseline_median: float | None) -> go.Figure:
+    """Accuracy against every searched axis of the pooled handed-out search: a dot per
+    trial, and the median per bin or per value."""
+    axes = [a for a in AXES if f"p_{a}" in trials and trials[f"p_{a}"].nunique() > 1]
+    n_cols = 4
+    n_rows = max(1, -(-len(axes) // n_cols))
+    fig = make_subplots(rows=n_rows, cols=n_cols, subplot_titles=axes, shared_yaxes=True,
+                        horizontal_spacing=0.025, vertical_spacing=0.16)  # fmt: skip
+    for i, axis in enumerate(axes):
+        row, col = divmod(i, n_cols)
+        x = trials[f"p_{axis}"]
+        if axis in CATEGORICAL:
+            x = x.astype(str)
+            fig.add_scatter(
+                x=x, y=trials.score, mode="markers", showlegend=False,
+                marker={"size": 5, "color": "#1f5fa8", "opacity": 0.25},
+                row=row + 1, col=col + 1,
+            )  # fmt: skip
+            med = trials.groupby(x).score.median()
+            fig.add_scatter(
+                x=med.index, y=med.values, mode="markers", showlegend=False,
+                marker={"size": 13, "color": "white", "line": {"color": INK, "width": 2}},
+                row=row + 1, col=col + 1,
+            )  # fmt: skip
+        else:
+            xs = pd.to_numeric(x)
+            log = axis in ("lr", "hidden_dim")
+            fig.add_scatter(
+                x=xs, y=trials.score, mode="markers", showlegend=False,
+                marker={"size": 5, "color": "#1f5fa8", "opacity": 0.25},
+                row=row + 1, col=col + 1,
+            )  # fmt: skip
+            key = np.log10(xs) if log else xs
+            if key.nunique() > 8:
+                bins = pd.cut(key, 6)
+                mid = key.groupby(bins, observed=True).mean()
+                med = trials.score.groupby(bins, observed=True).median()
+                fig.add_scatter(
+                    x=(10 ** mid if log else mid), y=med, mode="lines+markers",
+                    showlegend=False, line={"color": INK, "width": 2},
+                    marker={"size": 7, "color": INK}, row=row + 1, col=col + 1,
+                )  # fmt: skip
+            else:
+                med = trials.score.groupby(xs).median()
+                fig.add_scatter(
+                    x=med.index, y=med.values, mode="lines+markers", showlegend=False,
+                    line={"color": INK, "width": 2}, marker={"size": 7, "color": INK},
+                    row=row + 1, col=col + 1,
+                )  # fmt: skip
+            if log:
+                fig.update_xaxes(type="log", row=row + 1, col=col + 1)
+        if baseline_median is not None:
+            fig.add_hline(
+                y=baseline_median,
+                line_dash="dot",
+                line_color=MUTED,
+                row=row + 1,
+                col=col + 1,
+            )
+    fig.update_yaxes(title_text=METRIC, col=1)
+    return style(fig, 250 * n_rows + 60)
+
+
+def fig_studies(df: pd.DataFrame, cmp: pd.DataFrame) -> go.Figure:
+    """One small panel per student's study: the accuracy of its trials in the order they
+    ran, the baseline with its band of two standard errors, the final as a star."""
+    if cmp.empty:
+        return style(go.Figure(), 200)
+    n = len(cmp)
+    n_cols = min(3, n)
+    n_rows = -(-n // n_cols)
+    titles = [f"{r.student} · {r.study}" for r in rows(cmp)]
+    fig = make_subplots(rows=n_rows, cols=n_cols, subplot_titles=titles, shared_yaxes=True,
+                        horizontal_spacing=0.03, vertical_spacing=0.18)  # fmt: skip
+    for i, r in enumerate(rows(cmp)):
+        row, col = divmod(i, n_cols)
+        rr, cc = row + 1, col + 1
+        group = df[
+            (df.student == r.student) & (df.study == r.study) & (df.role == "trial")
+        ]
+        group = group.sort_values("start").reset_index(drop=True)
+        kept = group[group.status == "COMPLETE"]
+        stopped = group[group.status == "PRUNED"]
+        se = 2 * (r.base_std or 0) / math.sqrt(3)
+        fig.add_hrect(y0=r.base - se, y1=r.base + se, fillcolor=MUTED, opacity=0.18,
+                      line_width=0, row=rr, col=cc)  # fmt: skip
+        fig.add_hline(y=r.base, line_color=MUTED, line_width=1, row=rr, col=cc)
+        fig.add_scatter(x=stopped.index, y=stopped.score, mode="markers", showlegend=False,
+                        marker={"size": 6, "color": "#c8ced8", "symbol": "x"}, row=rr, col=cc)  # fmt: skip
+        fig.add_scatter(x=kept.index, y=kept.score, mode="markers", showlegend=False,
+                        marker={"size": 8, "color": ROLE_COLORS["trial"],
+                                "line": {"color": "#4d79a8", "width": 1}}, row=rr, col=cc)  # fmt: skip
+        fig.add_scatter(x=[len(group)], y=[r.final], mode="markers", showlegend=False,
+                        error_y={"type": "data", "array": [r.final_std or 0], "color": ROLE_COLORS["final"]},
+                        marker={"size": 15, "color": ROLE_COLORS["final"], "symbol": "star"},
+                        row=rr, col=cc)  # fmt: skip
+    fig.update_xaxes(title_text="trial", showticklabels=True)
+    fig.update_yaxes(title_text=METRIC, col=1)
+    return style(fig, 300 * n_rows + 40)
+
+
+def fig_links(lk: pd.DataFrame) -> go.Figure:
+    fig = go.Figure()
+    if lk.empty:
+        return style(fig, 160)
+    lk = lk[lk.found].sort_values("diff_pt").reset_index(drop=True)
+    labels = [f"{r.student} → {r.builds_on}" for r in rows(lk)]
+    fig.add_bar(
+        y=labels, x=lk.diff_pt, orientation="h",
+        marker_color=[GAIN if d > 0 else LOSS for d in lk.diff_pt],
+        hovertemplate="%{y}<br>%{x:+.2f} pt<extra></extra>",
+    )  # fmt: skip
+    fig.update_xaxes(
+        title="score of the run, minus the score of the run it builds on (points)"
     )
-    summary.index = [a if len(a) <= 90 else a[:87] + "..." for a in summary.index]
-    print(f"-- dataset {dataset}: {len(summary)} architectures, the best {TOP} shown")
-    print(summary.head(TOP).round(4).to_string(), "\n")
-
-# %% [markdown]
-# ## Which choices each study explored
-#
-# Per student and study, for every parameter its trials varied: how often each value was
-# tried and what it scored. An axis whose medians do not separate did not matter in that
-# search, whatever the best value was.
+    return style(fig, max(200, 34 * len(lk) + 100))
 
 
-# %%
-trials = runs[(runs.role == "trial") & (runs.origin == "study")]
-for (student, study), group in trials.groupby(["student", "study"]):
-    print(f"== {student} / {study}  [{', '.join(sorted(group.dataset.unique()))}]")
-    per_axis(group.index)
+def fig_architectures(df: pd.DataFrame) -> go.Figure:
+    """Score against parameters for every scored run, per dataset the biggest one: what a
+    larger head costs and what it buys."""
+    sel = df[(df.role.isin(["trial", "final", "baseline"])) & df.score.notna() & df.n_params.notna()
+             & (df.status == "COMPLETE")]  # fmt: skip
+    fig = go.Figure()
+    if sel.empty:
+        return style(fig, 200)
+    dataset = sel.dataset.value_counts().index[0]
+    sel = sel[sel.dataset == dataset]
+    for role in ("trial", "baseline", "final"):
+        part = sel[sel.role == role]
+        fig.add_scatter(
+            x=part.n_params, y=part.score, mode="markers", name=role,
+            marker={"size": 9 if role != "trial" else 6, "color": ROLE_COLORS[role],
+                    "opacity": 0.9 if role != "trial" else 0.45},
+            text=part.student + " · " + part["name"], hovertemplate="%{text}<br>%{x:,.0f} params<br>%{y:.4f}<extra></extra>",
+        )  # fmt: skip
+    fig.update_xaxes(title=f"parameters (log), runs on {dataset}", type="log")
+    fig.update_yaxes(title=METRIC)
+    return style(fig, 400)
 
-# %%
-print(f"figures in {OUT}")
-if "__file__" not in globals():
-    plt.show()
+
+# ---- the page --------------------------------------------------------------------------
+
+
+def tile(value: str, label: str) -> str:
+    return f'<div class="tile"><b>{html.escape(value)}</b><span>{html.escape(label)}</span></div>'
+
+
+def section(title: str, caption: str, fig: go.Figure | None, note: str = "") -> str:
+    body = (
+        ""
+        if fig is None
+        else fig.to_html(
+            full_html=False, include_plotlyjs=False, config={"displaylogo": False}
+        )
+    )
+    return (
+        f'<section><h2>{html.escape(title)}</h2><p class="cap">{html.escape(caption)}</p>'
+        f"{body}{note}</section>"
+    )
+
+
+CSS = f"""
+body {{ font-family: {FONT}; color: {INK}; margin: 0; background: #f6f7f9; }}
+main {{ max-width: 1120px; margin: 0 auto; padding: 28px 24px 80px; }}
+h1 {{ font-size: 28px; margin: 0 0 4px; }}
+h2 {{ font-size: 20px; margin: 0 0 2px; }}
+section {{ background: white; border-radius: 10px; padding: 20px 22px 14px; margin: 18px 0;
+          box-shadow: 0 1px 3px rgba(20,30,50,.08); }}
+.cap {{ margin: 0 0 6px; color: {MUTED}; font-size: 14px; }}
+.sub {{ color: {MUTED}; margin: 0 0 18px; }}
+.tiles {{ display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 6px; }}
+.tile {{ background: white; border-radius: 10px; padding: 12px 18px; min-width: 120px;
+        box-shadow: 0 1px 3px rgba(20,30,50,.08); }}
+.tile b {{ display: block; font-size: 26px; }}
+.tile span {{ color: {MUTED}; font-size: 13px; }}
+code {{ background: #eef0f3; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }}
+.space {{ font-size: 12.5px; color: {MUTED}; margin: 4px 0; }}
+"""
+
+
+def spaces_note(cmp: pd.DataFrame) -> str:
+    """The search space of every study, one line each, under the studies picture."""
+    lines = []
+    for r in rows(cmp):
+        if isinstance(r.search_space, str):
+            lines.append(
+                f'<div class="space"><b>{html.escape(r.student)} · {html.escape(str(r.study))}</b>'
+                f" <code>{html.escape(r.search_space)}</code></div>"
+            )
+    return "".join(lines)
+
+
+def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
+    cmp = comparisons(df)
+    trials = handed_out_trials(df)
+    base = handed_out_baselines(df)
+    base_median = float(base.score.median()) if len(base) else None
+    lk = links(df)
+
+    students = df.student.nunique()
+    tiles = "".join(
+        [
+            tile(str(students), "students"),
+            tile(str(len(df)), "runs"),
+            tile(str(df.study.nunique()), "own studies"),
+            tile(str(len(trials)), "trials of the handed-out search"),
+            tile(str(int(df.design.sum())), "runs with a design script"),
+        ]
+    )
+    parts = [
+        section(
+            "Who submitted what",
+            "Every submitted run, per student and role. A student with only baselines "
+            "ran the handed-out part and no study of their own.",
+            fig_who_submitted(df),
+        ),
+        section(
+            "The handed-out baselines, side by side",
+            "The same model on the same data, on every student's machine. Each dot is "
+            "one student's baseline; the bar is the spread between their own runs. "
+            "How far the dots lie apart is how large a difference has to be to mean anything.",
+            fig_baselines(df),
+        ),
+        section(
+            "Baseline against final, per study",
+            "Each student's own study. Grey line: a gain inside the spread between runs "
+            "(under two sigma). Green: a gain that clears it.",
+            fig_baseline_vs_final(cmp),
+        ),
+        section(
+            "The handed-out search, pooled over the class",
+            f"{len(trials)} trials from {trials.student.nunique() if len(trials) else 0} students, every one an "
+            "independent draw from the same space: one random search many times the "
+            "size. One line is one trial; drag along an axis to keep a range.",
+            parcoords(trials, AXES) if len(trials) else None,
+        ),
+        section(
+            "Axis by axis",
+            "Accuracy against each searched axis. Faint dots: every trial. Line or "
+            "ringed dots: the median per bin or value. Dotted: the class's median baseline.",
+            fig_axes(trials, base_median) if len(trials) else None,
+        ),
+        section(
+            "Each student's own study",
+            "Trials in the order they ran (crosses: stopped early by the pruner). Grey "
+            "band: the baseline ± two standard errors of its runs. Star: the final, rerun a few times.",
+            fig_studies(df, cmp),
+            spaces_note(cmp),
+        ),
+        section(
+            "Who built on whom",
+            "A run that names a classmate's run in builds_on, and what it scored against that run.",
+            fig_links(lk) if len(lk) else None,
+            ""
+            if len(lk)
+            else '<p class="cap">Nobody has built on a classmate\'s run yet.</p>',
+        ),
+        section(
+            "What a larger head costs and buys",
+            "Every scored run of the most common dataset: accuracy against parameters.",
+            fig_architectures(df),
+        ),
+    ]
+    return (
+        "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
+        f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
+        f"<title>Lesson {lesson}: what the class did</title><style>{CSS}</style>"
+        f"<script>{get_plotlyjs()}</script></head><body><main>"
+        f"<h1>Lesson {lesson}: what the class did</h1>"
+        f"<p class='sub'>{html.escape(source)}</p><div class='tiles'>{tiles}</div>"
+        + "".join(parts)
+        + "</main></body></html>"
+    )
+
+
+# ---- reading the class's runs ----------------------------------------------------------
+
+
+def read_class(repo: Path, lesson: int, fetch: bool) -> tuple[list[Submission], str]:
+    """The valid submissions of `lesson` on the class repository's main, and where they
+    came from; invalid files are reported and skipped."""
+    from collect_runs import class_ref, read_submission, submission_files
+
+    ref = class_ref(repo, fetch=fetch)
+    subs = []
+    for rel, mode in submission_files(repo, ref, [lesson]):
+        try:
+            subs.append(read_submission(repo, ref, rel, mode))
+        except ValueError as e:
+            print(f"skipped {rel}: " + "; ".join(explain(e)))
+    return subs, f"{len(subs)} runs in {repo} at {ref.removeprefix('refs/remotes/')}"
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument("--lesson", type=int, default=1)
+    parser.add_argument(
+        "--runs-repo",
+        type=Path,
+        default=Path(
+            os.environ.get("MADS_RUNS_REPO", COURSE_ROOT.parent / "mads-runs")
+        ),
+    )
+    parser.add_argument("--no-pull", action="store_true")
+    parser.add_argument("--demo", action="store_true", help="made-up data of a class")
+    parser.add_argument(
+        "--out",
+        type=Path,
+        help="the page (default: artefacts/class-analysis/lesson<N>/index.html)",
+    )
+    parser.add_argument(
+        "--open", action="store_true", help="open the page in the browser"
+    )
+    args = parser.parse_args()
+
+    if args.demo:
+        from class_demo import demo_submissions
+
+        subs, source = (
+            demo_submissions(args.lesson),
+            "made-up data: eight invented students",
+        )
+    else:
+        repo = args.runs_repo.resolve()
+        subs, source = read_class(repo, args.lesson, fetch=not args.no_pull)
+    if not subs:
+        sys.exit(f"no runs of lesson {args.lesson} to show")
+    df = runs_frame(subs)
+    out = (
+        args.out
+        or COURSE_ROOT
+        / "artefacts"
+        / "class-analysis"
+        / f"lesson{args.lesson}"
+        / "index.html"
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(build_page(df, args.lesson, source))
+    by_role = Counter(df.role)
+    print(f"{len(df)} runs of {df.student.nunique()} students ({dict(by_role)})")
+    print(f"page: {out}")
+    if args.open:
+        webbrowser.open(out.as_uri())
+
+
+if __name__ == "__main__":
+    main()

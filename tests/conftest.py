@@ -14,27 +14,30 @@ from run_submission import Submission  # ty: ignore[import-not-found]  (scripts/
 def make_submission(
     student: str, lesson: int = 1, run_id: str | None = None
 ) -> Submission:
-    """A small valid submission, as `submit_runs.to_submission` would build it;
+    """A small valid submission, as `submit_runs.to_submission` would build it from a trial;
     every call gives a different run."""
     run_id = run_id or uuid4().hex
     start = int(run_id[:8], 16)
     return Submission.model_validate(
         {
-            "schema": "mads-run/1",
+            "schema": "mads-run/2",
             "lesson": lesson,
             "student": student,
             "submitted_at": datetime(2026, 11, 1, tzinfo=UTC),
-            "code": {"commit": None, "dirty": None, "source": "submit", "remote": None},
+            "code": {"commit": None, "dirty": None, "remote": None},
             "run": {
                 "run_id": run_id,
                 "run_name": "baseline",
-                "experiment": f"lesson{lesson}-notebook",
-                "status": "FINISHED",
+                "experiment": f"lesson{lesson}-notebook-runs",
+                "status": "COMPLETE",
                 "start_time": start,
                 "end_time": start + 1,
-                "params": {"lr": "0.01"},
-                "tags": {"role": "baseline", "origin": "notebook"},
-                "metrics": {"accuracy": [{"step": 0, "value": 0.5, "timestamp": 1}]},
+                "params": {"lr": 0.01, "encoder": "dinov2-small"},
+                "distributions": {},
+                "value": 0.5,
+                "intermediate": [{"step": 0, "value": 0.5}],
+                "attrs": {"role": "baseline", "dataset": "dtd"},
+                "study": {"direction": "maximize", "attrs": {"origin": "notebook"}},
                 "artifacts": {},
             },
         }

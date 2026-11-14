@@ -1,4 +1,4 @@
-"""Shared plotting for this lesson's ray.tune search results.
+"""Shared plotting for this lesson's Optuna search results.
 
 Both 04_search.ipynb and 05_exercises.ipynb build a parallel-coordinates-style view of a
 search's trials, and had grown two separate implementations of the same plot -- one

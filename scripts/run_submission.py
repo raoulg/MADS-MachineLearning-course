@@ -1,16 +1,18 @@
 """The run submission format, and the validator for a directory of submissions.
 
-One submitted mlflow run is one JSON file in the class runs repository, at
+One submitted run is one Optuna trial, as one JSON file in the class runs repository, at
 
     lesson<N>/<student>/<run_id>.json
 
-where <student> is the student's GitHub login. The file holds everything needed to
-recreate the run in another mlflow store: params, tags, the full history of every
-metric, small text/JSON artifacts (the architecture, the design script `design.py`),
-and where the code came from.
+where <student> is the student's GitHub login and <run_id> the trial's user attr
+`run_id`, 32 hex characters made when the trial was recorded. The file holds the trial as
+Optuna holds it: its params with the distribution each was drawn from, its final value
+and the value after every epoch, its user attrs (role, dataset, architecture, ...), the
+user attrs of its study (the search space), small text/JSON artifacts (the architecture,
+the design script `design.py`), and where the code came from. Schema `mads-run/2`.
 
 This module depends on pydantic and the standard library only, so the runs repository's
-CI can validate a push or a pull request without installing mlflow:
+CI can validate a push or a pull request without installing Optuna:
 
     uv run --with pydantic python scripts/run_submission.py check <runs-repo> \
         [--actor <login>] [--teachers raoulg] \
@@ -43,32 +45,37 @@ from pydantic import (
     model_validator,
 )
 
-SCHEMA = "mads-run/1"
+SCHEMA = "mads-run/2"
 MAX_FILE_BYTES = 2_000_000
 MAX_ARTIFACT_BYTES = 256_000
+MAX_ATTR_BYTES = 20_000  # one user attr, measured as JSON
 MAX_CHANGED_FILES = 200
 ARTIFACT_SUFFIXES = (".json", ".txt", ".md", ".yaml", ".yml", ".py")
 # Every pattern is used with fullmatch, so a trailing newline never slips through.
 LOGIN = re.compile(r"[A-Za-z0-9][A-Za-z0-9-]{0,38}", re.ASCII)  # GitHub's login rule
 RUN_ID = re.compile(r"[0-9a-f]{32}", re.ASCII)
 PATH = re.compile(r"lesson(\d+)/([A-Za-z0-9-]+)/([0-9a-f]{32})\.json", re.ASCII)
-# A run another one builds on, as the tag `builds_on` names it: a submission's path
+# A run another one builds on, as the user attr `builds_on` names it: a submission's path
 # without `.json`. Login and run id follow LOGIN and RUN_ID.
 SUBMISSION_REF = re.compile(
     r"lesson\d+/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[0-9a-f]{32}", re.ASCII
 )
 EXPERIMENT = re.compile(r"lesson\d+-[a-z0-9-]+", re.ASCII)
-KEY = re.compile(r"[\w\-. /]{1,250}")  # mlflow's rule for param, tag and metric keys
-MAX_PARAM_CHARS = 6000  # mlflow's limits on a value
-MAX_TAG_CHARS = 5000
-# mlflow's own tags carry local usernames and absolute paths; these are the ones kept.
-KEEP_SYSTEM_TAGS = {"mlflow.note.content", "mlflow.parentRunId"}
+KEY = re.compile(r"[\w\-. /]{1,250}")  # a param or user attr name
+Scalar = str | int | float | bool
+# The attributes each distribution kind carries, as Optuna writes them.
+DISTRIBUTIONS = {
+    "FloatDistribution": {"low", "high", "log", "step"},
+    "IntDistribution": {"low", "high", "log", "step"},
+    "CategoricalDistribution": {"choices"},
+}
 
 
-def builds_on(tags: dict[str, str]) -> list[str]:
-    """The submission_refs the tag `builds_on` names, comma-separated; [] without it."""
-    value = tags.get("builds_on")
-    return [] if value is None else value.split(",")
+def builds_on(attrs: dict[str, Any]) -> list[str]:
+    """The submission_refs the user attr `builds_on` names, comma-separated; [] without
+    it."""
+    value = attrs.get("builds_on")
+    return [] if not isinstance(value, str) else value.split(",")
 
 
 def shown(path: str) -> str:
@@ -85,24 +92,76 @@ def check_keys(kind: str, keys: Any) -> None:
             )
 
 
-class MetricPoint(BaseModel):
+def check_json_size(kind: str, mapping: dict[str, Any]) -> None:
+    for key, value in mapping.items():
+        size = len(json.dumps(value))
+        if size > MAX_ATTR_BYTES:
+            raise ValueError(f"{kind} {key!r} is {size} bytes, limit {MAX_ATTR_BYTES}")
+
+
+class Point(BaseModel):
+    """The value a trial reported at one step: the accuracy after one epoch, or of one
+    repeat of a run."""
+
     model_config = ConfigDict(extra="forbid")
     step: int
     value: float
-    timestamp: int
+
+
+class Distribution(BaseModel):
+    """What a param was drawn from, as `optuna.distributions.distribution_to_json`
+    writes it: a kind and its attributes."""
+
+    model_config = ConfigDict(extra="forbid")
+    name: Literal["FloatDistribution", "IntDistribution", "CategoricalDistribution"]
+    attributes: dict[str, Any]
+
+    @model_validator(mode="after")
+    def _attributes(self) -> Distribution:
+        if set(self.attributes) != DISTRIBUTIONS[self.name]:
+            raise ValueError(
+                f"{self.name} has the attributes {sorted(DISTRIBUTIONS[self.name])}, "
+                f"got {sorted(self.attributes)}"
+            )
+        if len(json.dumps(self.attributes)) > MAX_ATTR_BYTES:
+            raise ValueError(f"{self.name} is larger than {MAX_ATTR_BYTES} bytes")
+        return self
+
+
+class StudyInfo(BaseModel):
+    """The study a trial belongs to: its direction and its user attrs (the search space
+    of a search, the study's name, its budget, ...)."""
+
+    model_config = ConfigDict(extra="forbid")
+    direction: Literal["maximize", "minimize"]
+    attrs: dict[str, Any]
+
+    @field_validator("attrs")
+    @classmethod
+    def _attrs(cls, v: dict[str, Any]) -> dict[str, Any]:
+        check_keys("study attr", v)
+        check_json_size("study attr", v)
+        return v
 
 
 class Run(BaseModel):
     model_config = ConfigDict(extra="forbid")
     run_id: str
     run_name: str
-    experiment: str
-    status: Literal["FINISHED", "FAILED", "KILLED", "RUNNING", "SCHEDULED"]
-    start_time: int
+    experiment: str = Field(description="the name of the study the trial belongs to")
+    status: Literal["COMPLETE", "PRUNED", "FAIL"]
+    start_time: int = Field(description="milliseconds since the epoch")
     end_time: int | None
-    params: dict[str, str]
-    tags: dict[str, str]
-    metrics: dict[str, list[MetricPoint]]
+    params: dict[str, Scalar]
+    distributions: dict[str, Distribution] = Field(
+        description="per param: what it was drawn from; absent for a param that was given"
+    )
+    value: float | None
+    intermediate: list[Point]
+    attrs: dict[str, Any] = Field(
+        description="the trial's user attrs: role, dataset, n_params, architecture, ..."
+    )
+    study: StudyInfo
     artifacts: dict[str, Any] = Field(
         default_factory=dict,
         description="artifact path -> parsed JSON for .json files, text otherwise",
@@ -112,7 +171,7 @@ class Run(BaseModel):
     @classmethod
     def _run_id(cls, v: str) -> str:
         if not RUN_ID.fullmatch(v):
-            raise ValueError("run_id must be a 32-character mlflow run id")
+            raise ValueError("run_id must be a 32-character hex id")
         return v
 
     @field_validator("experiment")
@@ -124,39 +183,33 @@ class Run(BaseModel):
 
     @field_validator("params")
     @classmethod
-    def _params(cls, v: dict[str, str]) -> dict[str, str]:
+    def _params(cls, v: dict[str, Scalar]) -> dict[str, Scalar]:
         check_keys("param", v)
-        for key, value in v.items():
-            if len(value) > MAX_PARAM_CHARS:
-                raise ValueError(
-                    f"param {key!r} is {len(value)} characters, limit {MAX_PARAM_CHARS}"
-                )
+        check_json_size("param", v)
         return v
 
-    @field_validator("tags")
+    @field_validator("attrs")
     @classmethod
-    def _tags(cls, v: dict[str, str]) -> dict[str, str]:
-        check_keys("tag", v)
-        for key, value in v.items():
-            if key.startswith("mlflow.") and key not in KEEP_SYSTEM_TAGS:
-                raise ValueError(f"tag {key!r}: mlflow's own tags are not submitted")
-            if len(value) > MAX_TAG_CHARS:
-                raise ValueError(
-                    f"tag {key!r} is {len(value)} characters, limit {MAX_TAG_CHARS}"
-                )
+    def _attrs(cls, v: dict[str, Any]) -> dict[str, Any]:
+        check_keys("attr", v)
+        check_json_size("attr", v)
         for ref in builds_on(v):
             if not SUBMISSION_REF.fullmatch(ref):
                 raise ValueError(
-                    f"tag 'builds_on': {ref!r} is not a submission_ref "
-                    "lesson<N>/<login>/<run_id>; copy it from the class run in mlflow"
+                    f"attr 'builds_on': {ref!r} is not a submission_ref "
+                    "lesson<N>/<login>/<run_id>; copy it from the class run"
                 )
         return v
 
-    @field_validator("metrics")
-    @classmethod
-    def _metrics(cls, v: dict[str, list[MetricPoint]]) -> dict[str, list[MetricPoint]]:
-        check_keys("metric", v)
-        return v
+    @model_validator(mode="after")
+    def _consistent(self) -> Run:
+        if self.status == "COMPLETE" and self.value is None:
+            raise ValueError("a COMPLETE trial has a value")
+        unknown = sorted(set(self.distributions) - set(self.params))
+        if unknown:
+            raise ValueError(f"distributions for params that are absent: {unknown}")
+        check_keys("distribution", self.distributions)
+        return self
 
     @field_validator("artifacts")
     @classmethod
@@ -184,19 +237,17 @@ class Run(BaseModel):
 
 
 class Code(BaseModel):
+    """Where the code came from: the course checkout's HEAD when the run was submitted."""
+
     model_config = ConfigDict(extra="forbid")
     commit: str | None
     dirty: bool | None
-    source: Literal["run", "submit"] = Field(
-        description="'run': recorded by mlflow when the run started; "
-        "'submit': the course checkout's HEAD when the run was submitted",
-    )
     remote: str | None
 
 
 class Submission(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
-    schema_: Literal["mads-run/1"] = Field(alias="schema")
+    schema_: Literal["mads-run/2"] = Field(alias="schema")
     lesson: int = Field(ge=1, le=8)
     student: str
     submitted_at: datetime
@@ -212,8 +263,8 @@ class Submission(BaseModel):
 
     @model_validator(mode="after")
     def _not_on_itself(self) -> Submission:
-        if self.ref().lower() in (r.lower() for r in builds_on(self.run.tags)):
-            raise ValueError("tag 'builds_on' names this run itself")
+        if self.ref().lower() in (r.lower() for r in builds_on(self.run.attrs)):
+            raise ValueError("attr 'builds_on' names this run itself")
         return self
 
     def ref(self) -> str:

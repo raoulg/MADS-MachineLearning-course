@@ -51,6 +51,8 @@ dependencies = [
     "tqdm>=4.70",
     "pillow>=13.0",
     "filelock>=3.32",
+    "optuna>=5.0.0",
+    "optuna-dashboard>=0.21.0",
 ]
 
 [dependency-groups]

@@ -27,7 +27,7 @@ protocol below.
 > **How the two guides divide the work for a VM student.** From the tooling guide, the
 > laptop gets the terminal, git, uv, the editor and Atlas. The clone, the hooks, the
 > coaches and the runs repository are set up on the VM, because that is the machine that
-> trains and holds the mlflow store. Assistant: follow the tooling guide at
+> trains and holds the Optuna store. Assistant: follow the tooling guide at
 > <https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/tooling-setup.md>. Student: read it at
 > <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md>.
 
@@ -106,7 +106,7 @@ Track these. Each is a section below.
 - [ ] **M7 — The project runs.** Repo cloned, `uv sync`, kernel selected, a cell executes.
 - [ ] **M8 — What hardware do I have.** The student can read the answer and say what follows.
 - [ ] **M9 — A run that survives disconnecting.** tmux session, detach, disconnect, reattach.
-- [ ] **M10 — Reading mlflow from the VM.** `mlflow ui` on the VM, opened in the laptop's browser.
+- [ ] **M10 — Reading Optuna from the VM.** `optuna-dashboard` on the VM, opened in the laptop's browser.
 - [ ] **M11 — Ready to work.** Git branch made, coaches connected, practice plan.
 
 M1–M2 happen on the **student's own laptop**. M3–M4 in the **browser**. M5–M11 mostly on
@@ -156,7 +156,7 @@ Ask, in one short message:
 
 Then tell them the shape of what is coming, briefly: *keypair on your laptop → start the
 VM in the browser → connect → install the project → check the hardware → a run that
-survives disconnecting → mlflow in your browser.* Most of it is once, ever.
+survives disconnecting → optuna-dashboard in your browser.* Most of it is once, ever.
 
 Also tell them the money and time facts now, because they change behaviour:
 
@@ -636,11 +636,10 @@ Show the output to the student and let them say what each answer means:
 - **The device.** The course code picks the device with `detect_device()`. The student
   should be able to say what it will pick on this VM: `cuda` when the first boolean is
   `True`, `mps` when the second is, `cpu` otherwise.
-- **Ray tune runs as many trials in parallel as there are cores.** By default one trial
-  gets one core; a notebook that asks for more CPUs per trial runs fewer trials at a time.
-  With `nproc` showing 4, a search runs four trials side by side, each slower than it
-  would be alone, and memory is shared among them. The number of trials the student asks
-  for and the number of cores they have decide how long a search takes.
+- **An Optuna search runs its trials one after another.** The lesson's searches call
+  `study.optimize` without `n_jobs`, so one trial trains at a time. The number of trials,
+  the epochs per trial and the speed of the cores (`nproc`) decide how long a search
+  takes.
 
 Then ask: "Given these numbers, is this VM faster than your laptop for the course, or
 only different?" The honest answer is often *different*: a VM does not make a small
@@ -743,19 +742,19 @@ would not have survived. Tick the box.
 
 ---
 
-## M10 — Reading mlflow from the VM
+## M10 — Reading Optuna from the VM
 
-The training runs write their results to a local mlflow store (see
+The training runs write their results to a local Optuna store (see
 [`docs/run-protocol.md`](https://github.com/raoulg/MADS-MachineLearning-course/blob/master/docs/run-protocol.md),
-which says where the store lives: `artefacts/mlflow/mlruns.db` in the repository). On the
-VM the store is on the VM's disk. To look at it, `mlflow ui` runs on the VM and the
+which says where the store lives: `artefacts/optuna/studies.db` in the repository). On the
+VM the store is on the VM's disk. To look at it, `optuna-dashboard` runs on the VM and the
 laptop's browser reaches it through an SSH port forward. The port is **5050** everywhere
 in this guide.
 
-### On the VM — start the UI inside tmux
+### On the VM — start the dashboard inside tmux
 
-A UI started in a plain shell dies with the connection, like any other process, so it
-goes in its own tmux session. **Give the student these three lines one at a time**: the
+A dashboard started in a plain shell dies with the connection, like any other process, so
+it goes in its own tmux session. **Give the student these three lines one at a time**: the
 first one enters tmux, and the lines after it are typed inside it.
 
 ```bash
@@ -763,20 +762,20 @@ ssh ml-vm
 ```
 
 ```bash
-tmux new -A -s mlflow
+tmux new -A -s optuna
 ```
 
 ```bash
-cd ~/MADS-MachineLearning-course && uv run mlflow ui --port 5050 --backend-store-uri sqlite:///$HOME/MADS-MachineLearning-course/artefacts/mlflow/mlruns.db
+cd ~/MADS-MachineLearning-course && uv run optuna-dashboard sqlite:///$HOME/MADS-MachineLearning-course/artefacts/optuna/studies.db --artifact-dir $HOME/MADS-MachineLearning-course/artefacts/optuna/artifacts --port 5050
 ```
 
-The path is absolute on purpose: mlflow creates an empty store wherever it is started,
-so a relative path started from the wrong folder gives a UI that looks fine and shows
-nothing.
+The path is absolute on purpose: opening a sqlite file that does not exist creates an
+empty one, so a relative path started from the wrong folder gives a dashboard that looks
+fine and shows nothing.
 
-The UI listens on port 5050 of the VM, on the VM only. It is not reachable from the
+The dashboard listens on port 5050 of the VM, on the VM only. It is not reachable from the
 internet, which is the intended state. Detach with `ctrl+b`, `d`. After a reconnect on
-the same day, `tmux new -A -s mlflow` attaches to the session that is already running.
+the same day, `tmux new -A -s optuna` attaches to the session that is already running.
 
 ### On the laptop — forward the port
 
@@ -794,7 +793,7 @@ port 5050 through the SSH connection to port 5050 on the VM.
   be set up, instead of staying open and doing nothing.
 
 - **In VS Code**, connected to the VM: the **Ports** panel (next to Terminal) →
-  **Forward a Port** → `5050`. VS Code often detects the port by itself when the UI
+  **Forward a Port** → `5050`. VS Code often detects the port by itself when the dashboard
   starts.
 
 ### Verify
@@ -809,22 +808,22 @@ curl -s -o /dev/null -w '%{http_code}' http://localhost:5050/
 **laptop's** browser. If you have a browser tool you can read the page; otherwise ask the
 student what it shows.
 
-A store with no runs yet shows one experiment named `Default` and no runs. That is
-correct before the first run. After the student runs the first notebook, for example
-`notebooks/1_pytorch_intro/01_the_cache.ipynb`, the lesson's experiment must appear in the
-list; if it does not, the UI is reading another store than the notebook writes to.
+A store with no runs yet shows no studies. That is correct before the first run. After the
+student runs the first notebook that logs, for example
+`notebooks/1_pytorch_intro/01_the_cache.ipynb`, its study must appear in the list; if it
+does not, the dashboard is reading another store than the notebook writes to.
 
-If it fails: the forward is not open (the terminal was closed), or `mlflow ui` is not
-running (`ssh -o BatchMode=yes ml-vm tmux ls`). Port 5000 on a Mac is a trap: AirPlay
+If it fails: the forward is not open (the terminal was closed), or `optuna-dashboard` is
+not running (`ssh -o BatchMode=yes ml-vm tmux ls`). Port 5000 on a Mac is a trap: AirPlay
 answers there with a `403` and `Server: AirTunes`, so a failed forward does not look
 refused. If a student uses 5000 anyway and sees that answer, it is the Mac and not
-mlflow; use 5050.
+the dashboard; use 5050.
 
-To stop: `tmux attach -t mlflow`, `ctrl+c`, `exit`.
+To stop: `tmux attach -t optuna`, `ctrl+c`, `exit`.
 
-**CHECKPOINT.** M10 is done when your `curl` printed `200` and the mlflow page is open in
+**CHECKPOINT.** M10 is done when your `curl` printed `200` and the optuna-dashboard page is open in
 the laptop's browser. The student can say which machine each part runs on: the store and
-the server on the VM, the browser on the laptop, the SSH connection between. Tick the
+the dashboard on the VM, the browser on the laptop, the SSH connection between. Tick the
 box.
 
 ---
@@ -882,8 +881,8 @@ tmux) → close the connection → **stop the VM on the website**.
    the tile to say it is running.
 2. Connect: VS Code → `><` → Connect to Host → `ml-vm`, or `ssh ml-vm`.
 3. Work. A run that takes long goes in a tmux session (`tmux new -A -s train`, which
-   attaches when it already exists); the mlflow UI goes in its own
-   (`tmux new -A -s mlflow`).
+   attaches when it already exists); the dashboard goes in its own
+   (`tmux new -A -s optuna`).
 4. When the work is done, check `tmux ls`: a session still running a training run means
    the VM must stay on until it is finished; otherwise end the sessions.
 5. Close the connection, and **stop the VM on the website**. A VM that is left running
@@ -958,10 +957,10 @@ than as a list to memorise.
 | Nothing appears while typing a password | Working as designed. Keep typing |
 | A run is gone after reconnecting | It was started outside tmux, or the VM was stopped; `tmux ls` shows what survived |
 | `tmux ls` says `no server running` | No session exists: it ended, or the VM restarted since |
-| mlflow page does not open on the laptop | The port forward on 5050 is closed, or `mlflow ui` is not running on the VM. A `403` from `Server: AirTunes` means port 5000 on a Mac: use 5050 |
+| optuna-dashboard page does not open on the laptop | The port forward on 5050 is closed, or `optuna-dashboard` is not running on the VM. A `403` from `Server: AirTunes` means port 5000 on a Mac: use 5050 |
 | `nvidia-smi: command not found` | Normal on a CPU-only VM; the course does not need a GPU |
 | `No space left on device` during `uv sync` | The lock file pulls the CUDA builds of torch on Linux, which are large. Tell the teacher; do not delete things on the VM to make room |
-| `Address already in use` when starting `mlflow ui` | mlflow is already running on the VM: `tmux attach -t mlflow` |
+| `Address already in use` when starting `optuna-dashboard` | The dashboard is already running on the VM: `tmux attach -t optuna` |
 | Ran out of hours | Ask the teacher; it can be extended. Do it well before a deadline |
 
 If something falls outside this table, do not guess in a loop. Read the actual error,
