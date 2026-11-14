@@ -47,6 +47,29 @@ STUDY_NAME = re.compile(r"[a-z]+-[a-z0-9][a-z0-9-]{1,38}")
 # the class analysis keeps only a student's latest session of the handed-out runs.
 SESSION = time.strftime("%Y-%m-%d %H:%M:%S")
 
+# A classmate's run as the class store names it in its tag `submission_ref`; the same
+# rule as SUBMISSION_REF in scripts/run_submission.py.
+SUBMISSION_REF = re.compile(
+    r"lesson\d+/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[0-9a-f]{32}", re.ASCII
+)
+
+
+def _builds_on(builds_on: str | Sequence[str] | None) -> list[str]:
+    """The submission_refs in `builds_on` (one string, comma-separated, or a list of
+    them), stripped and without empty entries; a `ValueError` names one that is not a
+    submission_ref."""
+    if builds_on is None:
+        return []
+    parts = [builds_on] if isinstance(builds_on, str) else list(builds_on)
+    refs = [ref.strip() for part in parts for ref in part.split(",") if ref.strip()]
+    for ref in refs:
+        if not SUBMISSION_REF.fullmatch(ref):
+            raise ValueError(
+                f"builds_on: {ref!r} is not a submission_ref lesson<N>/<login>/<run_id>; "
+                "copy the tag submission_ref from the classmate's run in mlflow"
+            )
+    return refs
+
 
 def _tracking_uri() -> str:
     uri = os.environ.get("MLFLOW_TRACKING_URI")
@@ -171,7 +194,8 @@ def log_run(
       layer table as the artifact `architecture.json`.
     - `builds_on`: the classmate's run (or runs) this one builds on, each named by its
       `submission_ref` tag in the class store (`lesson1/<login>/<run_id>`); written as
-      the tag `builds_on`, comma-separated.
+      the tag `builds_on`, comma-separated. An entry that is not a submission_ref raises
+      a `ValueError` before anything is logged.
     - `design`: the path of your design script, the file that defines the architectures;
       its text is logged as the artifact `design.py`.
     """
@@ -217,8 +241,7 @@ def _log_run(
     both = set(scores or {}) & set(curves or {})
     if both:
         raise ValueError(f"{sorted(both)} given as both a score and a curve; pick one")
-    refs = [builds_on] if isinstance(builds_on, str) else list(builds_on or [])
-    refs = [ref.strip() for ref in refs if ref.strip()]
+    refs = _builds_on(builds_on)
     design_text = Path(design).read_text() if design is not None else None
 
     with mlflow.start_run(run_name=name, experiment_id=experiment_id) as run:
