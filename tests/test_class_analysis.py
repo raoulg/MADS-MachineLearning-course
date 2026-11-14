@@ -44,7 +44,7 @@ def test_who_built_on_whom(tmp_path):
     dangling = f"lesson2/carol/{'c' * 32}"
     imported(
         client, ("lesson2-study", 2), "alice", "deeper", 0.75, "b" * 32,
-        builds_on=f"{bob},{dangling}",
+        builds_on=f"{bob.replace('bob', 'Bob')},{dangling}",
     )  # fmt: skip
 
     root = tmp_path / "course"

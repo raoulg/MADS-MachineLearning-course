@@ -284,8 +284,8 @@ print(
 
 # %%
 def submission_refs() -> dict[str, dict]:
-    """Every run in the class store, of any lesson, by its `submission_ref`: the
-    student, the run name and the score."""
+    """Every run in the class store, of any lesson, by its `submission_ref` in lower
+    case: the student, the run name and the score."""
     every = pd.DataFrame(
         mlflow.search_runs(search_all_experiments=True, output_format="pandas")
     )
@@ -295,7 +295,7 @@ def submission_refs() -> dict[str, dict]:
     names = every.get("tags.source_run_name", empty)
     scores = pd.to_numeric(every.get(f"metrics.{METRIC}", empty), errors="coerce")
     return {
-        ref: {"student": student, "name": name, "score": score}
+        ref.lower(): {"student": student, "name": name, "score": score}
         for ref, student, name, score in zip(refs, students, names, scores)
         if isinstance(ref, str)
     }
@@ -307,7 +307,7 @@ def links_table(sel: pd.DataFrame, targets: dict[str, dict]) -> pd.DataFrame:
     for i, refs in col("tags", "builds_on").loc[sel.index].dropna().items():
         run = sel.loc[i]
         for target in str(refs).split(","):
-            on = targets.get(target)
+            on = targets.get(target.lower())  # GitHub logins ignore case
             missing = {"student": target.split("/")[1], "name": "-", "score": np.nan}
             out.append(
                 {
