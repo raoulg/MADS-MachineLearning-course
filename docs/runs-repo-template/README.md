@@ -11,5 +11,9 @@ runs in its author's own directory, and comments on one that is not: a file in s
 else's directory, a run another student already submitted, a file that does not fit the
 format, or any change outside `lesson<N>/`.
 
+The class's runs are what `main` holds. `scripts/collect_runs.py` in the course
+repository reads them from `main` (from the remote `upstream` in a clone of a fork) and
+imports them into a local mlflow store, for student and teacher alike.
+
 How to submit, including the one-time fork: `docs/submit-runs.md` in the course
 repository. The format: `scripts/run_submission.py` there.

@@ -12,8 +12,8 @@ show the student what will be submitted, and handle the errors described below.
 Each lesson's notebooks log their runs to the student's local mlflow store,
 `artefacts/mlflow/mlruns.db`, in experiments named `lesson<N>-notebook` (the notebook as
 handed out) and `lesson<N>-study` (the student's own research). `scripts/submit_runs.py`
-turns each finished run into one small JSON file holding its params, metrics, tags and
-architecture, at `lesson<N>/<github-login>/<run_id>.json`. No model weights and no data
+turns each finished run into one small JSON file holding its params, metrics, tags,
+architecture and design script, at `lesson<N>/<github-login>/<run_id>.json`. No model weights and no data
 are submitted.
 
 The files reach the class runs repository through a pull request from the student's own
@@ -123,6 +123,38 @@ gh pr view <url> --comments
 and act on them with the table below. Fixing a run and submitting again pushes to the
 same pull request, and the check runs again.
 
+## 6. Look at the class's runs, and build on one
+
+The runs the class repository holds (its `main`: every merged pull request) can be
+imported into a separate local store, `artefacts/mlflow/class.db`, and opened in mlflow:
+
+```bash
+uv run scripts/collect_runs.py --lesson <N> --ui
+```
+
+It fetches `main` from the clone's `upstream` and reads the files from there, so it works
+on any branch the clone is on and changes nothing in it. Running it again imports only
+what is new. Without `--ui` it prints the `mlflow ui` command to open the store later.
+
+Each imported run is named `<login>:<run name>` and carries the tag `submission_ref`,
+for example `lesson1/bob/0f3c...`. When the student builds on a classmate's run, copy that
+tag from the run in mlflow and pass it to `log_run` (or `study.log_run`); the student
+names the run, you do not pick one for them:
+
+```python
+study.log_run("deeper-head", "final", scores={"accuracy": per_seed},
+              builds_on="lesson1/bob/0f3c...", design="my_design.py")
+```
+
+`builds_on` takes one `submission_ref` or a list of them and is written as the tag
+`builds_on`. `design` is the path of the student's design script, the file that defines
+their architectures; it is submitted with the run as the artifact `design.py`. Nothing
+runs it: it is there to be read.
+
+The imported runs live in `class.db`, never in the student's own store, and the submit
+script never submits them: a run that carries `submission_ref` or `source_run_id` came
+from the class, and is left out with one line saying so.
+
 ## Rules
 
 - Do not edit, rename or delete files in the runs clone by hand. They are generated; fix
@@ -152,6 +184,8 @@ same pull request, and the check runs again.
 | `pushed, but opening the pull request failed` | Open the pull request in the browser at the URL the message gives. |
 | `no experiment matches lesson<N>-*` | The notebook has not logged anything yet; it lists the experiments it did find. |
 | `does not fit the submission format` | A run has something the format does not accept (the message says what). Tell the student; do not work around it. |
+| `not submitted: N run(s) imported from the class repository` | Not an error: runs imported by `collect_runs.py` ended up in the student's store (for example with `MLFLOW_TRACKING_URI` pointing at `class.db`). They are a classmate's runs and are left out; the student's own runs are submitted. |
+| `... has no upstream/main` | `collect_runs.py` with `--no-pull` on a clone that never fetched; leave out `--no-pull`. |
 
 The check's comment on the pull request names each file with one of these problems:
 
@@ -168,6 +202,8 @@ The check's comment on the pull request names each file with one of these proble
 | `... characters, limit 6000` (param) / `limit 5000` (tag) | A value longer than mlflow stores. Log a shorter one. |
 | `mlflow's own tags are not submitted` | The file holds an `mlflow.*` tag the script leaves out. Submit again with the script. |
 | `experiment must be named lesson<N>-<lowercase-name>` | Log the run in an experiment named like `lesson1-notebook` or `lesson1-study`. |
+| `tag 'builds_on': ... is not a submission_ref` | `builds_on` names a run that is not written as `lesson<N>/<login>/<run_id>`. Copy the `submission_ref` tag from the classmate's run in mlflow and log the run again. |
+| `tag 'builds_on' names this run itself` | A run cannot build on itself. Name the classmate's run it builds on. |
 | `the path must be relative, without . or ..` | An artifact path that points outside the run. Log the artifact under a plain relative name. |
 | `this file says it is <a>'s run; it sits in <b>'s directory` | The file was copied or edited by hand. Submit again with the script. |
 | `not valid JSON (...): submit again, do not edit by hand` | The file was edited by hand. Submit again with the script. |
