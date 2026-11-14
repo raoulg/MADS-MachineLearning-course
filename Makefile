@@ -1,6 +1,6 @@
 .PHONY: help publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
-        build-heartbeats
+        build-heartbeats publish-heartbeats
 
 # Publishing course caches to https://huggingface.co/pttrn-io
 #
@@ -101,6 +101,15 @@ $(HEARTBEAT_SOURCE):
 
 build-heartbeats: | $(HEARTBEAT_SOURCE)
 	uv run python scripts/build_heartbeat_cache.py
+
+publish-heartbeats:
+	@for ds in ptb mitbih; do \
+		echo "==> publishing heartbeats-$$ds"; \
+		uv run python scripts/publish_cache.py $(ARGS) \
+			--dataset heartbeats-$$ds --card scripts/cards/heartbeats-$$ds.md \
+			--train $$(ls -dt artefacts/*_heartbeats-$${ds}_train_raw_beat 2>/dev/null | head -1) \
+			--test  $$(ls -dt artefacts/*_heartbeats-$${ds}_test_raw_beat 2>/dev/null | head -1) || exit 1; \
+	done
 
 publish-eurosat:
 	@for enc in $(ENCODERS); do \
