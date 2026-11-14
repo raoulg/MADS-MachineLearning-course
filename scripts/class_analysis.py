@@ -14,9 +14,9 @@
 # study, which also carries `study`, `search_space`, `searched_axes`, `space_<axis>`,
 # `space_is_default` and `budget`), `dataset`, the score metric with `<metric>_std` and
 # `n_seeds` when there were seeds, `n_params`, the one-line `architecture` tag, and
-# `builds_on`, the `submission_ref` tags (written by `collect_runs.py`) of the classmates'
-# runs a run builds on. Runs without them still show up in the counts; they just have less
-# to say.
+# `builds_on`, the classmates' runs a run builds on. `builds_on` names each by its
+# `submission_ref`, the tag `collect_runs.py` writes on every imported run. Runs without
+# them still show up in the counts; they just have less to say.
 #
 # Scores of different datasets are never ranked or plotted against each other: every table
 # and figure that compares scores does so per dataset, and runs without a `dataset` tag
