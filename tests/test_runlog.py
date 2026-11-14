@@ -86,3 +86,13 @@ def test_a_bad_ref_raises_before_anything_is_logged(store, bad):
     with pytest.raises(ValueError, match="is not a submission_ref"):
         runlog.log_run("mine", "final", scores={"accuracy": [0.8]}, builds_on=bad)
     assert logged_runs(store) == []
+
+
+def test_a_design_script_over_the_limit_raises_before_anything_is_logged(
+    store, tmp_path
+):
+    big = tmp_path / "big.py"
+    big.write_text("x = 1\n" * 40_000)  # 240 000 bytes, more than that as JSON
+    with pytest.raises(ValueError, match="more than a submission carries"):
+        runlog.log_run("big", "final", scores={"accuracy": [0.8]}, design=big)
+    assert logged_runs(store) == []

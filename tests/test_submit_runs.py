@@ -301,3 +301,16 @@ def test_a_run_that_does_not_fit_is_skipped_and_the_rest_submitted(
     [line] = [x for x in capsys.readouterr().out.splitlines() if "skipped" in x]
     assert line.startswith(f"skipped run {ids['bad']} (bad), it does not fit")
     assert "tag 'builds_on': 'lesson1/bob' is not a submission_ref" in line
+
+
+def test_an_artifact_over_the_limit_is_left_out_with_a_line(tmp_path, capsys):
+    uri, ids = local_store(tmp_path, [("lesson1-notebook", "big", {})])
+    client = MlflowClient(tracking_uri=uri)
+    client.log_text(ids["big"], "x" * 256_001, "notes.txt")
+    assert submit_runs.read_artifacts(client, ids["big"]) == {
+        "design.py": "model = 1\n"
+    }
+    out = capsys.readouterr().out
+    assert (
+        f"left out of {ids['big'][:8]}: the artifact notes.txt is 256001 bytes" in out
+    )
