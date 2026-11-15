@@ -1,4 +1,4 @@
-.PHONY: help share dashboard optuna-dashboard check-lesson publish-fashion publish-flowers publish-imdb publish-all list-caches \
+.PHONY: help share dashboard optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
         build-heartbeats publish-heartbeats
 
@@ -38,6 +38,12 @@ LESSON ?=
 
 check-lesson:
 	@test -n "$(LESSON)" || { echo "name the lesson: make $(MAKECMDGOALS) LESSON=<N>"; exit 2; }
+
+check-hf-auth:
+	@case " $(ARGS) " in \
+		*" --dry-run "*) ;; \
+		*) uv run hf auth whoami >/dev/null 2>&1 || { echo "Hugging Face login required; starting hf auth login."; uv run hf auth login; } ;; \
+	esac
 
 share: check-lesson
 	uv run scripts/submit_runs.py --lesson $(LESSON) $(ARGS)
@@ -87,14 +93,14 @@ list-caches:
 	@echo "imdb train    : $(call latest,*_imdb_train_embed)"
 	@echo "imdb test     : $(call latest,*_imdb_test_embed)"
 
-publish-fashion:
+publish-fashion: check-hf-auth
 	uv run python scripts/publish_cache.py $(ARGS) \
 		--dataset fashion-mnist \
 		--source zalando-datasets/fashion_mnist \
 		--train $(call latest,*_fashion_train_$(ENCODER)_embed) \
 		--test  $(call latest,*_fashion_test_$(ENCODER)_embed)
 
-publish-flowers:
+publish-flowers: check-hf-auth
 	uv run python scripts/publish_cache.py $(ARGS) \
 		--dataset oxford-flowers \
 		--source nkirschi/oxford-flowers \
@@ -103,7 +109,7 @@ publish-flowers:
 
 # IMDB folders have no encoder slug yet — 07_vectors predates that convention, and
 # raoulg/vectormesh#1 will make the library add it for everyone. Update this glob then.
-publish-imdb:
+publish-imdb: check-hf-auth
 	uv run python scripts/publish_cache.py $(ARGS) \
 		--dataset imdb \
 		--source stanfordnlp/imdb \
@@ -139,7 +145,7 @@ $(HEARTBEAT_SOURCE):
 build-heartbeats: | $(HEARTBEAT_SOURCE)
 	uv run python scripts/build_heartbeat_cache.py
 
-publish-heartbeats:
+publish-heartbeats: check-hf-auth
 	@for ds in ptb mitbih; do \
 		echo "==> publishing heartbeats-$$ds"; \
 		uv run python scripts/publish_cache.py $(ARGS) \
@@ -148,7 +154,7 @@ publish-heartbeats:
 			--test  $$(ls -dt artefacts/*_heartbeats-$${ds}_test_raw_beat 2>/dev/null | head -1) || exit 1; \
 	done
 
-publish-eurosat:
+publish-eurosat: check-hf-auth
 	@for enc in $(ENCODERS); do \
 		slug=$${enc##*/}; \
 		echo "==> publishing eurosat x $$slug"; \
@@ -158,7 +164,7 @@ publish-eurosat:
 			--test  $$(ls -dt artefacts/*_eurosat_test_$${slug}_embed 2>/dev/null | head -1) || exit 1; \
 	done
 
-publish-dtd:
+publish-dtd: check-hf-auth
 	@for enc in $(ENCODERS); do \
 		slug=$${enc##*/}; \
 		echo "==> publishing dtd x $$slug"; \
