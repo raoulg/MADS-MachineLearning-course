@@ -149,6 +149,10 @@ uv run hf auth whoami
 The token is stored in `~/.cache/huggingface/token`. In CI or on a VM, set the
 `HF_TOKEN` environment variable instead of logging in interactively.
 
+The Make publish targets check the current Hugging Face login before uploading. If it is
+missing or invalid, they start `hf auth login` so you can enter a token with write access.
+`ARGS=--dry-run` skips the login check.
+
 ---
 
 ## 3. Naming and repo layout
