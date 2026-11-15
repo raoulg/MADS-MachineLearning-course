@@ -10,6 +10,7 @@
   <a href="#setup"><b>Set up</b></a> ·
   <a href="#the-lessons">Lessons</a> ·
   <a href="https://learn.pttrn.io">learn.pttrn.io</a> ·
+  <a href="https://raoulg.github.io/MADS-MachineLearning-course/notatie.html">Notation</a> ·
   <a href="https://raoulg.github.io/MADS-MachineLearning-course/dav-recap.html">DAV recap</a> ·
   <a href="docs/submit-runs.md">Submit your runs</a>
 </p>
@@ -51,6 +52,8 @@ Handy to have open:
   what to read and watch per lesson, and to tick off what you have done.
 - [DAV recap](https://raoulg.github.io/MADS-MachineLearning-course/dav-recap.html): what this
   course takes for granted from Data Analysis & Visualisation.
+- [Notation and formulas](https://raoulg.github.io/MADS-MachineLearning-course/notatie.html):
+  a reference card for tensor shapes, composition, diagrams, gradients and the GRU.
 - [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-tensors.html).
 - [Submitting your runs](docs/submit-runs.md) to the class repository.
 - [`0-baseline`](notebooks/0-baseline): check your Python and numpy before lesson 1.

@@ -19,6 +19,8 @@ h1{font-size:clamp(34px,6vw,60px);font-weight:500;line-height:1.05;letter-spacin
 h1 span{color:#c43a14}
 .lead{max-width:720px;color:#5a544d;margin:0 0 20px}
 .legend{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:15px;color:#5a544d;margin:0 0 8px}
+.reference{font-size:14px;margin:10px 0 0}
+.reference a{color:#1d5a73;text-underline-offset:2px}
 .legend i{display:inline-block;width:14px;height:14px;margin-right:7px;vertical-align:-2px;border:2px solid}
 h2{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;letter-spacing:2.4px;text-transform:uppercase;color:#5a544d;margin:44px 0 16px;padding-top:16px;border-top:1px solid #cfc7bb}
 .grid{display:grid;gap:20px;grid-template-columns:1fr}
@@ -43,14 +45,18 @@ svg .v{fill:#c43a14}
 svg .p{fill:#1d5a73}
 svg .n.v{fill:#c43a14}
 </style>
+<link rel="stylesheet" href="course-ui.css">
+<link rel="stylesheet" href="course-bar.css">
 </head>
 <body>
+<div data-course-bar="goals" data-lesson="2"></div><script src="course-bar.js"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5a544d"/></marker><marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c43a14"/></marker><marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1d5a73"/></marker></defs></svg>
-<main>
+<main id="top">
 <p class="kick">MADS-ML · Les 2</p>
 <h1>Kernels, state en gates</h1>
 <p class="lead">12 leerdoelen, elk met één beeld. Het beeld draagt het punt; de tekst eronder is het leerdoel zoals je het afvinkt.</p>
 <p class="legend"><span><i style="border-color:#1d5a73;background:#c9dde4"></i>de data: een tensor en zijn assen</span><span><i style="border-color:#c43a14;background:#f3cdbf"></i>de operatie: wat er nu iets doet</span></p>
+<p class="reference">Naslag: <a href="notatie.html">notatie en formules</a></p>
 <h2>De student begrijpt</h2>
 <div class="grid">
 <article class="goal" id="g2-1">

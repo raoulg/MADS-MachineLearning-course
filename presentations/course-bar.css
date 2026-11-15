@@ -1,0 +1,55 @@
+@font-face{font-family:'Outfit';font-weight:500;font-display:swap;src:url(fonts/Outfit-500.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}
+:root{
+  --bar-paper:#f2f3ef;--bar-ink:#15181c;--bar-muted:#67716c;--bar-rule:#d6d9d1;
+  --bar-accent:#1c6b48;--bar-raised:#e8eae3;--bar-hot:#b4531f;--course-bar-height:52px;
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bar-paper:#101311;--bar-ink:#e7ebe3;--bar-muted:#9aa39c;--bar-rule:#2f3530;
+    --bar-accent:#5fc08c;--bar-raised:#181c19;--bar-hot:#f0904f;
+  }
+}
+:root[data-theme="dark"]{
+  --bar-paper:#101311;--bar-ink:#e7ebe3;--bar-muted:#9aa39c;--bar-rule:#2f3530;
+  --bar-accent:#5fc08c;--bar-raised:#181c19;--bar-hot:#f0904f;
+}
+html{scroll-padding-top:calc(var(--course-bar-height) + 12px)}
+.course-bar{position:sticky;top:0;z-index:20;background:var(--bar-paper);color:var(--bar-ink);border-bottom:1px solid var(--bar-rule)}
+.course-bar .inner{max-width:1240px;min-height:var(--course-bar-height);margin:auto;padding:7px 16px;display:flex;align-items:center;gap:12px}
+.course-bar a{color:var(--bar-muted);text-decoration:none}
+.course-bar a:hover{color:var(--bar-ink)}
+.course-bar a:focus-visible,.course-bar button:focus-visible{outline:2px solid var(--bar-accent);outline-offset:3px}
+.course-bar .skip{position:absolute;left:-9999px;top:6px;z-index:30;background:var(--bar-ink);color:var(--bar-paper);padding:7px 12px}
+.course-bar .skip:focus{left:8px}
+.course-bar .brand{font-family:Outfit,'Public Sans',sans-serif;font-weight:500;color:var(--bar-ink);white-space:nowrap}
+.course-bar .brand span{color:var(--bar-accent)}
+.course-bar .primary-links{display:flex;align-items:center;gap:2px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.course-bar .primary-links::-webkit-scrollbar{display:none}
+.course-bar .primary-links a{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:400;white-space:nowrap;padding:7px 6px 5px;border-bottom:2px solid transparent}
+.course-bar .primary-links a:hover,.course-bar .primary-links a[aria-current]{color:var(--bar-accent);border-bottom-color:var(--bar-accent)}
+.course-bar .primary-links .no{color:inherit;opacity:.7}
+.course-bar .review{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:400;display:flex;align-items:center;gap:6px;white-space:nowrap;color:var(--bar-ink)}
+.course-bar .review b{display:inline-grid;place-items:center;min-width:1.8em;height:1.8em;padding:0 .35em;background:var(--bar-raised);border:1px solid var(--bar-rule);font-variant-numeric:tabular-nums}
+.course-bar .review.has b{background:var(--bar-hot);border-color:var(--bar-hot);color:var(--bar-paper)}
+.course-bar .cross-links{display:flex;align-items:center;gap:14px;white-space:nowrap}
+.course-bar .cross-links a{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:400;color:var(--bar-accent)}
+.course-bar .cross-links .repo{display:inline-flex;align-items:center;color:var(--bar-ink)}
+.course-bar .repo svg{width:19px;height:19px;fill:currentColor}
+.course-bar .theme-toggle{display:inline-flex;align-items:center;gap:7px;background:var(--bar-ink);color:var(--bar-paper);border:1px solid var(--bar-ink);padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:400;cursor:pointer}
+section[id]{scroll-margin-top:calc(var(--course-bar-height) + 12px)}
+.course-bar .theme-toggle svg{width:17px;height:17px;fill:currentColor;flex:none}
+.course-bar .theme-toggle[data-mode="dark"] .moon,.course-bar .theme-toggle[data-mode="light"] .sun{display:none}
+@media(max-width:760px){
+  :root{--course-bar-height:90px}
+  .course-bar .inner{flex-wrap:wrap;gap:5px 9px}
+  .course-bar .primary-links{order:3;flex-basis:100%;margin-inline:-6px}
+  .course-bar .review{margin-left:auto}
+}
+@media(max-width:540px){
+  .course-bar .brand span,.course-bar .review span,.course-bar .theme-toggle span{display:none}
+  .course-bar .brand{font-size:13px}
+  .course-bar .cross-links{gap:9px}
+  .course-bar .cross-links a{font-size:11px}
+  .course-bar .theme-toggle{padding:6px}
+}

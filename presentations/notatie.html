@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MADS-ML · Notatie en formules</title>
+<meta name="description" content="Een formulekaart voor de ML-lessen: verzamelingen, vectoren, functies, diagrammen, neurale netwerken en de GRU.">
+<style>
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-weight:400;font-display:swap;src:url(fonts/Outfit-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-weight:500;font-display:swap;src:url(fonts/Outfit-500.woff2) format('woff2')}
+*{box-sizing:border-box}html{scroll-padding-top:68px}body{margin:0;font-family:Outfit,Arial,sans-serif;font-size:17px;line-height:1.45}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+main{max-width:1240px;margin:auto;padding:40px 16px 80px}
+h1{font-size:clamp(36px,6vw,60px);font-weight:500;line-height:1.05;letter-spacing:-1.2px;margin:0 0 16px}
+h2{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;letter-spacing:2.4px;text-transform:uppercase;color:var(--course-muted);margin:44px 0 16px;padding-top:16px;border-top:1px solid var(--course-rule)}
+h3{font-size:21px;font-weight:500;line-height:1.2;margin:0}p{margin:0}
+.kick{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:2.4px;text-transform:uppercase;color:var(--course-blue);margin:0 0 14px}
+.lead{max-width:740px;color:var(--course-muted);margin:0 0 20px}
+.contents{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 0}
+.contents a{font-family:'JetBrains Mono',monospace;font-size:12px;text-decoration:none;border:1px solid var(--course-rule);padding:5px 9px}
+.contents a:hover{background:var(--course-blue-wash)}section{scroll-margin-top:68px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media(max-width:780px){.grid{grid-template-columns:1fr}}
+.card{border:1px solid var(--course-rule);padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.card.wide{grid-column:1/-1}.card p{max-width:68ch}.note{font-size:15px;color:var(--course-muted)}
+.reference{font-size:14px;color:var(--course-muted);border-top:1px solid var(--course-rule);padding-top:9px;margin-top:auto}
+.formula{display:block;overflow-x:auto;white-space:nowrap;padding:5px 0 8px;min-width:0}
+.formula math{font-size:clamp(23px,2.5vw,31px);font-family:'STIX Two Math','Cambria Math','Times New Roman',serif;color:var(--course-ink)}
+.formula.small math{font-size:clamp(21px,2.1vw,27px)}.formula.large math{font-size:clamp(26px,3vw,36px)}
+.symbols{display:grid;grid-template-columns:65px minmax(0,1fr);gap:7px 16px;align-items:baseline}
+.symbols dt{font-family:'STIX Two Math','Cambria Math',serif;font-size:25px;color:var(--course-blue)}.symbols dd{margin:0}
+.code-example{background:var(--course-surface);padding:10px 12px;font:14px/1.6 'JetBrains Mono',monospace;overflow-x:auto}
+.type-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+@media(max-width:600px){.type-pair{grid-template-columns:1fr}}
+.type-pair .lab,.network .label,.equation-row .label{font:12px 'JetBrains Mono',monospace;color:var(--course-blue)}
+.type-pair .formula{margin-top:5px}
+.diagram-card{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;align-items:center}
+@media(max-width:780px){.diagram-card{grid-template-columns:1fr}}
+.diagram{margin:0;background:var(--course-surface);padding:12px;border:1px solid var(--course-rule)}
+.diagram svg{display:block;width:100%;height:auto}.diagram text{font-family:'JetBrains Mono',monospace;font-size:14px;fill:var(--course-ink)}
+.diagram .edge{stroke:var(--course-muted);stroke-width:2}.diagram .node{fill:var(--course-blue-wash);stroke:var(--course-blue);stroke-width:2}
+.diagram .end-node{fill:var(--course-orange-wash);stroke:var(--course-orange);stroke-width:2}.diagram .arrow{fill:var(--course-muted)}
+.diagram figcaption{font:12px 'JetBrains Mono',monospace;color:var(--course-muted);padding:6px 2px 0}
+.routes{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}.routes span{border:1px solid var(--course-rule);padding:4px 8px;font:13px 'JetBrains Mono',monospace}
+.network{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:850px){.network{grid-template-columns:1fr}}
+.network>div{border-top:1px solid var(--course-rule);padding-top:10px;min-width:0}.network .formula math{font-size:clamp(20px,2vw,27px)}
+.network-legend{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:15px;color:var(--course-muted)}
+.network-legend i{display:inline-block;width:14px;height:14px;margin-right:7px;vertical-align:-2px;border:2px solid}
+.network-legend .linear{background:var(--course-blue-wash);border-color:var(--course-blue)}
+.network-legend .nonlinearity{background:var(--course-orange-wash);border-color:var(--course-orange)}
+.network .linear-part{color:var(--course-blue)}.network .nonlinear-part{color:var(--course-orange)}
+.equation-row{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;align-items:center;border-top:1px solid var(--course-rule);padding-top:9px}
+.equation-row:first-child{border-top:2px solid var(--course-orange)}
+@media(max-width:600px){.equation-row{grid-template-columns:1fr;gap:1px}}
+.metric-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.metric-rules>div{border-top:1px solid var(--course-rule);padding-top:9px;min-width:0}
+.metric-rules .label{font:12px 'JetBrains Mono',monospace;color:var(--course-blue)}
+@media(max-width:650px){.metric-rules{grid-template-columns:1fr}}
+.sum-reading{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--course-muted);font-size:15px}
+.sum-reading b{font-family:'STIX Two Math','Cambria Math',serif;font-size:21px;font-weight:400;color:var(--course-blue);margin-right:5px}
+.gru-controls{display:flex;flex-wrap:wrap;gap:8px}.gru-controls button{font:13px 'JetBrains Mono',monospace;background:transparent;color:var(--course-ink);border:1px solid var(--course-rule);padding:7px 10px;cursor:pointer}
+.gru-controls button[aria-pressed="true"]{background:var(--course-blue-wash);border-color:var(--course-blue);color:var(--course-blue)}
+.gru-demo .input-part,.gru-demo .gate-weights,.gru-demo .candidate-weights,.gru-demo .mix-part{transition:color .15s}
+.gru-demo[data-focus="input"] .input-part{color:var(--course-orange)}
+.gru-demo[data-focus="weights"] .gate-weights{color:var(--course-orange)}.gru-demo[data-focus="weights"] .candidate-weights{color:var(--course-blue)}
+.gru-demo[data-focus="mix"] .mix-part{color:var(--course-orange)}
+.gru-explain p{display:none;color:var(--course-muted);font-size:15px}
+.gru-demo[data-focus="input"] .gru-explain .input-text,.gru-demo[data-focus="weights"] .gru-explain .weights-text,.gru-demo[data-focus="mix"] .gru-explain .mix-text{display:block}
+@media(prefers-reduced-motion:reduce){.gru-demo .input-part,.gru-demo .gate-weights,.gru-demo .candidate-weights,.gru-demo .mix-part{transition:none}}
+</style>
+<link rel="stylesheet" href="course-ui.css">
+<link rel="stylesheet" href="course-bar.css">
+</head>
+<body>
+<div data-course-bar="notation"></div><script src="course-bar.js"></script>
+<main id="top">
+  <p class="kick">MADS-ML · naslag</p><h1>Notatie en formules</h1>
+  <p class="lead">De symbolen en formules uit de lessen bij elkaar. Lees een formule van invoertype naar bewerking en uitkomst.</p>
+  <nav class="contents" aria-label="Onderdelen"><a href="#data">Data</a><a href="#functies">Functies</a><a href="#metriek">Metriek</a><a href="#diagrammen">Diagrammen</a><a href="#netwerken">Netwerken</a><a href="#gru">GRU</a></nav>
+
+  <section id="data"><h2>Van verzameling naar dataset</h2><div class="grid">
+    <article class="card"><h3>1. Een verzameling</h3>
+      <div class="formula large"><math aria-label="X is de verzameling x een tot en met x n"><mi>X</mi><mo>=</mo><mo>{</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><msub><mi>x</mi><mi>n</mi></msub><mo>}</mo></math></div>
+      <dl class="symbols"><dt>ℤ</dt><dd>Gehele getallen: −2, −1, 0, 1, …</dd><dt>ℝ</dt><dd>Reële getallen: 1.04, −2.754, 12.70, π, √2, …</dd><dt>∈</dt><dd>‘is een element van’: <i>x</i> ∈ <i>X</i></dd><dt>∀</dt><dd>‘voor alle’</dd></dl>
+    </article>
+    <article class="card"><h3>2. Eén vector</h3>
+      <div class="formula large"><math aria-label="x met streep is een element van R tot de macht d"><mover><mi>x</mi><mo>¯</mo></mover><mo>∈</mo><msup><mi>ℝ</mi><mi>d</mi></msup></math></div>
+      <p>De streep geeft aan dat <i>x̄</i> een vector is. Hij bevat <i>d</i> getallen: een tensor van rank 1.</p>
+      <div class="formula small"><math aria-label="x met streep is de vector van x een tot en met x D"><mover><mi>x</mi><mo>¯</mo></mover><mo>=</mo><mo>(</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><msub><mi>x</mi><mi>d</mi></msub><mo>)</mo></math></div>
+    </article>
+    <article class="card wide"><h3>3. Een dataset van vectoren</h3>
+      <div class="formula large"><math aria-label="X is de verzameling x een tot en met x n, met voor alle x in R tot de macht d"><mi>X</mi><mo>=</mo><mo>{</mo><msub><mi>x</mi><mn>1</mn></msub><mo>,</mo><mo>…</mo><msub><mi>x</mi><mi>n</mi></msub><mo>∣</mo><mo>∀</mo><mi>x</mi><mo>∈</mo><msup><mi>ℝ</mi><mi>d</mi></msup><mo>}</mo></math></div>
+      <p class="note"><i>n</i> is het aantal voorbeelden. <i>d</i> is het aantal getallen per voorbeeld.</p>
+    </article>
+  </div></section>
+
+  <section id="functies"><h2>Functies en compositie</h2><div class="grid">
+    <article class="card"><h3>Een functie heeft typen</h3>
+      <div class="type-pair"><div><span class="lab">Wiskunde</span><div class="formula"><math aria-label="f van de gehele getallen naar de reële getallen"><mi>f</mi><mo>:</mo><mi>ℤ</mi><mo>→</mo><mi>ℝ</mi></math></div></div><div><span class="lab">Python</span><pre class="code-example">def f(x: int) -&gt; float:
+    return x / 2</pre></div></div>
+      <p class="note">De Python-typehint is de praktische tegenhanger van de wiskundige pijl.</p>
+    </article>
+    <article class="card"><h3>Compositie</h3>
+      <div class="formula large"><math aria-label="f na g van x is f van g van x"><mo>(</mo><mi>f</mi><mo>∘</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mi>f</mi><mo>(</mo><mi>g</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo></math></div>
+      <p><i>∘</i> betekent: functies achter elkaar. In <i>f ∘ g</i> komt <i>g</i> eerst.</p>
+      <p class="reference">Zie <a href="leerdoelen-les1.html#g1-12">leerdoel 1.12 · compositie</a>.</p>
+    </article>
+  </div></section>
+
+  <section id="metriek"><h2>Een afstand is een metriek als vier regels gelden</h2>
+    <article class="card wide">
+      <h3>Metriek</h3>
+      <div class="formula large"><math aria-label="d neemt twee punten uit X en geeft een niet-negatief reëel getal"><mi>d</mi><mo>:</mo><mi>X</mi><mo>×</mo><mi>X</mi><mo>→</mo><msub><mi>ℝ</mi><mrow><mo>≥</mo><mn>0</mn></mrow></msub></math></div>
+      <p class="note">Voor alle punten <i>x</i>, <i>y</i> en <i>z</i> in <i>X</i>:</p>
+      <div class="metric-rules">
+        <div><span class="label">1 · niet-negatief</span><div class="formula small"><math aria-label="d van x en y is groter dan of gelijk aan nul"><mi>d</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>≥</mo><mn>0</mn></math></div></div>
+        <div><span class="label">2 · nul alleen bij hetzelfde punt</span><div class="formula small"><math aria-label="d van x en y is nul dan en slechts dan als x gelijk is aan y"><mi>d</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>=</mo><mn>0</mn><mo>⇔</mo><mi>x</mi><mo>=</mo><mi>y</mi></math></div></div>
+        <div><span class="label">3 · symmetrisch</span><div class="formula small"><math aria-label="d van x en y is gelijk aan d van y en x"><mi>d</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>=</mo><mi>d</mi><mo>(</mo><mi>y</mi><mo>,</mo><mi>x</mi><mo>)</mo></math></div></div>
+        <div><span class="label">4 · driehoeksongelijkheid</span><div class="formula small"><math aria-label="de directe afstand van x naar z is niet groter dan de afstand via y"><mi>d</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>z</mi><mo>)</mo><mo>≤</mo><mi>d</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>+</mo><mi>d</mi><mo>(</mo><mi>y</mi><mo>,</mo><mi>z</mi><mo>)</mo></math></div></div>
+      </div>
+      <p class="note">In ML heet een evaluatiescore zoals MAPE ook vaak een <em>metric</em>. Dat woord betekent daar ‘beoordelingsmaat’; zo’n score hoeft geen wiskundige metriek te zijn.</p>
+      <p class="reference">Zie <a href="leerdoelen-les1.html#g1-8">leerdoel 1.8 · loss en metric</a> en <a href="dav-recap.html#nabijheid">DAV-recap · afstand in vectorruimtes</a>.</p>
+    </article>
+  </section>
+
+  <section id="diagrammen"><h2>Commuterende diagrammen</h2>
+    <article class="card wide diagram-card">
+      <figure class="diagram"><svg viewBox="0 0 400 240" role="img" aria-label="Vierkant met A linksboven, B rechtsboven, C linksonder en D rechtsonder. Via f en h of via g en i bereik je D."><defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path class="arrow" d="M0 0 10 5 0 10Z"/></marker></defs><rect class="node" x="28" y="24" width="70" height="42"/><text x="63" y="51" text-anchor="middle">A</text><rect class="node" x="302" y="24" width="70" height="42"/><text x="337" y="51" text-anchor="middle">B</text><rect class="end-node" x="28" y="174" width="70" height="42"/><text x="63" y="201" text-anchor="middle">C</text><rect class="end-node" x="302" y="174" width="70" height="42"/><text x="337" y="201" text-anchor="middle">D</text><line class="edge" x1="103" y1="45" x2="297" y2="45" marker-end="url(#arrow)"/><line class="edge" x1="63" y1="71" x2="63" y2="169" marker-end="url(#arrow)"/><line class="edge" x1="337" y1="71" x2="337" y2="169" marker-end="url(#arrow)"/><line class="edge" x1="103" y1="195" x2="297" y2="195" marker-end="url(#arrow)"/><text x="200" y="36" text-anchor="middle">f</text><text x="44" y="129">g</text><text x="347" y="129">h</text><text x="200" y="187" text-anchor="middle">i</text></svg><figcaption>Twee routes van A naar D.</figcaption></figure>
+      <div><h3>Twee routes, dezelfde uitkomst</h3><div class="formula large"><math aria-label="h na f is gelijk aan i na g"><mi>h</mi><mo>∘</mo><mi>f</mi><mo>=</mo><mi>i</mi><mo>∘</mo><mi>g</mi></math></div><div class="routes"><span>A → B → D</span><span>A → C → D</span></div><p>Een diagram <em>commuteert</em> wanneer de routes gelijk zijn.</p><p class="note">Een <em>natural transformation</em> geeft zo’n verbinding voor elk object, waarbij de bijbehorende vierkanten commuteren.</p></div>
+    </article>
+  </section>
+
+  <section id="netwerken"><h2>Dezelfde bouwsteen in netwerken</h2>
+    <article class="card wide"><h3>Nonlinearity</h3>
+      <p class="network-legend"><span><i class="linear"></i>linear</span><span><i class="nonlinearity"></i>nonlinearity</span></p>
+      <div class="network">
+        <div><span class="label">Dense laag</span><div class="formula"><math aria-label="y is sigma van W x plus b"><mi>y</mi><mo>=</mo><mi class="nonlinear-part">σ</mi><mrow class="linear-part"><mo>(</mo><mi>W</mi><mi>x</mi><mo>+</mo><mi>b</mi><mo>)</mo></mrow></math></div><p class="note">Matrixproduct <i>Wx</i>.</p></div>
+        <div><span class="label">Convolutie</span><div class="formula"><math aria-label="y is sigma van W ster x plus b"><mi>y</mi><mo>=</mo><mi class="nonlinear-part">σ</mi><mrow class="linear-part"><mo>(</mo><mi>W</mi><mo>*</mo><mi>x</mi><mo>+</mo><mi>b</mi><mo>)</mo></mrow></math></div><p class="note">Kernelbewerking <i>W * x</i>.</p></div>
+        <div><span class="label">Recurrente stap</span><div class="formula"><math aria-label="h t is sigma van W maal de concatenatie van x t en h t min een plus b"><msub><mi>h</mi><mi>t</mi></msub><mo>=</mo><mi class="nonlinear-part">σ</mi><mrow class="linear-part"><mo>(</mo><mi>W</mi><mo>[</mo><msub><mi>x</mi><mi>t</mi></msub><mo>,</mo><msub><mi>h</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>]</mo><mo>+</mo><mi>b</mi><mo>)</mo></mrow></math></div><p class="note">Input en vorige state samen als invoer.</p></div>
+      </div>
+      <p>De niet-lineariteit maakt opeenvolgende lagen expressiever; zij is essentieel in de universal approximation theorem.</p>
+    </article>
+    <article class="card wide" style="margin-top:20px"><h3>Voorspelling, loss, update</h3>
+      <div class="equation-row"><span class="label">voorspelling</span><div class="formula small"><math aria-label="y dakje is het model van x"><mover><mi>y</mi><mo>^</mo></mover><mo>=</mo><mi>f</mi><mo>(</mo><mi>x</mi><mo>)</mo></math></div></div>
+      <div class="equation-row"><span class="label">loss (MSE)</span><div class="formula small"><math aria-label="Loss van y en y dakje is een gedeeld door n maal de som van de gekwadrateerde verschillen"><mtext>Loss</mtext><mo>(</mo><mi>y</mi><mo>,</mo><mover><mi>y</mi><mo>^</mo></mover><mo>)</mo><mo>=</mo><mfrac><mn>1</mn><mi>n</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></munderover><msup><mrow><mo>(</mo><msub><mi>y</mi><mi>i</mi></msub><mo>−</mo><msub><mover><mi>y</mi><mo>^</mo></mover><mi>i</mi></msub><mo>)</mo></mrow><mn>2</mn></msup></math></div></div>
+      <p class="sum-reading"><span><b>i = 1 … n</b> elk voorbeeld</span><span><b>∑</b> tel de gekwadrateerde fouten op</span><span><b>1/n</b> deel door het aantal voorbeelden: het gemiddelde</span></p>
+      <div class="equation-row"><span class="label">update</span><div class="formula small"><math aria-label="W wordt W min eta maal de afgeleide van Loss naar W"><mi>W</mi><mo>←</mo><mi>W</mi><mo>−</mo><mi>η</mi><mfrac><mrow><mo>∂</mo><mtext>Loss</mtext></mrow><mrow><mo>∂</mo><mi>W</mi></mrow></mfrac></math></div></div>
+      <p class="note">Bij MSE wordt eerst elk verschil tussen echt en voorspeld gekwadrateerd. De differentieerbare loss levert de gradiënt aan de optimizer.</p>
+      <p class="reference">Zie <a href="leerdoelen-les1.html#g1-8">leerdoel 1.8 · loss en metric</a>.</p>
+    </article>
+  </section>
+
+  <section id="gru"><h2>GRU · drie regels</h2>
+    <article class="card wide gru-demo" data-focus="input"><h3>Dezelfde input, aparte gewichten</h3>
+      <div class="gru-controls" role="group" aria-label="Markeer delen van de GRU-formules"><button type="button" data-focus="input" aria-pressed="true">Dezelfde input</button><button type="button" data-focus="weights" aria-pressed="false">Andere gewichten</button><button type="button" data-focus="mix" aria-pressed="false">Nieuwe state</button></div>
+      <div class="equation-row"><span class="label">gate</span><div class="formula"><math aria-label="Gamma is sigma van W Gamma maal x t en h t min een plus b Gamma"><mi>Γ</mi><mo>=</mo><mi>σ</mi><mo>(</mo><mrow class="gate-weights"><msub><mi>W</mi><mi>Γ</mi></msub></mrow><mrow class="input-part"><mo>[</mo><msub><mi>x</mi><mi>t</mi></msub><mo>,</mo><msub><mi>h</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>]</mo></mrow><mo>+</mo><mrow class="gate-weights"><msub><mi>b</mi><mi>Γ</mi></msub></mrow><mo>)</mo></math></div></div>
+      <div class="equation-row"><span class="label">kandidaat</span><div class="formula"><math aria-label="h tilde t is tanh van W H maal x t en h t min een plus b H"><msub><mover><mi>h</mi><mo>~</mo></mover><mi>t</mi></msub><mo>=</mo><mi>tanh</mi><mo>(</mo><mrow class="candidate-weights"><msub><mi>W</mi><mi>H</mi></msub></mrow><mrow class="input-part"><mo>[</mo><msub><mi>x</mi><mi>t</mi></msub><mo>,</mo><msub><mi>h</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>]</mo></mrow><mo>+</mo><mrow class="candidate-weights"><msub><mi>b</mi><mi>H</mi></msub></mrow><mo>)</mo></math></div></div>
+      <div class="equation-row"><span class="label">nieuwe state</span><div class="formula"><math aria-label="h t is Gamma elementgewijs maal h t min een plus een min Gamma elementgewijs maal h tilde t"><msub><mi>h</mi><mi>t</mi></msub><mo>=</mo><mrow class="mix-part"><mi>Γ</mi><mo>⊗</mo><msub><mi>h</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub></mrow><mo>+</mo><mrow class="mix-part"><mo>(</mo><mn>1</mn><mo>−</mo><mi>Γ</mi><mo>)</mo><mo>⊗</mo><msub><mover><mi>h</mi><mo>~</mo></mover><mi>t</mi></msub></mrow></math></div></div>
+      <div class="gru-explain" aria-live="polite"><p class="input-text">Beide berekeningen krijgen dezelfde concatenatie [xₜ, hₜ₋₁] als input.</p><p class="weights-text">Gate en kandidaat hebben elk hun eigen W en b. Hun lineaire stap heeft dezelfde vorm: W[input] + b.</p><p class="mix-text">Γ dicht bij 1 bewaart de vorige state; dicht bij 0 neemt de kandidaat over. ⊗ is hier elementgewijze vermenigvuldiging.</p></div>
+      <p class="note">Dit is de één-gate-schets. Een volledige GRU heeft daarnaast een resetgate. De formules zijn hier naslag, geen apart leerdoel.</p>
+      <p class="reference">Bij het beeld: <a href="leerdoelen-les2.html#g2-6">leerdoel 2.6 · gate</a>.</p>
+    </article>
+  </section>
+</main>
+<script>
+document.querySelectorAll('.gru-controls button').forEach(button => button.addEventListener('click', () => {
+  const demo = button.closest('.gru-demo');
+  demo.dataset.focus = button.dataset.focus;
+  demo.querySelectorAll('.gru-controls button').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
+}));
+</script>
+</body>
+</html>

@@ -12,6 +12,8 @@
 :root{color-scheme:light}
 *{box-sizing:border-box}
 html,body{margin:0;background:#f4f1ec;color:#111111}
+html{scroll-padding-top:70px}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 body{font-family:Outfit,Arial,sans-serif;font-size:17px;line-height:1.45}
 main{max-width:1240px;margin:0 auto;padding:40px 16px 64px}
 .kick{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:2.4px;text-transform:uppercase;color:#1d5a73;margin:0 0 14px}
@@ -30,6 +32,9 @@ h2{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;letter-
 h3{font-size:21px;font-weight:500;line-height:1.2;margin:0}
 .goal svg{width:100%;height:auto;display:block}
 .goal p{margin:0;font-size:15.5px;color:#5a544d}
+.goal .dav-ref{border-top:1px solid #cfc7bb;padding-top:8px;margin-top:auto;font-size:13px;line-height:1.5}
+.dav-ref a{color:#1d5a73;text-decoration:underline;text-underline-offset:2px}
+.dav-ref a:focus-visible{outline:2px solid #1d5a73;outline-offset:2px}
 code{font-family:'JetBrains Mono',monospace;font-size:.88em;color:#1d5a73}
 svg text{font-family:Outfit,Arial,sans-serif;fill:#111111}
 svg .l{font-size:14px;font-weight:500}
@@ -41,10 +46,13 @@ svg .v{fill:#c43a14}
 svg .p{fill:#1d5a73}
 svg .n.v{fill:#c43a14}
 </style>
+<link rel="stylesheet" href="course-ui.css">
+<link rel="stylesheet" href="course-bar.css">
 </head>
 <body>
+<div data-course-bar="goals" data-lesson="1"></div><script src="course-bar.js"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5a544d"/></marker><marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c43a14"/></marker><marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1d5a73"/></marker></defs></svg>
-<main>
+<main id="top">
 <p class="kick">MADS-ML · Les 1</p>
 <h1>Representatie en head</h1>
 <p class="legend"><span><i style="border-color:#1d5a73;background:#c9dde4"></i>de data: een tensor en zijn assen</span><span><i style="border-color:#c43a14;background:#f3cdbf"></i>de operatie: wat er nu iets doet</span></p>
@@ -65,16 +73,19 @@ svg .n.v{fill:#c43a14}
   <header><span class="code">1.3</span><h3>De ruimte is al geordend</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="De ruimte is al geordend"><circle cx="70" cy="70" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="95" cy="55" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="100" cy="90" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="125" cy="72" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="82" cy="100" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><rect x="265" y="125" width="10" height="10" fill="#f4f1ec" stroke="#1d5a73" stroke-width="1.5"/><rect x="295" y="110" width="10" height="10" fill="#f4f1ec" stroke="#1d5a73" stroke-width="1.5"/><rect x="300" y="145" width="10" height="10" fill="#f4f1ec" stroke="#1d5a73" stroke-width="1.5"/><rect x="325" y="130" width="10" height="10" fill="#f4f1ec" stroke="#1d5a73" stroke-width="1.5"/><rect x="280" y="153" width="10" height="10" fill="#f4f1ec" stroke="#1d5a73" stroke-width="1.5"/><circle cx="150" cy="100" r="7" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><text x="150" y="126" class="l v" text-anchor="middle">nieuw</text><text x="96" y="34" class="m" text-anchor="middle">klasse A</text><text x="304" y="96" class="m" text-anchor="middle">klasse B</text><text x="200" y="205" class="c" text-anchor="middle">de dichtste buur geeft het label, zonder training</text></svg>
   <p>Een pretrained model ordent jouw data in een vectorruimte zonder ooit op jouw data getraind te zijn. Vergelijkbare items liggen (hopelijk) dicht bij elkaar, zodat 1-nearest-neighbour al resultaat kan geven. Dat werkt niet altijd: bijvoorbeeld bij een domein ver van de pretrainingdata, of een modaliteit zonder goede encoder.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#nabijheid">5.1 nabijheid in vectorruimtes</a> · <a href="dav-recap.html#baseline">5.2 nearest neighbour</a>.</p>
 </article>
 <article class="goal" id="g1-4">
   <header><span class="code">1.4</span><h3>Eén keer duur, daarna goedkoop</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="Eén keer duur, daarna goedkoop"><rect x="20" y="60" width="120" height="70" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/><text x="80.0" y="99.5" class="l" text-anchor="middle">encoder</text><text x="80" y="150" class="l p" text-anchor="middle">1× veel FLOPs</text><line x1="142" y1="95" x2="176" y2="95" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><rect x="180" y="72" width="70" height="46" fill="#f4f1ec" stroke="#1d5a73" stroke-width="2"/><text x="215.0" y="99.5" class="l" text-anchor="middle">cache</text><line x1="252" y1="95" x2="286" y2="95" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><rect x="292" y="64" width="62" height="30" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><rect x="300" y="72" width="62" height="30" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><rect x="308" y="80" width="62" height="30" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><rect x="316" y="88" width="62" height="30" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><rect x="324" y="96" width="62" height="30" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><text x="355" y="118" class="l" text-anchor="middle">head</text><text x="325" y="150" class="l v" text-anchor="middle">100× weinig FLOPs</text><text x="200" y="205" class="c" text-anchor="middle">een search vermenigvuldigt alleen de head</text></svg>
   <p>Een encoder berekent embeddings één keer en slaat ze op in een cache. Dat vraagt veel rekenkracht (FLOPs). Daarna kun je een downstream model (een head) met veel minder FLOPs trainen op de vectoren uit de cache. Een hyperparametersearch herhaalt zo alleen het trainen van de head, en dat scheelt veel FLOPs.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#baseline">5.2 encoder, cache en head</a>.</p>
 </article>
 <article class="goal" id="g1-5">
   <header><span class="code">1.5</span><h3>De encoder heeft vaak de meeste impact</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="De encoder heeft vaak de meeste impact"><text x="20" y="72" class="l p" text-anchor="start">andere encoder</text><rect x="150" y="56" width="170" height="24" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><text x="20" y="122" class="l v" text-anchor="start">andere head</text><rect x="150" y="106" width="16" height="24" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><text x="200" y="162" class="c" text-anchor="middle">verschil in impact</text><text x="200" y="205" class="c" text-anchor="middle">besteed je tijd waar de score beweegt</text></svg>
   <p>De keuze van de encoder kan meer verschil maken voor de score dan de architectuur van de head. Welke encoder het best werkt, hangt onder andere af van het verschil tussen zijn pretrainingdataset en jouw taak. Dit verschil analyseer je tijdens de hyperparameteroptimalisatie (zie 1.14).</p>
+  <p class="dav-ref">MADS-DAV: <a href="https://github.com/raoulg/MADS-DAV/blob/main/notebooks/lesson2/02.2-comparing_categories.ipynb">les 2 · categorieën vergelijken</a> · <a href="dav-recap.html#terug-lezen">recap 5.4 · wat meet je encoder?</a>.</p>
 </article>
 <article class="goal" id="g1-6">
   <header><span class="code">1.6</span><h3>Nonlinearity geeft Universal Function Approximators</h3></header>
@@ -88,41 +99,101 @@ svg .n.v{fill:#c43a14}
 </article>
 <article class="goal" id="g1-8">
   <header><span class="code">1.8</span><h3>Loss vs metric</h3></header>
-  <svg viewBox="0 0 400 230" role="img" aria-label="Loss en metric hebben verschillende rollen"><rect x="20" y="40" width="80" height="36" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><text x="60.0" y="62.5" class="l" text-anchor="middle">loss</text><line x1="102" y1="58" x2="150" y2="58" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><path d="M 160 44 C 190 100, 220 20, 250 70" fill="none" stroke="#c43a14" stroke-width="2"/><line x1="262" y1="58" x2="296" y2="58" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><text x="302" y="62" class="l" text-anchor="start">optimizer</text><text x="160" y="96" class="c" text-anchor="start">glad: differentieerbaar</text><rect x="20" y="124" width="80" height="36" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/><text x="60.0" y="146.5" class="l" text-anchor="middle">metric</text><line x1="102" y1="142" x2="150" y2="142" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><circle cx="166" cy="142" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="244" cy="142" r="5" fill="#f4f1ec" stroke="#1d5a73" stroke-width="1.5"/><path d="M 174 142 L 236 142" fill="none" stroke="#1d5a73" stroke-width="2" stroke-dasharray="4 3"/><text x="166" y="126" class="c" text-anchor="middle">echt</text><text x="244" y="126" class="c" text-anchor="middle">voorspeld</text><line x1="262" y1="142" x2="296" y2="142" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><text x="302" y="146" class="l" text-anchor="start">jij</text><text x="160" y="180" class="c" text-anchor="start">een maat die je kunt lezen: MAPE 4 %</text><text x="200" y="216" class="c" text-anchor="middle">trainen en beoordelen: twee rollen</text></svg>
+  <svg viewBox="0 0 400 230" role="img" aria-label="Loss is een gladde differentieerbare functie voor de optimizer; de metric meet de afstand tussen echt en voorspeld op een contourkaart">
+  <rect x="20" y="40" width="80" height="36" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/>
+  <text x="60" y="62.5" font-size="14" font-weight="500" text-anchor="middle">loss</text>
+  <line x1="102" y1="58" x2="150" y2="58" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <path d="M 160 44 C 190 100, 220 20, 250 70" fill="none" stroke="#c43a14" stroke-width="2"/>
+  <line x1="262" y1="58" x2="296" y2="58" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="302" y="62" font-size="14" font-weight="500">optimizer</text>
+  <text x="160" y="96" font-size="14" fill="#5a544d">glad: differentieerbaar</text>
+  <rect x="20" y="132" width="80" height="36" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/>
+  <text x="60" y="154.5" font-size="14" font-weight="500" text-anchor="middle">metric</text>
+  <line x1="102" y1="150" x2="146" y2="150" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <defs><clipPath id="metric-map-clip"><rect x="151" y="112" width="135" height="76"/></clipPath></defs>
+  <rect x="151" y="112" width="135" height="76" fill="#edf0ea" stroke="#cfc7bb"/>
+  <g clip-path="url(#metric-map-clip)">
+    <g transform="translate(146 91) scale(.36 .48)" fill="none" stroke="#aabbb5" stroke-width="2.2">
+            <path d="M 13 108 C 24 66 75 40 122 50 C 163 57 176 84 201 83 C 225 82 235 53 286 48 C 337 42 375 66 389 105 C 405 149 367 187 324 194 C 272 202 242 179 200 178 C 157 177 136 201 88 192 C 39 183 0 151 13 108 Z"/>
+            <path d="M 39 110 C 48 79 84 63 121 69 C 155 75 168 105 198 105 C 228 104 240 70 285 68 C 323 64 352 82 363 108 C 375 140 345 169 313 174 C 271 181 243 155 201 156 C 157 157 139 180 97 173 C 59 167 29 144 39 110 Z"/>
+            <path d="M 64 111 C 73 87 101 79 127 86 C 153 93 168 118 156 142 C 145 166 113 168 89 154 C 69 144 56 130 64 111 Z"/>
+            <path d="M 86 112 C 94 97 111 94 127 99 C 143 105 149 122 140 138 C 132 151 111 153 97 143 C 83 134 80 125 86 112 Z"/>
+            <path d="M 253 103 C 263 82 289 79 313 85 C 341 92 350 112 339 137 C 329 159 297 164 273 152 C 249 140 242 122 253 103 Z"/>
+            <path d="M 274 105 C 283 92 301 92 316 98 C 333 105 337 119 327 135 C 318 149 298 150 284 141 C 269 132 266 117 274 105 Z"/>
+          </g>
+  </g>
+  <path d="M 182 167 L 252 135" fill="none" stroke="#edf0ea" stroke-width="5"/>
+  <path d="M 182 167 L 252 135" fill="none" stroke="#1d5a73" stroke-width="2" stroke-dasharray="4 3"/>
+  <circle cx="182" cy="167" r="4.5" fill="#1d5a73" stroke="#edf0ea" stroke-width="1.5"/>
+  <circle cx="252" cy="135" r="4.5" fill="#edf0ea" stroke="#1d5a73" stroke-width="2"/>
+  <text x="170" y="183" font-size="11" fill="#1d5a73">echt</text>
+  <text x="252" y="124" font-size="11" fill="#1d5a73" text-anchor="middle">voorspeld</text>
+  <line x1="291" y1="150" x2="309" y2="150" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="316" y="154" font-size="14" font-weight="500">jij</text>
+  <text x="200" y="216" font-size="14" fill="#5a544d" text-anchor="middle">human readable: MAPE 4%</text>
+</svg>
   <p>De lossfunctie moet bruikbaar zijn voor gradient descent en stuurt het leren. Een metric beoordeelt de voorspellingen in een maat die je als mens kunt interpreteren, zoals accuracy of MAPE. De data en het doel bepalen mede welke loss je kiest; dezelfde maat, zoals MSE, kan soms beide rollen vervullen.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#nabijheid">5.1 cosine distance</a> vergelijkt vectoren; hier beoordeelt een metric voorspellingen.</p>
 </article>
 <article class="goal" id="g1-9">
   <header><span class="code">1.9</span><h3>Waar train en valid uiteengaan</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="Waar train en valid uiteengaan"><path d="M 50 30 L 50 160 L 370 160" fill="none" stroke="#5a544d" stroke-width="1"/><text x="210" y="180" class="c" text-anchor="middle">epochs</text><path d="M 60 50 C 120 120, 220 145, 360 152" fill="none" stroke="#1d5a73" stroke-width="2"/><text x="364" y="146" class="l p" text-anchor="end">train</text><path d="M 60 56 C 120 120, 190 120, 220 112 S 320 78, 360 60" fill="none" stroke="#c43a14" stroke-width="2"/><text x="364" y="52" class="l v" text-anchor="end">valid</text><path d="M 205 30 L 205 160" fill="none" stroke="#5a544d" stroke-width="1" stroke-dasharray="4 4"/><text x="205" y="24" class="c" text-anchor="middle">vanaf hier overfit</text><text x="200" y="212" class="c" text-anchor="middle">regularisatie helpt alleen als de head het plafond is</text></svg>
   <p>De trainingssplit leert de gewichten, de validatiesplit helpt bij hyperparameteroptimalisatie, en de testsplit beoordeelt het gekozen model. Een te groot verschil tussen train en valid wijst op overfitting; regularisatie kan daarbij helpen. Wat de encoder nooit in zijn embedding stopte, kan geen enkele head er ooit weer uit halen.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#genoeg">3.4 houd data apart</a> · <a href="dav-recap.html#subgroep">3.5 schijnverbanden in subgroepen</a>.</p>
 </article>
 <article class="goal" id="g1-10">
   <header><span class="code">1.10</span><h3>Ruis of resultaat</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="Ruis of resultaat"><text x="100" y="34" class="l" text-anchor="middle">geen resultaat</text><path d="M 70 66 L 70 134 M 64 66 L 76 66 M 64 134 L 76 134" fill="none" stroke="#1d5a73" stroke-width="2"/><circle cx="70" cy="100" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><path d="M 130 54 L 130 122 M 124 54 L 136 54 M 124 122 L 136 122" fill="none" stroke="#c43a14" stroke-width="2"/><circle cx="130" cy="88" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><text x="300" y="34" class="l v" text-anchor="middle">resultaat</text><path d="M 270 108 L 270 140 M 264 108 L 276 108 M 264 140 L 276 140" fill="none" stroke="#1d5a73" stroke-width="2"/><circle cx="270" cy="124" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><path d="M 330 50 L 330 82 M 324 50 L 336 50 M 324 82 L 336 82" fill="none" stroke="#c43a14" stroke-width="2"/><circle cx="330" cy="66" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><text x="70" y="168" class="m" text-anchor="middle">baseline</text><text x="130" y="168" class="m" text-anchor="middle">model</text><text x="270" y="168" class="m" text-anchor="middle">baseline</text><text x="330" y="168" class="m" text-anchor="middle">model</text><path d="M 200 24 L 200 172" fill="none" stroke="#cfc7bb" stroke-width="1"/><text x="200" y="205" class="c" text-anchor="middle">de marge moet groter zijn dan de spreiding tussen runs</text></svg>
   <p>Vergelijk een gevonden verbetering binnen je budget (tijd/FLOPs) met de spreiding tussen herhaalde runs. Een verschil binnen die spreiding is nog geen overtuigend resultaat. Vergelijk de winnaar van een hyperparametersearch met de baseline; als het simpelere model wint, is dat ook een resultaat.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#toeval">3.3 vergelijk met toeval</a> · <a href="dav-recap.html#genoeg">3.4 zoekbias en replicatie</a>.</p>
 </article>
 <article class="goal" id="g1-11">
   <header><span class="code">1.11</span><h3>Vier soorten leerproblemen</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="Vier soorten leerproblemen"><rect x="20" y="24" width="170" height="82" fill="#f4f1ec" stroke="#cfc7bb"/><text x="105" y="96" class="l p" text-anchor="middle">classificatie</text><rect x="210" y="24" width="170" height="82" fill="#f4f1ec" stroke="#cfc7bb"/><text x="295" y="96" class="l p" text-anchor="middle">regressie</text><rect x="20" y="118" width="170" height="82" fill="#f4f1ec" stroke="#cfc7bb"/><text x="105" y="190" class="l p" text-anchor="middle">reinforcement</text><rect x="210" y="118" width="170" height="82" fill="#f4f1ec" stroke="#cfc7bb"/><text x="295" y="190" class="l p" text-anchor="middle">unsupervised</text><circle cx="60" cy="48" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="80" cy="60" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="130" cy="44" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><circle cx="150" cy="58" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><path d="M 105 32 L 105 74" fill="none" stroke="#5a544d" stroke-width="1" stroke-dasharray="4 3"/><circle cx="240" cy="66" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="270" cy="54" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="300" cy="50" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="330" cy="38" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><path d="M 232 70 L 350 34" fill="none" stroke="#c43a14" stroke-width="2"/><rect x="34" y="130" width="48" height="22" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1"/><text x="58.0" y="145.5" class="c" text-anchor="middle">actie</text><rect x="108" y="130" width="66" height="22" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1"/><text x="141.0" y="145.5" class="c" text-anchor="middle">beloning</text><path d="M 84 141 L 106 141" fill="none" stroke="#c43a14" stroke-width="1.5" marker-end="url(#av)"/><path d="M 140 154 Q 100 172 60 154" fill="none" stroke="#c43a14" stroke-width="1.5" marker-end="url(#av)"/><circle cx="250" cy="142" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="262" cy="152" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="246" cy="156" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="320" cy="140" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="334" cy="150" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="322" cy="158" r="4" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><text x="200" y="222" class="c" text-anchor="middle">wat je data je geeft, bepaalt het soort probleem</text></svg>
   <p>Begrijp hoe classificatie, regressie, reinforcement learning en (semi-)unsupervised learning van elkaar verschillen.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#dr-3">les 6 · k-means en t-SNE zonder labels</a>.</p>
 </article>
 </div>
 <h2>De student kan</h2>
 <div class="grid">
 <article class="goal" id="g1-12">
   <header><span class="code">1.12</span><h3>Compositieschema's tekenen</h3></header>
-  <svg viewBox="0 0 400 230" role="img" aria-label="Compositieschema: (B, S, D) via aggregate naar (B, D), via transform naar (B, D), via classify naar (B, 2)"><line x1="200" y1="12" x2="200" y2="42" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><text x="235" y="30" class="m v">(B, S, D)</text><rect x="140" y="46" width="120" height="32" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><text x="200" y="67" class="l" text-anchor="middle">aggregate</text><line x1="200" y1="80" x2="200" y2="100" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><text x="235" y="95" class="m v">(B, D)</text><rect x="140" y="104" width="120" height="32" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><text x="200" y="125" class="l" text-anchor="middle">transform</text><line x1="200" y1="138" x2="200" y2="158" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><text x="235" y="153" class="m v">(B, D)</text><rect x="140" y="162" width="120" height="32" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/><text x="200" y="183" class="l" text-anchor="middle">classify</text><line x1="200" y1="196" x2="200" y2="216" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/><text x="235" y="211" class="m v">(B, 2)</text></svg>
-  <p>Lees een architectuur als een keten van blokken met de tensorshape bij elke pijl. Gebruik de <code>metadata.json</code> van een cache om vooraf te begrijpen welke shapes en componenten nodig zijn.</p>
+  <svg viewBox="0 0 400 230" role="img" aria-label="Drie losse functies met tensorvormen links, rechts samengevoegd als f1 aggregate, f2 transform en f3 classify">
+  <text x="20" y="25" class="m">losse functies</text>
+  <text x="300" y="25" class="m" text-anchor="middle">compositie</text>
+  <path d="M 218 18 L 218 200" fill="none" stroke="#cfc7bb"/>
+  <text x="20" y="72" font-family="JetBrains Mono,monospace" font-size="13" fill="#1d5a73">f₁: ℝ<tspan baseline-shift="super" font-size="9">B×S×D</tspan> → ℝ<tspan baseline-shift="super" font-size="9">B×D</tspan></text>
+  <text x="20" y="128" font-family="JetBrains Mono,monospace" font-size="13" fill="#1d5a73">f₂: ℝ<tspan baseline-shift="super" font-size="9">B×D</tspan> → ℝ<tspan baseline-shift="super" font-size="9">B×D</tspan></text>
+  <text x="20" y="184" font-family="JetBrains Mono,monospace" font-size="13" fill="#1d5a73">f₃: ℝ<tspan baseline-shift="super" font-size="9">B×D</tspan> → ℝ<tspan baseline-shift="super" font-size="9">B×2</tspan></text>
+  <text x="330" y="48" class="m v">(B, S, D)</text>
+  <line x1="300" y1="45" x2="300" y2="51" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <rect x="240" y="55" width="120" height="27" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/>
+  <text x="300" y="73" class="l" text-anchor="middle">f₁: aggregate</text>
+  <line x1="300" y1="84" x2="300" y2="96" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="330" y="97" class="m v">(B, D)</text>
+  <rect x="240" y="110" width="120" height="27" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/>
+  <text x="300" y="128" class="l" text-anchor="middle">f₂: transform</text>
+  <line x1="300" y1="139" x2="300" y2="151" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="330" y="152" class="m v">(B, D)</text>
+  <rect x="240" y="165" width="120" height="27" fill="#f3cdbf" stroke="#c43a14" stroke-width="2"/>
+  <text x="300" y="183" class="l" text-anchor="middle">f₃: classify</text>
+  <line x1="300" y1="194" x2="300" y2="204" stroke="#5a544d" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="330" y="208" class="m v">(B, 2)</text>
+  <text x="20" y="219" class="l v">f₃ ∘ f₂ ∘ f₁</text>
+</svg>
+  <p>Compositie schakelt functies aan elkaar: de outputshape van de ene past op de inputshape van de volgende. Teken de losse functies en hun keten met de tensorshape bij elke pijl. Gebruik de <code>metadata.json</code> van een cache om vooraf te begrijpen welke shapes en componenten nodig zijn.</p>
 </article>
 <article class="goal" id="g1-13">
   <header><span class="code">1.13</span><h3>Eerst de baseline</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="Eerst de baseline"><path d="M 30 110 L 370 110" fill="none" stroke="#5a544d" stroke-width="1"/><text x="30" y="130" class="c" text-anchor="start">score</text><path d="M 90 96 L 90 124" fill="none" stroke="#1d5a73" stroke-width="3"/><text x="90" y="84" class="l p" text-anchor="middle">1-NN baseline</text><rect x="168" y="100" width="44" height="20" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><text x="190" y="84" class="l p" text-anchor="middle">lineaire head</text><text x="190" y="140" class="m" text-anchor="middle">± tussen runs</text><rect x="236" y="94" width="120" height="32" fill="none" stroke="#c43a14" stroke-width="2" stroke-dasharray="5 4"/><text x="296" y="84" class="l v" text-anchor="middle">je search</text><text x="296" y="146" class="m" text-anchor="middle">pas daarna</text><text x="200" y="205" class="c" text-anchor="middle">zonder vergelijkingspunt zegt een score niets</text></svg>
-  <p>Meet eerst een baseline: laad een cache, bepaal bijvoorbeeld de score van 1-nearest-neighbour en train een simpele lineaire head. Herhaal het trainen van de head binnen je FLOPs-budget om de spreiding tussen runs te zien en log die resultaten voordat je een complexere architectuur onderzoekt.</p>
+  <p>Zonder baseline weet je niet of je model het goed doet: ook een model zonder bruikbaar patroon geeft voorspellingen. Meet daarom eerst 1-nearest-neighbour en een simpele lineaire head op dezelfde cache. Een complexere head kan slechter scoren dan die lineaire baseline. Herhaal het trainen van de head binnen je FLOPs-budget om de spreiding tussen runs te zien en log die resultaten voordat je een complexere architectuur onderzoekt.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#draad-kaart">2 een methode vindt altijd iets</a> · <a href="dav-recap.html#toeval">3.3 vergelijk met een baseline</a>.</p>
 </article>
 <article class="goal" id="g1-14">
   <header><span class="code">1.14</span><h3>Een search per as lezen</h3></header>
   <svg viewBox="0 0 400 230" role="img" aria-label="Een search per as lezen"><path d="M 30 40 L 30 140 L 180 140" fill="none" stroke="#5a544d" stroke-width="1"/><text x="105" y="30" class="l" text-anchor="middle">as A</text><circle cx="50" cy="128" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><circle cx="78" cy="112" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><circle cx="106" cy="92" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><circle cx="134" cy="70" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><circle cx="162" cy="52" r="5" fill="#f3cdbf" stroke="#c43a14" stroke-width="1.5"/><text x="105" y="160" class="l v" text-anchor="middle">significant</text><path d="M 220 40 L 220 140 L 370 140" fill="none" stroke="#5a544d" stroke-width="1"/><text x="295" y="30" class="l" text-anchor="middle">as B</text><circle cx="240" cy="92" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="268" cy="98" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="296" cy="90" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="324" cy="96" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><circle cx="352" cy="93" r="5" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><text x="295" y="160" class="l p" text-anchor="middle">niet-significant</text><text x="200" y="205" class="c" text-anchor="middle">test je hypotheses, zodat je verrast kunt worden</text></svg>
   <p>Teken en verdedig je zoekruimte vóór de search: wat is je budget in termen van tijd, FLOPs en hardware? Welke assen en parameterranges kies je, wat laat je weg, en waarom? Lees daarna het resultaat van een hyperparametersearch per as, ook wanneer die geen verbetering vindt. Herhaal de winnende configuratie binnen budget om een verschil overtuigend winst te noemen.</p>
+  <p class="dav-ref">MADS-DAV recap: <a href="dav-recap.html#distributie">3.1 distributies</a> · <a href="dav-recap.html#genoeg">3.4 veel vergelijkingen</a> · <a href="dav-recap.html#subgroep">3.5 relaties per subgroep</a>.</p>
 </article>
 <article class="goal" id="g1-15">
   <header><span class="code">1.15</span><h3>Publiceren en voortbouwen</h3></header>
