@@ -12,90 +12,96 @@ les. Maak je geen zorgen als je ze niet allemaal meteen hebt; daar is de les voo
 
 ## De student begrijpt
 
-1.1 Wat de shape van een tensor zegt: 1D is een vector (een rij), 2D een matrix (een
-vlak), 3D een tensor (een kubus), 4D een batched tensor (een batch kubussen). Weet dat een as van lengte 1 altijd in te voegen of weg te halen is zonder
-dat de data verandert: een zwart-wit plaatje is `(H, W)` en ook `(1, H, W)`.
+1.1 Wat een tensorshape is en hoe je die gebruikt om data te beschrijven: 1D is een
+vector (een rij), 2D een matrix (een vlak), 3D een tensor (een kubus), 4D een batched
+tensor (een batch kubussen). Een as van lengte 1 kun je altijd invoegen of weghalen
+zonder dat de data verandert: een zwart-witplaatje kan zowel `(H, W)` als `(1, H, W)`
+zijn.
 
-1.2 Dat een tensor twee niveaus heeft: het *formele* (rank en shape) en het *semantische*
-(wat de assen betekenen). Weet dat je in de praktijk altijd batcht, en kan uitleggen dat
-hetzelfde raster van 3 bij 4 getallen drie items kan zijn, `(3, 1, 4)`, of één item in
-drie chunks, `(1, 3, 4)`: de plek van de as met lengte 1 legt de betekenis vast, en torch
-controleert die niet.
+1.2 Een tensor heeft twee aspecten: de vorm (rank en shape) en de semantiek (wat de
+assen betekenen). Tijdens het trainen voeg je altijd een batchdimensie toe. Dezelfde
+matrix `(3, 4)` kan dan drie vectoritems in een batch zijn, `(3, 1, 4)`, of één 2D-item
+in een batch van één, `(1, 3, 4)`. De shape vertelt je niet of de data tekst of beeld
+is.
 
-1.3 Dat een voorgetraind model de vectorruimte al ordent zonder ooit op jouw taak getraind
-te zijn: vergelijkbare items liggen dicht bij elkaar, zodat 1-nearest-neighbour zonder
-training al classificeert. Kan noemen wanneer dat niet opgaat: een domein ver van de
-pretraining-data, of een modaliteit zonder goede encoder.
+1.3 Een pretrained model ordent jouw data in een vectorruimte zonder ooit op jouw data
+getraind te zijn. Vergelijkbare items liggen (hopelijk) dicht bij elkaar, zodat
+1-nearest-neighbour al resultaat kan geven. Dat werkt niet altijd: bijvoorbeeld bij een
+domein ver van de pretrainingdata, of een modaliteit zonder goede encoder.
 
-1.4 De economie van de cache: embedden is duur en gebeurt één keer, een head trainen kost
-seconden en gebeurt honderden keren. Een search vermenigvuldigt de kosten van de head,
-niet die van de embedding.
+1.4 Een encoder berekent embeddings één keer en slaat ze op in een cache. Dat vraagt
+veel rekenkracht (FLOPs). Daarna kun je een downstream model (een head) met veel minder
+FLOPs trainen op de vectoren uit de cache. Een hyperparametersearch herhaalt zo alleen
+het trainen van de head, en dat scheelt veel FLOPs.
 
-1.5 Dat de keuze van de encoder de score meer beweegt dan de architectuur van de head, en
-dat welke encoder wint afhangt van waarop hij getraind is en van jouw taak. Kan uitleggen
-wat dat betekent voor waar je je tijd aan besteedt, en waarom dezelfde head op een image
-embedding en op een text embedding werkt.
+1.5 De keuze van de encoder kan meer verschil maken voor de score dan de architectuur
+van de head. Welke encoder het best werkt, hangt onder andere af van het verschil
+tussen zijn pretrainingdataset en jouw taak. Dit verschil analyseer je tijdens de
+hyperparameteroptimalisatie (zie 1.14).
 
-1.6 Waarom een stapel lineaire lagen zonder activatie samenvalt tot één lineaire
-afbeelding, en wat de nonlineariteit daaraan verandert: elke extra unit voegt een lineair
-stuk toe, dus meer units is meer capaciteit. Weet wat de universal approximation theorem
-zegt en wat niet (hoeveel units, of training ze vindt, of het generaliseert).
+1.6 Zonder nonlineariteit σ is de compositie van lineaire functies f₁ ∘ f₂ ∘ f₃ gelijk
+aan één lineaire functie f₄. De universal approximation theorem zegt dat een netwerk f₁
+∘ σ ∘ f₂ met voldoende capaciteit en een geschikte nonlineariteit elke continue functie
+op een compact domein willekeurig nauwkeurig kan benaderen. De stelling zegt niet
+hoeveel capaciteit nodig is, of training die oplossing vindt, of de functie
+generaliseert.
 
-1.7 Wat één trainingsstap doet: items stapelen tot een batch, voorspellen, de fout meten
-met een loss, en de gewichten bijstellen. De gradient zegt per gewicht welke kant op, de
-optimizer bepaalt hoe ver.
+1.7 In één trainingsstap batch je de data, maak je predictions en meet je de error met
+een loss. De gradient geeft de richting van een verbetering aan; de optimizer bepaalt
+hoe groot de stap is.
 
-1.8 Waarom loss en metric niet hetzelfde zijn: de loss is er voor de optimizer en moet
-differentieerbaar zijn, de metric is er voor jou: een afstand tussen voorspelling en
-waarheid in een maat die je kunt lezen, zoals accuracy of MAPE. Weet wanneer klassen met
-elkaar concurreren en wanneer niet, en dat dat de loss bepaalt.
+1.8 De lossfunctie moet bruikbaar zijn voor gradient descent en stuurt het leren. Een
+metric beoordeelt de voorspellingen in een maat die je als mens kunt interpreteren,
+zoals accuracy of MAPE. De data en het doel bepalen mede welke loss je kiest; dezelfde
+maat, zoals MSE, kan soms beide rollen vervullen.
 
-1.9 Waarom we train-, valid- en testsplits maken, wat overfitting is en hoe regularisatie
-daarbij helpt — en waarom regularisatie niets oplevert als het plafond in de representatie
-zit en niet in de head.
+1.9 De trainingssplit leert de gewichten, de validatiesplit helpt bij
+hyperparameteroptimalisatie, en de testsplit beoordeelt het gekozen model. Een te groot
+verschil tussen train en valid wijst op overfitting; regularisatie kan daarbij helpen.
+Wat de encoder nooit in zijn embedding stopte, kan geen enkele head er ooit weer uit
+halen.
 
-1.10 Wanneer een verschil een resultaat is: een marge binnen de spreiding tussen runs van
-hetzelfde model is geen resultaat, het maximum van een search is geen eerlijke vergelijking
-met het gemiddelde van een baseline, en "het simpelere model won" is een volwaardige
-uitkomst.
+1.10 Vergelijk een gevonden verbetering binnen je budget (tijd/FLOPs) met de spreiding
+tussen herhaalde runs. Een verschil binnen die spreiding is nog geen overtuigend
+resultaat. Vergelijk de winnaar van een hyperparametersearch met de baseline; als het
+simpelere model wint, is dat ook een resultaat.
 
-1.11 Hoe deep learning past in de geschiedenis van AI, en welke soorten leerproblemen er
-zijn (classificatie, regressie, reinforcement, (semi-)unsupervised).
+1.11 Begrijp hoe classificatie, regressie, reinforcement learning en
+(semi-)unsupervised learning van elkaar verschillen.
 
 ## De student kan
 
-1.12 Een architectuur lezen en tekenen als een compositie van blokken: een keten van
-tensor-shapes, met bij elke pijl de shape, van `(B, D)` tot `(B, K)` — ook als twee
-streams elk een eigen tak krijgen en via concatenatie in één head samenkomen. Kan uit de
-`metadata.json` van een cache voorspellen welke shape een batch heeft en welke componenten
-er tussen de DataLoader en de loss nodig zijn, vóórdat er code draait.
+1.12 Lees een architectuur als een keten van blokken met de tensorshape bij elke pijl.
+Gebruik de `metadata.json` van een cache om vooraf te begrijpen welke shapes en
+componenten nodig zijn.
 
-1.13 Een baseline neerzetten vóór er iets gezocht wordt: een cache van de hub laden, de
-1-nearest-neighbour-baseline en een lineaire head meten, die head een paar keer draaien om
-de spreiding tussen runs te zien, en die runs loggen als vergelijkingspunt voor alles wat
-volgt.
+1.13 Meet eerst een baseline: laad een cache, bepaal bijvoorbeeld de score van
+1-nearest-neighbour en train een simpele lineaire head. Herhaal het trainen van de head
+binnen je FLOPs-budget om de spreiding tussen runs te zien en log die resultaten
+voordat je een complexere architectuur onderzoekt.
 
-1.14 Een zoekruimte ontwerpen en verdedigen: welke assen erin, welke eruit, welke ranges,
-en wat je verwacht en waarom. Kan het resultaat van een ray.tune search per as lezen —
-ook als de search niets vindt — en draait de winnaar een paar keer opnieuw voordat het een
-winst heet.
+1.14 Teken en verdedig je zoekruimte vóór de search: wat is je budget in termen van
+tijd, FLOPs en hardware? Welke assen en parameterranges kies je, wat laat je weg, en
+waarom? Lees daarna het resultaat van een hyperparametersearch per as, ook wanneer die
+geen verbetering vindt. Herhaal de winnende configuratie binnen budget om een verschil
+overtuigend winst te noemen.
 
-1.15 Het eigen werk publiceren naar de runs-repository van de klas
-(`docs/submit-runs.md`), het werk van anderen bekijken in het overzicht van de klas waarmee
-de volgende les opent, en daarop voortbouwen met bronvermelding.
+1.15 Publiceer je runs volgens `docs/submit-runs.md`. Bekijk daarna de resultaten van
+klasgenoten in het klasoverzicht en bouw met bronvermelding voort op wat hun
+experimenten laten zien.
 
 ## Materiaal
 
 | leerdoel | onderwerp | boek | notebook |
 |---|---|---|---|
-| 1.1, 1.2 | tensor shapes, shape en betekenis, batch en chunk | 30-34 | `01b_tensors`, `01_the_cache` |
+| 1.1, 1.2 | tensor shapes, shape en betekenis, batchdimensie | 30-34 | `01b_tensors`, `01_the_cache` |
 | 1.3, 1.4, 1.5 | de cache, de kosten, de encoderkeuze | les | `01_the_cache`, `04_search` |
 | 1.6 | lineaire collapse, nonlineariteit, capaciteit | 25-30, 35, 41-50 | `02_nonlinearity` |
 | 1.7, 1.8 | de trainingsstap, loss en metric | 22-23, 77-80, 91, hfst 5 | `03_training` |
 | 1.9 | splits, overfitting, regularisatie | 118-120, 138, 147-149 | `03_training`, `05_exercises` |
 | 1.10 | spreiding tussen runs, eerlijke vergelijking, negatieve resultaten | les | `04_search`, `05_exercises` |
-| 1.11 | geschiedenis van AI, soorten leerproblemen | 3-5 | presentatie les 1 |
-| 1.12 | architecturen lezen met shapes, fusie | les | `04_search`, `05_exercises` |
+| 1.11 | soorten leerproblemen | les | presentatie les 1 |
+| 1.12 | compositieschema's en tensor shapes | les | `04_search`, `05_exercises` |
 | 1.13 | de baseline | les | `03_training`, `04_search`, `05_exercises` |
 | 1.14 | de zoekruimte en de search | les | `04_search`, `05_exercises` |
 | 1.15 | publiceren en voortbouwen | les | `05_exercises`, `docs/submit-runs.md` |
@@ -107,7 +113,6 @@ als je zelf een dataset wilt toevoegen begint het daar.
 ## Resources
 
 - Intelligentie: https://youtu.be/JxbeMbEp-Ak
-- History of AI: https://www.youtube.com/watch?v=0aMM3Q5t7p0
 - Semantic vector spaces I: https://www.youtube.com/watch?v=G5wlnlCWfVk
 - Semantic vector spaces II: https://www.youtube.com/watch?v=9kBW9Nhd0Zw
 - What is a neural network: https://www.youtube.com/watch?v=aircAruvnKk
