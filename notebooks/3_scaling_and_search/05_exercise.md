@@ -75,7 +75,7 @@ scheduler has something to prune on, results written to disk — rather than the
       and `tune.RunConfig`; `tune.run` is the old API and is gone.
 
 ### split code and configuration
-- make a *configurable model* where you can change the different options from the config. You can decide for yourself if you want to make it configurable by simply passing a dictionary, or by creating a @dataclass as a Settings object, or by using a `.toml` file with `tomllib` (since python 3.11 part of python) and the `TOMLserializer`.
+- make a *configurable model* where you can change the different options from the config. You can pass a dictionary, use a @dataclass as a Settings object, or read a `.toml` file with the standard-library `tomllib` module.
 
 ## What you bring
 You bring your runs to the lesson, and we look at them there in mlflow. The master shows in knowing what to remove: bring the runs that show something, and leave out the rest. Name and tag every run so it is clear in a few seconds which experiment it belongs to and what it found.

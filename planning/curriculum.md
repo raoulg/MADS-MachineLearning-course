@@ -311,9 +311,8 @@ truth, and is not falsifiable by a student; it stays prose.
 
 Not graded, kept because it is good material without a lesson-sized job.
 
-- `graphs/` — moved from `6_graphs`, intact for now. GNN theory on Cora; `torch-geometric`
-  still needs moving to an optional dependency group. The *structural* graph material
-  students need lives in L7.
+- `graphs/` — GNN theory on Cora, available with `uv sync --extra graphs`. The
+  *structural* graph material students need lives in L7.
 - `swarms/` — cellular automata and El Farol as emergence; the population **optimisers**
   move into L3, where they are a search algorithm that knows something TPE does not.
 - `deployment/`, `julia_dl/` — unchanged.

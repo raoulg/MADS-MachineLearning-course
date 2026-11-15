@@ -62,7 +62,6 @@ library change and ships as a release first.
 - ~~`mads-datasets`~~ — **gone.** Its last two consumers were L3's `01_hypertuner`
   (deleted) and `hypertune.py` (rewritten against a published cache)
 - ~~`bayesian-optimization`~~, ~~`configspace`~~ — **gone** with the algorithm-zoo notebook
-- `torch-geometric` — still to move to an optional group with `8_extras/graphs`
 
 ## Research to verify
 

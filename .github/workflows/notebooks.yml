@@ -60,8 +60,11 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Audit locked dependencies
+        run: uv audit --locked
+
       - name: Install the locked environment
-        run: uv sync --locked
+        run: uv sync --locked --extra graphs
 
       - name: Run notebooks
         env:
@@ -71,7 +74,7 @@ jobs:
         run: |
           # NOTEBOOKS is a space-separated list of paths, so it is split on purpose.
           # notebooktester exits 0 even when notebooks fail; the next step checks the results.
-          uv run notebooktester $NOTEBOOKS -f -t 600 -w 2 --cache-dir "$CACHE"
+          uv run --extra graphs notebooktester $NOTEBOOKS -f -t 600 -w 2 --cache-dir "$CACHE"
 
       - name: Fail on any notebook that did not pass
         env:
