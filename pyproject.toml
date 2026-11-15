@@ -32,13 +32,9 @@ dependencies = [
     "ray[tune]>=2.58.0",
     "seaborn>=0.12.2",
     "tokenizers>=0.21.0",
-    "tensorboard>=2.20",
     "torch>=2.6.0",
     "torchinfo>=1.8.0",
-    "torch-geometric>=2.6.1",
-    "torch-tb-profiler>=0.4.3",
     "torchvision>=0.21.0",
-    "tomlserializer>=0.2.0",
     "vectormesh>=0.14.0",
     "scikit-learn>=1.9.0",
     "beartype>=0.22.9",
@@ -50,10 +46,13 @@ dependencies = [
     "transformers>=5.22",
     "tqdm>=4.70",
     "pillow>=13.0",
-    "filelock>=3.32",
+    "filelock>=4.2.1",
     "optuna>=5.0.0",
     "optuna-dashboard>=0.21.0",
 ]
+
+[project.optional-dependencies]
+graphs = ["torch-geometric>=2.6.1"]
 
 [dependency-groups]
 dev = [
