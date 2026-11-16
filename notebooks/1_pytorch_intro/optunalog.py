@@ -58,7 +58,7 @@ from torchinfo import summary
 # The idea's recipe has one source, the format of a submitted run.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
 from run_submission import (  # ty: ignore[import-not-found]
-    COURSE,  # noqa: F401  (a notebook imports it from here)
+    COURSE,
     IDEA_ATTRS,
     IDEA_NAME,
     LOGIN,
@@ -303,6 +303,13 @@ def idea(
     id_ = idea_id(who, said, parents)
     values = (said, who, ",".join(parents), id_, idea_name(id_))
     return dict(zip(IDEA_ATTRS, values, strict=True))
+
+
+def handed_out(lesson: int) -> dict[str, str]:
+    """The idea of the studies lesson `lesson` hands out to everyone: the root every
+    student's first idea of that lesson builds on, by passing its `idea_name` as
+    `builds_on`. Its author is `COURSE`, so it is one idea for the whole class."""
+    return idea(f"lesson {lesson} as handed out", author=COURSE)
 
 
 def _carry(study: optuna.Study, idea: Mapping[str, str] | None) -> None:

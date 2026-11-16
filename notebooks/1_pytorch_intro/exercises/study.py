@@ -45,6 +45,7 @@ from optunalog import (  # harness puts the lesson folder on sys.path
     Int,
     budget,
     check_study_name,
+    handed_out,
     idea,
     log_run,
     search_study,
@@ -58,9 +59,10 @@ from torch import nn
 # letters, digits and dashes: "sam-gate-on-eurosat".
 STUDY = check_study_name("name-your-study")
 
-# What does your study investigate, in a few words of your own? Does it build on an idea
-# of the class? Then name it in builds_on, as the class page shows it: "blissful-bee-18".
-IDEA = idea("say what your study investigates", builds_on=None)
+# What does your study investigate, in a few words of your own? Which idea does it build
+# on? Your first one builds on the exercise as handed out; after that, name an idea of
+# the class as the class page shows it: builds_on="blissful-bee-18".
+IDEA = idea("say what your study investigates", builds_on=handed_out(1)["idea_name"])
 
 # What do you expect to happen, and why? One line, written before you run. It is stored
 # with the study and never checked: it is there so the result can surprise you.

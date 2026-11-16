@@ -188,7 +188,8 @@ the same two arguments.
 A study carries an idea: what it investigates, in a few words. The class page shows the
 class's ideas as a graph, each with its name (`blissful-bee-18`). When the student builds
 on one, a classmate's or an earlier one of their own, they name it; ask them which, and
-what they expect, and do not choose for them:
+what they expect, and do not choose for them. A student's first idea of a lesson builds
+on the exercise as handed out, `handed_out(1)["idea_name"]`, which the exercise fills in:
 
 ```python
 IDEA = idea("depth and norm together", builds_on=["blissful-bee-18", "zany-heron-41"])

@@ -311,3 +311,13 @@ def test_the_idea_placeholder_passes_only_under_the_tester(monkeypatch):
     monkeypatch.setattr(optunalog, "TESTING", False)
     with pytest.raises(ValueError, match="in your own words"):
         optunalog.idea(optunalog.IDEA_PLACEHOLDER, author="alice")
+
+
+def test_the_handed_out_idea_is_one_root_for_the_whole_class():
+    root = optunalog.handed_out(1)
+    assert root["idea_author"] == optunalog.COURSE and root["idea_parents"] == ""
+    assert root == optunalog.handed_out(1) != optunalog.handed_out(2)
+    first = optunalog.idea(
+        "does depth still help", builds_on=root["idea_name"], author="sam"
+    )
+    assert first["idea_parents"] == root["idea_name"]
