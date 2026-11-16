@@ -9,9 +9,10 @@ tags:
 
 # Heartbeats, MIT-BIH Arrhythmia: raw `(187, 1)` sequences
 
-Single ECG heartbeats from the MIT-BIH Arrhythmia Database, labelled with one of five
-AAMI heartbeat classes, as a vectormesh cache. There is no encoder: every row holds
-the signal itself, ready for a sequence model.
+Single ECG heartbeats from the MIT-BIH Arrhythmia Database, labelled with one of three
+AAMI heartbeat classes (N, S, V), as a vectormesh cache, **split by patient**: no patient has beats
+in both train and test. There is no encoder: every row holds the signal itself, ready for
+a sequence model.
 
 Built for the [MADS MachineLearning course](https://github.com/raoulg/MADS-MachineLearning-course).
 
@@ -24,12 +25,13 @@ are padding, not signal.
 | column | type | |
 |---|---|---|
 | `beat` | float32 `(187, 1)`, a fixed-shape `Array2D` | the signal as (sequence, channel) |
-| `label` | int | 0 N, 1 S, 2 V, 3 F, 4 Q |
-| `source_idx` | int | the row in the course's source files (see provenance) |
+| `label` | int | 0 N, 1 S, 2 V |
+| `record` | int | the PhysioNet record the beat comes from: one patient |
+| `r_peak` | int | the beat's annotated R-peak, as a sample at 360 Hz in that record |
+| `source_idx` | int | the row's position in its split |
 
 The beat itself is the vector, so there is nothing to look up elsewhere: the cache holds
-the whole signal. `source_idx` only records which row of the course's source files a
-beat came from.
+the whole signal. `record` and `r_peak` find a beat back in the PhysioNet record.
 
 A `DataLoader` over the cache gives `X` of shape `(batch, 187, 1)`.
 
@@ -38,24 +40,32 @@ A `DataLoader` over the cache gives `X` of shape `(batch, 187, 1)`.
 | model_tag | `raw`: the steps unchanged, no encoder |
 | hidden_size | 1 (one channel) |
 | tensordtype | 2, `(sequence, channel)`, every sequence 187 steps |
-| rows | 87.554 train / 21.892 test |
-| download | 133 MB train / 33 MB test |
-| built with | vectormesh 0.14.0, 2026-11-14 |
+| rows | 45.831 train (22 records) / 44.578 test (22 records) |
+| download | 67 MB train / 65 MB test |
+| built with | vectormesh 0.14.0, 2026-11-16 |
 | licence | ODC-By 1.0 |
 
 ## Classes
 
 | label | class | train | test |
 |---|---|---|---|
-| 0 | N, normal and other non-ectopic beats | 72.471 | 18.118 |
-| 1 | S, supraventricular ectopic | 2.223 | 556 |
-| 2 | V, ventricular ectopic | 5.788 | 1.448 |
-| 3 | F, fusion of ventricular and normal | 641 | 162 |
-| 4 | Q, paced or unclassifiable | 6.431 | 1.608 |
-| | total | 87.554 | 21.892 |
+| 0 | N, normal and other non-ectopic beats | 41.492 | 39.991 |
+| 1 | S, supraventricular ectopic | 851 | 1.645 |
+| 2 | V, ventricular ectopic | 3.488 | 2.942 |
+| | total | 45.831 | 44.578 |
 
-The classes are strongly unbalanced: N is 83% of both splits, F under 1%. Accuracy
+The classes are strongly unbalanced: N is about 90% of both splits, S under 4%. Accuracy
 alone says little here; look at per-class recall or a confusion matrix.
+
+The AAMI classes F (fusion of ventricular and normal) and Q (paced or unclassifiable) are
+left out. In this split nearly all F beats of train come from one patient (347 of 385, in
+record 208) and nearly all of test from one other (338 of 362, in record 213): a recall on
+F would measure one patient. Q is almost absent once the paced records are out.
+
+Test holds about twice as many S beats as train, as in the split it follows, and three
+quarters of them come from one patient (record 232). A model that
+learned S from 851 beats of 22 patients meets the S beats of 22 others: this is the
+hard part of the problem, and the reason the split is by patient.
 
 ## Load it
 
@@ -69,7 +79,7 @@ train = VectorCache.from_hub("pttrn-io/heartbeats-mitbih-raw", split="train")
 test = VectorCache.from_hub("pttrn-io/heartbeats-mitbih-raw", split="test")
 train.metadata  # read this before writing any model code
 
-onehot = OneHot(num_classes=5, label_col="label", target_col="onehot")
+onehot = OneHot(num_classes=3, label_col="label", target_col="onehot")
 collate = Collate(embedding_col="beat", target_col="onehot", padder=torch.stack)
 
 
@@ -80,7 +90,7 @@ def labelled(cache):
 
 
 loader = DataLoader(labelled(train), batch_size=64, shuffle=True, collate_fn=collate)
-X, y = next(iter(loader))  # X (64, 187, 1), y (64, 5)
+X, y = next(iter(loader))  # X (64, 187, 1), y (64, 3)
 ```
 
 Pin `revision=` to a commit for anything graded. This is a `save_to_disk` layout, not
@@ -89,16 +99,17 @@ parquet: `load_dataset()` will **not** read it, `VectorCache.load()` and
 
 ## Validation
 
-There is **no validation split**. Carve one from train, and leave test alone until the end:
+There is **no validation split**. Carve one from train **by record**, so that validation
+holds patients the model has not seen, as test does; leave test alone until the end:
 
 ```python
-from sklearn.model_selection import train_test_split
+import numpy as np
 
 trainset = labelled(train)
-labels = train.dataset.with_format(None)["label"]
-fit_idx, val_idx = train_test_split(
-    list(range(len(labels))), test_size=0.2, stratify=labels, random_state=42
-)
+records = np.asarray(train.dataset.with_format(None)["record"])
+val_records = [118, 124, 201, 207, 215, 223]  # six patients with N, S and V among them
+fit_idx = np.flatnonzero(~np.isin(records, val_records)).tolist()
+val_idx = np.flatnonzero(np.isin(records, val_records)).tolist()
 fit, val = trainset.select(fit_idx), trainset.select(val_idx)
 
 fitloader = DataLoader(fit, batch_size=64, shuffle=True, collate_fn=collate)
@@ -113,23 +124,27 @@ testloader = DataLoader(
 1. **MIT-BIH Arrhythmia Database** on PhysioNet (<https://physionet.org/content/mitdb/1.0.0/>,
    doi:10.13026/C2F305): two-channel ambulatory ECG recordings with beat annotations by
    cardiologists.
-2. **Kachuee, Fazeli and Sarrafzadeh (2018)** cut the recordings into single beats,
-   downsampled to 125 Hz, scaled to [0, 1] and zero-padded to a fixed length.
-3. **Kaggle, "ECG Heartbeat Categorization Dataset"**
-   (<https://www.kaggle.com/datasets/shayanfazeli/heartbeat>) publishes those beats as
-   `mitbih_train.csv` (87.554 beats) and `mitbih_test.csv` (21.892 beats), with the
-   class mapping N 0, S 1, V 2, F 3, Q 4.
-4. **raoulg/mads-exam-24** (a private course repository, commit `6652bd8f`) holds them
-   as `data/heart_big_train.parq` and `data/heart_big_test.parq`, with the same row
-   counts as the Kaggle files. `source_idx` is a row's position in those files.
+2. **The split** is the inter-patient split of de Chazal, O'Dwyer and Reilly (2004): the
+   22 records of DS1 train, the 22 of DS2 test. The four records with a pacemaker
+   (102, 104, 107, 217) are in neither.
+3. **A beat is cut** the way Kachuee, Fazeli and Sarrafzadeh (2018) cut theirs: the MLII
+   lead resampled to 125 Hz, in windows of 10 s, each window scaled to [0, 1]; from every
+   annotated R-peak a segment of 1.2 times the window's median R-R interval, zero-padded
+   to 187 steps. The R-peaks and classes are the cardiologists' annotations, mapped to the
+   AAMI classes; F and Q beats count for the window's median interval but are not cut. A
+   beat whose segment runs past the end of its window is left out, about one in ten.
 
-This cache keeps every row of both files, in file order.
+The Kaggle files of Kachuee et al. ("ECG Heartbeat Categorization Dataset") hold beats cut
+in the same way but split per beat, so that beats of one patient are in both train and
+test; this cache is cut from the records instead, so that the split can follow the
+patients. Its average beat per class correlates 0.95 to 0.98 with theirs.
 
 ## How it was built
 
-`scripts/build_heartbeat_cache.py` in
-<https://github.com/raoulg/MADS-MachineLearning-course>, which checks every cached beat
-and label against its source row.
+`scripts/build_heartbeat_cache.py` and `scripts/mitbih_beats.py` in
+<https://github.com/raoulg/MADS-MachineLearning-course> (`make build-heartbeats`, which
+downloads the records from PhysioNet). The build checks every cached beat and label
+against the beat it cut.
 
 ## Licence and attribution
 
@@ -138,8 +153,7 @@ Contains information from the
 available under the
 [ODC Attribution License](https://opendatacommons.org/licenses/by/1-0/) (Open Data
 Commons Attribution License v1.0). This cache is a derived database of it and is shared
-under the same licence. The Kaggle page states no licence of its own; ODC-By applies as
-the licence of the source database.
+under the same licence.
 
 When you use it, cite:
 
@@ -152,6 +166,9 @@ When you use it, cite:
   Mark, R. G., & Heldt, T. (2026). PhysioNet as a global platform for biomedical
   research. Nature Health. <https://doi.org/10.1038/s44360-026-00096-z>. Available from:
   <https://pmc.ncbi.nlm.nih.gov/articles/PMC13641116/>
+- de Chazal P, O'Dwyer M, Reilly RB. Automatic classification of heartbeats using ECG
+  morphology and heartbeat interval features. IEEE Trans Biomed Eng 51(7):1196-1206
+  (2004). <https://doi.org/10.1109/TBME.2004.827359>
 - Mohammad Kachuee, Shayan Fazeli, and Majid Sarrafzadeh. "ECG Heartbeat Classification:
   A Deep Transferable Representation." arXiv preprint arXiv:1805.00794 (2018).
   <https://arxiv.org/abs/1805.00794>

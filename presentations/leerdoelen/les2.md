@@ -71,15 +71,16 @@ voortbouwen met bronvermelding.
 
 | leerdoel | onderwerp | boek | notebook |
 |---|---|---|---|
-| 2.1 | skip, residual connection | 186-191 | `02_state_and_gates`, presentatie les 2 |
-| 2.2, 2.3, 2.4 | kernel, downsampling, receptive field | 161-174 | `01_kernels` |
-| 2.5, 2.6 | state en gate | les | `02_state_and_gates` |
-| 2.7 | inductive bias als weddenschap | les | presentatie les 2, `01_kernels` |
-| 2.8, 2.10 | 1D of 2D, design script, atlas | les | `03_design` |
-| 2.9 | encoder gebruiken of zelf trainen | les | `01_kernels` |
-| 2.11, 2.12 | ontwerpen, verdedigen, werken als klas | les | `04_exercise`, `docs/submit-runs.md` |
+| 2.1 | skip, residual connection | 186-191 | 2.2 `02_state_and_gates`, presentatie les 2 |
+| 2.2, 2.3, 2.4 | kernel, downsampling, receptive field | 161-174 | 2.1 `01_kernels` |
+| 2.5, 2.6 | state en gate | les | 2.2 `02_state_and_gates` |
+| 2.7 | inductive bias als weddenschap | les | presentatie les 2, 2.1 `01_kernels`, 2.2 `02_state_and_gates`, 2.3 `03_decomposition_and_nbeats` (optioneel) |
+| 2.8 | 1D of 2D | les | 2.1 `01_kernels` |
+| 2.10 | design script, atlas | les | `exercises/designs.py`, de opdracht van les 1 |
+| 2.9 | encoder gebruiken of zelf trainen | les | 2.1 `01_kernels` |
+| 2.11, 2.12 | ontwerpen, verdedigen, werken als klas | les | 2.4 `04_exercise`, `exercises/`, `05_your_study.html`, `docs/submit-runs.md` |
 
-Optioneel: `03_decomposition_and_nbeats` bouwt de decompositie uit MADS-DAV in een
+Optioneel: 2.3 `03_decomposition_and_nbeats` bouwt de decompositie uit MADS-DAV in een
 architectuur in — een route die trend en seizoen uitrekent, en een netwerk dat de rest
 fit.
 

@@ -150,15 +150,20 @@ build-dtd:
 			--source tanganke/dtd --encoder $$enc --tag dtd --full || exit 1; \
 	done
 
-# ECG heartbeats (PTB, MIT-BIH) from the private repo raoulg/mads-exam-24: no encoder, the
-# 187 steps of a beat go into the cache as a (187, 1) sequence. Cloned on first use.
+# ECG heartbeats: PTB from the private repo raoulg/mads-exam-24, MIT-BIH cut from the
+# PhysioNet records and split by patient. No encoder: the 187 steps of a beat go into the
+# cache as a (187, 1) sequence. Both sources are fetched on first use.
 HEARTBEAT_SOURCE = artefacts/sources/mads-exam-24
+MITDB_SOURCE = artefacts/sources/mitdb
 
 $(HEARTBEAT_SOURCE):
 	gh repo clone raoulg/mads-exam-24 $(HEARTBEAT_SOURCE)
 
-build-heartbeats: | $(HEARTBEAT_SOURCE)
-	uv run python scripts/build_heartbeat_cache.py
+$(MITDB_SOURCE):
+	uv run --with wfdb python -c "import wfdb; wfdb.dl_database('mitdb', '$(MITDB_SOURCE)')"
+
+build-heartbeats: | $(HEARTBEAT_SOURCE) $(MITDB_SOURCE)
+	uv run --with wfdb python scripts/build_heartbeat_cache.py
 
 publish-heartbeats: check-hf-auth
 	@for ds in ptb mitbih; do \

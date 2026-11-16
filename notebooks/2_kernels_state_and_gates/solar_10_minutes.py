@@ -1,4 +1,4 @@
-"""Solar power production, ten-minute resolution — the series `2_kernels_state_and_gates/optional_decomposition_and_nbeats`
+"""Solar power production, ten-minute resolution — the series `2_kernels_state_and_gates/03_decomposition_and_nbeats`
 and `3_scaling_and_search/04_search` use.
 
 `Monash-University/monash_tsf`, config `solar_10_minutes` — 137 series, each one full

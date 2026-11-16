@@ -1,26 +1,31 @@
 """Build the ECG heartbeat VectorCaches, one per (dataset x split), ready to publish.
 
-    uv run python scripts/build_heartbeat_cache.py
+    uv run --with wfdb python scripts/build_heartbeat_cache.py
 
-Reads the four parquet files of raoulg/mads-exam-24, cloned into
-artefacts/sources/mads-exam-24 (`make build-heartbeats` clones it when it is missing):
+PTB Diagnostic, 2 classes, comes from two parquet files of raoulg/mads-exam-24, cloned
+into artefacts/sources/mads-exam-24 (`make build-heartbeats` clones it when it is
+missing): `heart_train.parq` and `heart_test.parq`, one beat per row and a `target`
+column.
 
-    heart_train.parq, heart_test.parq            PTB Diagnostic, 2 classes
-    heart_big_train.parq, heart_big_test.parq    MIT-BIH Arrhythmia, 5 classes
+MIT-BIH Arrhythmia, 3 AAMI classes (N, S, V), is cut from the PhysioNet records in
+artefacts/sources/mitdb (`make build-heartbeats` downloads them when they are missing),
+split by patient: `mitbih_beats.py` says how.
 
-Every row is one heartbeat: 187 steps at 125 Hz, zero-padded at the end, and a `target`
-column. There is no encoder: the vectorizer below hands the 187 steps over unchanged as a
-float32 `(187, 1)` tensor (sequence, channel), so the cache is rank 2 and a DataLoader
-over it gives `(batch, 187, 1)`. Its model_name is `raw`, which names the repos
+Every beat is 187 steps at 125 Hz, zero-padded at the end. There is no encoder: the
+vectorizer below hands the 187 steps over unchanged as a float32 `(187, 1)` tensor
+(sequence, channel), so the cache is rank 2 and a DataLoader over it gives
+`(batch, 187, 1)`. Its model_name is `raw`, which names the repos
 `pttrn-io/heartbeats-ptb-raw` and `pttrn-io/heartbeats-mitbih-raw`.
 
 The beat column is a fixed-shape `Array2D((187, 1), float32)`, not nested lists: every
 beat has one shape, so a batch decodes as one block (vectormesh >= 0.14).
 
-Kept columns: the vector, `label` (int, from `target`) and `source_idx`, the row's
-position in its source parquet file. Nothing is shuffled or subsampled. After each
-build, every cached beat and label is compared with its source row by `source_idx`, and
-a mismatch stops the script.
+Kept columns: the vector, `label` (int) and `source_idx`, the row's position in its
+source: the parquet file for PTB, the split as `mitbih_beats.split_beats` returns it for
+MIT-BIH. MIT-BIH also keeps `record`, the PhysioNet record (one patient), and `r_peak`,
+the beat's annotated R-peak as a sample at 360 Hz in that record. Nothing is shuffled or
+subsampled. After each build, every cached beat and label is compared with its source row
+by `source_idx`, and a mismatch stops the script.
 """
 
 import argparse
@@ -40,22 +45,23 @@ from torch import Tensor
 from vectormesh import VectorCache
 from vectormesh.data.vectorizers import ChunkedVectorizer
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mitbih_beats
+
 ROOT = Path(__file__).resolve().parents[1]
 ARTEFACTS = ROOT / "artefacts"
 SOURCE = ARTEFACTS / "sources" / "mads-exam-24" / "data"
+MITDB = ARTEFACTS / "sources" / "mitdb"
 
 STEPS = 187
 INPUT_COL = "steps"
 BEAT_COL = "beat"
 BEAT_FEATURE = Array2D(shape=(STEPS, 1), dtype="float32")
 
-# dataset tag -> {split: parquet file}
+# dataset tag -> its splits: a parquet file for PTB, a list of records for MIT-BIH
 DATASETS = {
     "heartbeats-ptb": {"train": "heart_train.parq", "test": "heart_test.parq"},
-    "heartbeats-mitbih": {
-        "train": "heart_big_train.parq",
-        "test": "heart_big_test.parq",
-    },
+    "heartbeats-mitbih": mitbih_beats.SPLITS,
 }
 
 
@@ -115,6 +121,28 @@ def read_split(path: Path) -> tuple[Dataset, np.ndarray, np.ndarray]:
     return dataset, steps, labels
 
 
+def read_mitbih(split: str) -> tuple[Dataset, np.ndarray, np.ndarray]:
+    """The beats of an MIT-BIH split as a Dataset of `steps`, `label`, `source_idx`,
+    `record` and `r_peak`, record by record; also the steps and labels as arrays."""
+    if not all((MITDB / f"{r}.atr").exists() for r in mitbih_beats.SPLITS[split]):
+        sys.exit(
+            f"{MITDB} holds no PhysioNet records; download them first:\n"
+            "  make build-heartbeats"
+        )
+    beats = mitbih_beats.split_beats(MITDB, split)
+    steps, labels = beats["steps"], beats["label"]
+    dataset = Dataset.from_dict(
+        {
+            INPUT_COL: list(steps),
+            "label": labels.tolist(),
+            "source_idx": list(range(len(labels))),
+            "record": beats["record"].tolist(),
+            "r_peak": beats["r_peak"].tolist(),
+        }
+    )
+    return dataset, steps, labels
+
+
 def check_cache(folder: Path, steps: np.ndarray, labels: np.ndarray) -> None:
     """Exit unless every beat and label in the cache at `folder` equals its source row."""
     dataset = VectorCache.load(folder).dataset
@@ -159,10 +187,15 @@ def main() -> None:
 
     vectorizer = RawSequenceVectorizer()
     for tag in args.dataset or DATASETS:
-        for split, filename in DATASETS[tag].items():
-            dataset, steps, labels = read_split(SOURCE / filename)
+        for split, source in DATASETS[tag].items():
+            if isinstance(source, str):
+                dataset, steps, labels = read_split(SOURCE / source)
+                origin = source
+            else:
+                dataset, steps, labels = read_mitbih(split)
+                origin = f"{len(source)} PhysioNet records"
             name = f"{tag}_{split}_{vectorizer.model_name}"
-            print(f"building {name}: {len(dataset)} rows from {filename}")
+            print(f"building {name}: {len(dataset)} rows from {origin}")
             start = time.time()
             cache = VectorCache.create(
                 cache_dir=ARTEFACTS,
