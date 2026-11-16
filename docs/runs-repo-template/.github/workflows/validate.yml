@@ -127,7 +127,7 @@ jobs:
               continue
             fi
             mode=$(git ls-tree "$HEAD_SHA" -- "$path" | cut -d' ' -f1)
-            size=$(git cat-file -s "$HEAD_SHA:$path")
+            size=$(git cat-file -s "$HEAD_SHA:$path" 2>/dev/null || echo 0)
             if [ "$size" -gt 2000000 ]; then
               rm -f -- "$path"
               echo "$path: $size bytes, limit 2000000" >> ../blob-problems.txt
