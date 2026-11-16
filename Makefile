@@ -33,8 +33,10 @@ ENCODERS ?= facebook/dinov2-base facebook/dinov2-large
 #   make share LESSON=1                    # submit your runs as a pull request
 #   make share LESSON=1 ARGS=--list        # show what would be submitted, change nothing
 #   make dashboard LESSON=1                # the class's runs: the class page, and optuna-dashboard on them
+#   make dashboard LESSON=2 METRIC=recall/F  # the class page read on another logged metric
 
 LESSON ?=
+METRIC ?=
 
 check-lesson:
 	@test -n "$(LESSON)" || { echo "name the lesson: make $(MAKECMDGOALS) LESSON=<N>"; exit 2; }
@@ -49,7 +51,7 @@ share: check-lesson
 	uv run scripts/submit_runs.py --lesson $(LESSON) $(ARGS)
 
 dashboard: check-lesson
-	uv run scripts/class_analysis.py --lesson $(LESSON) --open
+	uv run scripts/class_analysis.py --lesson $(LESSON) --open $(if $(METRIC),--metric $(METRIC))
 	uv run scripts/collect_runs.py --lesson $(LESSON) --no-pull --ui $(ARGS)
 
 # The Optuna studies of notebooks/1_pytorch_intro/05_exercises.ipynb, in
@@ -67,20 +69,26 @@ optuna-dashboard:
 	uv run optuna-dashboard sqlite:///$(OPTUNA_DIR)/studies.db \
 		--artifact-dir $(OPTUNA_DIR)/artifacts --port $(OPTUNA_PORT) $(ARGS)
 
-# Your study over a design of your own: notebooks/1_pytorch_intro/exercises/readme.html.
-# Part 1 of 05_exercises.ipynb runs first; it measures what one trial costs here.
+# Your study over a design of your own: notebooks/<lesson>/exercises/readme.html. Part 1
+# of the lesson's exercise notebook runs first; it measures what one trial costs here.
+#
+#   make study            # lesson 1
+#   make study LESSON=2
+
+STUDY_SCRIPT = $(wildcard notebooks/$(or $(LESSON),1)_*/exercises/study.py)
 
 study:
-	uv run notebooks/1_pytorch_intro/exercises/study.py
+	@test -n "$(STUDY_SCRIPT)" || { echo "lesson $(or $(LESSON),1) has no exercises/study.py"; exit 2; }
+	uv run $(STUDY_SCRIPT)
 
 # newest artefact folder matching a glob, or empty
 latest = $(shell ls -dt artefacts/$(1) 2>/dev/null | head -1)
 
 help:
 	@echo "targets:"
-	@echo "  study                 run your study over your design (notebooks/1_pytorch_intro/exercises)"
+	@echo "  study [LESSON=<N>]    run your study over your design (notebooks/<N>_*/exercises; lesson 1 by default)"
 	@echo "  share LESSON=<N>      submit your runs of lesson N (ARGS=--list to preview)"
-	@echo "  dashboard LESSON=<N>  open the class page of lesson N, and optuna-dashboard on the class's runs"
+	@echo "  dashboard LESSON=<N>  open the class page of lesson N, and optuna-dashboard on the class's runs (METRIC=<name> to read another metric)"
 	@echo "  optuna-dashboard      open optuna-dashboard on your Optuna studies (05_exercises)"
 	@echo "  list-caches      show the artefact folders these targets would pick"
 	@echo "  publish-fashion  fashion-mnist x \$$ENCODER  (default: $(ENCODER))"

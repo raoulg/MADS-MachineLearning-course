@@ -10,8 +10,10 @@ show the student what will be submitted, and handle the errors described below.
 ## What you are submitting
 
 Each lesson's notebooks log their runs to the student's local Optuna store,
-`artefacts/optuna/studies.db`, through `notebooks/1_pytorch_intro/optunalog.py`: a run is
-one trial of a study, and every trial carries a `run_id`. The lesson's exercise logs to
+`artefacts/optuna/studies.db`, through `hpo.optunalog` (the course's package `hpo`): a
+run is one trial of a study, every trial carries a `run_id`, and every run logs every
+metric (accuracy, macro recall, and recall, precision and F1 per class). A study names
+its objective, the metric that is its trials' value; accuracy by default. The lesson's exercise logs to
 studies whose names start with `lesson<N>-notebook` (the part of the exercise as handed
 out: `lesson1-notebook` for its search, `lesson1-notebook-runs` for the baseline, the
 winner and the ablation) and `lesson<N>-study` (the student's own study:
@@ -23,7 +25,7 @@ lesson's other notebooks log to studies of their own (`lesson1-search`,
 holding its params with their distributions, its value and its value per epoch (or per
 repeat), its attrs, the attrs of its study, and its architecture and design script, at
 `lesson<N>/<github-login>/<run_id>.json`. No model weights and no data are submitted. A
-trial without a `run_id` was not logged through `optunalog`; it is skipped, with one line
+trial without a `run_id` was not logged through `hpo.optunalog`; it is skipped, with one line
 saying how many.
 
 The files reach the class runs repository through a pull request from the student's own
@@ -87,7 +89,8 @@ uv run scripts/submit_runs.py --lesson <N> --student <login> --list
 This changes nothing. Show the student the list: one line per run, with its study, its
 role (baseline, trial, final, ablation, hypothesis), its name and its outcome; a run
 repeated a few times shows as `accuracy=<mean> ± <spread between runs> (n=<repeats>)`, a
-trial of a search as `accuracy=<value>`, a pruned trial as `pruned after <n> epochs`. By
+trial of a search as `accuracy=<value>` (the metric named is the study's objective, for
+example `macro_recall=<value>`), a pruned trial as `pruned after <n> epochs`. By
 default every finished or pruned trial of the studies `lesson<N>-notebook*` and
 `lesson<N>-study*` is included. Trials made while the notebook tester runs go to a store
 of their own, `artefacts/optuna/test.db`, which is never read. That default is what the
@@ -172,7 +175,7 @@ optuna-dashboard and pass it to `log_run`; the student names the run, you do not
 for them:
 
 ```python
-log_run("deeper-head", "final", scores={"accuracy": per_repeat},
+log_run("deeper-head", "final", metrics=per_repeat,
         builds_on="lesson1/bob/0f3c...", design="my_design.py")
 ```
 
@@ -236,7 +239,7 @@ from the class, and is left out with one line saying so.
 | `no Optuna store at ...` | The lesson's exercise notebook has not run yet in this checkout, or `--store` names a file that does not exist. |
 | `skipped run <id> (<name>), it does not fit the submission format: ...` | That run is left out and the others are submitted. The message says what the format does not accept; tell the student, and do not work around it. Fix the cause in the notebook, run it again, and submit again. |
 | `not submitted: N run(s) imported from the class repository` | Not an error: trials imported by `collect_runs.py` ended up in the student's store (for example with `--store` pointing at `class.db`). They are a classmate's runs and are left out; the student's own runs are submitted. |
-| `not submitted: N trial(s) without a run_id` | Not an error: those trials were not logged through `optunalog`, so they have no id to submit under. Running the notebook again logs them with one. |
+| `not submitted: N trial(s) without a run_id` | Not an error: those trials were not logged through `hpo.optunalog`, so they have no id to submit under. Running the notebook again logs them with one. |
 | `... has no upstream/main` | `collect_runs.py` with `--no-pull` on a clone that never fetched; leave out `--no-pull`. |
 
 The check's comment on the pull request names each file with one of these problems:
@@ -251,7 +254,10 @@ The check's comment on the pull request names each file with one of these proble
 | `not a regular file (mode ...)` | The branch holds a link or something else instead of a file. Submit again with the script. |
 | `builds on the idea <name>, which is not in the class repository` | The study's idea names a parent nobody has published. Check the name against the class page; if it is the student's own earlier idea, submit that study too (`--experiment`), in the same pull request. |
 | `the name <name> already stands for another idea` | Two different ideas got the same readable name. Change a word of the idea, give the study another name, and run it again. |
-| `study attr 'idea_author' is ...` | The idea names another author than the submitter. Run the study again from the student's own notebook; `artefacts/optuna/login` holds the login `optunalog` uses. |
+| `study attr 'idea_author' is ...` | The idea names another author than the submitter. Run the study again from the student's own notebook; `artefacts/optuna/login` holds the login `hpo.optunalog` uses. |
+| `attr 'metrics': unknown metrics ...`, `... is a number between 0 and 1`, `... a class name is ...` | The run's metrics were not written by `hpo.metrics`, or a class name holds characters the format does not accept. Log the run again through `hpo.exercise.train` and `log_run(..., metrics=...)`; do not edit by hand. |
+| `study attr 'objective': ... is not one of ('accuracy', 'macro_recall')` | The study names an objective that is no scalar metric. Run the study again with `objective="accuracy"` or `"macro_recall"`. |
+| `the value ... is not the objective ... the attr 'metrics' logs` | The trial's value and its metrics disagree. Run it again; do not edit by hand. |
 | `study attr 'idea_id' is not the id ...`, `'idea_name' is not the name ...` | The idea's attrs were changed after the study was made. Run the study again; do not edit by hand. |
 | `param '<x>' is not a value of the distribution it names`, `... is a finite number`, `nested too deep`, `a key is there twice` | A run Optuna could not have written. Run it again from the notebook; do not edit by hand. |
 | `the change touches N files, more than 200` | Too much in one pull request. Submit per study (`--experiment`), one pull request at a time. |

@@ -61,7 +61,6 @@ BASE = "main"
 # collect_runs.py writes these on every trial it imports from the class repository.
 IMPORTED_ATTRS = ("submission_ref", "source_run_id")
 GITHUB_REMOTE = re.compile(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/*$")
-SPREAD_ATTRS = ("accuracy_std", "n_repeats")
 
 
 def git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
@@ -311,14 +310,16 @@ def to_submission(
 
 def summarize(found: Found, limit: int = 4) -> str:
     """`accuracy=0.81 ± 0.012 (n=5), n_params=1000` for a run scored over repeats,
-    `accuracy=0.81` for a trial, `pruned after 5 epochs` for a pruned one."""
+    `macro_recall=0.62` for a trial of a study on macro recall, `pruned after 5 epochs`
+    for a pruned one. The metric named is the study's objective."""
     attrs = found.trial.user_attrs
     if found.trial.state == TrialState.PRUNED:
         return f"pruned after {len(found.trial.intermediate_values)} epochs"
     shown = []
     if found.trial.value is not None:
-        text = f"accuracy={found.trial.value:.4g}"
-        std, n = attrs.get("accuracy_std"), attrs.get("n_repeats")
+        objective = found.study_attrs.get("objective", "accuracy")
+        text = f"{objective}={found.trial.value:.4g}"
+        std, n = attrs.get(f"{objective}_std"), attrs.get("n_repeats")
         if std is not None and n is not None:
             text += f" ± {std:.2g} (n={int(n)})"
         shown.append(text)

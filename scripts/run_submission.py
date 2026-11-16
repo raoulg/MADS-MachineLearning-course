@@ -11,6 +11,12 @@ and the value after every epoch, its user attrs (role, dataset, architecture, ..
 user attrs of its study (the search space), small text/JSON artifacts (the architecture,
 the design script `design.py`), and where the code came from. Schema `mads-run/2`.
 
+A run logs every metric of `hpo.metrics` in the user attrs `metrics` (the value after the
+last epoch, or the mean over the repeats) and `metrics_std` (the spread over the
+repeats). Its study names its objective, the metric that is the trial's value, in the
+study attr `objective`. A run without `metrics` logs its value only, and a study without
+`objective` is on accuracy.
+
 This module depends on pydantic and the standard library only, so the runs repository's
 CI can validate a push or a pull request without installing Optuna:
 
@@ -73,6 +79,17 @@ DISTRIBUTIONS = {
     "IntDistribution": {"low", "high", "log", "step"},
     "CategoricalDistribution": {"choices"},
 }
+
+
+# The metrics a run logs, as hpo.metrics computes them: one value for the whole test set,
+# and one value per class. A study's objective is one of the scalars.
+SCALAR_METRICS = ("accuracy", "macro_recall")
+PER_CLASS_METRICS = ("recall", "precision", "f1")
+OBJECTIVES = SCALAR_METRICS
+DEFAULT_OBJECTIVE = "accuracy"
+CLASS_NAME = re.compile(r"[\w\-. ]{1,64}", re.ASCII)
+# How far a trial's value may lie from its objective in `metrics`: both are rounded.
+VALUE_TOLERANCE = 1e-4
 
 
 # An idea: what a study investigates, in a few words. Its id is a hash of its author,
@@ -220,6 +237,52 @@ def check_idea(attrs: dict[str, Any]) -> None:
         raise ValueError("study attr 'idea_parents' names this idea itself")
 
 
+def check_metrics(key: str, metrics: Any, spread: bool = False) -> None:
+    """The user attr `metrics` (or, with `spread`, `metrics_std`): the scalar metrics as
+    numbers, the metrics per class as a mapping of class name to number; a metric is
+    between 0 and 1, a spread at least 0."""
+    if not isinstance(metrics, dict):
+        raise ValueError(f"attr {key!r} is a mapping of metric to value")  # noqa: TRY004
+    known = (*SCALAR_METRICS, *PER_CLASS_METRICS)
+    unknown = sorted(set(metrics) - set(known))
+    if unknown:
+        raise ValueError(f"attr {key!r}: unknown metrics {unknown}; known are {known}")
+
+    def number(name: str, value: Any) -> None:
+        if not is_number(value) or value < 0 or (not spread and value > 1):
+            bound = "at least 0" if spread else "between 0 and 1"
+            raise ValueError(f"attr {key!r}: {name} is a number {bound}")
+
+    for name in SCALAR_METRICS:
+        if name in metrics:
+            number(name, metrics[name])
+    for name in PER_CLASS_METRICS:
+        if name not in metrics:
+            continue
+        per_class = metrics[name]
+        if not isinstance(per_class, dict):
+            raise ValueError(f"attr {key!r}: {name} is a mapping of class to value")  # noqa: TRY004
+        for cls, value in per_class.items():
+            if not isinstance(cls, str) or not CLASS_NAME.fullmatch(cls):
+                raise ValueError(
+                    f"attr {key!r}: {name} has the class {str(cls)[:64]!r}; a class "
+                    "name is at most 64 letters, digits, _ - . and spaces"
+                )
+            number(f"{name}/{cls}", value)
+
+
+def lookup(metrics: dict[str, Any], name: str) -> float | None:
+    """One metric out of the attr `metrics` or `metrics_std`: a scalar (`macro_recall`)
+    or one class of a metric per class (`recall/F`); None when it is not there."""
+    head, _, cls = name.partition("/")
+    found: Any = metrics.get(head)
+    if cls:
+        found = found.get(cls) if isinstance(found, dict) else None
+    elif isinstance(found, dict):
+        return None
+    return float(found) if isinstance(found, int | float) and is_number(found) else None
+
+
 def is_number(value: Any, integer: bool = False) -> bool:
     """A finite number that sqlite and a plot can hold; with `integer`, a whole one."""
     if isinstance(value, bool) or not isinstance(value, int | float):
@@ -348,6 +411,11 @@ class StudyInfo(BaseModel):
         check_keys("study attr", v)
         check_json_size("study attr", v)
         check_idea(v)
+        objective = v.get("objective", DEFAULT_OBJECTIVE)
+        if objective not in OBJECTIVES:
+            raise ValueError(
+                f"study attr 'objective': {str(objective)[:40]!r} is not one of {OBJECTIVES}"
+            )
         return v
 
 
@@ -405,6 +473,10 @@ class Run(BaseModel):
     def _attrs(cls, v: dict[str, Any]) -> dict[str, Any]:
         check_keys("attr", v)
         check_json_size("attr", v)
+        if "metrics" in v:
+            check_metrics("metrics", v["metrics"])
+        if "metrics_std" in v:
+            check_metrics("metrics_std", v["metrics_std"], spread=True)
         for ref in builds_on(v):
             if not SUBMISSION_REF.fullmatch(ref):
                 raise ValueError(
@@ -428,6 +500,18 @@ class Run(BaseModel):
                 )
         if HANDED_OUT.fullmatch(self.experiment) and self.study.direction != "maximize":
             raise ValueError("a handed-out study maximizes")
+        objective = self.study.attrs.get("objective", DEFAULT_OBJECTIVE)
+        logged = self.attrs.get("metrics", {}).get(objective)
+        if (
+            self.status == "COMPLETE"
+            and self.value is not None
+            and logged is not None
+            and abs(self.value - logged) > VALUE_TOLERANCE
+        ):
+            raise ValueError(
+                f"the value {self.value:.5g} is not the objective {objective} "
+                f"{logged:.5g} the attr 'metrics' logs"
+            )
         return self
 
     @field_validator("artifacts")
@@ -505,6 +589,43 @@ class Submission(BaseModel):
         if "idea_name" not in attrs:
             return None
         return attrs["idea_name"], attrs["idea_id"], idea_parents(attrs["idea_parents"])
+
+    def objective(self) -> str:
+        """The metric that is this run's value: its study's objective."""
+        return self.run.study.attrs.get("objective", DEFAULT_OBJECTIVE)
+
+    def metric(self, name: str) -> float | None:
+        """One metric of this run: a scalar (`macro_recall`) or one class of a metric per
+        class (`recall/F`). Read from the attr `metrics`; for a run without it, the
+        value stands for its objective. None when the run does not log it."""
+        logged = self.run.attrs.get("metrics")
+        if isinstance(logged, dict):
+            return lookup(logged, name)
+        if name == self.objective() and self.run.value is not None:
+            return float(self.run.value)
+        return None
+
+    def spread(self, name: str) -> float | None:
+        """The spread over the repeats of one metric, as `metric` names it; None for a
+        run that was not repeated or does not log it."""
+        logged = self.run.attrs.get("metrics_std")
+        if isinstance(logged, dict):
+            return lookup(logged, name)
+        found = self.run.attrs.get(f"{name}_std")
+        if "/" in name or not isinstance(found, int | float) or not is_number(found):
+            return None
+        return float(found)
+
+    def metric_names(self) -> list[str]:
+        """Every metric this run logs, as `metric` names them."""
+        logged = self.run.attrs.get("metrics")
+        if not isinstance(logged, dict):
+            return [self.objective()] if self.run.value is not None else []
+        names = [m for m in SCALAR_METRICS if m in logged]
+        for m in PER_CLASS_METRICS:
+            if isinstance(logged.get(m), dict):
+                names += [f"{m}/{cls}" for cls in logged[m]]
+        return names
 
     def ref(self) -> str:
         """The submission_ref: where the file sits, without `.json`."""

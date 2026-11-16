@@ -531,3 +531,72 @@ def test_a_newline_in_a_key_stays_on_its_line(tmp_path, submission):
     key = "x\n::warning::injected"
     problems = invalid(tmp_path, submission("alice"), params={key: [1]})
     assert problems and all("\n" not in p for p in problems)
+
+
+def with_metrics(s, metrics, objective=None, value=None, std=None):
+    attrs = {**s.run.attrs, "metrics": metrics}
+    if std is not None:
+        attrs["metrics_std"] = std
+    study_attrs = {**s.run.study.attrs}
+    if objective is not None:
+        study_attrs["objective"] = objective
+    study = s.run.study.model_copy(update={"attrs": study_attrs})
+    run = s.run.model_copy(
+        update={
+            "attrs": attrs,
+            "study": study,
+            "value": s.run.value if value is None else value,
+        }
+    )
+    return Submission.model_validate(
+        s.model_copy(update={"run": run}).model_dump(by_alias=True)
+    )
+
+
+METRICS = {
+    "accuracy": 0.9,
+    "macro_recall": 0.5,
+    "recall": {"N": 1.0, "F": 0.0},
+    "precision": {"N": 0.9, "F": 0.0},
+    "f1": {"N": 0.95, "F": 0.0},
+}
+
+
+def test_a_run_on_macro_recall_names_its_objective_and_reads_every_metric(submission):
+    s = with_metrics(submission("alice"), METRICS, objective="macro_recall", value=0.5)
+    assert s.objective() == "macro_recall"
+    assert s.metric("accuracy") == 0.9
+    assert s.metric("recall/F") == 0.0
+    assert s.metric("recall/Q") is None
+    assert "recall/F" in s.metric_names()
+
+
+def test_a_run_without_metrics_is_on_accuracy(submission):
+    s = submission("alice")
+    assert s.objective() == "accuracy"
+    assert s.metric("accuracy") == s.run.value
+    assert s.metric("macro_recall") is None
+
+
+@pytest.mark.parametrize(
+    "metrics, objective, value, problem",
+    [
+        ({**METRICS, "loss": 0.3}, None, 0.9, "unknown metrics"),
+        ({**METRICS, "accuracy": 1.5}, None, 1.5, "between 0 and 1"),
+        ({**METRICS, "recall": {"<b>": 0.5}}, None, 0.9, "class name"),
+        ({**METRICS, "recall": [0.5]}, None, 0.9, "mapping of class"),
+        (METRICS, "loss", 0.9, "'objective'"),
+        (METRICS, "macro_recall", 0.9, "is not the objective macro_recall"),
+    ],
+)
+def test_the_check_refuses_metrics_it_cannot_read(
+    submission, metrics, objective, value, problem
+):
+    with pytest.raises(ValidationError, match=problem):
+        with_metrics(submission("alice"), metrics, objective=objective, value=value)
+
+
+def test_a_spread_is_at_least_zero(submission):
+    std = {**METRICS, "accuracy": -0.1}
+    with pytest.raises(ValidationError, match="at least 0"):
+        with_metrics(submission("alice"), METRICS, value=0.9, std=std)

@@ -1,4 +1,4 @@
-"""Keep the runs of the exercise in Optuna, and read them in optuna-dashboard.
+"""Keep the runs of every lesson's exercise in Optuna, and read them in optuna-dashboard.
 
 Optuna stores studies; a study holds trials; a trial holds the params it drew, one value
 per epoch, its final value and free-form user attrs. This module writes the exercise's
@@ -6,10 +6,15 @@ runs in that shape, to one sqlite file, `artefacts/optuna/studies.db` at the roo
 course repository:
 
 - a search is a study (`search_study`): every trial draws its params from the search
-  space (`draw`) and reports its accuracy per epoch, so a pruner can stop it early;
+  space (`draw`) and reports its objective per epoch, so a pruner can stop it early;
 - a run that is not a draw from a space (a baseline, an ablation, a winner rerun) is a
   trial in a second study (`use_study` + `log_run`), with the params it was given and
   one value per repeat.
+
+A study names its objective: the one metric of `hpo.metrics.OBJECTIVES` (`accuracy`,
+`macro_recall`) that is the value of its trials and that its search maximises. Accuracy
+is the default. Every run logs all the metrics regardless (`metrics`, `metrics_std`), so a
+question about another metric is answered by runs already made.
 
 A study carries an idea (`idea`): what it investigates in a few words, who its author is
 and which ideas of the class it builds on. The idea's id is a hash of those three, and
@@ -55,8 +60,10 @@ from optuna.distributions import (
 from optuna_dashboard import save_note
 from torchinfo import summary
 
+from hpo.metrics import OBJECTIVES, SCALARS, summarise
+
 # The idea's recipe has one source, the format of a submitted run.
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from run_submission import (  # ty: ignore[import-not-found]
     COURSE,
     IDEA_ATTRS,
@@ -98,7 +105,7 @@ SESSION = time.strftime("%Y-%m-%d %H:%M:%S")
 MAX_DESIGN_BYTES = 256_000
 
 TESTING = bool(os.environ.get("NOTEBOOKTESTER_RUNNING"))
-ROOT = Path(__file__).resolve().parents[2] / "artefacts" / "optuna"
+ROOT = Path(__file__).resolve().parents[1] / "artefacts" / "optuna"
 STORE = ROOT / ("test.db" if TESTING else "studies.db")
 ARTIFACTS = ROOT / ("test-artifacts" if TESTING else "artifacts")
 
@@ -313,12 +320,22 @@ def handed_out(lesson: int) -> dict[str, str]:
 
 
 def _other(
-    study: optuna.Study, idea: Mapping[str, str] | None, space: str | None = None
+    study: optuna.Study,
+    idea: Mapping[str, str] | None,
+    space: str | None = None,
+    objective: str = "accuracy",
 ) -> str | None:
-    """Why `study` cannot take `idea` and the search space `space` (as `space_line`
-    writes it), or None when it can. A study holds one idea and the trials of one
-    space."""
+    """Why `study` cannot take `idea`, the search space `space` (as `space_line` writes
+    it) and `objective`, or None when it can. A study holds one idea, the trials of one
+    space and one objective."""
     attrs = study.user_attrs
+    held_objective = attrs.get("objective", "accuracy")
+    if held_objective != objective and study.trials:
+        return (
+            f"the study {study.study_name!r} holds trials on the objective "
+            f"{held_objective!r}, not {objective!r}: values on two metrics cannot be "
+            "read on one axis, so give the study with this objective another name"
+        )
     held = attrs.get("idea_id")
     if idea is not None and held is not None and held != idea["idea_id"]:
         return (
@@ -343,18 +360,24 @@ def _open(
     name: str,
     idea: Mapping[str, str] | None,
     space: str | None = None,
+    objective: str = "accuracy",
     **kwargs: Any,
 ) -> optuna.Study:
-    """The study `name`, carrying `idea`. A study that holds another idea, or trials of
-    another space, raises a `ValueError`; under notebooktester it is started again, since
-    the tester's store only says whether the code runs."""
+    """The study `name`, carrying `idea` and maximising `objective`. A study that holds
+    another idea, trials of another space or of another objective raises a `ValueError`;
+    under notebooktester it is started again, since the tester's store only says whether
+    the code runs."""
+    if objective not in OBJECTIVES:
+        raise ValueError(f"objective must be one of {OBJECTIVES}, got {objective!r}")
     study = _study(name, **kwargs)
-    problem = _other(study, idea, space)
+    problem = _other(study, idea, space, objective)
     if problem is not None:
         if not TESTING:
             raise ValueError(problem)
         optuna.delete_study(study_name=name, storage=storage())
         study = _study(name, **kwargs)
+    study.set_metric_names([objective])
+    study.set_user_attr("objective", objective)
     if idea is not None:
         for key in IDEA_ATTRS:
             study.set_user_attr(key, idea[key])
@@ -369,30 +392,21 @@ def budget(
     repeats: int = 3,
     reruns: int = 2,
     space: Mapping[str, Any] | None = None,
+    seconds_per_trial: float | None = None,
 ) -> dict[str, Any]:
     """What `minutes` of your time buys on this machine, as the study attr `budget`.
 
-    One trial costs what the finished trials of the study `like` took here (the median,
-    from start to end), scaled to `epochs` when those trials say how many epochs they
-    ran. `reruns` runs of `repeats` repeats each are set aside first (the baseline and
-    the winner); the rest is `n_trials`. With `space`, `trials_per_axis` is `n_trials`
-    over the axes it searches: how thin the search is spread."""
-    names = optuna.get_all_study_names(storage())
-    if like not in names:
-        raise ValueError(f"budget: no study {like!r} in the store; run it first")
-    done = [
-        t
-        for t in optuna.load_study(study_name=like, storage=storage()).trials
-        if t.state == optuna.trial.TrialState.COMPLETE
-    ]
-    took = [t.duration.total_seconds() for t in done if t.duration is not None]
-    if not took:
-        raise ValueError(f"budget: the study {like!r} has no finished trial yet")
-    seconds = statistics.median(took)
-    ran = [t.user_attrs.get("config", {}).get("epochs") for t in done]
-    ran = [e for e in ran if isinstance(e, int) and e > 0]
-    if epochs is not None and ran:
-        seconds *= epochs / statistics.median(ran)
+    One trial costs what the finished trials of the search study `like` took here (the
+    median, from start to end), scaled to `epochs` when those trials say how many epochs
+    they ran (`draw` writes it in the user attr `config`). `seconds_per_trial` gives that
+    cost directly instead, and `like` is then only named in the attr. `reruns` runs of
+    `repeats` repeats each are set aside first (the baseline and the winner); the rest is
+    `n_trials`. With `space`, `trials_per_axis` is `n_trials` over the axes it searches:
+    how thin the search is spread."""
+    if seconds_per_trial is not None:
+        seconds = float(seconds_per_trial)
+    else:
+        seconds = _measured(like, epochs)
     seconds = max(seconds, 1e-3)
     n_trials = max(0, int(minutes * 60 / seconds) - reruns * repeats)
     out: dict[str, Any] = {
@@ -412,6 +426,28 @@ def budget(
     return out
 
 
+def _measured(like: str, epochs: int | None) -> float:
+    """The median seconds a finished trial of the study `like` took, scaled to
+    `epochs`."""
+    names = optuna.get_all_study_names(storage())
+    if like not in names:
+        raise ValueError(f"budget: no study {like!r} in the store; run it first")
+    done = [
+        t
+        for t in optuna.load_study(study_name=like, storage=storage()).trials
+        if t.state == optuna.trial.TrialState.COMPLETE
+    ]
+    took = [t.duration.total_seconds() for t in done if t.duration is not None]
+    if not took:
+        raise ValueError(f"budget: the study {like!r} has no finished trial yet")
+    seconds = statistics.median(took)
+    ran = [t.user_attrs.get("config", {}).get("epochs") for t in done]
+    ran = [e for e in ran if isinstance(e, int) and e > 0]
+    if epochs is not None and ran:
+        seconds *= epochs / statistics.median(ran)
+    return seconds
+
+
 def storage() -> str:
     """The sqlite URL of the store; its folder is created on first use."""
     ROOT.mkdir(parents=True, exist_ok=True)
@@ -426,7 +462,6 @@ def _study(name: str, **kwargs: Any) -> optuna.Study:
         load_if_exists=True,
         **kwargs,
     )
-    study.set_metric_names(["accuracy"])
     return study
 
 
@@ -465,21 +500,23 @@ def search_study(
     pruner: optuna.pruners.BasePruner | None = None,
     attrs: Mapping[str, Any] | None = None,
     idea: Mapping[str, str] | None = None,
+    objective: str = "accuracy",
 ) -> optuna.Study:
     """The study `name` in the store, made if it does not exist yet, that maximises
-    accuracy over `space`.
+    `objective` (a metric of `hpo.metrics.OBJECTIVES`) over `space`.
 
     `sampler=None` draws every trial at random and independently; `pruner=None` lets
     every trial run to its last epoch. The study carries its space as user attrs
     (`search_space`, `searched_axes`) next to whatever `attrs` holds, and its `idea`
-    (see `idea`). A study that exists already gets the new trials added to it; `session`
-    tells the executions apart. A study that holds another idea, or trials of another
-    space, raises a `ValueError`.
+    (see `idea`) and `objective`. A study that exists already gets the new trials added
+    to it; `session` tells the executions apart. A study that holds another idea, trials
+    of another space or another objective raises a `ValueError`.
     """
     study = _open(
         name,
         idea,
         space_line(space),
+        objective,
         sampler=sampler or optuna.samplers.RandomSampler(),
         pruner=pruner or optuna.pruners.NopPruner(),
     )
@@ -525,13 +562,16 @@ def record(
     attrs: Mapping[str, Any] | None = None,
     builds_on: str | Sequence[str] | None = None,
     design: str | Path | None = None,
+    metrics: Mapping[str, Any] | None = None,
 ) -> None:
     """Write on `trial` what the class run protocol asks of a run.
 
     User attrs: `run_id` (32 hex characters, the id a classmate's `builds_on` and the
     class view's `submission_ref` name; made once), `role`, `session`, `dataset`,
-    `train_seconds`, one list per entry of `curves` (per epoch; the accuracy per epoch is
-    the trial's own intermediate value), everything in `attrs`, and with `model` +
+    `train_seconds`, one list per entry of `curves` (per epoch: the losses, and the scalar
+    metrics under their own names; the objective per epoch is also the trial's own
+    intermediate value), `metrics` (every metric at the end, as `hpo.metrics.scores`
+    gives it), everything in `attrs`, and with `model` +
     `example` the model's `n_params` and one-line `architecture`. The layer table of the
     model becomes the trial's note and the artifact `architecture.json`.
 
@@ -559,6 +599,8 @@ def record(
         trial.set_user_attr("train_seconds", round(float(train_seconds), 3))
     for name, values in (curves or {}).items():
         trial.set_user_attr(name, [round(float(v), 5) for v in values])
+    if metrics is not None:
+        trial.set_user_attr("metrics", _rounded(metrics))
     for key, value in (attrs or {}).items():
         trial.set_user_attr(key, value)
 
@@ -587,12 +629,21 @@ def record(
             )
 
 
-def use_study(name: str, idea: Mapping[str, str] | None = None) -> optuna.Study:
+def _rounded(metrics: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        k: _rounded(v) if isinstance(v, Mapping) else round(float(v), 5)
+        for k, v in metrics.items()
+    }
+
+
+def use_study(
+    name: str, idea: Mapping[str, str] | None = None, objective: str = "accuracy"
+) -> optuna.Study:
     """Select the study `log_run` writes to, made if it does not exist yet. With `idea`
-    (see `idea`) the study carries it; a study that holds another idea raises a
-    `ValueError`."""
+    (see `idea`) the study carries it; the value of its trials is `objective`. A study
+    that holds another idea or another objective raises a `ValueError`."""
     global _current
-    _current = _open(name, idea)
+    _current = _open(name, idea, objective=objective)
     return _current
 
 
@@ -616,7 +667,8 @@ def log_run(
     *,
     dataset: str | None = None,
     params: Mapping[str, Any] | None = None,
-    scores: Mapping[str, Sequence[float]],
+    scores: Mapping[str, Sequence[float]] | None = None,
+    metrics: Sequence[Mapping[str, Any]] | None = None,
     model: torch.nn.Module | None = None,
     example: Any = None,
     train_seconds: float | None = None,
@@ -630,9 +682,16 @@ def log_run(
 
     - `params`: the choices the run was given, each under a stable name. They are the
       trial's params, so the dashboard can put them on an axis.
-    - `scores`: `{"accuracy": [...]}`, one value per repeat. The mean is the trial's
-      value, every repeat an intermediate value (step = repeat), and the spread between
-      the repeats goes into the user attrs `accuracy_std` and `n_repeats`.
+    - `metrics`: every metric of each repeat, one dict per repeat in the shape
+      `hpo.metrics.scores` gives. Their mean goes into the user attr `metrics`, their
+      spread into `metrics_std`.
+    - `scores`: a run with scalar metrics only (`{"accuracy": [...]}`, one value per
+      repeat), for a run that has no per-class predictions, such as a nearest
+      neighbour floor. Give `metrics` or `scores`.
+    - The study's objective (its user attr `objective`) decides the value: the mean of
+      that metric over the repeats is the trial's value, every repeat an intermediate
+      value (step = repeat), and the spread goes into `<metric>_std` for every scalar
+      metric, next to `n_repeats`.
     - everything else as in `record`, `builds_on` and `design` included; `name` is the
       user attr `name`.
     """
@@ -641,7 +700,26 @@ def log_run(
         raise RuntimeError("select a study first: use_study('lesson1-notebook-runs')")
     _builds_on(builds_on)  # a bad argument raises before a trial exists
     _design_text(design)
-    values = np.asarray(scores["accuracy"], dtype=float)
+    objective = target.user_attrs.get("objective", "accuracy")
+    if (metrics is None) == (scores is None):
+        raise ValueError("log_run: give metrics (one dict per repeat) or scores")
+    summary_attrs: dict[str, Any] = {}
+    if metrics is not None:
+        mean, std = summarise(metrics)
+        per_repeat = {m: [float(r[m]) for r in metrics] for m in SCALARS if m in mean}
+        summary_attrs = {"metrics": mean, "metrics_std": std}
+    else:
+        per_repeat = {m: [float(v) for v in vs] for m, vs in (scores or {}).items()}
+    if objective not in per_repeat:
+        raise ValueError(
+            f"log_run: the study {target.study_name!r} maximises {objective!r}, which "
+            f"this run does not log (it logs {sorted(per_repeat)})"
+        )
+    values = np.asarray(per_repeat[objective], dtype=float)
+    spreads = {
+        f"{m}_std": round(float(np.asarray(vs).std()), 5)
+        for m, vs in per_repeat.items()
+    }
 
     given, distributions, loose = {}, {}, {}
     for key, value in (params or {}).items():
@@ -667,7 +745,8 @@ def log_run(
         design=design,
         attrs={
             "name": name,
-            "accuracy_std": round(float(values.std()), 5),
+            **spreads,
+            **summary_attrs,
             "n_repeats": len(values),
             **loose,
             **(attrs or {}),

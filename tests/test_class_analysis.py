@@ -294,3 +294,52 @@ def test_an_idea_searched_twice_shows_the_study_with_the_most_trials():
     df = class_analysis.runs_frame([with_idea(r, attrs) for r in runs])
     [row] = class_analysis.ideas(df, class_analysis.comparisons(df)).itertuples()
     assert (row.study, row.verdict) == ("alice-zzz", "better")
+
+
+def test_the_page_reads_any_logged_metric_and_names_it():
+    import class_demo  # ty: ignore[import-not-found]
+
+    subs = class_demo.demo_submissions()
+    names = class_analysis.metric_names(subs)
+    assert names[:2] == ["accuracy", "macro_recall"]
+    assert "recall/blotchy" in names
+    by_accuracy = class_analysis.runs_frame(subs, "accuracy")
+    by_recall = class_analysis.runs_frame(subs, "macro_recall")
+    assert (by_recall.score < by_accuracy.score).all()
+    page = class_analysis.build_page(by_recall, 1, "", "macro_recall", names)
+    assert "handed-out baseline, macro_recall" in page
+    assert "Every figure reads macro_recall" in page
+
+
+def test_the_page_reads_the_objective_most_studies_search():
+    s = sub("alice", "lesson2-study-a-runs", "final", "final", 0.5)
+    on_recall = s.model_copy(
+        update={
+            "run": s.run.model_copy(
+                update={
+                    "study": s.run.study.model_copy(
+                        update={"attrs": {"objective": "macro_recall"}}
+                    )
+                }
+            )
+        }
+    )
+    assert class_analysis.page_metric([on_recall, on_recall, s]) == "macro_recall"
+    assert class_analysis.page_metric([]) == "accuracy"
+
+
+def test_a_run_without_the_metric_has_no_score():
+    old = sub("alice", "lesson1-study-a-runs", "final", "final", 0.8)
+    df = class_analysis.runs_frame([old], "macro_recall")
+    assert df.score.isna().all()
+
+
+def test_a_parent_of_another_lesson_is_named_with_its_lesson():
+    s = with_idea(
+        sub("bram", "lesson2-study-b-runs", "final", "final", 0.5, lesson=2),
+        idea_attrs("bram", "a gate on beats", ["blissful-bee-18"]),
+    )
+    df = class_analysis.runs_frame([s])
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    page = class_analysis.ideas_note(ids, {"blissful-bee-18": 1})
+    assert "an idea of lesson 1" in page

@@ -164,7 +164,7 @@ class ClassStore:
                 storage=self.url,
                 direction=sub.run.study.direction,
             )
-            study.set_metric_names(["accuracy"])
+            study.set_metric_names([sub.objective()])
             for key, value in sub.run.study.attrs.items():
                 study.set_user_attr(key, value)
             study.set_user_attr("pooled", name == sub.run.experiment)

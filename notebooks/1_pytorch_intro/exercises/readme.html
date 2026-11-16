@@ -136,14 +136,14 @@ svg marker.g path{fill:var(--course-green)}
 </li>
 <li class="step p2" id="step-3">
   <h3><span>3</span>Baseline</h3>
-  <p>The linear head, repeated, so you know its spread between runs. <code>study.py</code> takes Part 1's when the dataset, the encoder and the epochs match, and measures it otherwise.</p>
+  <p>The linear head, repeated, so you know its spread between runs. <code>study.py</code> measures it on every dataset your space can draw, before the search.</p>
   <div class="where">study.py · 05_exercises.ipynb Part 1</div>
   <div class="goals">goal <a href="../../../presentations/leerdoelen-les1.html#g1-13">1.13</a></div>
 </li>
 <li class="step p2" id="step-4">
   <h3><span>4</span>Budget and space</h3>
   <p>Your minutes on your machine become trials. Choose the axes those trials can cover; every option of the design is an axis, searched or fixed. Say in <code>EXPECTS</code> what you expect, and why, before you run.</p>
-  <div class="where">study.py: STUDY · IDEA · EXPECTS · SPACE · MINUTES</div>
+  <div class="where">study.py: STUDY · IDEA · EXPECTS · OBJECTIVE · SPACE · MINUTES</div>
   <div class="goals">goal <a href="../../../presentations/leerdoelen-les1.html#g1-14">1.14</a></div>
 </li>
 <li class="step p2" id="step-5">
@@ -154,7 +154,7 @@ svg marker.g path{fill:var(--course-green)}
 </li>
 <li class="step p2" id="step-6">
   <h3><span>6</span>Read</h3>
-  <p>Per axis: what each did to accuracy and to <code>train_seconds</code>. The winner in sigmas against the baseline: inside about two, the difference is not a result, whatever its sign.</p>
+  <p>Per axis: what each did to your objective and to <code>train_seconds</code>. Every run also logs the other metrics (accuracy, macro recall, and recall, precision and F1 per class), for a question you ask later. The winner in sigmas against the baseline: inside about two, the difference is not a result, whatever its sign.</p>
   <div class="where">make optuna-dashboard</div>
   <div class="goals">goal <a href="../../../presentations/leerdoelen-les1.html#g1-10">1.10</a></div>
 </li>
@@ -175,8 +175,8 @@ svg marker.g path{fill:var(--course-green)}
 <h2>The files</h2>
 <dl class="files">
   <dt>designs.py</dt><dd>Your design: <code>Config</code>, the choices, and <code>Head</code>, the supergraph with one typed stage per operation. Its comments say how to add a stage of your own.</dd>
-  <dt>study.py</dt><dd>Your study: the five settings at the top, then baseline, budget, search, winner and the difference in sigmas.</dd>
-  <dt>harness.py</dt><dd>The machinery <code>study.py</code> runs on: the caches, the trainer that counts its seconds, the objective. It builds whatever <code>make_model(config, dim, n_classes)</code> gives it.</dd>
+  <dt>study.py</dt><dd>Your study: the six settings at the top, then one call of <code>hpo.exercise.run_study</code>: baseline, budget, search, winner and the difference in sigmas, the same in every lesson.</dd>
+  <dt>harness.py</dt><dd>What lesson 1 gives the study: the caches, the trainer, the linear baseline and the params a run logs. It trains whatever <code>make_model(config, data)</code> builds.</dd>
 </dl>
 </main>
 </body>

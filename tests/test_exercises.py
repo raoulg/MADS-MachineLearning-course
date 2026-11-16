@@ -11,8 +11,10 @@ sys.path.insert(
     0, str(Path(__file__).resolve().parents[1] / "notebooks/1_pytorch_intro/exercises")
 )
 
-from designs import Config, Head, combinations, option, options, trace  # ty: ignore[import-not-found]  (the exercise folder is put on sys.path above)
-from harness import check_space  # ty: ignore[import-not-found]
+from designs import Config, Head  # ty: ignore[import-not-found]  (the exercise folder is put on sys.path above)
+from harness import HARNESS  # ty: ignore[import-not-found]
+
+from hpo.designs import axis_of, check_space, combinations, option, options, trace
 
 DESIGN = [f.name for f in fields(Config)]
 
@@ -38,7 +40,7 @@ def test_option_leaves_the_stage_as_it_is():
         return x + 1
 
     assert option("width")(stage) is stage
-    assert stage.__option__ == "width"
+    assert axis_of(stage) == "width"
 
 
 SPACE = {
@@ -53,18 +55,20 @@ SPACE = {
 
 
 def test_check_space_takes_a_space_that_searches_every_option():
-    check_space(SPACE, options(Head), DESIGN)
+    check_space(SPACE, options(Head), DESIGN, HARNESS.trainer)
 
 
 def test_check_space_refuses_a_missing_option():
     space = {k: v for k, v in SPACE.items() if k != "gate"}
     with pytest.raises(ValueError, match="no axis 'gate'"):
-        check_space(space, options(Head), DESIGN)
+        check_space(space, options(Head), DESIGN, HARNESS.trainer)
 
 
 def test_check_space_refuses_an_unused_axis():
     with pytest.raises(ValueError, match="'weight_decay', which neither"):
-        check_space({**SPACE, "weight_decay": 1e-4}, options(Head), DESIGN)
+        check_space(
+            {**SPACE, "weight_decay": 1e-4}, options(Head), DESIGN, HARNESS.trainer
+        )
 
 
 def test_drawn_keeps_the_choices_of_the_design_and_leaves_the_trainers():

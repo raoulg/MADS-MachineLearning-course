@@ -783,7 +783,7 @@ suite nobody runs.
 
 And one consequence for their results: a run logged while notebooktester runs is a run
 on test settings (one epoch, two trials), and its numbers mean nothing. **Runs logged
-through `optunalog` while the tester runs go to the separate store
+through `hpo.optunalog` while the tester runs go to the separate store
 `artefacts/optuna/test.db`, so they are left out of a submission.**
 
 ### Hook 6 — lychee: dead links
@@ -862,7 +862,7 @@ Two questions, and do not tick the box until both answers hold:
 1. *"What does `param(20, test=1)` return when you run the notebook, and when
    notebooktester runs it? Why does every expensive constant go through it, and what
    happens to a run logged in test mode?"* Accept: *20 for me, 1 under the tester;
-   because one slow constant makes the test time out; `optunalog` writes it to the separate
+   because one slow constant makes the test time out; `hpo.optunalog` writes it to the separate
    store `artefacts/optuna/test.db`, so it is left out of a submission.*
 2. *"Why does the commit clear notebook outputs?"* Accept at least two of the four
    reasons (unreadable diffs, a bloated repository, merge conflicts, leaked data), and
@@ -875,7 +875,7 @@ Two questions, and do not tick the box until both answers hold:
 - Notebooks are committed without outputs and must run top-to-bottom on a fresh kernel.
 - Any constant whose size scales runtime (epochs, steps, trials, seeds, dataset size)
   gets `from notebooktester import param` and `X = param(full, test=small)`.
-- Runs logged through `optunalog` while the tester runs go to the separate store
+- Runs logged through `hpo.optunalog` while the tester runs go to the separate store
   `artefacts/optuna/test.db`, so they are left out of a submission.
 - `lychee` is installed through the student's own package manager, or skipped in
   `.lefthook-local.yml`.
@@ -1181,7 +1181,7 @@ fork, and reach the class repository through a pull request. Never push to `upst
 - The class runs clone is `../mads-runs` (relative to the course repository): a fork,
   with `origin` the student's fork and `upstream` `raoulg/mads-ml-runs-2026-11`.
 - Submitting a lesson's runs means following `docs/submit-runs.md` in the course
-  repository. Runs logged through `optunalog` while the tester runs go to the separate store
+  repository. Runs logged through `hpo.optunalog` while the tester runs go to the separate store
   `artefacts/optuna/test.db`, so they are left out of a submission.
 
 **CHECKPOINT.** M9 is done when both remotes show and the fork is confirmed. Tick the

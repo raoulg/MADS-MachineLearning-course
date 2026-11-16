@@ -1,8 +1,7 @@
 """optunalog against a temporary sqlite store."""
 
 import json
-import sys
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import optuna
@@ -10,11 +9,7 @@ import pytest
 import torch
 from torch import nn
 
-sys.path.insert(
-    0, str(Path(__file__).resolve().parents[1] / "notebooks/1_pytorch_intro")
-)
-
-import optunalog  # ty: ignore[import-not-found]  (the lesson folder is put on sys.path above)
+from hpo import optunalog
 
 BOB = f"lesson1/bob/{'a' * 32}"
 CAROL = f"lesson1/carol/{'b' * 32}"
@@ -345,3 +340,72 @@ def test_under_the_tester_a_study_of_another_space_or_idea_starts_again(monkeypa
     second = optunalog.idea("an idea of the second execution", author="alice")
     again = optunalog.search_study(name, SPACE, idea=second)
     assert again.trials == [] and again.user_attrs["idea_name"] == second["idea_name"]
+
+
+def repeat(acc, recall_f):
+    return {
+        "accuracy": acc,
+        "macro_recall": (1 + recall_f) / 2,
+        "recall": {"N": 1.0, "F": recall_f},
+        "precision": {"N": acc, "F": 1.0},
+        "f1": {"N": acc, "F": recall_f},
+    }
+
+
+def test_a_run_logs_every_metric_and_its_value_is_the_studys_objective():
+    optunalog.use_study("lesson2-study-sam-gate-runs", objective="macro_recall")
+    optunalog.log_run("winner", "final", metrics=[repeat(0.9, 0.2), repeat(0.92, 0.4)])
+    trial = trial_of("lesson2-study-sam-gate-runs")
+    study = optuna.load_study(
+        study_name="lesson2-study-sam-gate-runs", storage=optunalog.storage()
+    )
+    assert study.user_attrs["objective"] == "macro_recall"
+    assert study.metric_names == ["macro_recall"]
+    assert trial.value == pytest.approx(0.65)
+    assert trial.intermediate_values == {0: 0.6, 1: 0.7}
+    assert trial.user_attrs["metrics"]["recall"]["F"] == pytest.approx(0.3)
+    assert trial.user_attrs["metrics_std"]["recall"]["F"] == pytest.approx(0.1)
+    assert trial.user_attrs["macro_recall_std"] == pytest.approx(0.05)
+    assert trial.user_attrs["accuracy_std"] == pytest.approx(0.01)
+
+
+def test_a_study_refuses_another_objective(monkeypatch):
+    monkeypatch.setattr(optunalog, "TESTING", False)
+    optunalog.use_study("lesson2-study-sam-gate-runs")
+    optunalog.log_run("base", "baseline", scores={"accuracy": [0.8]})
+    with pytest.raises(ValueError, match="objective 'accuracy', not 'macro_recall'"):
+        optunalog.use_study("lesson2-study-sam-gate-runs", objective="macro_recall")
+
+
+def test_an_objective_that_is_no_metric_is_refused():
+    with pytest.raises(ValueError, match="objective must be one of"):
+        optunalog.use_study("lesson2-study-x-runs", objective="loss")
+
+
+def test_a_run_that_does_not_log_the_objective_is_refused():
+    optunalog.use_study("lesson2-study-sam-gate-runs", objective="macro_recall")
+    with pytest.raises(ValueError, match="does not log"):
+        optunalog.log_run("base", "baseline", scores={"accuracy": [0.8]})
+
+
+def test_a_study_on_macro_recall_passes_the_check(tmp_path):
+    import submit_runs  # ty: ignore[import-not-found]
+    from run_submission import check  # ty: ignore[import-not-found]
+
+    optunalog.use_study(
+        "lesson2-study-sam-gate-runs",
+        idea=optunalog.idea("does a gate find f", author="sam"),
+        objective="macro_recall",
+    )
+    optunalog.log_run("winner", "final", metrics=[repeat(0.9, 0.2), repeat(0.92, 0.4)])
+    store = submit_runs.Store(optunalog.STORE)
+    (found,) = submit_runs.select_runs(store, 2, None, None)
+    code = {"commit": None, "dirty": None, "remote": None}
+    sub = submit_runs.to_submission(store, found, 2, "sam", code, datetime.now(UTC))
+    assert sub.objective() == "macro_recall"
+    assert sub.metric("macro_recall") == pytest.approx(0.65)
+    assert sub.metric("recall/F") == pytest.approx(0.3)
+    assert sub.spread("recall/F") == pytest.approx(0.1)
+    (tmp_path / sub.relpath()).parent.mkdir(parents=True)
+    (tmp_path / sub.relpath()).write_text(sub.dump())
+    assert check(tmp_path, [sub.relpath()], "sam", set()) == []

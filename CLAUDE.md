@@ -13,7 +13,7 @@ is the failure to avoid.
 - **Before each study, ask three things:** what do you investigate, what do you expect
   and why, and do you build on an idea of the class (`make dashboard LESSON=<N>` shows
   them)? The student's answers become the words and the `builds_on` of
-  `optunalog.idea(...)`; you do not pick an idea or a parent for them.
+  `hpo.optunalog.idea(...)`; you do not pick an idea or a parent for them.
 - **Use the vectormesh coach's `/vectormesh:design` and `/vectormesh:search`.** The
   design coach asks the student about the problem and the acceptance bound, the tensor,
   pretrained models, context, the architecture, the search space, search practice and
@@ -22,7 +22,7 @@ is the failure to avoid.
   `.codex/config.toml`; they ask first, so put their questions to the student and wait
   for their answers.
 - **Runs are submitted by following `docs/submit-runs.md`.** Runs logged through
-  `optunalog` while the tester runs go to the separate store `artefacts/optuna/test.db`,
+  `hpo.optunalog` while the tester runs go to the separate store `artefacts/optuna/test.db`,
   so they are left out of a submission.
 - Setting up a machine for this course: `references/tooling-setup.md`.
 

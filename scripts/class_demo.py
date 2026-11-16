@@ -126,6 +126,32 @@ def draw(rng: np.random.Generator) -> dict:
     }
 
 
+# The classes of DTD the demo logs per class: a few, so the page can be read on one.
+DEMO_CLASSES = ("banded", "blotchy", "braided")
+
+
+def logged(value: float | None, std: float | None) -> dict:
+    """Every metric a run logs, made up from its accuracy: the macro recall a little
+    below it, and the recall of a few classes around it."""
+    if value is None:
+        return {}
+    recall = {c: round(min(1.0, max(0.0, value + d)), 5)
+              for c, d in zip(DEMO_CLASSES, (0.08, -0.05, -0.15), strict=True)}  # fmt: skip
+    metrics = {
+        "accuracy": value,
+        "macro_recall": round(max(0.0, value - 0.03), 5),
+        "recall": recall,
+        "precision": recall,
+        "f1": recall,
+    }
+    out: dict = {"metrics": metrics}
+    if std is not None:
+        spread = {c: std for c in DEMO_CLASSES}
+        out["metrics_std"] = {"accuracy": std, "macro_recall": std, "recall": spread,
+                              "precision": spread, "f1": spread}  # fmt: skip
+    return out
+
+
 def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
     rng = np.random.default_rng(seed)
     subs: list[Submission] = []
@@ -160,6 +186,7 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
                         "role": role,
                         "dataset": "dtd",
                         "session": "2026-11-20 18:00:00",
+                        **logged(value, attrs.get("accuracy_std")),
                         **attrs,
                     },
                     "study": {"direction": "maximize", "attrs": study_attrs},

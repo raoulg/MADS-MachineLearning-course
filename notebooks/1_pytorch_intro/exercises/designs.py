@@ -4,7 +4,8 @@ A design is every block the search may build, written once. Each block the searc
 leave out is a choice in `forward` (`if self.config.skip:`), and the config a trial draws
 picks the subgraph that is built. `@option("skip")` on a stage names the axis of the
 search space that decides it; `study.py` refuses a space that does not search every
-option of the design.
+option of the design. `option` and the helpers that read it are in `hpo.designs`, the
+same for every lesson.
 
 Read it in atlas before you train anything: the shape on every arrow, and where a choice
 leaves a stage out.
@@ -26,9 +27,8 @@ To design your own:
 3. Add the axis to `SPACE` in `study.py`: `"<axis>": Choice([False, True])`.
 """
 
-import itertools
-from collections.abc import Callable, Iterator, Mapping
-from dataclasses import dataclass, fields
+from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, Literal
 
 import torch
@@ -37,40 +37,9 @@ from jaxtyping import Float, jaxtyped
 from torch import Tensor, nn
 from vectormesh.components import Gate, GaussianNoise, Norm, Projection, Serial
 
+from hpo.designs import drawn, option, show
+
 ACTIVATIONS = {"gelu": nn.GELU, "relu": nn.ReLU, "tanh": nn.Tanh, "sigmoid": nn.Sigmoid}
-
-
-def option[F: Callable[..., Any]](axis: str) -> Callable[[F], F]:
-    """Mark a stage as one the search may leave out, decided by the axis `axis` of the
-    search space. The stage stays as it is; the axis name is kept on it as `__option__`."""
-
-    def mark(stage: F) -> F:
-        vars(stage)["__option__"] = axis
-        return stage
-
-    return mark
-
-
-def axis_of(stage: object) -> str | None:
-    """The axis `option` named on `stage`, or None for a stage that is always built."""
-    try:
-        return vars(stage).get("__option__")
-    except TypeError:  # an object without attributes of its own
-        return None
-
-
-def options(cls: type) -> list[str]:
-    """The axis names of the options of a design, in the order its stages are written."""
-    return [axis for stage in vars(cls).values() if (axis := axis_of(stage))]
-
-
-def stages(cls: type) -> list[str]:
-    """The names of the stages of a design: its methods other than `forward`."""
-    return [
-        name
-        for name, stage in vars(cls).items()
-        if callable(stage) and not name.startswith("_") and name != "forward"
-    ]
 
 
 @dataclass(frozen=True)
@@ -91,8 +60,7 @@ class Config:
     def drawn(cls, config: Mapping[str, Any]) -> "Config":
         """The choices of this design in a config a trial drew; the rest of the config
         (the dataset, the learning rate, ...) is the trainer's."""
-        names = {f.name for f in fields(cls)}
-        return cls(**{k: v for k, v in config.items() if k in names})
+        return drawn(cls, config)
 
 
 class Head(nn.Module):
@@ -180,51 +148,13 @@ class Head(nn.Module):
         return self.classify(hidden)
 
 
-def combinations(cls: type) -> Iterator[dict[str, bool]]:
-    """Every combination of the options of a design, each option on or off."""
-    axes = options(cls)
-    for values in itertools.product([False, True], repeat=len(axes)):
-        yield dict(zip(axes, values, strict=True))
-
-
-def trace(model: nn.Module, embed: Tensor) -> list[tuple[str, tuple[int, ...]]]:
-    """The stages `model.forward(embed)` runs, in order, each with the shape it gives."""
-    seen: list[tuple[str, tuple[int, ...]]] = [("embed", tuple(embed.shape))]
-
-    def watch(name: str, stage: Callable[..., Tensor]) -> Callable[..., Tensor]:
-        def watched(*args: Any) -> Tensor:
-            out = stage(*args)
-            seen.append((name, tuple(out.shape)))
-            return out
-
-        return watched
-
-    for name in stages(type(model)):
-        # an attribute on the instance comes before the method of the class
-        object.__setattr__(model, name, watch(name, getattr(model, name)))
-    training = model.training
-    try:
-        model.eval()
-        with torch.no_grad():
-            model(embed)
-    finally:
-        model.train(training)
-        for name in stages(type(model)):
-            object.__delattr__(model, name)
-    return seen
-
-
 def main() -> None:
     dim, n_classes = 384, 47  # dinov2-small on DTD
-    embed = torch.randn(2, dim)  # two rows are enough to trace every shape
-    for chosen in combinations(Head):
-        model = Head(Config.drawn(chosen), dim, n_classes)
-        n_params = sum(p.numel() for p in model.parameters())
-        label = "  ".join(f"{axis}={on}" for axis, on in chosen.items())
-        print(f"{label}   ({n_params:,} params)")
-        for name, shape in trace(model, embed):
-            print(f"  {name:<10} {shape}")
-        print()
+    show(
+        Head,
+        lambda chosen: Head(Config.drawn(chosen), dim, n_classes),
+        torch.randn(2, dim),  # two rows are enough to trace every shape
+    )
 
 
 if __name__ == "__main__":

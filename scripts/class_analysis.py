@@ -18,7 +18,10 @@ page is what it cannot show: the class pooled, and a student, a role or a datase
 thing to filter on.
 
 Scores of different datasets are never compared with each other: every picture that
-compares scores does so per dataset.
+compares scores does so per dataset. Every figure reads one metric, named on it: by
+default the objective most studies of the lesson search, or `--metric macro_recall`, or
+one class of a metric per class, `--metric recall/F`. A run that does not log the
+metric has no score on the page.
 """
 
 from __future__ import annotations
@@ -32,7 +35,7 @@ import sys
 import textwrap
 import webbrowser
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -107,8 +110,26 @@ def plain(text: object) -> str:
     return html.escape(str(text))
 
 
+def page_metric(subs: Iterable[Submission]) -> str:
+    """The metric a page reads when none is asked for: the objective most studies of
+    the lesson search, accuracy when there is no study."""
+    counts = Counter(sub.objective() for sub in subs)
+    return counts.most_common(1)[0][0] if counts else METRIC
+
+
+def metric_names(subs: Iterable[Submission]) -> list[str]:
+    """Every metric any of `subs` logs, scalars first, as `--metric` takes them."""
+    seen: dict[str, None] = {}
+    for sub in subs:
+        for name in sub.metric_names():
+            seen.setdefault(name, None)
+    return sorted(seen, key=lambda n: ("/" in n, n))
+
+
 def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame:
-    """One row per submitted run, with the params as `p_<name>` columns."""
+    """One row per submitted run, with the params as `p_<name>` columns. `score` and
+    `std` are `metric` (a scalar such as `macro_recall`, or one class as `recall/F`) and
+    its spread between runs; a run that does not log it has no score."""
     rows = []
     for sub in subs:
         run = sub.run
@@ -126,8 +147,10 @@ def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame
             "dataset": word(attrs.get("dataset")) or "unknown",
             "session": word(attrs.get("session")) or None,
             "status": run.status,
-            "score": run.value,
-            "std": attrs.get(f"{metric}_std"),
+            # every run is read on one metric, whatever its study searched
+            "score": sub.metric(metric),
+            "std": sub.spread(metric),
+            "objective": sub.objective(),
             "n": attrs.get("n_repeats"),
             "n_params": attrs.get("n_params"),
             "train_seconds": attrs.get("train_seconds"),
@@ -366,7 +389,7 @@ def fig_who_submitted(df: pd.DataFrame) -> go.Figure:
     return style(fig, max(260, 26 * len(counts) + 110))
 
 
-def fig_baselines(df: pd.DataFrame) -> go.Figure:
+def fig_baselines(df: pd.DataFrame, metric: str = METRIC) -> go.Figure:
     """The handed-out baseline of every student, each with its spread between runs: how
     far one model fluctuates, and so how big a difference has to be to mean anything."""
     base = handed_out_baselines(df)
@@ -391,12 +414,12 @@ def fig_baselines(df: pd.DataFrame) -> go.Figure:
         text=f"band: class median ± 2 × the median spread between runs ({100 * spread:.2f} pt)",
         showarrow=False, font={"size": 12, "color": MUTED},
     )  # fmt: skip
-    fig.update_yaxes(title="handed-out baseline, accuracy")
+    fig.update_yaxes(title=f"handed-out baseline, {metric}")
     fig.update_xaxes(categoryorder="array", categoryarray=list(base.student))
     return style(fig, 380)
 
 
-def fig_baseline_vs_final(cmp: pd.DataFrame) -> go.Figure:
+def fig_baseline_vs_final(cmp: pd.DataFrame, metric: str = METRIC) -> go.Figure:
     """Per student's study: the baseline and the final, each with its spread between
     runs. A gain inside the spread is drawn as no gain."""
     fig = go.Figure()
@@ -422,11 +445,13 @@ def fig_baseline_vs_final(cmp: pd.DataFrame) -> go.Figure:
             customdata=cmp[["gain_pt", "sigma"]],
             hovertemplate="%{y}<br>%{x:.4f}<br>gain %{customdata[0]:+.2f} pt, %{customdata[1]:+.1f} σ<extra></extra>",
         )  # fmt: skip
-    fig.update_xaxes(title="accuracy (bars: spread between runs)")
+    fig.update_xaxes(title=f"{metric} (bars: spread between runs)")
     return style(fig, max(260, 34 * len(cmp) + 120))
 
 
-def parcoords(trials: pd.DataFrame, axes: list[str], color: str = "score") -> go.Figure:
+def parcoords(
+    trials: pd.DataFrame, axes: list[str], color: str = "score", metric: str = METRIC
+) -> go.Figure:
     dims = []
     for axis in axes:
         col = trials.get(f"p_{axis}")
@@ -448,12 +473,12 @@ def parcoords(trials: pd.DataFrame, axes: list[str], color: str = "score") -> go
             )
         else:
             dims.append({"label": axis, "values": col})
-    dims.append({"label": METRIC, "values": trials[color]})
+    dims.append({"label": metric, "values": trials[color]})
     fig = go.Figure(
         go.Parcoords(
             line={
                 "color": trials[color], "colorscale": "Viridis", "showscale": True,
-                "colorbar": {"title": METRIC, "thickness": 12},
+                "colorbar": {"title": metric, "thickness": 12},
             },
             dimensions=dims,
         )
@@ -461,8 +486,10 @@ def parcoords(trials: pd.DataFrame, axes: list[str], color: str = "score") -> go
     return style(fig, 430, margin={"l": 70, "r": 70, "t": 60, "b": 30})
 
 
-def fig_axes(trials: pd.DataFrame, baseline_median: float | None) -> go.Figure:
-    """Accuracy against every searched axis of the pooled handed-out search: a dot per
+def fig_axes(
+    trials: pd.DataFrame, baseline_median: float | None, metric: str = METRIC
+) -> go.Figure:
+    """The metric against every searched axis of the pooled handed-out search: a dot per
     trial, and the median per bin or per value."""
     axes = [a for a in AXES if f"p_{a}" in trials and trials[f"p_{a}"].nunique() > 1]
     n_cols = 4
@@ -520,12 +547,12 @@ def fig_axes(trials: pd.DataFrame, baseline_median: float | None) -> go.Figure:
                 row=row + 1,
                 col=col + 1,
             )
-    fig.update_yaxes(title_text=METRIC, col=1)
+    fig.update_yaxes(title_text=metric, col=1)
     return style(fig, 250 * n_rows + 60)
 
 
-def fig_studies(df: pd.DataFrame, cmp: pd.DataFrame) -> go.Figure:
-    """One small panel per student's study: the accuracy of its trials in the order they
+def fig_studies(df: pd.DataFrame, cmp: pd.DataFrame, metric: str = METRIC) -> go.Figure:
+    """One small panel per student's study: the metric of its trials in the order they
     ran, the baseline with its band of two standard errors, the final as a star."""
     if cmp.empty:
         return style(go.Figure(), 200)
@@ -558,7 +585,7 @@ def fig_studies(df: pd.DataFrame, cmp: pd.DataFrame) -> go.Figure:
                         marker={"size": 15, "color": ROLE_COLORS["final"], "symbol": "star"},
                         row=rr, col=cc)  # fmt: skip
     fig.update_xaxes(title_text="trial", showticklabels=True)
-    fig.update_yaxes(title_text=METRIC, col=1)
+    fig.update_yaxes(title_text=metric, col=1)
     return style(fig, 300 * n_rows + 40)
 
 
@@ -664,11 +691,15 @@ def name_lines(name: str, width: int = 27) -> list[str]:
     return [name[: at + 1], name[at + 1 :]]
 
 
-def fig_ideas(ids: pd.DataFrame) -> go.Figure:
+def fig_ideas(
+    ids: pd.DataFrame, elsewhere: Mapping[str, int] | None = None
+) -> go.Figure:
     """The ideas of the class as a graph: one box per idea, an arrow from each parent to
     the idea that builds on it, in layers by depth from the course's root on the left.
     The colour says whose idea it is, the border what it gave against its baseline. A
-    parent that is not among the submissions is an open, dashed box."""
+    parent that is not among the submissions is an open, dashed box; `elsewhere` names
+    the lesson of a parent that is an idea of another lesson."""
+    elsewhere = elsewhere or {}
     fig = go.Figure()
     if ids.empty:
         return style(fig, 160)
@@ -729,7 +760,11 @@ def fig_ideas(ids: pd.DataFrame) -> go.Figure:
         fig.add_annotation(
             x=d - bw / 2 + 12 / LAYER_PX, y=y, xanchor="left", yanchor="middle",
             text="<br>".join(f"<b>{html.escape(n)}</b>" for n in name_lines(name))
-            + "<br><i>not among the submissions</i>",
+            + (
+                f"<br><i>an idea of lesson {elsewhere[name]}</i>"
+                if name in elsewhere
+                else "<br><i>not among the submissions</i>"
+            ),
             align="left", showarrow=False, font={"size": 11, "color": MUTED},
         )  # fmt: skip
     for r in rows(ids):
@@ -767,7 +802,11 @@ def fig_ideas(ids: pd.DataFrame) -> go.Figure:
     for name in place:
         if name not in set(ids.name):
             d, y = place[name]
-            text = f"<b>{html.escape(name)}</b><br>named as a parent, not submitted"
+            text = (
+                f"<b>{html.escape(name)}</b><br>an idea of lesson {elsewhere[name]}"
+                if name in elsewhere
+                else f"<b>{html.escape(name)}</b><br>named as a parent, not submitted"
+            )
             hover += [(d + dx * bw, y, text) for dx in (-0.3, 0.0, 0.3)]
     xs, ys, texts = zip(*hover, strict=True)
     fig.add_scatter(
@@ -801,7 +840,7 @@ def fig_links(lk: pd.DataFrame) -> go.Figure:
     return style(fig, max(200, 34 * len(lk) + 100))
 
 
-def fig_architectures(df: pd.DataFrame) -> go.Figure:
+def fig_architectures(df: pd.DataFrame, metric: str = METRIC) -> go.Figure:
     """Score against parameters for every scored run, per dataset the biggest one: what a
     larger head costs and what it buys."""
     sel = df[(df.role.isin(["trial", "final", "baseline"])) & df.score.notna() & df.n_params.notna()
@@ -820,7 +859,7 @@ def fig_architectures(df: pd.DataFrame) -> go.Figure:
             text=(part.student + " · " + part["name"].astype(str)).map(plain), hovertemplate="%{text}<br>%{x:,.0f} params<br>%{y:.4f}<extra></extra>",
         )  # fmt: skip
     fig.update_xaxes(title=f"parameters (log), runs on {dataset}", type="log")
-    fig.update_yaxes(title=METRIC)
+    fig.update_yaxes(title=metric)
     return style(fig, 400)
 
 
@@ -877,18 +916,25 @@ def spaces_note(cmp: pd.DataFrame) -> str:
     return "".join(lines)
 
 
-def ideas_note(ids: pd.DataFrame) -> str:
+def ideas_note(ids: pd.DataFrame, elsewhere: Mapping[str, int] | None = None) -> str:
     """The graph of the ideas, scrolling sideways inside its section when it is wider
     than the page; one line when no run carries an idea."""
     if ids.empty:
         return '<p class="cap">No submitted run carries an idea yet.</p>'
-    fig = fig_ideas(ids).to_html(
+    fig = fig_ideas(ids, elsewhere).to_html(
         full_html=False, include_plotlyjs=False, config={"displaylogo": False}
     )
     return f'<div class="wide">{fig}</div>'
 
 
-def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
+def build_page(
+    df: pd.DataFrame,
+    lesson: int,
+    source: str = "",
+    metric: str = METRIC,
+    others: Iterable[str] = (),
+    elsewhere: Mapping[str, int] | None = None,
+) -> str:
     cmp = comparisons(df)
     trials = handed_out_trials(df)
     base = handed_out_baselines(df)
@@ -905,7 +951,25 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
             tile(str(len(ids)), "ideas"),
             tile(str(len(trials)), "trials of the handed-out search"),
             tile(str(int(df.design.sum())), "runs with a design script"),
+            tile(html.escape(metric), "the metric every figure reads"),
         ]
+    )
+    other = [m for m in others if m != metric and "/" not in m]
+    per_class: dict[str, int] = {}
+    for m in others:
+        head, _, _ = m.partition("/")
+        if "/" in m:
+            per_class[head] = per_class.get(head, 0) + 1
+    other += [
+        f"{head} per class ({n} classes, as {head}/&lt;class&gt;)"
+        for head, n in per_class.items()
+    ]
+    reads = (
+        f"<p class='sub'>Every figure reads {html.escape(metric)}. The runs also log: "
+        f"{', '.join(html.escape(m).replace('&amp;lt;', '&lt;').replace('&amp;gt;', '&gt;') for m in other)}; "
+        f"read one with <code>make dashboard LESSON={lesson} METRIC=&lt;name&gt;</code>.</p>"
+        if other
+        else ""
     )
     parts = [
         section(
@@ -919,32 +983,32 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
             "The same model on the same data, on every student's machine. Each dot is "
             "one student's baseline; the bar is the spread between their own runs. "
             "How far the dots lie apart is how large a difference has to be to mean anything.",
-            fig_baselines(df),
+            fig_baselines(df, metric),
         ),
         section(
             "Baseline against final, per study",
             "Each student's own study. Grey line: a gain inside the spread between runs "
             "(under two sigma). Green: a gain that clears it.",
-            fig_baseline_vs_final(cmp),
+            fig_baseline_vs_final(cmp, metric),
         ),
         section(
             "The handed-out search, pooled over the class",
             f"{len(trials)} trials from {trials.student.nunique() if len(trials) else 0} students, every one an "
             "independent draw from the same space: one random search many times the "
             "size. One line is one trial; drag along an axis to keep a range.",
-            parcoords(trials, AXES) if len(trials) else None,
+            parcoords(trials, AXES, metric=metric) if len(trials) else None,
         ),
         section(
             "Axis by axis",
-            "Accuracy against each searched axis. Faint dots: every trial. Line or "
+            f"{metric} against each searched axis. Faint dots: every trial. Line or "
             "ringed dots: the median per bin or value. Dotted: the class's median baseline.",
-            fig_axes(trials, base_median) if len(trials) else None,
+            fig_axes(trials, base_median, metric) if len(trials) else None,
         ),
         section(
             "Each student's own study",
             "Trials in the order they ran (crosses: stopped early by the pruner). Grey "
             "band: the baseline ± two standard errors of its runs. Star: the final, rerun a few times.",
-            fig_studies(df, cmp),
+            fig_studies(df, cmp, metric),
             spaces_note(cmp),
         ),
         section(
@@ -957,7 +1021,7 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
             "pass its name as builds_on to idea(...), as in "
             "idea('...', builds_on='blissful-bee-18').",
             None,
-            ideas_note(ids),
+            ideas_note(ids, elsewhere),
         ),
         section(
             "Who built on whom",
@@ -969,8 +1033,8 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
         ),
         section(
             "What a larger head costs and buys",
-            "Every scored run of the most common dataset: accuracy against parameters.",
-            fig_architectures(df),
+            f"Every scored run of the most common dataset: {metric} against parameters.",
+            fig_architectures(df, metric),
         ),
     ]
     return (
@@ -979,7 +1043,7 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
         f"<title>Lesson {lesson}: what the class did</title><style>{CSS}</style>"
         f"<script>{get_plotlyjs()}</script></head><body><main>"
         f"<h1>Lesson {lesson}: what the class did</h1>"
-        f"<p class='sub'>{html.escape(source)}</p><div class='tiles'>{tiles}</div>"
+        f"<p class='sub'>{html.escape(source)}</p>{reads}<div class='tiles'>{tiles}</div>"
         + "".join(parts)
         + "</main></body></html>"
     )
@@ -988,19 +1052,37 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
 # ---- reading the class's runs ----------------------------------------------------------
 
 
-def read_class(repo: Path, lesson: int, fetch: bool) -> tuple[list[Submission], str]:
-    """The valid submissions of `lesson` on the class repository's main, and where they
-    came from; invalid files are reported and skipped."""
+def ideas_elsewhere(subs: Iterable[Submission], lesson: int) -> dict[str, int]:
+    """The name of every idea of another lesson than `lesson`, with its lesson: an idea
+    may build on one of an earlier lesson."""
+    out: dict[str, int] = {}
+    for sub in subs:
+        idea = sub.idea()
+        if idea is not None and sub.lesson != lesson:
+            out.setdefault(idea[0], sub.lesson)
+    return out
+
+
+def read_class(
+    repo: Path, lesson: int, fetch: bool
+) -> tuple[list[Submission], str, dict[str, int]]:
+    """The valid submissions of `lesson` on the class repository's main, where they came
+    from, and the ideas of the other lessons (`ideas_elsewhere`); invalid files are
+    reported and skipped."""
     from collect_runs import class_ref, read_submission, submission_files
 
     ref = class_ref(repo, fetch=fetch)
-    subs = []
-    for rel, mode in submission_files(repo, ref, [lesson]):
+    subs, others = [], []
+    for rel, mode in submission_files(repo, ref, None):
         try:
-            subs.append(read_submission(repo, ref, rel, mode))
+            sub = read_submission(repo, ref, rel, mode)
         except ValueError as e:
-            print(f"skipped {rel}: " + "; ".join(explain(e)))
-    return subs, f"{len(subs)} runs in {repo} at {ref.removeprefix('refs/remotes/')}"
+            if rel.startswith(f"lesson{lesson}/"):
+                print(f"skipped {rel}: " + "; ".join(explain(e)))
+            continue
+        (subs if sub.lesson == lesson else others).append(sub)
+    source = f"{len(subs)} runs in {repo} at {ref.removeprefix('refs/remotes/')}"
+    return subs, source, ideas_elsewhere(others, lesson)
 
 
 def main() -> None:
@@ -1025,21 +1107,31 @@ def main() -> None:
     parser.add_argument(
         "--open", action="store_true", help="open the page in the browser"
     )
+    parser.add_argument(
+        "--metric",
+        help="the metric every figure reads: accuracy, macro_recall, or one class of a "
+        "metric per class, as recall/F (default: the objective most studies search)",
+    )
     args = parser.parse_args()
 
     if args.demo:
         from class_demo import demo_submissions
 
-        subs, source = (
+        subs, source, elsewhere = (
             demo_submissions(args.lesson),
             "made-up data: eight invented students",
+            {},
         )
     else:
         repo = args.runs_repo.resolve()
-        subs, source = read_class(repo, args.lesson, fetch=not args.no_pull)
+        subs, source, elsewhere = read_class(repo, args.lesson, fetch=not args.no_pull)
     if not subs:
         sys.exit(f"no runs of lesson {args.lesson} to show")
-    df = runs_frame(subs)
+    metric = args.metric or page_metric(subs)
+    known = metric_names(subs)
+    if metric not in known:
+        sys.exit(f"no run logs the metric {metric!r}; the runs log {known}")
+    df = runs_frame(subs, metric)
     out = (
         args.out
         or COURSE_ROOT
@@ -1049,7 +1141,7 @@ def main() -> None:
         / "index.html"
     )
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(build_page(df, args.lesson, source))
+    out.write_text(build_page(df, args.lesson, source, metric, known, elsewhere))
     by_role = Counter(df.role)
     print(f"{len(df)} runs of {df.student.nunique()} students ({dict(by_role)})")
     print(f"page: {out}")
