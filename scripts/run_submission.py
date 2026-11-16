@@ -11,7 +11,7 @@ and the value after every epoch, its user attrs (role, dataset, architecture, ..
 user attrs of its study (the search space), small text/JSON artifacts (the architecture,
 the design script `design.py`), and where the code came from. Schema `mads-run/2`.
 
-A run logs every metric of `hpo.metrics` in the user attrs `metrics` (the value after the
+A run logs every metric of `hpo.measure.metrics` in the user attrs `metrics` (the value after the
 last epoch, or the mean over the repeats) and `metrics_std` (the spread over the
 repeats), and the confusion matrix over all its repeats in `confusion`, from which a
 metric that counts can be derived later. Its study names its objective, the metric that is the trial's value, in the
@@ -82,7 +82,7 @@ DISTRIBUTIONS = {
 }
 
 
-# The metrics a run logs, as hpo.metrics computes them: one value for the whole test set,
+# The metrics a run logs, as hpo.measure.metrics computes them: one value for the whole test set,
 # and one value per class. A study's objective is one of the scalars.
 SCALAR_METRICS = ("accuracy", "macro_recall")
 PER_CLASS_METRICS = ("recall", "precision", "f1")

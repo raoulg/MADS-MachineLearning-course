@@ -35,7 +35,7 @@ dependencies = [
     "torch>=2.6.0",
     "torchinfo>=1.8.0",
     "torchvision>=0.21.0",
-    "vectormesh>=0.14.0",
+    "vectormesh>=0.15.0",
     "scikit-learn>=1.9.0",
     "beartype>=0.22.9",
     "jaxtyping>=0.3.11",
@@ -59,7 +59,7 @@ build-backend = "hatchling.build"
 # the design helpers and the study flow every lesson's exercise shares. `uv sync`
 # installs it in editable mode, so a notebook in any lesson folder imports it as `hpo`.
 [tool.hatch.build.targets.wheel]
-packages = ["hpo"]
+packages = ["src/hpo"]
 
 [project.optional-dependencies]
 graphs = ["torch-geometric>=2.6.1"]

@@ -6,6 +6,7 @@ artifact `architecture.json`, which the class view reads.
 
 from __future__ import annotations
 
+import torch
 from pydantic import BaseModel
 from torch import nn
 from torchinfo import summary
@@ -59,10 +60,12 @@ class Architecture(BaseModel):
     def of(cls, model: nn.Module, example: TensorInput) -> Architecture:
         """The architecture of `model` on `example`, one batch input exactly as you would
         pass it as `model(example)`: a tensor, or a tuple of tensors for a model with
-        two streams. Two rows are enough."""
+        two streams. Two rows are enough; they are moved to the model's device."""
+        device = next((p.device for p in model.parameters()), torch.device("cpu"))
         stats = summary(
             model,
             input_data=[example],
+            device=device,
             verbose=0,
             depth=8,
             mode="eval",

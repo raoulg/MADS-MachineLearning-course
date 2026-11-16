@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from hpo.tensors import PerRepeat
+from hpo.measure.tensors import PerRepeat
 
 
 class Comparison(BaseModel):

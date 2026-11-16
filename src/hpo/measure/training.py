@@ -1,5 +1,5 @@
 """How a model is trained: vectormesh's Trainer, timed, and scored with every metric of
-`hpo.metrics` on the whole test set after every epoch."""
+`hpo.measure.metrics` on the whole test set after every epoch."""
 
 from __future__ import annotations
 
@@ -13,8 +13,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 from vectormesh.training import Trainer, TrainerSettings
 
-from hpo.metrics import OBJECTIVES, Confusion, Repeats, Scorer, Scores
-from hpo.tensors import Batch
+from hpo.measure.metrics import OBJECTIVES, Confusion, Repeats, Scorer, Scores
+from hpo.measure.tensors import Batch
 
 
 class Curves(BaseModel):
@@ -79,8 +79,18 @@ class TimedTrainer(Trainer):
         return loss
 
 
+def best_device() -> str:
+    """The fastest device on this machine: cuda, then mps, then cpu."""
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
+
+
 class Training(BaseModel):
-    """How long and how fast a model learns, and where its trainer may write."""
+    """How long and how fast a model learns, where its trainer may write, and on which
+    device it trains (by default the fastest one there is)."""
 
     model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
@@ -88,6 +98,7 @@ class Training(BaseModel):
     epochs: int
     logdir: Path
     optimizer: type[torch.optim.Optimizer] = torch.optim.Adam
+    device: str | None = None
 
     def fit(
         self,
@@ -124,15 +135,17 @@ class Training(BaseModel):
             optimizer_kwargs={"lr": self.lr},
             earlystop_kwargs=None,
         )
+        device = self.device or best_device()
         trainer = TimedTrainer(
             model=model,
             settings=settings,
-            loss_fn=loss_fn or nn.CrossEntropyLoss(),
+            loss_fn=(loss_fn or nn.CrossEntropyLoss()).to(device),
             optimizer=self.optimizer,
             traindataloader=train,
             validdataloader=test,
             progress=False,
             reporters=[report],
+            device=device,
         )
         trainer.loop()
         fit.seconds = trainer.train_seconds

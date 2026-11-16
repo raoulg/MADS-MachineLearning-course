@@ -11,9 +11,9 @@ from torch import nn
 from torch.utils.data import DataLoader
 from vectormesh.types import TensorInput
 
-from hpo.space import Config, Param
-from hpo.tensors import Batch
-from hpo.training import Fit, OnEpoch
+from hpo.measure.tensors import Batch
+from hpo.measure.training import Fit, OnEpoch
+from hpo.search.space import Config, Param
 
 
 @dataclass(frozen=True)
@@ -39,14 +39,14 @@ class Baseline:
 
 
 class Harness(Protocol):
-    """What a lesson's `exercises/harness.py` gives `hpo.exercise.Exercise`."""
+    """What a lesson's `exercises/harness.py` gives `hpo.exercise.study.Exercise`."""
 
     lesson: int
     epochs: int
     repeats: int
     # the keys of a space the harness reads; every other key is the design's
     trainer: frozenset[str]
-    # per string param, the values it can take (see `hpo.runs.StudyLog`)
+    # per string param, the values it can take (see `hpo.record.runs.StudyLog`)
     choices: Mapping[str, Sequence[str]]
 
     def data(self, config: Config) -> Data: ...

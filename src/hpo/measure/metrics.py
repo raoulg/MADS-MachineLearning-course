@@ -34,7 +34,7 @@ from jaxtyping import jaxtyped
 from pydantic import BaseModel, ConfigDict, model_validator
 from torch import nn
 
-from hpo.tensors import Batch, Counts, Labels, PerRepeat, Targets
+from hpo.measure.tensors import Batch, Counts, Labels, PerRepeat, Targets
 
 # The metrics with one value for the whole test set; one of them is a study's objective.
 Objective = Literal["accuracy", "macro_recall"]

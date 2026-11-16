@@ -9,8 +9,8 @@ run on this machine (it measures what one trial costs here):
 The runs go to the Optuna studies `lesson1-study-<STUDY>` (the search) and
 `lesson1-study-<STUDY>-runs` (the baseline and the winner), so `make share LESSON=1`
 hands them in. Every run carries `designs.py` as its design script, and logs every
-metric (`hpo.metrics`): the search maximises `OBJECTIVE`, and the others are there for a
-question you ask later. The study itself is `hpo.exercise.Exercise`, the same in every
+metric (`hpo.measure.metrics`): the search maximises `OBJECTIVE`, and the others are there for a
+question you ask later. The study itself is `hpo.exercise.study.Exercise`, the same in every
 lesson; `harness.py` is what lesson 1 gives it.
 """
 
@@ -26,10 +26,9 @@ from huggingface_hub.utils import disable_progress_bars as hub_quiet
 from loguru import logger
 from torch import nn
 
-from hpo.exercise import Exercise, Questions
-from hpo.harness import Data
-from hpo.ideas import Idea
-from hpo.space import Choice, Config, Float, Int, Space
+from hpo.exercise import Data, Exercise, Questions
+from hpo.record import Idea
+from hpo.search import Choice, Config, Float, Int, Space
 
 # What is your study called? Your first name, a dash, and what it studies, in lowercase
 # letters, digits and dashes: "sam-gate-on-eurosat".

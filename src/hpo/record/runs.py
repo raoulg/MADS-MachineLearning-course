@@ -11,7 +11,7 @@ writes on Optuna's studies and trials, in the shape the protocol asks:
   trial in a second study (`StudyLog.runs` + `log`), with the params it was given and
   one value per repeat.
 
-A study names its objective, the metric of `hpo.metrics.Objective` that is the value of
+A study names its objective, the metric of `hpo.measure.metrics.Objective` that is the value of
 its trials and that its search maximises, and carries the idea it investigates. It holds
 one idea, the trials of one space and one objective, and refuses another.
 
@@ -48,13 +48,20 @@ from optuna.trial import FrozenTrial, TrialState
 from optuna_dashboard import save_note
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from hpo.architecture import Architecture
-from hpo.ideas import Idea
-from hpo.metrics import OBJECTIVES, Confusion, Objective, Repeats, Results, Scores
-from hpo.protocol import MAX_ARTIFACT_BYTES, SUBMISSION_REF
-from hpo.space import Config, Param, Space
-from hpo.store import Store
-from hpo.training import Curves
+from hpo.measure.architecture import Architecture
+from hpo.measure.metrics import (
+    OBJECTIVES,
+    Confusion,
+    Objective,
+    Repeats,
+    Results,
+    Scores,
+)
+from hpo.measure.training import Curves
+from hpo.record.ideas import Idea
+from hpo.record.protocol import MAX_ARTIFACT_BYTES, SUBMISSION_REF
+from hpo.record.store import Store
+from hpo.search.space import Config, Param, Space
 
 # set_metric_names and the artifact store are marked experimental in Optuna
 warnings.filterwarnings("ignore", category=optuna.exceptions.ExperimentalWarning)

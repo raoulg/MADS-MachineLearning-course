@@ -1,4 +1,4 @@
-"""hpo.runs, hpo.ideas, hpo.budget and hpo.space against a temporary sqlite store."""
+"""hpo.record.runs, hpo.record.ideas, hpo.search.budget and hpo.search.space against a temporary sqlite store."""
 
 import json
 from datetime import UTC, datetime, timedelta
@@ -9,16 +9,12 @@ import pytest
 import torch
 from torch import nn
 
-from hpo import store as store_module
-from hpo.architecture import Architecture
-from hpo.budget import Budget
-from hpo.ideas import IDEA_PLACEHOLDER, Idea, study_name
-from hpo.metrics import Confusion, Repeats, Scalars
-from hpo.protocol import COURSE, idea_name
-from hpo.runs import DesignScript, RunRecord, StudyLog
-from hpo.space import Choice, Float, Int, Space
-from hpo.store import Store
-from hpo.training import Curves
+from hpo.measure import Architecture, Confusion, Curves, Repeats, Scalars
+from hpo.record import DesignScript, RunRecord, Store, StudyLog
+from hpo.record import store as store_module
+from hpo.record.ideas import IDEA_PLACEHOLDER, Idea, study_name
+from hpo.record.protocol import COURSE, idea_name
+from hpo.search import Budget, Choice, Float, Int, Space
 
 BOB = f"lesson1/bob/{'a' * 32}"
 CAROL = f"lesson1/carol/{'b' * 32}"
@@ -132,7 +128,7 @@ def test_builds_on_that_is_not_a_submission_ref_raises_before_anything_is_writte
 
 
 def test_a_design_script_over_the_limit_raises(tmp_path, monkeypatch):
-    monkeypatch.setattr("hpo.runs.MAX_ARTIFACT_BYTES", 10)
+    monkeypatch.setattr("hpo.record.runs.MAX_ARTIFACT_BYTES", 10)
     with pytest.raises(ValueError, match="more than a submission carries"):
         DesignScript.read(design_script(tmp_path))
 
@@ -323,13 +319,13 @@ def test_a_budget_turns_minutes_into_trials(monkeypatch, store):
         "duration",
         property(lambda self: timedelta(seconds=20)),
     )
-    out = Budget.measure(10, log, space=SPACE)
+    out = Budget.at(10, log.seconds_per_trial(), log.name, space=SPACE)
     assert out.seconds_per_trial == 20 and out.measured_on == "lesson1-notebook"
     assert out.n_trials == 30 - 2 * 3
     assert out.searched_axes == 3 and out.trials_per_axis == 8.0
-    half = Budget.measure(10, log, epochs=5)
+    half = Budget.at(10, log.seconds_per_trial(5), log.name, epochs=5)
     assert half.seconds_per_trial == 10 and half.n_trials == 60 - 6
-    assert Budget.measure(1, log).n_trials == 0
+    assert Budget.at(1, log.seconds_per_trial(), log.name).n_trials == 0
 
 
 def test_a_budget_needs_a_study_that_ran(store):
@@ -337,7 +333,7 @@ def test_a_budget_needs_a_study_that_ran(store):
         StudyLog.load("lesson1-notebook", store)
     StudyLog.search("lesson1-notebook", SPACE, store=store)
     with pytest.raises(ValueError, match="no finished trial"):
-        Budget.measure(10, StudyLog.load("lesson1-notebook", store))
+        StudyLog.load("lesson1-notebook", store).seconds_per_trial()
 
 
 def test_the_idea_placeholder_passes_only_under_the_tester(monkeypatch):

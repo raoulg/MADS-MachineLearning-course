@@ -14,7 +14,7 @@ needs no such process:
 
 1. **Every student keeps their own local Optuna store** (`artefacts/optuna/studies.db` in
    their checkout of this repository). The notebooks and exercise scripts of every lesson
-   log to it through `hpo.runs`, offline. A run is one trial of a study.
+   log to it through `hpo.record.runs`, offline. A run is one trial of a study.
 2. **A submission is a set of files in a pull request.** Each student forks the runs
    repository once. `scripts/submit_runs.py` writes each trial as one JSON file into the
    student's clone of that fork, at `lesson<N>/<github-login>/<run_id>.json`, commits on
@@ -54,10 +54,10 @@ pull request). optuna-dashboard only ever reads a local sqlite file.
 
 | File | Who | What |
 |---|---|---|
-| `hpo/runs.py` | notebooks, scripts | `StudyLog`, the one class that writes on Optuna: `StudyLog.search` + `record` log a search, `StudyLog.runs` + `log` log a run that is given its params, each a `RunRecord` in the protocol's shape |
-| `hpo/metrics.py` | notebooks, scripts | `Confusion` over the whole test set, the `Scores` it gives, and `Repeats` over the repeats of a run |
-| `hpo/space.py`, `hpo/ideas.py`, `hpo/budget.py` | notebooks, scripts | the search `Space`, the `Idea` a study investigates, the `Budget` of minutes |
-| `hpo/designs.py`, `hpo/exercise.py` | exercise scripts | `@option` and `Design`; the study of an exercise (`Exercise`), given a lesson's `Harness` |
+| `src/hpo/measure/` | notebooks, scripts | what one run measures: `Training` → `Fit`, the `Confusion` over the whole test set and the `Scores` it gives, `Repeats` over the repeats of a run, the `Architecture` |
+| `src/hpo/search/` | notebooks, scripts | what a study searches: the `Space` and the `Budget` of minutes; the `Design` of `@option` stages is `vectormesh.design` |
+| `src/hpo/record/` | notebooks, scripts | how a run reaches the class: `Store`, the `Idea` a study carries, and `StudyLog`, the one class that writes on Optuna (`search` + `record` log a search, `runs` + `log` a run that is given its params, each a `RunRecord`) |
+| `src/hpo/exercise/` | exercise scripts | the study of an exercise (`Exercise`), given a lesson's `Harness` |
 | `scripts/run_submission.py` | both, and CI | the file format (pydantic) and the validator |
 | `scripts/submit_runs.py` | student | local Optuna store → JSON files → commit on `lesson<N>` → push to the fork → pull request |
 | `docs/submit-runs.md` | student's coding agent | step-by-step instructions, including the one-time setup |
@@ -105,30 +105,35 @@ A trial imported from the class repository is never submitted again: `submit_run
 leaves out every trial that carries `submission_ref` or `source_run_id`, the attrs
 `collect_runs.py` writes, with one line saying how many it left out. That keeps a
 classmate's run out of a submission even when the student's store and the class store
-are mixed up. A trial without a `run_id` was not recorded through `hpo.runs` and is left
+are mixed up. A trial without a `run_id` was not recorded through `hpo.record.runs` and is left
 out as well.
 
 ## Logging conventions
 
-The class page reads what `hpo.runs` writes. A notebook that follows the protocol logs
+The class page reads what `hpo.record.runs` writes. A notebook that follows the protocol logs
 every run worth discussing through it, for example a run that is given its params:
 
 ```python
-from hpo.architecture import Architecture
-from hpo.runs import StudyLog
-from hpo.training import repeat
+from hpo.measure import Architecture
+from hpo.record import StudyLog
+from hpo.measure import repeat
 
 runs = StudyLog.runs("lesson1-notebook-runs", idea, choices=CHOICES)
 winner = repeat(make_model, fit, REPEATS)  # Repeats: the confusion of every repeat
-runs.log("winner", "final", winner, params=best,
-         architecture=Architecture.of(make_model(), one_batch[:2]))
+runs.log(
+    "winner",
+    "final",
+    winner,
+    params=best,
+    architecture=Architecture.of(make_model(), one_batch[:2]),
+)
 ```
 
 and a search as a study of its own:
 
 ```python
-from hpo.runs import RunRecord, StudyLog
-from hpo.space import Int, Space
+from hpo.record import RunRecord, StudyLog
+from hpo.search import Int, Space
 
 space = Space({"hidden_dim": Int(32, 1024, log=True), ...})
 search = StudyLog.search("lesson1-notebook", space)  # objective="accuracy" by default
@@ -143,7 +148,7 @@ def objective(trial):
     return fit.scores().accuracy
 ```
 
-- **Every metric**: a run logs every metric of `hpo.metrics`, whatever its study
+- **Every metric**: a run logs every metric of `hpo.measure.metrics`, whatever its study
   searches, so a question asked later is answered by runs already shared. The user attr
   `metrics` holds `accuracy`, `macro_recall`, and `recall`, `precision` and `f1` per
   class under the class names (`{"recall": {"N": 0.98, "F": 0.31, ...}}`): the value
@@ -232,11 +237,11 @@ def objective(trial):
   artifact `design.py`.
 - **builds_on** attr: the classmates' runs a run builds on, `StudyLog.log(...,
   builds_on="lesson1/bob/<run_id>")` (one or a list), written comma-separated. Each entry
-  is the `submission_ref` of a run in the class store; `hpo.runs` and the validator both
+  is the `submission_ref` of a run in the class store; `hpo.record.runs` and the validator both
   check that every entry has that form, and the validator that none names the run itself,
   not that the run exists (it may sit in a pull request not merged yet).
 - **The idea of a study**: `Idea.of("does depth still help on eurosat", builds_on=[...])`
-  in `hpo.ideas` gives the study attrs `idea` (the words), `idea_author` (the student's
+  in `hpo.record.ideas` gives the study attrs `idea` (the words), `idea_author` (the student's
   GitHub login, or `course` for a study a lesson hands out), `idea_parents` (the names of
   the ideas it builds on, comma-separated), `idea_id` and `idea_name`; `StudyLog.search`
   and `StudyLog.runs` take it as their `idea`. The id is the sha256 of the author, the words and the
@@ -299,10 +304,10 @@ METRIC=recall/F`), and names it on every figure.
 
 `hpo` is the course's own package, installed by `uv sync`, so every lesson imports it the
 same way. To bring a lesson into the protocol, log the exercise's runs through
-`StudyLog.log` and `StudyLog.record` with every metric (`hpo.training.Training` gives
+`StudyLog.log` and `StudyLog.record` with every metric (`hpo.measure.training.Training` gives
 them), name the study's objective, and end the exercise notebook with the submission
 section (lesson 1's exercise notebook is the example). A lesson's exercise script is a
-`Harness` in its `exercises/harness.py` and an `hpo.exercise.Exercise` that runs it
+`Harness` in its `exercises/harness.py` and an `hpo.exercise.study.Exercise` that runs it
 (lesson 1's `exercises/` is the example).
 
 ### Ideas across lessons

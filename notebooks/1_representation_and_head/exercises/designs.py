@@ -4,8 +4,8 @@ A design is every block the search may build, written once. Each block the searc
 leave out is a choice in `forward` (`if self.config.skip:`), and the config a trial draws
 picks the subgraph that is built. `@option("skip")` on a stage names the axis of the
 search space that decides it; `study.py` refuses a space that does not search every
-option of the design. `option` and `Design`, which reads them, are in `hpo.designs`, the
-same for every lesson.
+option of the design. `option` and `Design`, which reads them, are in `vectormesh.design`,
+the same for every lesson.
 
 Read it in atlas before you train anything: the shape on every arrow, and where a choice
 leaves a stage out.
@@ -28,6 +28,7 @@ To design your own:
 """
 
 from dataclasses import dataclass
+from itertools import pairwise
 from typing import Literal
 
 import torch
@@ -35,8 +36,7 @@ from beartype import beartype
 from jaxtyping import Float, jaxtyped
 from torch import Tensor, nn
 from vectormesh.components import Gate, GaussianNoise, Norm, Projection, Serial
-
-from hpo.designs import Design, option
+from vectormesh.design import Design, option
 
 ACTIVATIONS = {"gelu": nn.GELU, "relu": nn.ReLU, "tanh": nn.Tanh, "sigmoid": nn.Sigmoid}
 
@@ -77,17 +77,21 @@ class Head(nn.Module):
         self.hidden_dim = config.hidden_dim
         self.n_classes = n_classes
         self.noise = GaussianNoise(sigma=config.sigma)
-        layers: list[nn.Module] = []
-        width = dim
-        for _ in range(config.n_hidden_layers):
-            layers.append(nn.Linear(width, config.hidden_dim))
-            if config.norm != "none":
-                layers.append(Norm(config.hidden_dim, kind=config.norm))
-            layers.append(ACTIVATIONS[config.activation]())
-            if config.dropout > 0:
-                layers.append(nn.Dropout(config.dropout))
-            width = config.hidden_dim
-        self.block = Serial(layers)
+        # one hidden layer is Linear, Norm, activation, Dropout; `norm="none"` and
+        # `dropout=0.0` leave their layer in as the identity
+        widths = [dim] + [config.hidden_dim] * config.n_hidden_layers
+        self.block = Serial(
+            [
+                layer
+                for width_in, width_out in pairwise(widths)
+                for layer in (
+                    nn.Linear(width_in, width_out),
+                    Norm(width_out, kind=config.norm),
+                    ACTIVATIONS[config.activation](),
+                    nn.Dropout(config.dropout),
+                )
+            ]
+        )
         # an optional stage's layers exist only in the subgraph that uses them, so
         # n_params counts what the trial trained
         if config.skip:
@@ -145,11 +149,20 @@ class Head(nn.Module):
 DESIGN = Design(Head, Config)
 
 
+def random_batch(batch_size: int, dim: int) -> Float[Tensor, "{batch_size} {dim}"]:
+    return torch.randn(batch_size, dim)
+
+
 def main() -> None:
-    dim, n_classes = 384, 47  # dinov2-small on DTD
+    # dinov2-small is 384 wide and DTD has 47 textures. The first call runs the head
+    # with every option on, which is the forward pass atlas draws; `show` then builds
+    # every combination of the options.
+    model = Head(Config(skip=True, gate=True), dim=384, n_classes=47)
+    logits = model.forward(random_batch(batch_size=2, dim=384))
+    print(f"every option on: (2, 384) -> {tuple(logits.shape)}\n")
     DESIGN.show(
-        lambda chosen: Head(DESIGN.drawn(chosen), dim, n_classes),
-        torch.randn(2, dim),  # two rows are enough to trace every shape
+        lambda chosen: Head(DESIGN.drawn(chosen), dim=384, n_classes=47),
+        random_batch(batch_size=2, dim=384),  # two rows trace every shape
     )
 
 

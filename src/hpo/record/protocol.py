@@ -8,7 +8,7 @@ alone. hpo reads its recipe for an idea and its limits from it, so the two canno
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
 
 from run_submission import (  # ty: ignore[import-not-found]  (scripts/ is put on sys.path above)
     COURSE,

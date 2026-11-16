@@ -7,8 +7,7 @@ import platform
 
 from pydantic import BaseModel, ConfigDict
 
-from hpo.runs import StudyLog
-from hpo.space import Space
+from hpo.search.space import Space
 
 
 class Budget(BaseModel):
@@ -40,7 +39,8 @@ class Budget(BaseModel):
         repeats: int = 3,
         reruns: int = 2,
     ) -> Budget:
-        """The budget at a cost per trial that is known already."""
+        """The budget at `seconds_per_trial`, the cost of one trial on this machine as
+        measured on the study `measured_on` (`StudyLog.seconds_per_trial`)."""
         seconds = max(float(seconds_per_trial), 1e-3)
         n_trials = max(0, int(minutes * 60 / seconds) - reruns * repeats)
         axes = space.searched() if space is not None else None
@@ -56,29 +56,6 @@ class Budget(BaseModel):
             trials_per_axis=None
             if axes is None
             else round(n_trials / max(1, len(axes)), 1),
-        )
-
-    @classmethod
-    def measure(
-        cls,
-        minutes: float,
-        like: StudyLog,
-        *,
-        space: Space | None = None,
-        epochs: int | None = None,
-        repeats: int = 3,
-        reruns: int = 2,
-    ) -> Budget:
-        """The budget at what the finished trials of the search study `like` took on
-        this machine, scaled to `epochs`."""
-        return cls.at(
-            minutes,
-            like.seconds_per_trial(epochs),
-            like.name,
-            space=space,
-            epochs=epochs,
-            repeats=repeats,
-            reruns=reruns,
         )
 
     def __str__(self) -> str:

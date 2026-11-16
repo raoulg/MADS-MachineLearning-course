@@ -7,14 +7,18 @@ import pytest
 import torch
 
 sys.path.insert(
-    0, str(Path(__file__).resolve().parents[1] / "notebooks/1_representation_and_head/exercises")
+    0,
+    str(
+        Path(__file__).resolve().parents[1]
+        / "notebooks/1_representation_and_head/exercises"
+    ),
 )
 
 from designs import DESIGN, Config, Head  # ty: ignore[import-not-found]  (the exercise folder is put on sys.path above)
 from harness import HARNESS  # ty: ignore[import-not-found]
+from vectormesh.design import axis_of, option
 
-from hpo.designs import axis_of, option
-from hpo.space import Space
+from hpo.search import Space
 
 
 @pytest.mark.parametrize("chosen", list(DESIGN.combinations()), ids=str)

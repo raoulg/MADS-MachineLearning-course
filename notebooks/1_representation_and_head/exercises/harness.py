@@ -1,6 +1,6 @@
 """What lesson 1 gives the study of `study.py`: the caches it trains on, the trainer, the
 linear baseline and the params a run logs. The study itself (the budget, the search, the
-winner rerun, the comparison in sigmas) is `hpo.exercise.Exercise`, the same in every
+winner rerun, the comparison in sigmas) is `hpo.exercise.study.Exercise`, the same in every
 lesson.
 
 It is the machinery of `05_exercises.ipynb`, written for any design: a design comes in
@@ -18,10 +18,10 @@ from torch.utils.data import DataLoader
 from vectormesh import VectorCache
 from vectormesh.data import Collate, OneHot
 
-from hpo.harness import Baseline, Data
-from hpo.space import Config, Param
-from hpo.store import Store
-from hpo.training import Fit, OnEpoch, Training
+from hpo.exercise import Baseline, Data
+from hpo.measure import Fit, OnEpoch, Training
+from hpo.record import Store
+from hpo.search import Config, Param
 
 # The same as in 05_exercises.ipynb, so Part 1's trials say what one trial costs here.
 EPOCHS = param(15, test=1)
@@ -49,7 +49,7 @@ CACHES = {
 }
 
 # The values a string param can take, for the runs that are given their params (see
-# hpo.runs.StudyLog).
+# hpo.record.runs.StudyLog).
 CHOICES: dict[str, list[str]] = {
     "dataset": list(CACHES),
     "encoder": sorted({enc for encoders in CACHES.values() for enc in encoders}),
@@ -123,7 +123,7 @@ def loaders(
 
 @dataclass
 class Lesson1:
-    """Lesson 1's harness for `hpo.exercise.Exercise`: a head over cached vectors."""
+    """Lesson 1's harness for `hpo.exercise.study.Exercise`: a head over cached vectors."""
 
     lesson: int = 1
     epochs: int = EPOCHS

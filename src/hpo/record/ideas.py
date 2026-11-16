@@ -2,7 +2,7 @@
 
 An idea's id is a hash of its author, its words and the names of its parents; its name
 (`blissful-bee-18`) is that id made readable, and is what a classmate passes as
-`builds_on`. The recipe is the class run protocol's (`hpo.protocol`), so a submitted
+`builds_on`. The recipe is the class run protocol's (`hpo.record.protocol`), so a submitted
 study can be checked without hpo.
 """
 
@@ -13,7 +13,7 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel, ConfigDict
 
-from hpo.protocol import (
+from hpo.record.protocol import (
     COURSE,
     IDEA_ATTRS,
     IDEA_NAME,
@@ -24,7 +24,7 @@ from hpo.protocol import (
     idea_name,
     idea_words,
 )
-from hpo.store import Store, under_tester
+from hpo.record.store import Store, under_tester
 
 STUDY_PLACEHOLDER = "name-your-study"
 IDEA_PLACEHOLDER = "say what your study investigates"

@@ -13,12 +13,12 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
-from hpo.protocol import LOGIN
+from hpo.record.protocol import LOGIN
 
 # the environment variable notebooktester sets while it runs a notebook or a script
 TESTER = "NOTEBOOKTESTER_RUNNING"
 # the store of the course repository this package is installed from
-COURSE_STORE = Path(__file__).resolve().parents[1] / "artefacts" / "optuna"
+COURSE_STORE = Path(__file__).resolve().parents[3] / "artefacts" / "optuna"
 
 
 def under_tester() -> bool:

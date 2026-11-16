@@ -1,11 +1,11 @@
-"""hpo.metrics: every metric from one confusion matrix, and the spread over repeats."""
+"""hpo.measure.metrics: every metric from one confusion matrix, and the spread over repeats."""
 
 import pytest
 import torch
 from jaxtyping import TypeCheckError
 from torch import nn
 
-from hpo.metrics import Confusion, Repeats, Scalars, Scorer
+from hpo.measure import Confusion, Repeats, Scalars, Scorer
 
 CLASSES = ["N", "S", "V", "F", "Q"]
 

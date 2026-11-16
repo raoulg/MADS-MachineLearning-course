@@ -120,7 +120,7 @@ def test_who_built_on_whom():
 
 
 def idea_attrs(author, words, parents=()):
-    """The five study attrs of an idea, as hpo.ideas.Idea.attrs gives them."""
+    """The five study attrs of an idea, as hpo.record.ideas.Idea.attrs gives them."""
     names = sorted(parents)
     id_ = idea_id(author, words, names)
     return {

@@ -1,7 +1,7 @@
 """The study of an exercise, the same in every lesson: a baseline, a search over a design
 of the student's own, the winner rerun, and the difference in sigmas.
 
-A lesson says what is its own in a `Harness` (`hpo.harness`). Every lesson's
+A lesson says what is its own in a `Harness` (`hpo.exercise.harness`). Every lesson's
 `exercises/study.py` is then the student's answers (`Questions`), a space, a design, and
 one call:
 
@@ -22,18 +22,18 @@ import pandas as pd
 from notebooktester import param
 from pydantic import BaseModel, ConfigDict, field_validator
 from torch import nn
+from vectormesh.design import Design
 
-from hpo.architecture import Architecture
-from hpo.budget import Budget
-from hpo.compare import Comparison
-from hpo.designs import Design
-from hpo.harness import Baseline, Data, Harness
-from hpo.ideas import Idea, study_name
-from hpo.metrics import Objective, Repeats
-from hpo.runs import DesignScript, RunRecord, StudyLog
-from hpo.space import Choice, Config, Space
-from hpo.store import Store, under_tester
-from hpo.training import Fit, repeat
+from hpo.exercise.harness import Baseline, Data, Harness
+from hpo.measure.architecture import Architecture
+from hpo.measure.compare import Comparison
+from hpo.measure.metrics import Objective, Repeats
+from hpo.measure.training import Fit, repeat
+from hpo.record.ideas import Idea, study_name
+from hpo.record.runs import DesignScript, RunRecord, StudyLog
+from hpo.record.store import Store, under_tester
+from hpo.search.budget import Budget
+from hpo.search.space import Choice, Config, Space
 
 EXPECTS_PLACEHOLDER = "say what you expect, and why"
 
@@ -128,9 +128,10 @@ class Exercise:
     def budget(self) -> Budget:
         try:
             like = StudyLog.load(self.like, self.store)
-            return Budget.measure(
+            return Budget.at(
                 self.questions.minutes,
-                like,
+                like.seconds_per_trial(self.harness.epochs),
+                like.name,
                 space=self.space,
                 epochs=self.harness.epochs,
                 repeats=self.harness.repeats,

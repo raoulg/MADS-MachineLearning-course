@@ -589,3 +589,149 @@ def plot_unit_axis(gray, rgb, chunked, batch, max_dims: int = 12):
         fontsize=12,
     )
     return fig
+
+
+# ---------------------------------------------------------------------------------------
+# 04_search, 05_exercises: results as bars, and learning curves
+# ---------------------------------------------------------------------------------------
+
+from collections.abc import Mapping
+
+
+def result_bars(
+    bars: Mapping[str, float | Sequence[float]],
+    title: str = "",
+    xlabel: str = "test accuracy",
+    highlight: str | None = None,
+    ax=None,
+    fmt: str = "{:.3f}",
+    zoom: bool = False,
+) -> Figure:
+    """One horizontal bar per entry of `bars`, in the order given, top to bottom.
+
+    A single number is drawn as it is. A list of repeated runs is drawn as its mean, with
+    the standard deviation as the error bar and every run as a dot, so the spread between
+    runs is in the picture next to the difference between the bars. `highlight` names the
+    bar drawn in the accent colour.
+
+    `zoom=True` is for entries that lie close together: the axis runs over the values
+    only, and each entry is its mean as a marker instead of a bar, since a bar that does
+    not start at zero would overstate the difference.
+    """
+    if ax is None:
+        _, ax = plt.subplots(figsize=(8, 0.6 * len(bars) + 1.2))
+    names = list(bars)
+    longest, shortest = 0.0, float("inf")
+    for row, name in enumerate(names):
+        runs = np.atleast_1d(np.asarray(bars[name], dtype=float))
+        mean, std = float(runs.mean()), float(runs.std())
+        color = "tab:orange" if name == highlight else "tab:blue"
+        if zoom:
+            ax.scatter([mean], [row], color=color, s=140, marker="D", zorder=2)
+        else:
+            ax.barh(row, mean, color=color, alpha=0.75)
+        label = fmt.format(mean)
+        if len(runs) > 1:
+            ax.errorbar(mean, row, xerr=std, color="k", capsize=5, lw=1.2, zorder=3)
+            ax.scatter(runs, np.full(len(runs), row), color="k", s=12, zorder=4)
+            label += " ± " + fmt.format(std)
+        reach = max(mean + std, float(runs.max()))
+        ax.annotate(
+            label, (reach, row), xytext=(8, 0), textcoords="offset points", va="center"
+        )
+        longest = max(longest, reach)
+        shortest = min(shortest, mean - std, float(runs.min()))
+    ax.set_yticks(range(len(names)), names)
+    ax.set_ylim(len(names) - 0.4, -0.6)
+    if zoom:
+        pad = max(longest - shortest, 0.005)
+        ax.set_xlim(shortest - 0.25 * pad, longest + 0.6 * pad)
+        ax.grid(axis="x", alpha=0.3)
+        xlabel += " (the axis does not start at 0)"
+    else:
+        ax.set_xlim(0, longest * 1.25)
+    ax.set_xlabel(xlabel)
+    ax.spines[["top", "right"]].set_visible(False)
+    if title:
+        ax.set_title(title, loc="left", fontsize=10)
+    fig = cast(Figure, ax.figure)
+    fig.tight_layout()
+    return fig
+
+
+def plot_learning_curves(
+    curves: Mapping[str, Mapping[str, Sequence[float]]],
+    title: str = "",
+    columns: int = 4,
+    sharey: bool = True,
+) -> Figure:
+    """One panel per entry of `curves`: the train loss and the test loss per epoch.
+
+    Each entry holds `train_loss` and `test_loss`, one value per epoch. A model that has
+    finished learning has a flat train loss at the last epoch; a test loss that turns up
+    while the train loss keeps falling is overfitting.
+    """
+    names = list(curves)
+    columns = min(columns, len(names))
+    rows = -(-len(names) // columns)
+    fig, axes = plt.subplots(
+        rows, columns, figsize=(3.6 * columns, 2.8 * rows), squeeze=False, sharey=sharey
+    )
+    for ax, name in zip(axes.flat, names):
+        epochs = range(1, len(curves[name]["train_loss"]) + 1)
+        ax.plot(epochs, curves[name]["train_loss"], color="tab:blue", label="train")
+        ax.plot(epochs, curves[name]["test_loss"], color="tab:orange", label="test")
+        ax.set_title(name, fontsize=9)
+        ax.set_xlabel("epoch")
+        ax.spines[["top", "right"]].set_visible(False)
+    for ax in axes.flat[len(names) :]:
+        ax.axis("off")
+    for row in axes:
+        for ax in row if not sharey else row[:1]:
+            ax.set_ylabel("loss")
+    axes[0, 0].legend(frameon=False, fontsize=8)
+    if title:
+        fig.suptitle(title, x=0.01, ha="left", fontsize=10)
+    fig.tight_layout()
+    return fig
+
+
+# ---------------------------------------------------------------------------------------
+# 05_exercises: the loop of 06_your_study.html, drawn in the notebook
+# ---------------------------------------------------------------------------------------
+
+import re
+from pathlib import Path
+
+from IPython.display import HTML
+
+_LOOP_STYLE = """
+.study-loop svg{width:100%;max-width:1000px;height:auto;display:block}
+.study-loop text{font-family:sans-serif;fill:currentColor}
+.study-loop .t{font-size:20px;font-weight:600}
+.study-loop .w{font-family:monospace;font-size:13px;opacity:.75}
+.study-loop .c{font-size:15px;opacity:.75}
+.study-loop .ret{font-size:14px;fill:#2e9a66}
+.study-loop rect{stroke-width:2}
+.study-loop .p1 rect{fill:rgba(60,150,190,.18);stroke:#3c96be}
+.study-loop .p2 rect{fill:rgba(225,110,60,.18);stroke:#e16e3c}
+.study-loop .p3 rect{fill:rgba(46,154,102,.12);stroke:#2e9a66}
+.study-loop .arrow{fill:none;stroke:#888;stroke-width:2}
+.study-loop .back{fill:none;stroke:#2e9a66;stroke-width:2.5}
+.study-loop marker path{fill:#888}
+.study-loop marker.g path{fill:#2e9a66}
+"""
+
+
+def study_loop(page: str = "06_your_study.html") -> HTML:
+    """The eight-step loop drawn on `page`, as a figure in the notebook. Every box links
+    to its step on the page."""
+    html = Path(page).read_text()
+    markers = re.search(r"<defs>.*?</defs>", html, flags=re.DOTALL)
+    loop = re.search(r'<svg class="loop-wide".*?</svg>', html, flags=re.DOTALL)
+    if markers is None or loop is None:
+        raise ValueError(f"{page} holds no loop figure")
+    svg = loop.group(0).replace('href="#', f'target="_blank" href="{page}#')
+    svg = svg.replace("every box opens its step below", "")
+    svg = svg.replace(">", f">{markers.group(0)}", 1)
+    return HTML(f'<div class="study-loop"><style>{_LOOP_STYLE}</style>{svg}</div>')
