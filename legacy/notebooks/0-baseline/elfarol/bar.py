@@ -1,11 +1,11 @@
-from typing import List, Sequence
+from collections.abc import Sequence
 
 import seaborn as sns
 
 from elfarol.agents import BaseAgent
 
 
-def saturdaynight(agents: Sequence[BaseAgent], hist: List[int]) -> List[int]:
+def saturdaynight(agents: Sequence[BaseAgent], hist: list[int]) -> list[int]:
     k = 0
     for agent in agents:
         if agent.decide(hist):
@@ -16,7 +16,7 @@ def saturdaynight(agents: Sequence[BaseAgent], hist: List[int]) -> List[int]:
 
 def simulate(
     agents: Sequence[BaseAgent], first_night: int = 100, k: int = 52, plot: bool = True
-) -> List[int]:
+) -> list[int]:
     hist = [first_night]
     for _ in range(k):
         saturdaynight(agents, hist)

@@ -1,26 +1,28 @@
-from typing import List, Optional, Sequence, Union, Tuple
-import numpy as np
-from elfarol.agents import Agent, BaseAgent
-import elfarol.hypotheses as hypt
-import seaborn as sns
-import matplotlib.pylab as plt
 from collections import Counter
+from collections.abc import Sequence
+
+import matplotlib.pylab as plt
+import numpy as np
+import seaborn as sns
 from loguru import logger
+
+import elfarol.hypotheses as hypt
+from elfarol.agents import Agent, BaseAgent
 
 
 class MoodyAgent(Agent):
     def __init__(
-        self, n: Union[int, List[int]], threshold: int = 60, fixed: bool = False
+        self, n: int | list[int], threshold: int = 60, fixed: bool = False
     ) -> None:
         super().__init__(n=n, threshold=threshold, fixed=fixed)
         self.hypotheses: hypt.Hypotheses = hypt.Hypotheses(n, fixed=fixed)
 
-    def _get_threshold(self, threshold: int, hist: Optional[List[int]] = None) -> int:
+    def _get_threshold(self, threshold: int, hist: list[int] | None = None) -> int:
         noise = np.random.randint(-9, 10)
 
         return threshold + noise
 
-    def _predict(self, hist: List[int]) -> float:
+    def _predict(self, hist: list[int]) -> float:
         """Run some sort of prediction, based on the history,
         for the amount of people that will come
 
@@ -36,17 +38,17 @@ class MoodyAgent(Agent):
         yhat = model(hist)
         return yhat
 
-    def decide(self, hist: List[int]) -> bool:
+    def decide(self, hist: list[int]) -> bool:
         yhat = self._predict(hist)
         return yhat <= self._get_threshold(self.threshold)
 
 
 class BaseExperiment:
-    def __init__(self, agents: Sequence[BaseAgent], hist: List[int] = [100]) -> None:
+    def __init__(self, agents: Sequence[BaseAgent], hist: list[int] = [100]) -> None:
         self.agents = agents
         self.hist = hist
 
-    def saturdaynight(self) -> List[int]:
+    def saturdaynight(self) -> list[int]:
         k = 0
         for agent in self.agents:
             if agent.decide(self.hist):
@@ -54,14 +56,14 @@ class BaseExperiment:
         self.hist.append(k)
         return self.hist
 
-    def simulate(self, k: int = 52) -> List[int]:
+    def simulate(self, k: int = 52) -> list[int]:
         for _ in range(k):
             self.saturdaynight()
         return self.hist
 
 
 class Experiment(BaseExperiment):
-    def __init__(self, agents: Sequence[BaseAgent], hist: List[int] = [100]) -> None:
+    def __init__(self, agents: Sequence[BaseAgent], hist: list[int] = [100]) -> None:
         super().__init__(agents=agents, hist=hist)
 
     def line(self):
@@ -73,7 +75,7 @@ class Experiment(BaseExperiment):
             n.append(len(agent.hypotheses))
         sns.histplot(n)
 
-    def bar_hypt_population(self, figsize: Tuple[float, float] = (10, 10)):
+    def bar_hypt_population(self, figsize: tuple[float, float] = (10, 10)):
         types = []
         for agent in self.agents:
             for model in agent.hypotheses.models:
@@ -83,7 +85,7 @@ class Experiment(BaseExperiment):
         sns.barplot(x=list(c.keys()), y=list(c.values()))
         plt.xticks(rotation=90)
 
-    def bar_log(self, figsize: Tuple[float, float] = (10, 10)):
+    def bar_log(self, figsize: tuple[float, float] = (10, 10)):
         models_used = [name for x in self.agents for name in x.log]
         normalize = len(models_used)
         logger.info(f"Found {normalize} models.")

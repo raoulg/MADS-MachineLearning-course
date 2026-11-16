@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Union
+from collections.abc import Callable
 
 import numpy as np
 
@@ -18,15 +18,15 @@ class BaseAgent:
         """
         self.threshold = self._get_threshold(threshold)
         self.hypotheses: hypt.Hypotheses = hypt.Hypotheses(n=[7], fixed=True)
-        self.log: List[str] = []
+        self.log: list[str] = []
 
-    def _get_threshold(self, threshold: int, hist: Optional[List[int]] = None) -> int:
+    def _get_threshold(self, threshold: int, hist: list[int] | None = None) -> int:
         return threshold
 
     def __repr__(self):
         return f"Agent(threshold={self.threshold}, model={self.hypotheses})"
 
-    def _predict(self, hist: List[int]) -> float:
+    def _predict(self, hist: list[int]) -> float:
         """Run some sort of prediction, based on the history,
         for the amount of people that will come
 
@@ -42,10 +42,10 @@ class BaseAgent:
         yhat = model(hist)
         return yhat
 
-    def _getmodel(self, hist: List[int]) -> Callable[[List[int]], float]:
+    def _getmodel(self, hist: list[int]) -> Callable[[list[int]], float]:
         return self.hypotheses.models[0]
 
-    def decide(self, hist: List[int]) -> bool:
+    def decide(self, hist: list[int]) -> bool:
         """The agent makes a prediction for upcoming week, based on the history,
         and decides if he will go (True) or stay home (False)
 
@@ -62,7 +62,7 @@ class BaseAgent:
 
 class Agent(BaseAgent):
     def __init__(
-        self, n: Union[int, List[int]], threshold: int = 60, fixed: bool = False
+        self, n: int | list[int], threshold: int = 60, fixed: bool = False
     ) -> None:
         """By default, the agent has a threshold of 60 and generates a random
         order of n hypotheses at initialisation.
@@ -76,7 +76,7 @@ class Agent(BaseAgent):
         super().__init__(threshold=threshold)
         self.hypotheses: hypt.Hypotheses = hypt.Hypotheses(n, fixed=fixed)
 
-    def _getmodel(self, hist: List[int]) -> Callable[[List[int]], float]:
+    def _getmodel(self, hist: list[int]) -> Callable[[list[int]], float]:
         if len(hist) == 1:
             past = hist
         else:

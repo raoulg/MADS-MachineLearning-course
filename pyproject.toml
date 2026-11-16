@@ -69,19 +69,19 @@ dev = [
 
 [tool.pyright]
 executionEnvironments = [
-  { root = "notebooks/8_extras/swarms" }
+  { root = "legacy/notebooks/8_extras/swarms" }
 ]
 
 [tool.ruff]
 # Scouting scripts kept as evidence for how a research number was produced. They import
 # packages this project does not declare (sentence-transformers, nltk) and are deleted
 # once the lesson built on them has run.
-extend-exclude = ["planning/research"]
+extend-exclude = ["planning/research", "legacy"]
 force-exclude = true
 
 [tool.ty.src]
-exclude = ["planning/research"]
+exclude = ["planning/research", "legacy"]
 
 [tool.ty.environment]
-extra-paths = ["notebooks/0-baseline", "notebooks/2_kernels_state_and_gates", "notebooks/3_scaling_and_search", "notebooks/4_language", "notebooks/6_uncertainty", "notebooks/7_generalists_and_memory"]
+extra-paths = ["notebooks/2_kernels_state_and_gates", "notebooks/3_scaling_and_search", "notebooks/4_language", "notebooks/6_uncertainty", "notebooks/7_generalists_and_memory"]
 

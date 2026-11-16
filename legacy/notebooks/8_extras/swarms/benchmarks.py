@@ -1,5 +1,6 @@
+from collections.abc import Callable
+
 import numpy as np
-from typing import Callable, Tuple, List
 from matplotlib.axes import Axes
 from mpl_toolkits.mplot3d import Axes3D
 from optimizers import OptimizationResult
@@ -42,7 +43,7 @@ def ackley(x: np.ndarray) -> float:
 
 
 def plot_2d_benchmark(
-    ax: Axes3D, func: Callable, bounds: Tuple[float, float], title: str
+    ax: Axes3D, func: Callable, bounds: tuple[float, float], title: str
 ):
     """Helper to plot a 2D version of a benchmark function on a 3D axis"""
     x_lin = np.linspace(bounds[0], bounds[1], 80)
@@ -67,7 +68,7 @@ def plot_2d_benchmark(
 
 def plot_convergence_on_ax(
     ax: Axes | Axes3D,
-    results: List[OptimizationResult],
+    results: list[OptimizationResult],
     title: str,
     max_iter: int,
 ):

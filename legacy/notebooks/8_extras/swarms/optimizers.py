@@ -1,8 +1,9 @@
-import numpy as np
-from typing import Callable, Tuple, List
-from pydantic import BaseModel, Field, field_validator
+from collections.abc import Callable
 from dataclasses import dataclass
+
+import numpy as np
 from loguru import logger
+from pydantic import BaseModel, Field, field_validator
 from tqdm import trange
 
 
@@ -12,7 +13,7 @@ class OptimizationResult:
 
     best_position: np.ndarray
     best_fitness: float
-    fitness_history: List[float]
+    fitness_history: list[float]
     algorithm: str
     n_iterations: int
 
@@ -34,7 +35,7 @@ class PSOConfig(BaseModel):
     omega: float = Field(default=0.7, ge=0, le=1, description="Inertia weight")
     c1: float = Field(default=1.5, gt=0, description="Cognitive coefficient")
     c2: float = Field(default=1.5, gt=0, description="Social coefficient")
-    bounds: Tuple[float, float] = Field(
+    bounds: tuple[float, float] = Field(
         default=(-5.0, 5.0), description="Search space bounds"
     )
 
@@ -75,7 +76,7 @@ class PSO:
         # This resolves many type errors related to 'None' being in fitness lists
         # or assigned to 'best_fitness' which expects a float.
         self.global_best_fitness: float = np.inf
-        self.fitness_history: List[float] = []
+        self.fitness_history: list[float] = []
 
     def _initialize_swarm(self, dimension: int) -> None:
         cfg = self.config
@@ -206,7 +207,7 @@ class GWOConfig(BaseModel):
 
     n_wolves: int = Field(default=30, gt=0, description="Number of wolves in the pack")
     max_iterations: int = Field(default=100, gt=0, description="Maximum iterations")
-    bounds: Tuple[float, float] = Field(
+    bounds: tuple[float, float] = Field(
         default=(-5.0, 5.0), description="Search space bounds"
     )
 
@@ -232,7 +233,7 @@ class GWO:
         self.beta_fitness: float = float("inf")
         self.delta_pos: np.ndarray | None = None
         self.delta_fitness: float = float("inf")
-        self.fitness_history: List[float] = []
+        self.fitness_history: list[float] = []
 
     def _initialize_pack(self, dimension: int) -> None:
         cfg = self.config

@@ -7,6 +7,7 @@ pre-commit:
       glob: '*.ipynb'
       exclude:
         - 'archive/**'
+        - 'legacy/**'
       run: uv run notebooktester {staged_files} -t 240 -w 8 -pb
     clean-jupyter:
       priority: 2
@@ -14,6 +15,7 @@ pre-commit:
       glob: '*.ipynb'
       exclude:
         - 'archive/**'
+        - 'legacy/**'
       run: uv run jupyter nbconvert --clear-output --inplace {staged_files}
       stage_fixed: true
     format:
@@ -22,6 +24,7 @@ pre-commit:
       glob: '*.{py,ipynb}'
       exclude:
         - 'archive/**'
+        - 'legacy/**'
       run: uv run ruff format {staged_files}
       stage_fixed: true
     ruff:
@@ -30,6 +33,7 @@ pre-commit:
       glob: '*.py'
       exclude:
         - 'archive/**'
+        - 'legacy/**'
       run: uv run ruff check {staged_files} --fix
     typecheck:
       files: git ls-files
@@ -38,6 +42,7 @@ pre-commit:
       exclude:
         - 'planning/research/**/*.py'
         - 'archive/**'
+        - 'legacy/**'
       run: uv run ty check {staged_files}
     lychee:
       run: lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --max-cache-age 7d

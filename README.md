@@ -56,8 +56,8 @@ Handy to have open:
   a reference card for tensor shapes, composition, diagrams, gradients and the GRU.
 - [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-tensors.html).
 - [Submitting your runs](docs/submit-runs.md) to the class repository.
-- [`0-baseline`](notebooks/0-baseline): check your Python and numpy before lesson 1.
-- [`8_extras`](notebooks/8_extras): material that is good and not examined.
+- [`0-baseline`](legacy/notebooks/0-baseline): check your Python and numpy before lesson 1.
+- [`8_extras`](legacy/notebooks/8_extras): material that is good and not examined.
 
 ## How the repository is built
 
