@@ -95,6 +95,18 @@ def study_of(experiment: str) -> str | None:
     return m.group(1) if m else None
 
 
+def word(value: object, default: str = "") -> str:
+    """A user attr that is read as text: `default` when a submission holds another type.
+    The format leaves user attrs free, so the page reads none of them on trust."""
+    return value if isinstance(value, str) else default
+
+
+def plain(text: object) -> str:
+    """Text of a student for a label plotly draws: plotly reads a label as HTML, so the
+    characters that would open a tag or a link are escaped."""
+    return html.escape(str(text))
+
+
 def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame:
     """One row per submitted run, with the params as `p_<name>` columns."""
     rows = []
@@ -110,31 +122,32 @@ def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame
             "origin": origin_of(run.experiment),
             "study": study_of(run.experiment),
             "name": run.run_name,
-            "role": attrs.get("role", "-"),
-            "dataset": attrs.get("dataset") or "unknown",
-            "session": attrs.get("session"),
+            "role": word(attrs.get("role"), "-"),
+            "dataset": word(attrs.get("dataset")) or "unknown",
+            "session": word(attrs.get("session")) or None,
             "status": run.status,
             "score": run.value,
             "std": attrs.get(f"{metric}_std"),
             "n": attrs.get("n_repeats"),
             "n_params": attrs.get("n_params"),
             "train_seconds": attrs.get("train_seconds"),
-            "architecture": attrs.get("architecture"),
-            "builds_on": attrs.get("builds_on", ""),
-            "search_space": sub.run.study.attrs.get("search_space"),
-            "searched_axes": sub.run.study.attrs.get("searched_axes"),
-            "space_is_default": sub.run.study.attrs.get("space_is_default"),
-            "idea": study_attrs.get("idea", ""),
-            "idea_name": study_attrs.get("idea_name", ""),
-            "idea_author": study_attrs.get("idea_author", ""),
-            "idea_parents": study_attrs.get("idea_parents", ""),
+            "architecture": word(attrs.get("architecture")) or None,
+            "builds_on": word(attrs.get("builds_on")),
+            "search_space": word(study_attrs.get("search_space")) or None,
+            "searched_axes": study_attrs.get("searched_axes"),
+            "space_is_default": study_attrs.get("space_is_default"),
+            "idea": word(study_attrs.get("idea")),
+            "idea_name": word(study_attrs.get("idea_name")),
+            "idea_author": word(study_attrs.get("idea_author")),
+            "idea_parents": word(study_attrs.get("idea_parents")),
             "epochs_run": len(run.intermediate),
             "start": run.start_time,
             "design": "design.py" in run.artifacts,
         }
         row.update({f"p_{k}": v for k, v in run.params.items()})
         # a trial's fixed axes (the dataset, ...) are in its config, not its params
-        for k, v in (attrs.get("config") or {}).items():
+        config = attrs.get("config")
+        for k, v in (config if isinstance(config, dict) else {}).items():
             row.setdefault(f"p_{k}", v)
         rows.append(row)
     df = pd.DataFrame(rows)
@@ -386,7 +399,7 @@ def fig_baseline_vs_final(cmp: pd.DataFrame) -> go.Figure:
     if cmp.empty:
         return style(fig, 200)
     cmp = cmp.sort_values("gain_pt").reset_index(drop=True)
-    labels = [f"{r.student} · {r.study}" for r in rows(cmp)]
+    labels = [plain(f"{r.student} · {r.study}") for r in rows(cmp)]
     for i, r in enumerate(rows(cmp)):
         real = (not math.isnan(r.sigma)) and r.sigma >= 2
         color = GAIN if real else (LOSS if r.gain_pt < 0 and r.sigma <= -2 else MUTED)
@@ -515,7 +528,7 @@ def fig_studies(df: pd.DataFrame, cmp: pd.DataFrame) -> go.Figure:
     n = len(cmp)
     n_cols = min(3, n)
     n_rows = -(-n // n_cols)
-    titles = [f"{r.student} · {r.study}" for r in rows(cmp)]
+    titles = [plain(f"{r.student} · {r.study}") for r in rows(cmp)]
     fig = make_subplots(rows=n_rows, cols=n_cols, subplot_titles=titles, shared_yaxes=True,
                         horizontal_spacing=0.03, vertical_spacing=0.18)  # fmt: skip
     for i, r in enumerate(rows(cmp)):
@@ -738,8 +751,8 @@ def fig_ideas(ids: pd.DataFrame) -> go.Figure:
         parts = [
             f"<b>{html.escape(r.name)}</b> · {html.escape(r.author)}",
             "<br>".join(html.escape(w) for w in textwrap.wrap(r.idea, 50)),
-            "builds on: " + (", ".join(r.parents) or "nothing (a root)"),
-            f"ran by {len(r.students)}: " + ", ".join(r.students),
+            "builds on: " + (plain(", ".join(r.parents)) or "nothing (a root)"),
+            f"ran by {len(r.students)}: " + plain(", ".join(r.students)),
             f"{r.n_runs} runs",
             html.escape(res),
         ]
@@ -770,7 +783,7 @@ def fig_links(lk: pd.DataFrame) -> go.Figure:
     if lk.empty:
         return style(fig, 160)
     lk = lk[lk.found].sort_values("diff_pt").reset_index(drop=True)
-    labels = [f"{r.student} → {r.builds_on}" for r in rows(lk)]
+    labels = [plain(f"{r.student} → {r.builds_on}") for r in rows(lk)]
     fig.add_bar(
         y=labels, x=lk.diff_pt, orientation="h",
         marker_color=[GAIN if d > 0 else LOSS for d in lk.diff_pt],
@@ -798,7 +811,7 @@ def fig_architectures(df: pd.DataFrame) -> go.Figure:
             x=part.n_params, y=part.score, mode="markers", name=role,
             marker={"size": 9 if role != "trial" else 6, "color": ROLE_COLORS[role],
                     "opacity": 0.9 if role != "trial" else 0.45},
-            text=part.student + " · " + part["name"], hovertemplate="%{text}<br>%{x:,.0f} params<br>%{y:.4f}<extra></extra>",
+            text=(part.student + " · " + part["name"].astype(str)).map(plain), hovertemplate="%{text}<br>%{x:,.0f} params<br>%{y:.4f}<extra></extra>",
         )  # fmt: skip
     fig.update_xaxes(title=f"parameters (log), runs on {dataset}", type="log")
     fig.update_yaxes(title=METRIC)

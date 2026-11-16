@@ -235,3 +235,27 @@ def test_the_page_is_one_self_contained_file_with_every_picture():
         "Who built on whom",
     ):
         assert title in page
+
+
+def test_an_attr_of_another_type_is_read_as_absent():
+    odd = sub(
+        "mallory", "lesson1-notebook-runs", "baseline", {"a": 1}, 0.8,
+        session=7, config=["not", "a", "dict"], architecture=3, builds_on=[1],
+    )  # fmt: skip
+    odd.run.attrs["dataset"] = 12
+    df = class_analysis.runs_frame(
+        [odd, sub("carol", "lesson1-notebook-runs", "baseline", "baseline", 0.8)]
+    )
+    [row] = df[df.student == "mallory"].itertuples()
+    assert (row.role, row.dataset, row.builds_on) == ("-", "unknown", "")
+    assert row.session is None and row.architecture is None
+    assert "plotly-graph-div" in class_analysis.build_page(df, 1)
+
+
+def test_a_label_plotly_draws_holds_no_tag_of_a_student():
+    name = "<a href='https://example.org'>click</a>"
+    df = class_analysis.runs_frame(
+        [sub("mallory", "lesson1-notebook-runs", name, "baseline", 0.8, n_params=10)]
+    )
+    [trace] = [t for t in class_analysis.fig_architectures(df).data if len(t.x)]
+    assert "<" not in trace.text[0] and "&lt;a href" in trace.text[0]
