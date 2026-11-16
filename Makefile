@@ -1,4 +1,4 @@
-.PHONY: help share dashboard optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
+.PHONY: help study share dashboard optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
         build-heartbeats publish-heartbeats
 
@@ -67,11 +67,18 @@ optuna-dashboard:
 	uv run optuna-dashboard sqlite:///$(OPTUNA_DIR)/studies.db \
 		--artifact-dir $(OPTUNA_DIR)/artifacts --port $(OPTUNA_PORT) $(ARGS)
 
+# Your study over a design of your own: notebooks/1_pytorch_intro/exercises/readme.html.
+# Part 1 of 05_exercises.ipynb runs first; it measures what one trial costs here.
+
+study:
+	uv run notebooks/1_pytorch_intro/exercises/study.py
+
 # newest artefact folder matching a glob, or empty
 latest = $(shell ls -dt artefacts/$(1) 2>/dev/null | head -1)
 
 help:
 	@echo "targets:"
+	@echo "  study                 run your study over your design (notebooks/1_pytorch_intro/exercises)"
 	@echo "  share LESSON=<N>      submit your runs of lesson N (ARGS=--list to preview)"
 	@echo "  dashboard LESSON=<N>  open the class page of lesson N, and optuna-dashboard on the class's runs"
 	@echo "  optuna-dashboard      open optuna-dashboard on your Optuna studies (05_exercises)"
