@@ -148,7 +148,7 @@ svg marker.g path{fill:var(--course-green)}
 </li>
 <li class="step p2" id="step-5">
   <h3><span>5</span>Search</h3>
-  <p>An Optuna study over your space and your design, then the winner rerun as often as the baseline. The script refuses a space that leaves out an option or holds an axis nothing uses.</p>
+  <p>An Optuna study over your space and your design, then the winner rerun as often as the baseline. The script refuses a space that leaves out an option or holds an axis that neither the design nor the trainer knows, and a study that already holds trials of another space.</p>
   <div class="where">make study<br>uv run notebooks/1_pytorch_intro/exercises/study.py</div>
   <div class="goals">goal <a href="../../../presentations/leerdoelen-les1.html#g1-14">1.14</a></div>
 </li>
@@ -176,7 +176,7 @@ svg marker.g path{fill:var(--course-green)}
 <dl class="files">
   <dt>designs.py</dt><dd>Your design: <code>Config</code>, the choices, and <code>Head</code>, the supergraph with one typed stage per operation. Its comments say how to add a stage of your own.</dd>
   <dt>study.py</dt><dd>Your study: the five settings at the top, then baseline, budget, search, winner and the difference in sigmas.</dd>
-  <dt>harness.py</dt><dd>The machinery both run on: the caches, the trainer that counts its seconds, the objective. It builds whatever <code>make_model(config, dim, n_classes)</code> gives it.</dd>
+  <dt>harness.py</dt><dd>The machinery <code>study.py</code> runs on: the caches, the trainer that counts its seconds, the objective. It builds whatever <code>make_model(config, dim, n_classes)</code> gives it.</dd>
 </dl>
 </main>
 </body>

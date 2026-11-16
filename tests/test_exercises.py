@@ -65,3 +65,31 @@ def test_check_space_refuses_a_missing_option():
 def test_check_space_refuses_an_unused_axis():
     with pytest.raises(ValueError, match="'weight_decay', which neither"):
         check_space({**SPACE, "weight_decay": 1e-4}, options(Head), DESIGN)
+
+
+def test_drawn_keeps_the_choices_of_the_design_and_leaves_the_trainers():
+    config = Config.drawn(
+        {"hidden_dim": 48, "skip": True, "lr": 1e-3, "dataset": "dtd"}
+    )
+    assert (config.hidden_dim, config.skip, config.gate) == (48, True, False)
+
+
+@pytest.mark.parametrize("axis", options(Head))
+def test_an_option_changes_what_the_head_computes(axis):
+    torch.manual_seed(0)
+    model = Head(Config(hidden_dim=16, **{axis: True}), dim=12, n_classes=5).eval()
+    embed = torch.randn(4, 12)
+    with_it = model(embed)
+    object.__setattr__(model, "config", Config(hidden_dim=16))
+    assert not torch.allclose(with_it, model(embed))
+
+
+def test_trace_leaves_the_model_as_it_found_it():
+    model = Head(Config(hidden_dim=16, skip=True), dim=12, n_classes=5).train()
+    trace(model, torch.randn(4, 12))
+    assert model.training and "skip" not in vars(model)
+
+
+def test_a_head_without_a_hidden_block_is_refused_by_name():
+    with pytest.raises(ValueError, match="n_hidden_layers must be at least 1"):
+        Head(Config(n_hidden_layers=0), dim=12, n_classes=5)

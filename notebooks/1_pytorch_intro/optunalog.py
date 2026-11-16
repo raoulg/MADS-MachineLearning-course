@@ -312,22 +312,53 @@ def handed_out(lesson: int) -> dict[str, str]:
     return idea(f"lesson {lesson} as handed out", author=COURSE)
 
 
-def _carry(study: optuna.Study, idea: Mapping[str, str] | None) -> None:
-    """Write `idea` on `study`. A study holds one idea: with another one already on it,
-    a `ValueError` that names both."""
-    if idea is None:
-        return
-    held = study.user_attrs.get("idea_id")
-    if held is not None and held != idea["idea_id"]:
-        raise ValueError(
+def _other(
+    study: optuna.Study, idea: Mapping[str, str] | None, space: str | None = None
+) -> str | None:
+    """Why `study` cannot take `idea` and the search space `space` (as `space_line`
+    writes it), or None when it can. A study holds one idea and the trials of one
+    space."""
+    attrs = study.user_attrs
+    held = attrs.get("idea_id")
+    if idea is not None and held is not None and held != idea["idea_id"]:
+        return (
             f"the study {study.study_name!r} holds the idea "
-            f"{study.user_attrs['idea_name']} ({study.user_attrs['idea']!r}), not "
+            f"{attrs['idea_name']} ({attrs['idea']!r}), not "
             f"{idea['idea_name']} ({idea['idea']!r}): another idea is another study, "
             "so give this one another name; name the old idea in builds_on if the new "
             "one builds on it"
         )
-    for key in IDEA_ATTRS:
-        study.set_user_attr(key, idea[key])
+    searched = attrs.get("search_space")
+    if space is not None and searched not in (None, space) and study.trials:
+        return (
+            f"the study {study.study_name!r} holds trials of another search space:\n"
+            f"  held : {searched}\n  given: {space}\n"
+            "trials of two spaces in one study cannot be read together, so give the "
+            "study with this space another name, or put the space back as it was"
+        )
+    return None
+
+
+def _open(
+    name: str,
+    idea: Mapping[str, str] | None,
+    space: str | None = None,
+    **kwargs: Any,
+) -> optuna.Study:
+    """The study `name`, carrying `idea`. A study that holds another idea, or trials of
+    another space, raises a `ValueError`; under notebooktester it is started again, since
+    the tester's store only says whether the code runs."""
+    study = _study(name, **kwargs)
+    problem = _other(study, idea, space)
+    if problem is not None:
+        if not TESTING:
+            raise ValueError(problem)
+        optuna.delete_study(study_name=name, storage=storage())
+        study = _study(name, **kwargs)
+    if idea is not None:
+        for key in IDEA_ATTRS:
+            study.set_user_attr(key, idea[key])
+    return study
 
 
 def budget(
@@ -442,14 +473,16 @@ def search_study(
     every trial run to its last epoch. The study carries its space as user attrs
     (`search_space`, `searched_axes`) next to whatever `attrs` holds, and its `idea`
     (see `idea`). A study that exists already gets the new trials added to it; `session`
-    tells the executions apart. A study that holds another idea raises a `ValueError`.
+    tells the executions apart. A study that holds another idea, or trials of another
+    space, raises a `ValueError`.
     """
-    study = _study(
+    study = _open(
         name,
+        idea,
+        space_line(space),
         sampler=sampler or optuna.samplers.RandomSampler(),
         pruner=pruner or optuna.pruners.NopPruner(),
     )
-    _carry(study, idea)
     study.set_user_attr("search_space", space_line(space))
     study.set_user_attr("searched_axes", ",".join(searched_axes(space)))
     for key, value in (attrs or {}).items():
@@ -559,9 +592,7 @@ def use_study(name: str, idea: Mapping[str, str] | None = None) -> optuna.Study:
     (see `idea`) the study carries it; a study that holds another idea raises a
     `ValueError`."""
     global _current
-    study = _study(name)
-    _carry(study, idea)
-    _current = study
+    _current = _open(name, idea)
     return _current
 
 

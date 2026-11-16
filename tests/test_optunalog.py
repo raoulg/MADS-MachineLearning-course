@@ -321,3 +321,27 @@ def test_the_handed_out_idea_is_one_root_for_the_whole_class():
         "does depth still help", builds_on=root["idea_name"], author="sam"
     )
     assert first["idea_parents"] == root["idea_name"]
+
+
+def test_a_study_refuses_trials_of_another_space(monkeypatch):
+    monkeypatch.setattr(optunalog, "TESTING", False)
+    name = "lesson1-study-alice-depth"
+    study = optunalog.search_study(name, SPACE)
+    study.optimize(lambda trial: float(len(optunalog.draw(trial, SPACE))), n_trials=2)
+    optunalog.search_study(name, SPACE)  # the same space adds to it
+    other = {**SPACE, "extra_axis": optunalog.Choice([False, True])}
+    with pytest.raises(ValueError, match="trials of another search space"):
+        optunalog.search_study(name, other, attrs={"study": "overwritten"})
+    kept = optunalog.search_study(name, SPACE)
+    assert len(kept.trials) == 2 and "study" not in kept.user_attrs
+
+
+def test_under_the_tester_a_study_of_another_space_or_idea_starts_again(monkeypatch):
+    monkeypatch.setattr(optunalog, "TESTING", True)
+    name = "lesson1-study-name-your-study"
+    first = optunalog.idea("an idea of the first execution", author="alice")
+    study = optunalog.search_study(name, SPACE, idea=first)
+    study.optimize(lambda trial: float(len(optunalog.draw(trial, SPACE))), n_trials=2)
+    second = optunalog.idea("an idea of the second execution", author="alice")
+    again = optunalog.search_study(name, SPACE, idea=second)
+    assert again.trials == [] and again.user_attrs["idea_name"] == second["idea_name"]

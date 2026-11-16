@@ -67,6 +67,7 @@ IDEA = idea("say what your study investigates", builds_on=handed_out(1)["idea_na
 # What do you expect to happen, and why? One line, written before you run. It is stored
 # with the study and never checked: it is there so the result can surprise you.
 EXPECTS = "say what you expect, and why"
+EXPECTS_PLACEHOLDER = "say what you expect, and why"
 
 # Which axes does your search space search, and over which ranges? Every option of
 # designs.py (@option) needs an axis here: search it with Choice([False, True]), or fix it
@@ -145,6 +146,11 @@ def baseline_on(dataset: str) -> tuple[np.ndarray, float]:
 
 
 def main() -> None:
+    if EXPECTS.strip() == EXPECTS_PLACEHOLDER and not TESTING:
+        raise ValueError(
+            "EXPECTS: say in one line what you expect to happen and why, before you "
+            f"run, instead of {EXPECTS_PLACEHOLDER!r}"
+        )
     check_space(SPACE, options(Head), [f.name for f in fields(Config)])
 
     try:

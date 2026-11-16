@@ -106,6 +106,11 @@ class Head(nn.Module):
 
     def __init__(self, config: Config, dim: int, n_classes: int) -> None:
         super().__init__()
+        if config.n_hidden_layers < 1:
+            raise ValueError(
+                "Head: n_hidden_layers must be at least 1; without a hidden block the "
+                "head is the linear baseline, which study.py measures by itself"
+            )
         self.config = config
         self.dim = dim
         self.hidden_dim = config.hidden_dim
@@ -197,11 +202,13 @@ def trace(model: nn.Module, embed: Tensor) -> list[tuple[str, tuple[int, ...]]]:
     for name in stages(type(model)):
         # an attribute on the instance comes before the method of the class
         object.__setattr__(model, name, watch(name, getattr(model, name)))
+    training = model.training
     try:
         model.eval()
         with torch.no_grad():
             model(embed)
     finally:
+        model.train(training)
         for name in stages(type(model)):
             object.__delattr__(model, name)
     return seen
