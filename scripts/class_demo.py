@@ -2,6 +2,10 @@
 has submitted: eight invented students, each with the handed-out baseline, the handed-out
 search of 24 trials and its winner, and most of them with a study of their own.
 
+Every study carries an idea: the course's handed-out idea is the root, the students' own
+ideas build on it, one idea builds on two classmates' ideas and one on that, and one
+names a parent that nobody submitted.
+
 The accuracy of a trial is a plain function of its params plus noise between runs, so the
 pictures show what real runs would: a trend along the learning rate, a depth that stops
 paying, a spread between runs that is larger than most gains.
@@ -14,7 +18,7 @@ import uuid
 from datetime import UTC, datetime
 
 import numpy as np
-from run_submission import Submission
+from run_submission import COURSE, IDEA_ATTRS, Submission, idea_id, idea_name
 
 NAMES = ["alma", "bram", "chen", "dina", "emre", "fenna", "gijs", "hana"]
 NOISE = 0.0035  # the spread between runs of one config, as a standard deviation
@@ -34,6 +38,25 @@ def accuracy(cfg: dict, rng: np.random.Generator, machine: float) -> float:
         acc -= 0.04 * abs(cfg["dropout"] - 0.25) ** 1.2
     acc -= 0.03 * cfg["sigma"]
     return float(acc + rng.normal(0, NOISE))
+
+
+def make_idea(author: str, words: str, parents: list[dict[str, str]]) -> dict[str, str]:
+    """The study attrs of an idea, built as `optunalog.idea` builds them."""
+    names = sorted(p["idea_name"] for p in parents)
+    id_ = idea_id(author, words, names)
+    values = (words, author, ",".join(names), id_, idea_name(id_))
+    return dict(zip(IDEA_ATTRS, values, strict=True))
+
+
+ROOT = make_idea(COURSE, "a head on frozen dinov2 features for dtd", [])
+WORDS = {
+    "alma": "does a wider head still help on dtd",
+    "bram": "norm or skip, which one carries the gain",
+    "chen": "a narrow learning rate range around the default",
+    "dina": "very wide heads with one hidden layer",
+    "emre": "input noise as the only regulariser",
+    "fenna": "prune early and search the whole space",
+}
 
 
 def params_of(cfg: dict) -> dict:
@@ -155,6 +178,7 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
 
     linear = {"n_hidden_layers": 0, "hidden_dim": 0, "activation": "relu", "norm": "none",
               "skip": False, "dropout": 0.0, "sigma": 0.0, "lr": 1e-3}  # fmt: skip
+    own_ideas = {s: make_idea(s, words, [ROOT]) for s, words in WORDS.items()}
     own = {
         "alma": ("alma-depth-on-eurosat", "width", 0.012),
         "bram": ("bram-norm-or-skip", "norm", 0.006),
@@ -169,14 +193,14 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
         # handed-out part
         add(student, f"lesson{lesson}-notebook-runs", "baseline", "baseline", mean,
             params=params_of(linear), attrs={"accuracy_std": std, "n_repeats": 3, "n_params": n_params(linear), "name": "baseline"},
-            study_attrs={})  # fmt: skip
+            study_attrs=ROOT)  # fmt: skip
         for i in range(24):
             cfg = draw(rng)
             acc = accuracy(cfg, rng, machine)
             p = {k: cfg[k] for k in SPACE}
             add(student, f"lesson{lesson}-notebook", f"trial-{i:02d}", "trial", acc, params=p,
                 distributions=SPACE, attrs={"n_params": n_params(cfg), "config": {"dataset": "dtd", **cfg}},
-                study_attrs={"search_space": SPACE_LINE, "searched_axes": ",".join(sorted(SPACE)), "origin": "notebook"})  # fmt: skip
+                study_attrs={"search_space": SPACE_LINE, "searched_axes": ",".join(sorted(SPACE)), "origin": "notebook", **ROOT})  # fmt: skip
         if student not in own:
             continue
         study, focus, edge = own[student]
@@ -193,6 +217,7 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
             "searched_axes": focus,
             "origin": "study",
             "study": study,
+            **own_ideas[student],
         }
         base_mean, base_std = repeats(linear, machine)
         add(student, f"{experiment}-runs", "baseline", "baseline", base_mean, params=params_of(linear),
@@ -223,12 +248,21 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
             attrs={"accuracy_std": f_std, "n_repeats": 3, "n_params": n_params(best_cfg), "name": "winner", "has_design": True},
             study_attrs=sattrs)  # fmt: skip
         finals[student] = subs[-1].ref()
-    # a few students build on a classmate's final
+    # a few students build on a classmate's final, and on classmates' ideas: dina on two
+    # students' ideas, hana on dina's, bram on an idea of gijs that gijs never submitted
+    unsubmitted = make_idea("gijs", "a deeper head with layer norm", [ROOT])
+    merged = make_idea("dina", "a wide head with the norm that carried bram's gain",
+                       [own_ideas["alma"], own_ideas["bram"]])  # fmt: skip
+    later = {
+        "bram": make_idea("bram", "layer norm on a deeper head", [unsubmitted]),
+        "dina": merged,
+        "hana": make_idea("hana", "the merged wide head on less data", [merged]),
+    }
     for who, target in (("bram", "alma"), ("dina", "alma"), ("hana", "dina")):
         if target in finals:
             cfg = {**linear, "n_hidden_layers": 1, "hidden_dim": 256, "lr": 5e-4}
             mean, std = repeats(cfg, 0.0)
             add(who, f"lesson{lesson}-study-{who}-builds", "builds", "hypothesis", mean, params=params_of(cfg),
                 attrs={"accuracy_std": std, "n_repeats": 3, "n_params": n_params(cfg), "builds_on": finals[target], "name": "builds"},
-                study_attrs={"origin": "study", "study": f"{who}-builds"})  # fmt: skip
+                study_attrs={"origin": "study", "study": f"{who}-builds", **later[who]})  # fmt: skip
     return subs

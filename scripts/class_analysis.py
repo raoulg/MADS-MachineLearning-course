@@ -10,7 +10,8 @@ result is one self-contained HTML page, `artefacts/class-analysis/lesson<N>/inde
 read from top to bottom in the lesson: who submitted what; the handed-out baselines side
 by side, each with its spread between runs; baseline against final per student, with the
 spread drawn; the handed-out search pooled over the class; each student's own study;
-who built on whom; which architectures appeared and what they cost.
+the ideas of the class as a graph of what builds on what; which run built on whose;
+which architectures appeared and what they cost.
 
 optuna-dashboard (`make dashboard LESSON=<N>` opens both) shows one study at a time; this
 page is what it cannot show: the class pooled, and a student, a role or a dataset as the
@@ -28,6 +29,7 @@ import math
 import os
 import re
 import sys
+import textwrap
 import webbrowser
 from collections import Counter
 from collections.abc import Iterable
@@ -42,7 +44,7 @@ from plotly.subplots import make_subplots
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from run_submission import Submission, explain
+from run_submission import COURSE, Submission, explain, idea_parents
 
 COURSE_ROOT = Path(__file__).resolve().parents[1]
 METRIC = "accuracy"
@@ -99,6 +101,7 @@ def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame
     for sub in subs:
         run = sub.run
         attrs = run.attrs
+        study_attrs = run.study.attrs
         row = {
             "student": sub.student,
             "lesson": sub.lesson,
@@ -121,6 +124,10 @@ def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame
             "search_space": sub.run.study.attrs.get("search_space"),
             "searched_axes": sub.run.study.attrs.get("searched_axes"),
             "space_is_default": sub.run.study.attrs.get("space_is_default"),
+            "idea": study_attrs.get("idea", ""),
+            "idea_name": study_attrs.get("idea_name", ""),
+            "idea_author": study_attrs.get("idea_author", ""),
+            "idea_parents": study_attrs.get("idea_parents", ""),
             "epochs_run": len(run.intermediate),
             "start": run.start_time,
             "design": "design.py" in run.artifacts,
@@ -236,6 +243,68 @@ def links(df: pd.DataFrame) -> pd.DataFrame:
     if not out.empty:
         out["diff_pt"] = 100 * (out.score - out.on_score)
     return out
+
+
+IDEA_COLUMNS = [
+    "name", "idea", "author", "parents", "missing", "students", "n_runs", "study",
+    "base", "final", "gain_pt", "sigma", "verdict",
+]  # fmt: skip
+
+
+def verdict(sig: float | None) -> str:
+    """A result at a glance: `better` or `worse` than its baseline by more than two
+    sigmas, `inside` the spread between runs, or `unmeasured`."""
+    if sig is None or math.isnan(sig):
+        return "unmeasured"
+    if sig >= 2:
+        return "better"
+    return "worse" if sig <= -2 else "inside"
+
+
+def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
+    """One row per idea of the class: its name, words, author, parents (the names it
+    builds on; `missing` those not among the submissions), the students who ran it and
+    their number of runs, and its result where `comparisons` has one for a study of the
+    idea: the final against the baseline, in points and in sigmas. An idea is its name,
+    so the handed-out idea of author `course` is one row for the whole class."""
+    if df.empty or "idea_name" not in df:
+        return pd.DataFrame(columns=IDEA_COLUMNS)
+    carried = df[df.idea_name.astype(bool)]
+    names = set(carried.idea_name)
+    idea_of = {
+        (s, st): n
+        for s, st, n in zip(carried.student, carried.study, carried.idea_name)
+        if isinstance(st, str)
+    }
+    result: dict[str, SimpleNamespace] = {}
+    for r in rows(cmp):
+        name = idea_of.get((r.student, r.study))
+        if name is not None:
+            result.setdefault(name, r)
+    out = []
+    for name, group in carried.groupby("idea_name", sort=False):
+        first = group.iloc[0]
+        parents = idea_parents(first.idea_parents)
+        c = result.get(str(name))
+        out.append(
+            {
+                "name": name,
+                "idea": first.idea,
+                "author": first.idea_author,
+                "parents": parents,
+                "missing": [p for p in parents if p not in names],
+                "students": sorted(group.student.unique()),
+                "n_runs": len(group),
+                "study": None if c is None else c.study,
+                "base": np.nan if c is None else c.base,
+                "final": np.nan if c is None else c.final,
+                "gain_pt": np.nan if c is None else c.gain_pt,
+                "sigma": np.nan if c is None else c.sigma,
+                "verdict": verdict(None if c is None else c.sigma),
+            }
+        )
+    out.sort(key=lambda r: (r["author"] != COURSE, r["author"], r["name"]))
+    return pd.DataFrame(out, columns=IDEA_COLUMNS)
 
 
 def rows(df: pd.DataFrame) -> list[SimpleNamespace]:
@@ -476,6 +545,226 @@ def fig_studies(df: pd.DataFrame, cmp: pd.DataFrame) -> go.Figure:
     return style(fig, 300 * n_rows + 40)
 
 
+COURSE_TONE = "#8a8f98"
+# One hue per student's ideas; green and red are kept for the result.
+AUTHOR_COLORS = [
+    "#1f5fa8", "#d98e3b", "#7a5aa6", "#2b8fa3", "#c2618f", "#8a7a2a", "#4f6fd0",
+    "#a0522d", "#5b6b8c", "#b07ac4", "#3d7a8a", "#c98a1b", "#6d4c9f", "#a35d7a",
+    "#2f6f9f",
+]  # fmt: skip
+VERDICT_STYLE = {  # border colour, border width, mark
+    "better": (GAIN, 3.0, "▲"),
+    "worse": (LOSS, 3.0, "▼"),
+    "inside": (MUTED, 1.5, "≈"),
+    "unmeasured": ("#c9ced6", 1.0, ""),
+}
+LAYER_PX, BOX_PX = 250, 186  # the width of a layer, and of a box in it
+ROW_PX, BOX_H_PX = 100, 80  # the height of a row, and of a box in it
+
+
+def tint(color: str, alpha: float) -> str:
+    """`color` (#rrggbb) mixed with white: `alpha` of the colour."""
+    r, g, b = (int(color[i : i + 2], 16) for i in (1, 3, 5))
+    mix = (round(255 - alpha * (255 - c)) for c in (r, g, b))
+    return "#" + "".join(f"{c:02x}" for c in mix)
+
+
+def author_colors(ids: pd.DataFrame) -> dict[str, str]:
+    """The colour of every author of an idea; the course's root in a neutral tone."""
+    authors = sorted({a for a in ids.author if a != COURSE})
+    colors = {a: AUTHOR_COLORS[i % len(AUTHOR_COLORS)] for i, a in enumerate(authors)}
+    return {COURSE: COURSE_TONE, **colors}
+
+
+def idea_layout(ids: pd.DataFrame) -> dict[str, tuple[int, float]]:
+    """(layer, row) of every idea and of every parent that is not submitted: a root in
+    layer 0, an idea one layer right of its deepest parent, a parent that is not
+    submitted in the layer left of its first child. Inside a layer the ideas sit in the
+    order of their parents' rows, and every layer is centred on the widest one."""
+    parents = dict(zip(ids.name, ids.parents, strict=True))
+    depth: dict[str, int] = {}
+
+    def depth_of(name: str, seen: frozenset[str] = frozenset()) -> int:
+        if name not in depth:
+            known = [p for p in parents[name] if p in parents and p not in seen]
+            depth[name] = 1 + max(
+                (depth_of(p, seen | {name}) for p in known), default=-1
+            )
+            if any(p not in parents for p in parents[name]):
+                depth[name] = max(depth[name], 1)
+        return depth[name]
+
+    for name in parents:
+        depth_of(name)
+    for name, ps in parents.items():
+        for p in ps:
+            if p not in parents:
+                depth[p] = min(depth.get(p, depth[name] - 1), depth[name] - 1)
+    authors = dict(zip(ids.name, ids.author, strict=True))
+    layers: dict[int, list[str]] = {}
+    for name, d in depth.items():
+        layers.setdefault(d, []).append(name)
+    widest = max((len(v) for v in layers.values()), default=0)
+    place: dict[str, tuple[int, float]] = {}
+    children: dict[str, list[str]] = {}
+    for name, ps in parents.items():
+        for p in ps:
+            children.setdefault(p, []).append(name)
+    for d in sorted(layers):
+
+        def key(name: str) -> tuple[float, bool, str, str]:
+            # a parent not submitted has no parents of its own: it sits by its children
+            near = [place[p][1] for p in parents.get(name, []) if p in place]
+            if name not in parents:
+                near = [place[c][1] for c in children[name] if c in place]
+            centre = sum(near) / len(near) if near else -1.0
+            author = authors.get(name, "~")
+            return centre, author != COURSE, author, name
+
+        group = sorted(layers[d], key=key)
+        offset = (widest - len(group)) / 2
+        for i, name in enumerate(group):
+            place[name] = (d, offset + i)
+    return place
+
+
+def cut(text: str, width: int, lines: int) -> list[str]:
+    """`text` wrapped at `width` characters, at most `lines` lines; cut with an ellipsis."""
+    wrapped = textwrap.wrap(text, width) or [""]
+    if len(wrapped) > lines:
+        wrapped = wrapped[:lines]
+        wrapped[-1] = wrapped[-1][: width - 1].rstrip() + "…"
+    return wrapped
+
+
+def name_lines(name: str, width: int = 27) -> list[str]:
+    """An idea's name on one line, or on two split at a hyphen when it is longer than
+    `width`: a name is typed by a classmate, so it is never cut."""
+    if len(name) <= width:
+        return [name]
+    cuts = [i for i, c in enumerate(name) if c == "-"]
+    at = min(cuts, key=lambda i: abs(i - len(name) / 2))
+    return [name[: at + 1], name[at + 1 :]]
+
+
+def fig_ideas(ids: pd.DataFrame) -> go.Figure:
+    """The ideas of the class as a graph: one box per idea, an arrow from each parent to
+    the idea that builds on it, in layers by depth from the course's root on the left.
+    The colour says whose idea it is, the border what it gave against its baseline. A
+    parent that is not among the submissions is an open, dashed box."""
+    fig = go.Figure()
+    if ids.empty:
+        return style(fig, 160)
+    place = idea_layout(ids)
+    colors = author_colors(ids)
+    n_layers = 1 + max(d for d, _ in place.values())
+    n_rows = max(math.ceil(y + 1) for _, y in place.values())
+    bw, bh = BOX_PX / LAYER_PX, BOX_H_PX / ROW_PX
+    line = 15  # px between the lines of a box's text
+
+    def box(name: str, **kw) -> None:
+        d, y = place[name]
+        fig.add_shape(
+            type="rect", x0=d - bw / 2, x1=d + bw / 2, y0=y - bh / 2, y1=y + bh / 2,
+            name=name, **kw,
+        )  # fmt: skip
+
+    for r in rows(ids):
+        color = colors.get(r.author, COURSE_TONE)
+        border, width, mark = VERDICT_STYLE[r.verdict]
+        d, y = place[r.name]
+        box(r.name, fillcolor=tint(color, 0.14), line={"color": border, "width": width})
+        fig.add_shape(
+            type="rect", x0=d - bw / 2, x1=d - bw / 2 + 6 / LAYER_PX,
+            y0=y - bh / 2, y1=y + bh / 2, fillcolor=color, line_width=0,
+            name=f"stripe:{r.name}",
+        )  # fmt: skip
+        name = name_lines(r.name)
+        words = cut(r.idea, 30, 3 - len(name))
+        size = 12 if len(r.name) <= 22 else 10.5
+        text = [
+            *(
+                f"<span style='font-size:{size}px'><b>{html.escape(n)}</b></span>"
+                for n in name
+            ),
+            f"<span style='color:{color}'>{html.escape(r.author)}</span>",
+            *(html.escape(w) for w in words),
+        ]
+        fig.add_annotation(
+            x=d - bw / 2 + 12 / LAYER_PX, y=y, xanchor="left", yanchor="middle",
+            text="<br>".join(text), align="left", showarrow=False,
+            font={"size": 11, "color": INK},
+        )  # fmt: skip
+        if r.verdict != "unmeasured":
+            fig.add_annotation(
+                x=d + bw / 2 - 8 / LAYER_PX, y=y, xanchor="right", yanchor="middle",
+                yshift=(len(text) / 2 - len(name) - 0.5) * line,  # the author's line
+                text=f"<b>{mark} {r.gain_pt:+.1f} pt</b>", showarrow=False,
+                font={"size": 11, "color": border if r.verdict != "inside" else MUTED},
+            )  # fmt: skip
+    for name in place:
+        if name in set(ids.name):
+            continue
+        d, y = place[name]
+        box(
+            name, fillcolor="white", line={"color": MUTED, "width": 1.2, "dash": "dash"}
+        )
+        fig.add_annotation(
+            x=d - bw / 2 + 12 / LAYER_PX, y=y, xanchor="left", yanchor="middle",
+            text="<br>".join(f"<b>{html.escape(n)}</b>" for n in name_lines(name))
+            + "<br><i>not among the submissions</i>",
+            align="left", showarrow=False, font={"size": 11, "color": MUTED},
+        )  # fmt: skip
+    for r in rows(ids):
+        for p in r.parents:
+            (pd_, py), (cd, cy) = place[p], place[r.name]
+            fig.add_annotation(
+                x=cd - bw / 2, y=cy, ax=pd_ + bw / 2, ay=py, xref="x", yref="y",
+                axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.1,
+                arrowwidth=1.4, arrowcolor="#9aa1ab", text="", name=f"{p}->{r.name}",
+                standoff=2,
+            )  # fmt: skip
+    # invisible marks across each box carry the hover
+    hover = []
+    for r in rows(ids):
+        d, y = place[r.name]
+        if r.verdict == "unmeasured":
+            res = "no baseline against final measured"
+        else:
+            res = (
+                f"{r.study}: final {r.final:.4f} against baseline {r.base:.4f}, "
+                f"{r.gain_pt:+.2f} pt, {r.sigma:+.1f} σ ({r.verdict})"
+            )
+        parts = [
+            f"<b>{html.escape(r.name)}</b> · {html.escape(r.author)}",
+            "<br>".join(html.escape(w) for w in textwrap.wrap(r.idea, 50)),
+            "builds on: " + (", ".join(r.parents) or "nothing (a root)"),
+            f"ran by {len(r.students)}: " + ", ".join(r.students),
+            f"{r.n_runs} runs",
+            html.escape(res),
+        ]
+        for dx in (-0.3, 0.0, 0.3):
+            hover.append((d + dx * bw, y, "<br>".join(parts)))
+    for name in place:
+        if name not in set(ids.name):
+            d, y = place[name]
+            text = f"<b>{html.escape(name)}</b><br>named as a parent, not submitted"
+            hover += [(d + dx * bw, y, text) for dx in (-0.3, 0.0, 0.3)]
+    xs, ys, texts = zip(*hover, strict=True)
+    fig.add_scatter(
+        x=xs, y=ys, mode="markers", text=texts, hovertemplate="%{text}<extra></extra>",
+        marker={"size": 60, "symbol": "square", "color": "rgba(0,0,0,0)"},
+        showlegend=False,
+    )  # fmt: skip
+    fig.update_xaxes(range=[-0.5, n_layers - 0.5], visible=False, fixedrange=True)
+    fig.update_yaxes(range=[n_rows - 0.5, -0.5], visible=False, fixedrange=True)
+    margin = {"l": 10, "r": 10, "t": 10, "b": 10}
+    return style(
+        fig, ROW_PX * n_rows + 20, width=LAYER_PX * n_layers + 20, margin=margin,
+        hovermode="closest", hoverlabel={"align": "left"},
+    )  # fmt: skip
+
+
 def fig_links(lk: pd.DataFrame) -> go.Figure:
     fig = go.Figure()
     if lk.empty:
@@ -553,6 +842,7 @@ section {{ background: white; border-radius: 10px; padding: 20px 22px 14px; marg
 .tile span {{ color: {MUTED}; font-size: 13px; }}
 code {{ background: #eef0f3; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }}
 .space {{ font-size: 12.5px; color: {MUTED}; margin: 4px 0; }}
+.wide {{ overflow-x: auto; }}
 """
 
 
@@ -568,12 +858,24 @@ def spaces_note(cmp: pd.DataFrame) -> str:
     return "".join(lines)
 
 
+def ideas_note(ids: pd.DataFrame) -> str:
+    """The graph of the ideas, scrolling sideways inside its section when it is wider
+    than the page; one line when no run carries an idea."""
+    if ids.empty:
+        return '<p class="cap">No submitted run carries an idea yet.</p>'
+    fig = fig_ideas(ids).to_html(
+        full_html=False, include_plotlyjs=False, config={"displaylogo": False}
+    )
+    return f'<div class="wide">{fig}</div>'
+
+
 def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
     cmp = comparisons(df)
     trials = handed_out_trials(df)
     base = handed_out_baselines(df)
     base_median = float(base.score.median()) if len(base) else None
     lk = links(df)
+    ids = ideas(df, cmp)
 
     students = df.student.nunique()
     tiles = "".join(
@@ -581,6 +883,7 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
             tile(str(students), "students"),
             tile(str(len(df)), "runs"),
             tile(str(df.study.nunique()), "own studies"),
+            tile(str(len(ids)), "ideas"),
             tile(str(len(trials)), "trials of the handed-out search"),
             tile(str(int(df.design.sum())), "runs with a design script"),
         ]
@@ -624,6 +927,18 @@ def build_page(df: pd.DataFrame, lesson: int, source: str = "") -> str:
             "band: the baseline ± two standard errors of its runs. Star: the final, rerun a few times.",
             fig_studies(df, cmp),
             spaces_note(cmp),
+        ),
+        section(
+            "The ideas of the class",
+            "One box per idea: its name, its author and its words; an arrow runs from "
+            "an idea to each idea that builds on it. Colour: whose idea it is (grey: the "
+            "course's). Border: green ▲ better than its baseline by more than two sigma, "
+            "red ▼ worse, grey ≈ inside the spread between runs, thin: not measured. "
+            "Dashed: a parent that is not among the submissions. To build on an idea, "
+            "pass its name as builds_on to idea(...), as in "
+            "idea('...', builds_on='blissful-bee-18').",
+            None,
+            ideas_note(ids),
         ),
         section(
             "Who built on whom",
