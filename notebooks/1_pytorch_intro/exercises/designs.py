@@ -4,7 +4,7 @@ A design is every block the search may build, written once. Each block the searc
 leave out is a choice in `forward` (`if self.config.skip:`), and the config a trial draws
 picks the subgraph that is built. `@option("skip")` on a stage names the axis of the
 search space that decides it; `study.py` refuses a space that does not search every
-option of the design. `option` and the helpers that read it are in `hpo.designs`, the
+option of the design. `option` and `Design`, which reads them, are in `hpo.designs`, the
 same for every lesson.
 
 Read it in atlas before you train anything: the shape on every arrow, and where a choice
@@ -27,9 +27,8 @@ To design your own:
 3. Add the axis to `SPACE` in `study.py`: `"<axis>": Choice([False, True])`.
 """
 
-from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal
+from typing import Literal
 
 import torch
 from beartype import beartype
@@ -37,7 +36,7 @@ from jaxtyping import Float, jaxtyped
 from torch import Tensor, nn
 from vectormesh.components import Gate, GaussianNoise, Norm, Projection, Serial
 
-from hpo.designs import drawn, option, show
+from hpo.designs import Design, option
 
 ACTIVATIONS = {"gelu": nn.GELU, "relu": nn.ReLU, "tanh": nn.Tanh, "sigmoid": nn.Sigmoid}
 
@@ -55,12 +54,6 @@ class Config:
     sigma: float = 0.0  # Gaussian noise on the input vectors, relative to their spread
     skip: bool = False  # a skip connection around the hidden block
     gate: bool = False  # a gate on the hidden block's output
-
-    @classmethod
-    def drawn(cls, config: Mapping[str, Any]) -> "Config":
-        """The choices of this design in a config a trial drew; the rest of the config
-        (the dataset, the learning rate, ...) is the trainer's."""
-        return drawn(cls, config)
 
 
 class Head(nn.Module):
@@ -148,11 +141,14 @@ class Head(nn.Module):
         return self.classify(hidden)
 
 
+# The head and the config that switches its options, as the study reads them.
+DESIGN = Design(Head, Config)
+
+
 def main() -> None:
     dim, n_classes = 384, 47  # dinov2-small on DTD
-    show(
-        Head,
-        lambda chosen: Head(Config.drawn(chosen), dim, n_classes),
+    DESIGN.show(
+        lambda chosen: Head(DESIGN.drawn(chosen), dim, n_classes),
         torch.randn(2, dim),  # two rows are enough to trace every shape
     )
 

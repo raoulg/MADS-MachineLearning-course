@@ -10,7 +10,7 @@ show the student what will be submitted, and handle the errors described below.
 ## What you are submitting
 
 Each lesson's notebooks log their runs to the student's local Optuna store,
-`artefacts/optuna/studies.db`, through `hpo.optunalog` (the course's package `hpo`): a
+`artefacts/optuna/studies.db`, through `hpo.runs` (the course's package `hpo`): a
 run is one trial of a study, every trial carries a `run_id`, and every run logs every
 metric (accuracy, macro recall, and recall, precision and F1 per class). A study names
 its objective, the metric that is its trials' value; accuracy by default. The lesson's exercise logs to
@@ -25,7 +25,7 @@ lesson's other notebooks log to studies of their own (`lesson1-search`,
 holding its params with their distributions, its value and its value per epoch (or per
 repeat), its attrs, the attrs of its study, and its architecture and design script, at
 `lesson<N>/<github-login>/<run_id>.json`. No model weights and no data are submitted. A
-trial without a `run_id` was not logged through `hpo.optunalog`; it is skipped, with one line
+trial without a `run_id` was not logged through `hpo.runs`; it is skipped, with one line
 saying how many.
 
 The files reach the class runs repository through a pull request from the student's own
@@ -171,20 +171,20 @@ In the class store the handed-out studies of the exercise (`lesson<N>-notebook` 
 student, as `<study>@<login>`. Each imported trial carries the user attr `submission_ref`,
 for example `lesson1/bob/0f3c...` (shown on the trial's page in optuna-dashboard), and
 `student`. When the student builds on a classmate's run, copy that attr from the trial in
-optuna-dashboard and pass it to `log_run`; the student names the run, you do not pick one
-for them:
+optuna-dashboard and pass it to `StudyLog.log`; the student names the run, you do not pick
+one for them:
 
 ```python
-log_run("deeper-head", "final", metrics=per_repeat,
-        builds_on="lesson1/bob/0f3c...", design="my_design.py")
+runs.log("deeper-head", "final", repeats,
+         builds_on="lesson1/bob/0f3c...", design=DesignScript.read("my_design.py"))
 ```
 
 `builds_on` takes one `submission_ref` or a list of them and is written as the user attr
 `builds_on`; an entry that is not a `submission_ref` raises an error before anything is
 written. `design` is the path of the student's design script, the file that defines their
 architectures; it is submitted with the run as the artifact `design.py`. Nothing runs it:
-it is there to be read. `record` (the call a search's objective makes on its trial) takes
-the same two arguments.
+it is there to be read. `StudyLog.record` (the call a search's objective makes on its
+trial) takes the design as well, and a `RunRecord` with its `builds_on`.
 
 ### Building on an idea
 
@@ -192,11 +192,11 @@ A study carries an idea: what it investigates, in a few words. The class page sh
 class's ideas as a graph, each with its name (`blissful-bee-18`). When the student builds
 on one, a classmate's or an earlier one of their own, they name it; ask them which, and
 what they expect, and do not choose for them. A student's first idea of a lesson builds
-on the exercise as handed out, `handed_out(1)["idea_name"]`, which the exercise fills in:
+on the exercise as handed out, `Idea.handed_out(1).name`, which the exercise fills in:
 
 ```python
-IDEA = idea("depth and norm together", builds_on=["blissful-bee-18", "zany-heron-41"])
-study = search_study("lesson1-study-sam-depth-norm", space, idea=IDEA)
+IDEA = Idea.of("depth and norm together", builds_on=["blissful-bee-18", "zany-heron-41"])
+study = StudyLog.search("lesson1-study-sam-depth-norm", space, IDEA)
 ```
 
 The name of an idea is made from the student's GitHub login, the words and the names it
@@ -239,7 +239,7 @@ from the class, and is left out with one line saying so.
 | `no Optuna store at ...` | The lesson's exercise notebook has not run yet in this checkout, or `--store` names a file that does not exist. |
 | `skipped run <id> (<name>), it does not fit the submission format: ...` | That run is left out and the others are submitted. The message says what the format does not accept; tell the student, and do not work around it. Fix the cause in the notebook, run it again, and submit again. |
 | `not submitted: N run(s) imported from the class repository` | Not an error: trials imported by `collect_runs.py` ended up in the student's store (for example with `--store` pointing at `class.db`). They are a classmate's runs and are left out; the student's own runs are submitted. |
-| `not submitted: N trial(s) without a run_id` | Not an error: those trials were not logged through `hpo.optunalog`, so they have no id to submit under. Running the notebook again logs them with one. |
+| `not submitted: N trial(s) without a run_id` | Not an error: those trials were not logged through `hpo.runs`, so they have no id to submit under. Running the notebook again logs them with one. |
 | `... has no upstream/main` | `collect_runs.py` with `--no-pull` on a clone that never fetched; leave out `--no-pull`. |
 
 The check's comment on the pull request names each file with one of these problems:
@@ -254,8 +254,8 @@ The check's comment on the pull request names each file with one of these proble
 | `not a regular file (mode ...)` | The branch holds a link or something else instead of a file. Submit again with the script. |
 | `builds on the idea <name>, which is not in the class repository` | The study's idea names a parent nobody has published. Check the name against the class page; if it is the student's own earlier idea, submit that study too (`--experiment`), in the same pull request. |
 | `the name <name> already stands for another idea` | Two different ideas got the same readable name. Change a word of the idea, give the study another name, and run it again. |
-| `study attr 'idea_author' is ...` | The idea names another author than the submitter. Run the study again from the student's own notebook; `artefacts/optuna/login` holds the login `hpo.optunalog` uses. |
-| `attr 'metrics': unknown metrics ...`, `... is a number between 0 and 1`, `... a class name is ...` | The run's metrics were not written by `hpo.metrics`, or a class name holds characters the format does not accept. Log the run again through `hpo.exercise.train` and `log_run(..., metrics=...)`; do not edit by hand. |
+| `study attr 'idea_author' is ...` | The idea names another author than the submitter. Run the study again from the student's own notebook; `artefacts/optuna/login` holds the login `hpo.store.Store` reads. |
+| `attr 'metrics': unknown metrics ...`, `... is a number between 0 and 1`, `... a class name is ...` | The run's metrics were not written by `hpo.metrics`, or a class name holds characters the format does not accept. Log the run again through `hpo.training.Training` and `StudyLog.log`; do not edit by hand. |
 | `study attr 'objective': ... is not one of ('accuracy', 'macro_recall')` | The study names an objective that is no scalar metric. Run the study again with `objective="accuracy"` or `"macro_recall"`. |
 | `the value ... is not the objective ... the attr 'metrics' logs` | The trial's value and its metrics disagree. Run it again; do not edit by hand. |
 | `study attr 'idea_id' is not the id ...`, `'idea_name' is not the name ...` | The idea's attrs were changed after the study was made. Run the study again; do not edit by hand. |
@@ -274,7 +274,7 @@ The check's comment on the pull request names each file with one of these proble
 | `a symbolic link, not a file` | The branch holds a link instead of a file. Submit again with the script. |
 | any other field message (`run.params...`, `student: ...`) | The file does not fit the format; show it to the student. |
 
-A trial that is already logged cannot be changed in Optuna. `log_run` checks `builds_on` and
+A trial that is already logged cannot be changed in Optuna. `StudyLog.log` checks `builds_on` and
 `design` before it writes anything, so a wrong one never reaches the store; when a run
 needs another `builds_on`, the student logs it again through the notebook with the right
 one, and submits again.

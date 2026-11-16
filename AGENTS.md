@@ -18,7 +18,7 @@ is the failure to avoid.
   `.codex/config.toml`; they ask first, so put their questions to the student and wait
   for their answers.
 - **Runs are submitted by following `docs/submit-runs.md`.** Runs logged through
-  `hpo.optunalog` while the tester runs go to the separate store `artefacts/optuna/test.db`,
+  `hpo.runs` while the tester runs go to the separate store `artefacts/optuna/test.db`,
   so they are left out of a submission.
 - Setting up a machine for this course: `references/tooling-setup.md`.
 

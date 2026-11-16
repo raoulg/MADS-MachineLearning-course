@@ -1,16 +1,15 @@
 """What lesson 1 gives the study of `study.py`: the caches it trains on, the trainer, the
 linear baseline and the params a run logs. The study itself (the budget, the search, the
-winner rerun, the comparison in sigmas) is `hpo.exercise.run_study`, the same in every
+winner rerun, the comparison in sigmas) is `hpo.exercise.Exercise`, the same in every
 lesson.
 
 It is the machinery of `05_exercises.ipynb`, written for any design: a design comes in
 as `make_model(config, data)`, which builds the model a drawn config chooses.
 """
 
-from collections.abc import Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from functools import cache
-from typing import Any
 
 import torch
 from notebooktester import param
@@ -19,8 +18,10 @@ from torch.utils.data import DataLoader
 from vectormesh import VectorCache
 from vectormesh.data import Collate, OneHot
 
-from hpo.exercise import Baseline, Data, Fit, OnEpoch, train
-from hpo.optunalog import CHOICES
+from hpo.harness import Baseline, Data
+from hpo.space import Config, Param
+from hpo.store import Store
+from hpo.training import Fit, OnEpoch, Training
 
 # The same as in 05_exercises.ipynb, so Part 1's trials say what one trial costs here.
 EPOCHS = param(15, test=1)
@@ -48,16 +49,16 @@ CACHES = {
 }
 
 # The values a string param can take, for the runs that are given their params (see
-# hpo.optunalog.log_run).
-CHOICES.update(
-    dataset=list(CACHES),
-    encoder=sorted({enc for encoders in CACHES.values() for enc in encoders}),
-    activation=["relu", "gelu", "tanh", "sigmoid", "none"],
-    norm=["none", "batch", "layer"],
-)
+# hpo.runs.StudyLog).
+CHOICES: dict[str, list[str]] = {
+    "dataset": list(CACHES),
+    "encoder": sorted({enc for encoders in CACHES.values() for enc in encoders}),
+    "activation": ["relu", "gelu", "tanh", "sigmoid", "none"],
+    "norm": ["none", "batch", "layer"],
+}
 
 # The linear baseline's choices, under the names the class view puts on its axes.
-LINEAR = {
+LINEAR: Config = {
     "n_hidden_layers": 0,
     "hidden_dim": 0,
     "activation": "none",
@@ -122,7 +123,7 @@ def loaders(
 
 @dataclass
 class Lesson1:
-    """Lesson 1's harness for `hpo.exercise.run_study`: a head over cached vectors."""
+    """Lesson 1's harness for `hpo.exercise.Exercise`: a head over cached vectors."""
 
     lesson: int = 1
     epochs: int = EPOCHS
@@ -131,10 +132,15 @@ class Lesson1:
     trainer: frozenset[str] = frozenset(
         {"dataset", "encoder", "epochs", "lr", "n_train"}
     )
+    choices: Mapping[str, Sequence[str]] = field(default_factory=lambda: CHOICES)
+    store: Store = field(default_factory=Store.default)
 
-    def data(self, config: Mapping[str, Any]) -> Data:
-        dataset, encoder = config["dataset"], config["encoder"]
-        tr, te = loaders(dataset, encoder, n_train=config.get("n_train"))
+    def data(self, config: Config) -> Data:
+        dataset, encoder = str(config["dataset"]), str(config["encoder"])
+        n_train = config.get("n_train")
+        tr, te = loaders(
+            dataset, encoder, n_train=int(n_train) if n_train is not None else None
+        )
         dim, _ = shape_of(dataset, encoder)
         return Data(
             train=tr,
@@ -148,18 +154,15 @@ class Lesson1:
         self,
         model: nn.Module,
         data: Data,
-        config: Mapping[str, Any],
+        config: Config,
         on_epoch: OnEpoch | None = None,
     ) -> Fit:
-        return train(
-            model,
-            data.train,
-            data.test,
-            data.classes,
-            lr=config.get("lr", 1e-3),
-            epochs=config.get("epochs", EPOCHS),
-            on_epoch=on_epoch,
+        training = Training(
+            lr=float(config.get("lr", 1e-3)),
+            epochs=int(config.get("epochs", EPOCHS)),
+            logdir=self.store.logdir(),
         )
+        return training.fit(model, data.train, data.test, data.classes, on_epoch)
 
     def baseline(self, dataset: str) -> Baseline:
         """The linear head on `BASELINE_ENCODER`."""
@@ -173,7 +176,7 @@ class Lesson1:
             make=lambda data: nn.Linear(data.dims["embed_dim"], len(data.classes)),
         )
 
-    def params(self, config: Mapping[str, Any], data: Data) -> dict[str, Any]:
+    def params(self, config: Config, data: Data) -> dict[str, Param]:
         """The params of a run: the vectors it starts from, its choices, the budget."""
         return {"epochs": EPOCHS, **config, **data.dims}
 

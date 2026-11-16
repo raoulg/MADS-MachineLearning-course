@@ -175,7 +175,7 @@ svg marker.g path{fill:var(--course-green)}
 <h2>The files</h2>
 <dl class="files">
   <dt>designs.py</dt><dd>Your design: <code>Config</code>, the choices, and <code>Head</code>, the supergraph with one typed stage per operation. Its comments say how to add a stage of your own.</dd>
-  <dt>study.py</dt><dd>Your study: the six settings at the top, then one call of <code>hpo.exercise.run_study</code>: baseline, budget, search, winner and the difference in sigmas, the same in every lesson.</dd>
+  <dt>study.py</dt><dd>Your study: the six settings at the top, then one <code>hpo.exercise.Exercise</code> that runs it: baseline, budget, search, winner and the difference in sigmas, the same in every lesson.</dd>
   <dt>harness.py</dt><dd>What lesson 1 gives the study: the caches, the trainer, the linear baseline and the params a run logs. It trains whatever <code>make_model(config, data)</code> builds.</dd>
 </dl>
 </main>

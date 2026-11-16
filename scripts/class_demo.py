@@ -41,7 +41,7 @@ def accuracy(cfg: dict, rng: np.random.Generator, machine: float) -> float:
 
 
 def make_idea(author: str, words: str, parents: list[dict[str, str]]) -> dict[str, str]:
-    """The study attrs of an idea, built as `optunalog.idea` builds them."""
+    """The study attrs of an idea, built as `hpo.ideas.Idea.of` builds them."""
     names = sorted(p["idea_name"] for p in parents)
     id_ = idea_id(author, words, names)
     values = (words, author, ",".join(names), id_, idea_name(id_))

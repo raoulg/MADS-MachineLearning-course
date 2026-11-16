@@ -600,3 +600,33 @@ def test_a_spread_is_at_least_zero(submission):
     std = {**METRICS, "accuracy": -0.1}
     with pytest.raises(ValidationError, match="at least 0"):
         with_metrics(submission("alice"), METRICS, value=0.9, std=std)
+
+
+def with_confusion(s, confusion):
+    run = s.run.model_copy(update={"attrs": {**s.run.attrs, "confusion": confusion}})
+    return Submission.model_validate(
+        s.model_copy(update={"run": run}).model_dump(by_alias=True)
+    )
+
+
+def test_a_run_carries_its_confusion(submission):
+    confusion = {"classes": ["N", "F"], "counts": [[9, 1], [3, 7]]}
+    assert (
+        with_confusion(submission("alice"), confusion).run.attrs["confusion"]
+        == confusion
+    )
+
+
+@pytest.mark.parametrize(
+    "confusion, problem",
+    [
+        ([[9, 1], [3, 7]], "mapping of 'classes' and 'counts'"),
+        ({"classes": ["N", "<b>"], "counts": [[1, 0], [0, 1]]}, "class names"),
+        ({"classes": ["N", "F"], "counts": [[1, 0]]}, "2 x 2 whole numbers"),
+        ({"classes": ["N", "F"], "counts": [[1, 0.5], [0, 1]]}, "2 x 2 whole numbers"),
+        ({"classes": ["N", "F"], "counts": [[1, -1], [0, 1]]}, "2 x 2 whole numbers"),
+    ],
+)
+def test_the_check_refuses_a_confusion_it_cannot_read(submission, confusion, problem):
+    with pytest.raises(ValidationError, match=problem):
+        with_confusion(submission("alice"), confusion)

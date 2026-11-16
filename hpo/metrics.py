@@ -1,7 +1,9 @@
-"""The metrics every run of a classification problem logs, from one confusion matrix.
+"""Every metric of a classification run, from one confusion matrix over the whole test set.
 
 A run logs all of them, whatever its study searches: a question a student asks later
 (does the gate help the rare class?) is then answered by runs that are already shared.
+It logs the confusion matrix itself as well, so a metric that counts (balanced accuracy,
+Cohen's kappa) can be added later and read from those same runs.
 
     accuracy       the fraction of test rows predicted right
     macro_recall   the mean over the classes of each class's recall: every class counts
@@ -15,38 +17,72 @@ A class without rows in the test set has no recall and no F1: it is left out of 
 `f1` and the mean of `macro_recall`, rather than counted as 0. It keeps its precision,
 since a model can still predict it.
 
-`scores` computes them over the whole test set at once. An average of per-batch values is
-not the same number for macro recall, precision or F1, because a batch holds few rows of
-a rare class, so these are never averaged over batches.
-
-As user attrs of a trial, `metrics` is the dict `scores` gives (the mean over the repeats
-for a run that was repeated) and `metrics_std` the same shape with the spread over the
-repeats. The scalar metrics are also logged per epoch, as lists under their own name.
+The confusion is counted over the whole test set at once. An average of per-batch values
+is not the same number for macro recall, precision or F1, because a batch holds few rows
+of a rare class, so these are never averaged over batches.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
-from typing import Any
+from collections.abc import Iterable, Sequence
+from typing import Literal, get_args
 
 import numpy as np
 import torch
+from beartype import beartype
+from jaxtyping import jaxtyped
+from pydantic import BaseModel, ConfigDict, model_validator
 from torch import nn
 
+from hpo.tensors import Batch, Counts, Labels, PerRepeat, Targets
+
 # The metrics with one value for the whole test set; one of them is a study's objective.
-SCALARS = ("accuracy", "macro_recall")
+Objective = Literal["accuracy", "macro_recall"]
+OBJECTIVES: tuple[Objective, ...] = get_args(Objective)
 # The metrics with one value per class.
-PER_CLASS = ("recall", "precision", "f1")
-OBJECTIVES = SCALARS
+PerClass = Literal["recall", "precision", "f1"]
+PER_CLASS: tuple[PerClass, ...] = get_args(PerClass)
+# A scalar (`macro_recall`), or one class of a metric per class (`recall/F`).
+MetricName = str
+DECIMALS = 5
 
 
-def confusion(y_true: Any, y_pred: Any, n_classes: int) -> np.ndarray:
-    """The confusion matrix: row = the true class, column = the predicted class."""
-    t = np.asarray(y_true, dtype=np.int64).ravel()
-    p = np.asarray(y_pred, dtype=np.int64).ravel()
-    return np.bincount(t * n_classes + p, minlength=n_classes**2).reshape(
-        n_classes, n_classes
-    )
+class Scores(BaseModel):
+    """Every metric of one run, or the mean or the spread of them over its repeats."""
+
+    model_config = ConfigDict(frozen=True)
+
+    accuracy: float
+    macro_recall: float
+    recall: dict[str, float]
+    precision: dict[str, float]
+    f1: dict[str, float]
+
+    def get(self, name: MetricName) -> float:
+        """One metric: `scores.get("macro_recall")`, `scores.get("recall/F")`."""
+        head, _, cls = name.partition("/")
+        if head in OBJECTIVES and not cls:
+            return getattr(self, head)
+        if head in PER_CLASS and cls in getattr(self, head):
+            return getattr(self, head)[cls]
+        raise KeyError(f"no metric {name!r} in {self.names()}")
+
+    def names(self) -> list[MetricName]:
+        """Every metric by the name `get` takes."""
+        return [*OBJECTIVES, *(f"{m}/{c}" for m in PER_CLASS for c in getattr(self, m))]
+
+    def scalars(self) -> dict[Objective, float]:
+        return {m: getattr(self, m) for m in OBJECTIVES}
+
+    def rounded(self) -> Scores:
+        """The same scores to `DECIMALS` decimals, as a run logs them."""
+        return Scores(
+            **{m: round(v, DECIMALS) for m, v in self.scalars().items()},
+            **{
+                m: {c: round(v, DECIMALS) for c, v in getattr(self, m).items()}
+                for m in PER_CLASS
+            },
+        )
 
 
 def _ratio(num: np.ndarray, den: np.ndarray) -> np.ndarray:
@@ -56,129 +92,199 @@ def _ratio(num: np.ndarray, den: np.ndarray) -> np.ndarray:
     return out
 
 
-def from_confusion(matrix: np.ndarray, classes: Sequence[str]) -> dict[str, Any]:
-    """Every metric of `matrix`, per class under the names in `classes`."""
-    matrix = np.asarray(matrix)
-    hit = np.diag(matrix).astype(float)
-    support = matrix.sum(axis=1)
-    predicted = matrix.sum(axis=0)
-    recall = _ratio(hit, support)
-    precision = _ratio(hit, predicted)
-    f1 = _ratio(2 * precision * recall, precision + recall)
-    present = support > 0
-    names = [str(c) for c in classes]
-    if len(names) != len(hit):
-        raise ValueError(f"{len(names)} class names for {len(hit)} classes")
+class Confusion(BaseModel):
+    """The confusion matrix of a run, under the names of its classes: row = the true
+    class, column = the predicted class."""
 
-    def per_class(values: np.ndarray, only_present: bool) -> dict[str, float]:
-        return {
-            name: round(float(v), 5)
-            for name, v, keep in zip(names, values, present, strict=True)
-            if keep or not only_present
-        }
+    model_config = ConfigDict(frozen=True)
 
-    return {
-        "accuracy": float(hit.sum() / max(1, matrix.sum())),
-        # a class without test rows has no recall to average
-        "macro_recall": float(recall[present].mean()) if present.any() else 0.0,
-        "recall": per_class(recall, only_present=True),
-        "precision": per_class(precision, only_present=False),
-        "f1": per_class(f1, only_present=True),
-    }
+    classes: list[str]
+    counts: list[list[int]]
+
+    @model_validator(mode="after")
+    def _square(self) -> Confusion:
+        n = len(self.classes)
+        if len(self.counts) != n or any(len(row) != n for row in self.counts):
+            raise ValueError(f"a confusion of {n} classes is {n} x {n} counts")
+        return self
+
+    @classmethod
+    @jaxtyped(typechecker=beartype)
+    def of(cls, labels: Labels, predicted: Labels, classes: Sequence[str]) -> Confusion:
+        """The confusion of the predictions `predicted` against the labels `labels`,
+        both class indices into `classes`."""
+        n = len(classes)
+        flat = labels.long().cpu() * n + predicted.long().cpu()
+        counts = torch.bincount(flat, minlength=n * n).reshape(n, n)
+        return cls(classes=[str(c) for c in classes], counts=counts.tolist())
+
+    def matrix(self) -> Counts:
+        return np.asarray(self.counts, dtype=np.int64).reshape(
+            len(self.classes), len(self.classes)
+        )
+
+    def __add__(self, other: Confusion) -> Confusion:
+        """The counts of two runs on the same classes together."""
+        if other.classes != self.classes:
+            raise ValueError("only confusions of the same classes add up")
+        return Confusion(
+            classes=self.classes, counts=(self.matrix() + other.matrix()).tolist()
+        )
+
+    def scores(self) -> Scores:
+        matrix = self.matrix()
+        hit = np.diag(matrix).astype(float)
+        support = matrix.sum(axis=1)
+        recall = _ratio(hit, support)
+        precision = _ratio(hit, matrix.sum(axis=0))
+        f1 = _ratio(2 * precision * recall, precision + recall)
+        present = support > 0
+
+        def per_class(values: np.ndarray, only_present: bool) -> dict[str, float]:
+            return {
+                name: float(v)
+                for name, v, keep in zip(self.classes, values, present, strict=True)
+                if keep or not only_present
+            }
+
+        return Scores(
+            accuracy=float(hit.sum() / max(1, matrix.sum())),
+            # a class without test rows has no recall to average
+            macro_recall=float(recall[present].mean()) if present.any() else 0.0,
+            recall=per_class(recall, only_present=True),
+            precision=per_class(precision, only_present=False),
+            f1=per_class(f1, only_present=True),
+        )
 
 
-def scores(y_true: Any, y_pred: Any, classes: Sequence[str]) -> dict[str, Any]:
-    """Every metric of the predictions `y_pred` against the labels `y_true` (class
-    indices into `classes`)."""
-    return from_confusion(confusion(y_true, y_pred, len(classes)), classes)
-
-
-def _labels(target: torch.Tensor) -> torch.Tensor:
-    """Class indices from a target batch: one-hot rows or indices already."""
-    return target.argmax(dim=-1) if target.ndim > 1 else target
-
-
-def predict(
-    model: nn.Module, batches: Iterable[tuple[Any, torch.Tensor]]
-) -> tuple[np.ndarray, np.ndarray]:
-    """(labels, predictions) of `model` over every batch, in eval mode and without
-    gradients; the model's mode is restored afterwards."""
-    training = model.training
-    device = next((p.device for p in model.parameters()), torch.device("cpu"))
-    truth, guess = [], []
-    try:
-        model.eval()
-        with torch.no_grad():
-            for x, y in batches:
-                if isinstance(x, (tuple, list)):
-                    x = type(x)(part.to(device) for part in x)
-                else:
-                    x = x.to(device)
-                guess.append(model(x).argmax(dim=-1).cpu())
-                truth.append(_labels(y).cpu())
-    finally:
-        model.train(training)
-    return torch.cat(truth).numpy(), torch.cat(guess).numpy()
+@jaxtyped(typechecker=beartype)
+def labels_of(targets: Targets) -> Labels:
+    """Class indices from a batch of targets: one-hot rows, or indices already."""
+    return targets.argmax(dim=-1) if targets.ndim > 1 else targets.long()
 
 
 class Scorer:
-    """Every metric of a model on one test loader: `Scorer(test_dl, classes)(model)`."""
+    """The confusion of a model on one test loader: `Scorer(test_dl, classes)(model)`."""
 
-    def __init__(
-        self, batches: Iterable[tuple[Any, torch.Tensor]], classes: Sequence[str]
-    ) -> None:
+    def __init__(self, batches: Iterable[Batch], classes: Sequence[str]) -> None:
         self.batches = batches
         self.classes = [str(c) for c in classes]
 
-    def __call__(self, model: nn.Module) -> dict[str, Any]:
-        truth, guess = predict(model, self.batches)
-        return scores(truth, guess, self.classes)
+    @jaxtyped(typechecker=beartype)
+    def predict(self, model: nn.Module) -> tuple[Labels, Labels]:
+        """(labels, predictions) of `model` over every batch, in eval mode and without
+        gradients; the model's mode is restored afterwards."""
+        training = model.training
+        device = next((p.device for p in model.parameters()), torch.device("cpu"))
+        truth, guess = [], []
+        try:
+            model.eval()
+            with torch.no_grad():
+                for x, y in self.batches:
+                    if isinstance(x, tuple | list):
+                        x = type(x)(part.to(device) for part in x)
+                    else:
+                        x = x.to(device)
+                    guess.append(model(x).argmax(dim=-1).cpu())
+                    truth.append(labels_of(y).cpu())
+        finally:
+            model.train(training)
+        return torch.cat(truth), torch.cat(guess)
+
+    def __call__(self, model: nn.Module) -> Confusion:
+        truth, guess = self.predict(model)
+        return Confusion.of(truth, guess, self.classes)
 
 
-def _leaves(m: Mapping[str, Any], prefix: str = "") -> dict[str, float]:
-    out: dict[str, float] = {}
-    for key, value in m.items():
-        if isinstance(value, Mapping):
-            out.update(_leaves(value, f"{prefix}{key}/"))
-        else:
-            out[f"{prefix}{key}"] = float(value)
-    return out
+class Repeats(BaseModel):
+    """The repeats of one run, each from other random weights: the confusion of every
+    repeat and the mean seconds a repeat spent in training steps."""
+
+    model_config = ConfigDict(frozen=True)
+
+    runs: list[Confusion]
+    seconds: float
+
+    @model_validator(mode="after")
+    def _some(self) -> Repeats:
+        if not self.runs:
+            raise ValueError("a run has at least one repeat")
+        if any(r.classes != self.runs[0].classes for r in self.runs):
+            raise ValueError("the repeats of a run are scored on the same classes")
+        return self
+
+    def __len__(self) -> int:
+        return len(self.runs)
+
+    def scores(self) -> list[Scores]:
+        return [r.scores() for r in self.runs]
+
+    def logged(self) -> list[Objective]:
+        """The scalar metrics: a run with its confusion logs them all."""
+        return list(OBJECTIVES)
+
+    def values(self, name: MetricName = "accuracy") -> PerRepeat:
+        """One metric of every repeat: `repeats.values("recall/F")`."""
+        return np.array([s.get(name) for s in self.scores()], dtype=float)
+
+    def mean(self) -> Scores:
+        return self._over(spread=False)
+
+    def std(self) -> Scores:
+        """The spread over the repeats, in the shape of the scores."""
+        return self._over(spread=True)
+
+    def confusion(self) -> Confusion:
+        """The counts of every repeat together."""
+        total = self.runs[0]
+        for run in self.runs[1:]:
+            total = total + run
+        return total
+
+    def _over(self, spread: bool) -> Scores:
+        scores = self.scores()
+        first = scores[0]
+
+        def of(name: MetricName) -> float:
+            values = np.array([s.get(name) for s in scores], dtype=float)
+            return float(values.std() if spread else values.mean())
+
+        return Scores(
+            **{m: of(m) for m in OBJECTIVES},
+            **{m: {c: of(f"{m}/{c}") for c in getattr(first, m)} for m in PER_CLASS},
+        )
 
 
-def _nest(flat: Mapping[str, float]) -> dict[str, Any]:
-    out: dict[str, Any] = {}
-    for key, value in flat.items():
-        head, _, tail = key.partition("/")
-        if tail:
-            out.setdefault(head, {})[tail] = value
-        else:
-            out[head] = value
-    return out
+class Scalars(BaseModel):
+    """The repeats of a run that has the scalar metrics only, such as a nearest
+    neighbour floor or a run scored by a trainer's own accuracy."""
+
+    model_config = ConfigDict(frozen=True)
+
+    accuracy: list[float] | None = None
+    macro_recall: list[float] | None = None
+    seconds: float = 0.0
+
+    @model_validator(mode="after")
+    def _some(self) -> Scalars:
+        given = [v for v in (self.accuracy, self.macro_recall) if v is not None]
+        if not given or not all(given):
+            raise ValueError("Scalars: give accuracy, macro_recall or both, per repeat")
+        if len({len(v) for v in given}) > 1:
+            raise ValueError("Scalars: every metric has one value per repeat")
+        return self
+
+    def __len__(self) -> int:
+        return len(next(v for v in (self.accuracy, self.macro_recall) if v))
+
+    def logged(self) -> list[Objective]:
+        return [m for m in OBJECTIVES if getattr(self, m) is not None]
+
+    def values(self, name: MetricName = "accuracy") -> PerRepeat:
+        if name not in self.logged():
+            raise KeyError(f"no metric {name!r}: this run logs {self.logged()}")
+        return np.array(getattr(self, name), dtype=float)
 
 
-def summarise(
-    repeats: Sequence[Mapping[str, Any]],
-) -> tuple[dict[str, Any], dict[str, Any]]:
-    """(mean, spread) over the repeats of a run, each in the shape `scores` gives."""
-    if not repeats:
-        raise ValueError("summarise: no repeats")
-    flat = [_leaves(r) for r in repeats]
-    keys = flat[0].keys()
-    if any(f.keys() != keys for f in flat):
-        raise ValueError("summarise: the repeats do not hold the same metrics")
-    values = {k: np.array([f[k] for f in flat]) for k in keys}
-    mean = {k: round(float(v.mean()), 5) for k, v in values.items()}
-    std = {k: round(float(v.std()), 5) for k, v in values.items()}
-    return _nest(mean), _nest(std)
-
-
-def value(metrics: Mapping[str, Any], name: str) -> float:
-    """One metric out of `metrics`: a scalar (`macro_recall`) or one class of a metric
-    per class (`recall/F`)."""
-    head, _, tail = name.partition("/")
-    found = metrics.get(head)
-    if tail:
-        found = found.get(tail) if isinstance(found, Mapping) else None
-    if not isinstance(found, (int, float)):
-        raise KeyError(f"no metric {name!r} in {sorted(_leaves(metrics))}")
-    return float(found)
+# What a run logged, per repeat: every metric, or the scalars alone.
+Results = Repeats | Scalars

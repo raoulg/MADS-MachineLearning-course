@@ -13,7 +13,8 @@ the design script `design.py`), and where the code came from. Schema `mads-run/2
 
 A run logs every metric of `hpo.metrics` in the user attrs `metrics` (the value after the
 last epoch, or the mean over the repeats) and `metrics_std` (the spread over the
-repeats). Its study names its objective, the metric that is the trial's value, in the
+repeats), and the confusion matrix over all its repeats in `confusion`, from which a
+metric that counts can be derived later. Its study names its objective, the metric that is the trial's value, in the
 study attr `objective`. A run without `metrics` logs its value only, and a study without
 `objective` is on accuracy.
 
@@ -271,6 +272,31 @@ def check_metrics(key: str, metrics: Any, spread: bool = False) -> None:
             number(f"{name}/{cls}", value)
 
 
+def check_confusion(confusion: Any) -> None:
+    """The user attr `confusion`: the names of the classes, and per true class the count
+    of test rows predicted as each class, over every repeat of the run."""
+    if not isinstance(confusion, dict) or set(confusion) != {"classes", "counts"}:
+        raise ValueError("attr 'confusion' is a mapping of 'classes' and 'counts'")
+    classes, counts = confusion["classes"], confusion["counts"]
+    if not isinstance(classes, list) or not all(
+        isinstance(c, str) and CLASS_NAME.fullmatch(c) for c in classes
+    ):
+        raise ValueError(
+            "attr 'confusion': classes is a list of class names, each at most 64 "
+            "letters, digits, _ - . and spaces"
+        )
+    n = len(classes)
+    if (
+        not isinstance(counts, list)
+        or len(counts) != n
+        or not all(isinstance(row, list) and len(row) == n for row in counts)
+        or not all(is_number(v, integer=True) and v >= 0 for row in counts for v in row)
+    ):
+        raise ValueError(
+            f"attr 'confusion': counts is {n} x {n} whole numbers, one row per class"
+        )
+
+
 def lookup(metrics: dict[str, Any], name: str) -> float | None:
     """One metric out of the attr `metrics` or `metrics_std`: a scalar (`macro_recall`)
     or one class of a metric per class (`recall/F`); None when it is not there."""
@@ -477,6 +503,8 @@ class Run(BaseModel):
             check_metrics("metrics", v["metrics"])
         if "metrics_std" in v:
             check_metrics("metrics_std", v["metrics_std"], spread=True)
+        if "confusion" in v:
+            check_confusion(v["confusion"])
         for ref in builds_on(v):
             if not SUBMISSION_REF.fullmatch(ref):
                 raise ValueError(

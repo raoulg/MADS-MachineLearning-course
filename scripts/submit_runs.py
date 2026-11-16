@@ -219,7 +219,7 @@ def select_runs(
 def own_runs(runs: list[Found]) -> list[Found]:
     """`runs` without the ones imported from the class repository, and without the ones
     that carry no `run_id`: those are a classmate's work, or were not recorded through
-    optunalog."""
+    hpo.runs."""
     own = [r for r in runs if not any(t in r.trial.user_attrs for t in IMPORTED_ATTRS)]
     if len(own) < len(runs):
         print(
@@ -230,7 +230,7 @@ def own_runs(runs: list[Found]) -> list[Found]:
     if len(recorded) < len(own):
         print(
             f"not submitted: {len(own) - len(recorded)} trial(s) without a run_id, "
-            "which are not recorded through optunalog; rerun them from the notebook"
+            "which are not recorded through hpo.runs; rerun them from the notebook"
         )
     return recorded
 
