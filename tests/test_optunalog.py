@@ -303,3 +303,11 @@ def test_budget_needs_a_study_that_ran():
     optunalog.search_study("lesson1-notebook", SPACE)
     with pytest.raises(ValueError, match="no finished trial"):
         optunalog.budget(10, like="lesson1-notebook")
+
+
+def test_the_idea_placeholder_passes_only_under_the_tester(monkeypatch):
+    monkeypatch.setattr(optunalog, "TESTING", True)
+    assert optunalog.idea(optunalog.IDEA_PLACEHOLDER)["idea_author"] == "tester"
+    monkeypatch.setattr(optunalog, "TESTING", False)
+    with pytest.raises(ValueError, match="in your own words"):
+        optunalog.idea(optunalog.IDEA_PLACEHOLDER, author="alice")

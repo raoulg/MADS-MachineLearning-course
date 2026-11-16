@@ -84,6 +84,7 @@ warnings.filterwarnings("ignore", category=optuna.exceptions.ExperimentalWarning
 ROLES = ("baseline", "trial", "final", "ablation", "hypothesis")
 
 STUDY_PLACEHOLDER = "name-your-study"
+IDEA_PLACEHOLDER = "say what your study investigates"
 # <first name>-<what it studies>: who it is from, and what it is about
 STUDY_NAME = re.compile(r"[a-z]+-[a-z0-9][a-z0-9-]{1,38}")
 
@@ -273,8 +274,14 @@ def idea(
       a lesson hands out to everyone.
 
     The id is a hash of the author, the words and the parents' names; the name is that
-    id made readable, and is what a classmate passes as `builds_on`."""
+    id made readable, and is what a classmate passes as `builds_on`. The placeholder
+    `IDEA_PLACEHOLDER` passes only under notebooktester."""
     said = idea_words(words) if isinstance(words, str) else ""
+    if said == IDEA_PLACEHOLDER and not TESTING:
+        raise ValueError(
+            f"idea: say in your own words what your study investigates, instead of "
+            f"{IDEA_PLACEHOLDER!r}, for example 'does depth still help on eurosat'"
+        )
     if not MIN_IDEA_CHARS <= len(said) <= MAX_IDEA_CHARS:
         raise ValueError(
             f"idea: say what the study investigates in {MIN_IDEA_CHARS} to "
