@@ -24,7 +24,7 @@ is the failure to avoid.
 - **Runs are submitted by following `docs/submit-runs.md`.** Runs logged through
   `hpo.runs` while the tester runs go to the separate store `artefacts/optuna/test.db`,
   so they are left out of a submission.
-- Setting up a machine for this course: `references/tooling-setup.md`.
+- Setting up a machine for this course: `docs/setup/tooling-setup.md`.
 
 The sections below are for work on the course material itself. A student's assistant
 follows the section above and the `param` rule below, and never edits a lesson notebook

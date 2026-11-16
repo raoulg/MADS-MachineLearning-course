@@ -54,7 +54,7 @@ dashboard: check-lesson
 	uv run scripts/class_analysis.py --lesson $(LESSON) --open $(if $(METRIC),--metric $(METRIC))
 	uv run scripts/collect_runs.py --lesson $(LESSON) --no-pull --ui $(ARGS)
 
-# The Optuna studies of notebooks/1_pytorch_intro/05_exercises.ipynb, in
+# The Optuna studies of notebooks/1_representation_and_head/05_exercises.ipynb, in
 # optuna-dashboard on http://127.0.0.1:$(OPTUNA_PORT). The store exists once that notebook
 # has run.
 #
@@ -65,7 +65,7 @@ OPTUNA_DIR ?= artefacts/optuna
 OPTUNA_PORT ?= 8088
 
 optuna-dashboard:
-	@test -f $(OPTUNA_DIR)/studies.db || { echo "no studies yet: run notebooks/1_pytorch_intro/05_exercises.ipynb first"; exit 2; }
+	@test -f $(OPTUNA_DIR)/studies.db || { echo "no studies yet: run notebooks/1_representation_and_head/05_exercises.ipynb first"; exit 2; }
 	uv run optuna-dashboard sqlite:///$(OPTUNA_DIR)/studies.db \
 		--artifact-dir $(OPTUNA_DIR)/artifacts --port $(OPTUNA_PORT) $(ARGS)
 

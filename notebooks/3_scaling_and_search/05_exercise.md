@@ -4,7 +4,7 @@ Pick an image dataset.
 Start from a published cache — `pttrn-io/dtd-*` is the one with real headroom (0.80 with
 the strongest encoder, and a 14-point spread between encoders), and a trial costs seconds
 rather than minutes. If you would rather bring your own data, encode it once yourself the
-way `1_pytorch_intro/01c_build_your_own_cache` shows, and search on the cache afterwards.
+way `1_representation_and_head/01c_build_your_own_cache` shows, and search on the cache afterwards.
 
 The point of working on a cache is that it removes hardware from the equation: the
 expensive part ran once, and the part you are actually studying — how the score responds
@@ -88,5 +88,5 @@ You will get a:
 # Common gotchas
 - you can't blindly copy paths. Always use `Path` and check if locations exist with `.exists()`
 - If you want to add your own `src` folder for import, the best way is to properly create your environment with `uv`. Another option is to figure out if your `src` folder is located at the ".." or "../.." location, relative to your notebook, and use a `sys.path.insert(0, "..")` command (that is, if you need to explicitly add it because the notebook cant find your src folder)
-- same goes for datalocations. `"../../data/raw"` might have changed into `"../data/raw"` depending in your setup. `mads_datasets` uses `Path.home() / ".cache/mads_datasets"` as a default location, so you can use that from every folder on your computer.
+- for data, use the location `mads_datasets` keeps it in, `Path.home() / ".cache/mads_datasets"`: that path works from every folder on your computer.
 - PRACTICE linting and formating (using a Makefile makes this easier). ruff format and ruff check should be run, it helps you to improve your code. (ruff has a --fix argument to autofix issues), mypy often takes a bit more effort (because you need to typehint) but you will become a better programmer if you learn to think about the types of your input and output, and LLMs can help you with this. Additionally mypy will catch possible errors that dont show up during a first run (but might show up later, with different input)

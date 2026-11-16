@@ -7,7 +7,7 @@ import pytest
 import torch
 
 sys.path.insert(
-    0, str(Path(__file__).resolve().parents[1] / "notebooks/1_pytorch_intro/exercises")
+    0, str(Path(__file__).resolve().parents[1] / "notebooks/1_representation_and_head/exercises")
 )
 
 from designs import DESIGN, Config, Head  # ty: ignore[import-not-found]  (the exercise folder is put on sys.path above)

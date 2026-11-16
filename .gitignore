@@ -2,13 +2,6 @@
 __pycache__/
 *.egg-info/
 
-# exclude data
-data/external/**/*.gz
-data/external/**/raw/**
-data/external/*.pt
-data/external/*.csv
-data/raw/*.arff
-
 # Mac OS-specific storage files
 .DS_Store
 
@@ -43,5 +36,7 @@ artefacts/**
 !notebooks/assets/scikit-image/
 !notebooks/assets/eurosat/
 **/own_caches/
+# old course material, kept locally until the course ends
+legacy/
 # claude code worktrees
 .claude/

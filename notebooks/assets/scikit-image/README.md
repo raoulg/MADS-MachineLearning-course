@@ -11,4 +11,4 @@ copyright restrictions. CC0 by the photographer (Stefan van der Walt)."
 
 Stored here as a file so the course does not need scikit-image as a dependency.
 
-Used in: `1_pytorch_intro/01b_tensors.ipynb` (the `(H, W, 3)` image and its channels).
+Used in: `1_representation_and_head/01b_tensors.ipynb` (the `(H, W, 3)` image and its channels).

@@ -36,13 +36,13 @@ pdf and worth buying.
 
 | | lesson | notebooks | learning goals |
 |---|---|---|---|
-| 1 | Representation and head | [`1_pytorch_intro`](notebooks/1_pytorch_intro) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les1.html) · [text](references/leerdoelen/les1.md) |
-| 2 | Kernels, state and gates | [`2_kernels_state_and_gates`](notebooks/2_kernels_state_and_gates) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les2.html) · [text](references/leerdoelen/les2.md) |
-| 3 | What did that capacity buy you | [`3_scaling_and_search`](notebooks/3_scaling_and_search) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les3.html) · [text](references/leerdoelen/les3.md) |
-| 4 | Language | [`4_language`](notebooks/4_language) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les4.html) · [text](references/leerdoelen/les4.md) |
-| 5 | Self-supervised learning | [`5_unsupervised`](notebooks/5_unsupervised) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les5.html) · [text](references/leerdoelen/les5.md) |
-| 6 | Uncertainty | [`6_uncertainty`](notebooks/6_uncertainty) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les6.html) · [text](references/leerdoelen/les6.md) |
-| 7 | Generalists and memory | [`7_generalists_and_memory`](notebooks/7_generalists_and_memory) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen-les7.html) · [text](references/leerdoelen/les7.md) |
+| 1 | Representation and head | [`1_representation_and_head`](notebooks/1_representation_and_head) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les1.html) · [text](presentations/leerdoelen/les1.md) |
+| 2 | Kernels, state and gates | [`2_kernels_state_and_gates`](notebooks/2_kernels_state_and_gates) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les2.html) · [text](presentations/leerdoelen/les2.md) |
+| 3 | What did that capacity buy you | [`3_scaling_and_search`](notebooks/3_scaling_and_search) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les3.html) · [text](presentations/leerdoelen/les3.md) |
+| 4 | Language | [`4_language`](notebooks/4_language) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les4.html) · [text](presentations/leerdoelen/les4.md) |
+| 5 | Self-supervised learning | [`5_unsupervised`](notebooks/5_unsupervised) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les5.html) · [text](presentations/leerdoelen/les5.md) |
+| 6 | Uncertainty | [`6_uncertainty`](notebooks/6_uncertainty) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les6.html) · [text](presentations/leerdoelen/les6.md) |
+| 7 | Generalists and memory | [`7_generalists_and_memory`](notebooks/7_generalists_and_memory) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les7.html) · [text](presentations/leerdoelen/les7.md) |
 
 The learning goals are in Dutch, one picture per goal.
 
@@ -56,8 +56,6 @@ Handy to have open:
   a reference card for tensor shapes, composition, diagrams, gradients and the GRU.
 - [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-tensors.html).
 - [Submitting your runs](docs/submit-runs.md) to the class repository.
-- [`0-baseline`](legacy/notebooks/0-baseline): check your Python and numpy before lesson 1.
-- [`8_extras`](legacy/notebooks/8_extras): material that is good and not examined.
 
 ## How the repository is built
 
@@ -85,14 +83,14 @@ Start with the local setup. If you did the setup of the DAV course, the guide fi
 The tools on the machine you write code on (git and GitHub, uv, an editor, the course repository, the pre-commit hooks, Atlas, the coaches, and the class runs repository):
 
 ```
-https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/tooling-setup.md
+https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/setup/tooling-setup.md
 ```
 
 ## VM (optional)
 Most of you are better off on your own machine, which is usually faster than a VM. A VM is worth requesting when your laptop cannot run the course, for instance because it is managed by your organisation and does not let you install the tools. The lab guide covers requesting a VM and setting it up. Only if you already received a VM invitation by e-mail, do this guide first:
 
 ```
-https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/references/lab-setup.md
+https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/setup/lab-setup.md
 ```
 
 Two rules that matter from day one:
@@ -105,4 +103,4 @@ New to the tools? [uv projects](https://docs.astral.sh/uv/guides/projects/), a [
 ## Where the course runs
 The course is built to run on a laptop CPU: Linux, Windows (via git bash / WSL) and Apple Silicon (M-series) Macs with macOS 14 or newer (the torch wheel the course uses needs it; on an older macOS, update it or use a VM), on Python `>=3.12,<3.15`. A VM is optional: useful for a long training run that should not tie up your laptop, or when your laptop is old or short on memory.
 
-**Intel Macs (x86_64) are not supported**: `torch` and `ray` publish no macOS x86_64 wheels for the versions the course uses. On an Intel Mac, use a VM and follow the VM guide above (`references/lab-setup.md`).
+**Intel Macs (x86_64) are not supported**: `torch` and `ray` publish no macOS x86_64 wheels for the versions the course uses. On an Intel Mac, use a VM and follow the VM guide above (`docs/setup/lab-setup.md`).

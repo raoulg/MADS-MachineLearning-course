@@ -77,11 +77,6 @@ dev = [
 
 [tool.uv.sources]
 
-[tool.pyright]
-executionEnvironments = [
-  { root = "legacy/notebooks/8_extras/swarms" }
-]
-
 [tool.ruff]
 # Scouting scripts kept as evidence for how a research number was produced. They import
 # packages this project does not declare (sentence-transformers, nltk) and are deleted

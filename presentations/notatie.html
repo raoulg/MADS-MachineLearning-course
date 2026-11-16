@@ -105,7 +105,7 @@ h3{font-size:21px;font-weight:500;line-height:1.2;margin:0}p{margin:0}
     <article class="card"><h3>Compositie</h3>
       <div class="formula large"><math aria-label="f na g van x is f van g van x"><mo>(</mo><mi>f</mi><mo>∘</mo><mi>g</mi><mo>)</mo><mo>(</mo><mi>x</mi><mo>)</mo><mo>=</mo><mi>f</mi><mo>(</mo><mi>g</mi><mo>(</mo><mi>x</mi><mo>)</mo><mo>)</mo></math></div>
       <p><i>∘</i> betekent: functies achter elkaar. In <i>f ∘ g</i> komt <i>g</i> eerst.</p>
-      <p class="reference">Zie <a href="leerdoelen-les1.html#g1-12">leerdoel 1.12 · compositie</a>.</p>
+      <p class="reference">Zie <a href="leerdoelen/les1.html#g1-12">leerdoel 1.12 · compositie</a>.</p>
     </article>
   </div></section>
 
@@ -121,7 +121,7 @@ h3{font-size:21px;font-weight:500;line-height:1.2;margin:0}p{margin:0}
         <div><span class="label">4 · driehoeksongelijkheid</span><div class="formula small"><math aria-label="de directe afstand van x naar z is niet groter dan de afstand via y"><mi>d</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>z</mi><mo>)</mo><mo>≤</mo><mi>d</mi><mo>(</mo><mi>x</mi><mo>,</mo><mi>y</mi><mo>)</mo><mo>+</mo><mi>d</mi><mo>(</mo><mi>y</mi><mo>,</mo><mi>z</mi><mo>)</mo></math></div></div>
       </div>
       <p class="note">In ML heet een evaluatiescore zoals MAPE ook vaak een <em>metric</em>. Dat woord betekent daar ‘beoordelingsmaat’; zo’n score hoeft geen wiskundige metriek te zijn.</p>
-      <p class="reference">Zie <a href="leerdoelen-les1.html#g1-8">leerdoel 1.8 · loss en metric</a> en <a href="dav-recap.html#nabijheid">DAV-recap · afstand in vectorruimtes</a>.</p>
+      <p class="reference">Zie <a href="leerdoelen/les1.html#g1-8">leerdoel 1.8 · loss en metric</a> en <a href="dav-recap.html#nabijheid">DAV-recap · afstand in vectorruimtes</a>.</p>
     </article>
   </section>
 
@@ -148,7 +148,7 @@ h3{font-size:21px;font-weight:500;line-height:1.2;margin:0}p{margin:0}
       <p class="sum-reading"><span><b>i = 1 … n</b> elk voorbeeld</span><span><b>∑</b> tel de gekwadrateerde fouten op</span><span><b>1/n</b> deel door het aantal voorbeelden: het gemiddelde</span></p>
       <div class="equation-row"><span class="label">update</span><div class="formula small"><math aria-label="W wordt W min eta maal de afgeleide van Loss naar W"><mi>W</mi><mo>←</mo><mi>W</mi><mo>−</mo><mi>η</mi><mfrac><mrow><mo>∂</mo><mtext>Loss</mtext></mrow><mrow><mo>∂</mo><mi>W</mi></mrow></mfrac></math></div></div>
       <p class="note">Bij MSE wordt eerst elk verschil tussen echt en voorspeld gekwadrateerd. De differentieerbare loss levert de gradiënt aan de optimizer.</p>
-      <p class="reference">Zie <a href="leerdoelen-les1.html#g1-8">leerdoel 1.8 · loss en metric</a>.</p>
+      <p class="reference">Zie <a href="leerdoelen/les1.html#g1-8">leerdoel 1.8 · loss en metric</a>.</p>
     </article>
   </section>
 
@@ -160,7 +160,7 @@ h3{font-size:21px;font-weight:500;line-height:1.2;margin:0}p{margin:0}
       <div class="equation-row"><span class="label">nieuwe state</span><div class="formula"><math aria-label="h t is Gamma elementgewijs maal h tilde t plus een min Gamma elementgewijs maal h t min een"><msub><mi>h</mi><mi>t</mi></msub><mo>=</mo><mrow class="mix-part"><mi>Γ</mi><mo>⊗</mo><msub><mover><mi>h</mi><mo>~</mo></mover><mi>t</mi></msub></mrow><mo>+</mo><mrow class="mix-part"><mo>(</mo><mn>1</mn><mo>−</mo><mi>Γ</mi><mo>)</mo><mo>⊗</mo><msub><mi>h</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub></mrow></math></div></div>
       <div class="gru-explain" aria-live="polite"><p class="input-text">Beide berekeningen krijgen dezelfde concatenatie [xₜ, hₜ₋₁] als input.</p><p class="weights-text">Gate en kandidaat hebben elk hun eigen W en b. Hun lineaire stap heeft dezelfde vorm: W[input] + b.</p><p class="mix-text">Γ dicht bij 1 neemt de kandidaat over; dicht bij 0 bewaart de vorige state. PyTorch zet Γ op de andere route; dat is dezelfde GRU met Γ en 1 − Γ omgewisseld. ⊗ is hier elementgewijze vermenigvuldiging.</p></div>
       <p class="note">Dit is de één-gate-schets. Een volledige GRU heeft daarnaast een resetgate. De formules zijn hier naslag, geen apart leerdoel.</p>
-      <p class="reference">Bij het beeld: <a href="leerdoelen-les2.html#g2-6">leerdoel 2.6 · gate</a>.</p>
+      <p class="reference">Bij het beeld: <a href="leerdoelen/les2.html#g2-6">leerdoel 2.6 · gate</a>.</p>
     </article>
   </section>
   <section id="routes"><h2>Parallelle routes · vijf keer dezelfde vorm</h2>
@@ -178,7 +178,7 @@ h3{font-size:21px;font-weight:500;line-height:1.2;margin:0}p{margin:0}
       <div class="equation-row"><span class="label">mixture of experts</span><div class="formula"><math aria-label="g is softmax van W r x"><mi>g</mi><mo>=</mo><mi>softmax</mi><mo>(</mo><msub><mi>W</mi><mi>r</mi></msub><mi>x</mi><mo>)</mo></math></div></div>
       <div class="equation-row"><span class="label"></span><div class="formula"><math aria-label="y is de som over i van g i maal E i van x"><mi>y</mi><mo>=</mo><munder><mo>∑</mo><mi>i</mi></munder><msub><mi>g</mi><mi>i</mi></msub><msub><mi>E</mi><mi>i</mi></msub><mo>(</mo><mi>x</mi><mo>)</mo></math></div></div>
       <p class="note">De router geeft een gewicht per expert, en de gewichten tellen op tot 1. In de praktijk houdt de router alleen de k grootste over (top-k), zodat maar k experts rekenen, en een extra loss voorkomt dat alles naar één expert gaat.</p>
-      <p class="reference">Bij het beeld: <a href="leerdoelen-les2.html#g2-13">leerdoel 2.13 · parallelle routes</a> en <a href="leerdoelen-les2.html#g2-6">leerdoel 2.6 · gate</a>.</p>
+      <p class="reference">Bij het beeld: <a href="leerdoelen/les2.html#g2-13">leerdoel 2.13 · parallelle routes</a> en <a href="leerdoelen/les2.html#g2-6">leerdoel 2.6 · gate</a>.</p>
     </article>
   </section>
 </main>

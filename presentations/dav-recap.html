@@ -305,7 +305,7 @@ line,path{stroke-linecap:round}
         <blockquote id="h-draad">Als een methode altijd iets vindt, bewijst iets vinden niets.</blockquote>
         <p class="src-line">reader, les 6: "If a tool always finds something, finding something proves nothing"<a class="ref" href="#dr-3">3</a></p>
         <p class="inml"><span class="lab">In ML</span>Les 3: een search kroont altijd een beste trial. De vraag is wat je aanpassing opleverde, gemeten tegen een controle.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-11">1.11 leren zonder labels</a> · <a href="leerdoelen-les1.html#g1-13">1.13 de baseline</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-11">1.11 leren zonder labels</a> · <a href="leerdoelen/les1.html#g1-13">1.13 de baseline</a></p>
         <ul class="list">
           <li>Een fitter kroont altijd een winnaar, ook een beta-distributie voor flipperlengtes (les 4).<a class="ref" href="#dr-1">1</a></li>
           <li>Vijftien toetsen op willekeurige groepen vonden in 42% van de zoektochten iets "significants" (les 5).<a class="ref" href="#dr-2">2</a></li>
@@ -325,7 +325,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">3.1</span> Een distributie beschrijft een proces</h3>
         <p class="inml"><span class="lab">In ML</span>Heel veel data wordt gegenereerd door toevalsprocessen. Algoritmes werken omdat ze die distributies zelfstandig kunnen leren.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-14">1.14 de zoekruimte</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-14">1.14 de zoekruimte</a></p>
         <div class="co def"><span class="lab">Definitie</span><p>Een distributie: alle mogelijke uitkomsten van een toevalsproces, met aandelen die optellen tot 1.<a class="ref" href="#vd-1">1</a></p></div>
         <div class="co def"><span class="lab">Definitie</span><p>Een parametrische distributie is een familie met een paar knoppen die de hele vorm vastleggen: een normale heeft er twee (gemiddelde en spreiding), een Poisson één (het tempo).<a class="ref" href="#vd-1">1</a></p></div>
         <p>Je kiest de verwachte familie vanuit het proces dat de getallen genereert, voordat je een histogram ziet: veel kleine stukjes opgeteld geven een klok, veel factoren vermenigvuldigd een lange staart, gebeurtenissen in een vast tempo een Poisson.<a class="ref" href="#vd-1">1</a></p>
@@ -363,7 +363,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">3.3</span> Vergelijk met toeval</h3>
         <p class="inml"><span class="lab">In ML</span>De grote datasets van deep learning beschermen ons vaak, maar toeval moet altijd een baseline zijn waar je je tegen afzet.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-10">1.10 ruis of resultaat</a> · <a href="leerdoelen-les1.html#g1-13">1.13 de baseline</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-10">1.10 ruis of resultaat</a> · <a href="leerdoelen/les1.html#g1-13">1.13 de baseline</a></p>
         <div class="ess"><span class="lab">Essentie</span>Twee steekproeven verschillen altijd een beetje. De vraag is of het verschil groter is dan wat toeval alleen maakt.</div>
         <p>Schud de labels (voor of na, groep A of B) duizenden keren, reken telkens het verschil uit, en kijk waar het echte verschil in die wolk valt.<a class="ref" href="#tv-1">1</a></p>
         <p>Hetzelfde idee in andere vormen:</p>
@@ -386,7 +386,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">3.4</span> Kijk naar genoeg dingen en je vindt altijd iets</h3>
         <p class="inml"><span class="lab">In ML</span>De grote datasets maken het ook mogelijk om patronen te vinden die er niet zijn. Daarom gebruiken we altijd "hold out"-datasets voor validation.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-9">1.9 train en valid</a> · <a href="leerdoelen-les1.html#g1-10">1.10 ruis of resultaat</a> · <a href="leerdoelen-les1.html#g1-14">1.14 de search</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-9">1.9 train en valid</a> · <a href="leerdoelen/les1.html#g1-10">1.10 ruis of resultaat</a> · <a href="leerdoelen/les1.html#g1-14">1.14 de search</a></p>
         <p>Bij een grens van p &lt; 0,05 slaat een toets op toeval één op de twintig keer vals alarm. De kans op géén vals alarm is dus <span class="math">1 − 0,05 = 0,95</span> per toets. Vijftien onafhankelijke toetsen blijven samen maar <span class="math">0,95<sup>15</sup> = 0,46</span> van de keren stil: in 54% heb je minstens één vals alarm. Gemeten in de chat was het 42%, omdat de vijftien metingen deels hetzelfde meten.<a class="ref" href="#vt-1">1</a></p>
         <p>De verdediging:</p>
         <ul class="list">
@@ -407,7 +407,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">3.5</span> Elke trend kan omdraaien in een subgroep</h3>
         <p class="inml"><span class="lab">In ML</span>Dit blijft een statistische nachtmerrie.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-9">1.9 train en valid</a> · <a href="leerdoelen-les1.html#g1-14">1.14 relaties per as</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-9">1.9 train en valid</a> · <a href="leerdoelen/les1.html#g1-14">1.14 relaties per as</a></p>
         <p>Alle pinguïns samen: hoe langer de snavel, hoe ondieper (r = −0,22). Per soort: hoe langer, hoe dieper (+0,40 tot +0,65). Van vijftien correlaties tussen pinguïnmetingen wisselen er zeven van teken als je binnen de soort kijkt.<a class="ref" href="#sg-2">2</a> Dat is Simpsons paradox, in les 2 als de toelatingen van Berkeley.<a class="ref" href="#sg-1">1</a></p>
         <div class="co def"><span class="lab">Definitie</span><p>Een confounder verschilt tussen de groepen die je vergelijkt en beïnvloedt ook de uitkomst. Zolang je er niet binnen vergelijkt, meet je totaal iets anders dan je denkt.<a class="ref" href="#sg-1">1</a></p></div>
         <div class="co ins"><span class="lab">Inzicht</span><p>Een trend kan in een subgroep niet alleen verdwijnen, maar omdraaien. En je kunt altijd nieuwe subgroepen maken. Dat is de nachtmerrie van elke statisticus: graaf lang genoeg en je vindt een groep waarin je effect andersom loopt. Zeg daarom op welk niveau je claim geldt, en toets op dat niveau.<a class="ref" href="#sg-3">3</a></p></div>
@@ -468,7 +468,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">5.1</span> Nabijheid betekent, hopelijk, gelijkenis</h3>
         <p class="inml"><span class="lab">In ML</span>Wat alle deep learning-architecturen die we de komende periode gaan bestuderen gemeen hebben, is dat ze een hoogdimensionale ruimte gebruiken. Je zult eraan moeten wennen dat we die ruimtes moeilijk kunnen visualiseren.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-3">1.3 de vectorruimte</a> · <a href="leerdoelen-les1.html#g1-8">1.8 metric voor voorspellingen</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-3">1.3 de vectorruimte</a> · <a href="leerdoelen/les1.html#g1-8">1.8 metric voor voorspellingen</a></p>
         <p>Data die nog geen getallen is, breng je naar een ruimte met veel dimensies: door te tellen (trigrams), met je eigen regexes als kolommen, of met een encoder die iemand anders trainde, die van een foto of zin 384 getallen maakt.<a class="ref" href="#nb-1">1</a><a class="ref" href="#nb-2">2</a></p>
         <div class="ess"><span class="lab">Essentie</span>Nabijheid in een hoogdimensionale ruimte betekent, hopelijk, dat de dingen zelf op elkaar lijken. Daar zoek, vergelijk en classificeer je.</div>
         <div class="co def"><span class="lab">Definitie</span><p>Cosine distance: <span class="math">1 − a·b / (‖a‖ ‖b‖)</span>, één min de cosinus van de hoek tussen twee vectoren, los van hun lengte. 0 is dezelfde richting, 1 staat haaks. Na normaliseren naar lengte 1 is <span class="math">a·b</span> een gewoon dot product. Cosine distance is een vergelijkingsmaat, maar voldoet niet altijd aan de driehoeksongelijkheid en is dus geen metriek in strikte wiskundige zin.<a class="ref" href="#nb-2">2</a></p></div>
@@ -484,7 +484,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">5.2</span> Een model van een ander: één keer draaien, eerst de baseline</h3>
         <p class="inml"><span class="lab">In ML</span>Er bestaan heel erg veel pretrained deep learning-modellen. Het is slim om het wiel niet opnieuw uit te vinden, maar verder te bouwen op die intelligentie.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-3">1.3 nearest neighbour</a> · <a href="leerdoelen-les1.html#g1-4">1.4 de cache</a> · <a href="leerdoelen-les1.html#g1-13">1.13 de baseline</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-3">1.3 nearest neighbour</a> · <a href="leerdoelen/les1.html#g1-4">1.4 de cache</a> · <a href="leerdoelen/les1.html#g1-13">1.13 de baseline</a></p>
         <p>Een frozen encoder geeft voor dezelfde foto altijd dezelfde 384 getallen. Draai hem dus één keer, bewaar de vectoren in een cache, en train je neurale netwerk op de vectoren in plaats van de afbeelding. Dit gebruikt ongeveer 100x minder rekenkracht en kan daardoor makkelijker op je eigen laptop gebeuren. Honderd epochs kosten dan ongeveer evenveel als één keer de encoder.<a class="ref" href="#bl-1">1</a></p>
         <div class="ess"><span class="lab">Essentie</span>Zonder enige aanvullende training lost alleen de embedding de taak soms al bijna perfect op.</div>
         <div class="co ins"><span class="lab">Inzicht</span><p>Nearest neighbour kopieert het label van de meest gelijkende trainingsfoto en traint niets. Dat haalde 99,1% op 102 bloemsoorten; de getrainde head 99,3%. Dat er weinig te leren viel, weet je alleen omdat je eerst de baseline uitrekende.<a class="ref" href="#bl-1">1</a></p></div>
@@ -518,7 +518,7 @@ line,path{stroke-linecap:round}
       <div class="txt">
         <h3><span class="no">5.4</span> Gebruik commuting routes om werk te controleren</h3>
         <p class="inml"><span class="lab">In ML</span>Het is niet altijd mogelijk om meerdere routes te gebruiken, maar als het mogelijk is, versterkt het meestal de kwaliteit van je model.</p>
-        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen-les1.html#g1-5">1.5 de encoderkeuze</a></p>
+        <p class="ml-goals"><span class="lab">Verder in ML</span><a href="leerdoelen/les1.html#g1-5">1.5 de encoderkeuze</a></p>
         <p>In 27.000 trigram-dimensies leken de QAnon-posts van twee auteurs. Terugkijken welke trigrams het verschil maakten gaf <code>htt</code>, <code>://</code> en <code>.com</code>: links. Zonder links verdween de splitsing.<a class="ref" href="#tl-1">1</a></p>
         <div class="co ins"><span class="lab">Inzicht</span><p>Je had URL's geteld op een heel ingewikkelde manier. Met 27.000 kolommen kun je niet alles bekijken, dus lees je terug welke kolommen het werk deden.<a class="ref" href="#tl-1">1</a></p></div>
         <p>Een model meet waarvoor het getraind is: een sentence embedding meet betekenis en negeert stijl. Daarom herkende het de auteur van een sessie in 54% van de gevallen, waar tekens tellen 79% haalde.<a class="ref" href="#tl-2">2</a></p>
@@ -548,7 +548,7 @@ line,path{stroke-linecap:round}
     <article class="card" id="coaches">
       <div class="txt">
         <h3><span class="no">6.1</span> Probeer het uit</h3>
-        <p>Doe de setup van deze cursus samen met je assistent, met <a href="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md">tooling-setup.md</a>. Je vinkt eerst af wat je al weet, zodat je alleen doet wat je nog niet hebt gedaan.<a class="ref" href="#cc-2">2</a></p>
+        <p>Doe de setup van deze cursus samen met je assistent, met <a href="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/docs/setup/tooling-setup.md">tooling-setup.md</a>. Je vinkt eerst af wat je al weet, zodat je alleen doet wat je nog niet hebt gedaan.<a class="ref" href="#cc-2">2</a></p>
         <p class="inml"><span class="lab">In ML</span>Les 1: <code>/vectormesh:design</code> en <code>/vectormesh:search</code> vóór je eerste search.</p>
         <ol class="done">
           <li>Bekijk de MCP's die je met je agent hebt verbonden (<code>claude mcp list</code>, of wat jouw harness daarvoor heeft), en probeer een nieuwe uit, zoals <a href="https://atlas.pttrn.io/#point">atlas</a>.<a class="ref" href="#cc-1">1</a></li>
@@ -573,7 +573,7 @@ line,path{stroke-linecap:round}
         </ol>
         <p><code>/vectormesh:search</code> zet daarna de search zelf op: eerst een baseline zonder training, dan een getrainde baseline over meerdere seeds, dan één search space. De uitkomst lees je per as, en een verschil meet je tegen de spreiding van je baseline.<a class="ref" href="#cc-2">2</a></p>
       </div>
-      <footer class="ptr"><span class="lab">Terug naar</span><ol><li id="cc-1"><span class="n">1</span><label class="rv"><input type="checkbox" data-r="cc-1"> review</label><div class="pb"><span class="les">Setup</span> <span class="what">DAV, milestone M7: de coaches</span><span class="srcs"><span class="src" data-kind="setup" data-label="MADS-DAV" data-title="references/tooling-setup.md" data-url="https://github.com/raoulg/MADS-DAV/blob/main/references/tooling-setup.md" title="references/tooling-setup.md"><b>setup</b> MADS-DAV</span></span></div></li><li id="cc-2"><span class="n">2</span><label class="rv"><input type="checkbox" data-r="cc-2"> review</label><div class="pb"><span class="les">Setup</span> <span class="what">ML, milestone M8: de coaches</span><span class="srcs"><span class="src" data-kind="setup" data-label="MADS-ML" data-title="references/tooling-setup.md" data-url="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/references/tooling-setup.md" title="references/tooling-setup.md"><b>setup</b> MADS-ML</span></span></div></li></ol></footer>
+      <footer class="ptr"><span class="lab">Terug naar</span><ol><li id="cc-1"><span class="n">1</span><label class="rv"><input type="checkbox" data-r="cc-1"> review</label><div class="pb"><span class="les">Setup</span> <span class="what">DAV, milestone M7: de coaches</span><span class="srcs"><span class="src" data-kind="setup" data-label="MADS-DAV" data-title="references/tooling-setup.md" data-url="https://github.com/raoulg/MADS-DAV/blob/main/references/tooling-setup.md" title="references/tooling-setup.md"><b>setup</b> MADS-DAV</span></span></div></li><li id="cc-2"><span class="n">2</span><label class="rv"><input type="checkbox" data-r="cc-2"> review</label><div class="pb"><span class="les">Setup</span> <span class="what">ML, milestone M8: de coaches</span><span class="srcs"><span class="src" data-kind="setup" data-label="MADS-ML" data-title="docs/setup/tooling-setup.md" data-url="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/docs/setup/tooling-setup.md" title="docs/setup/tooling-setup.md"><b>setup</b> MADS-ML</span></span></div></li></ol></footer>
     </article>
   </div>
 </section>

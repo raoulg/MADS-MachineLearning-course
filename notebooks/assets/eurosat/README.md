@@ -19,5 +19,5 @@ licensed under the MIT license").
 - P. Helber, B. Bischke, A. Dengel. "Introducing EuroSAT: A Novel Dataset and Deep
   Learning Benchmark for Land Use and Land Cover Classification." *IGARSS 2018*.
 
-Used in: `1_pytorch_intro/01b_tensors.ipynb` (the `(B, H, W, 3)` batch of images). The
+Used in: `1_representation_and_head/01b_tensors.ipynb` (the `(B, H, W, 3)` batch of images). The
 EuroSAT vector cache `pttrn-io/eurosat-dinov2-small` is built from the same dataset.

@@ -56,7 +56,7 @@ Two consequences for publishing:
    `state.json`, and `metadata.json` is meaningless without both.
 2. **`load_dataset("user/repo")` will not work on it.** A `save_to_disk` folder is not
    the parquet layout that `load_dataset` expects. You download the folder and call
-   `VectorCache.load(path)`. See [§6](#6-the-alternative-push_to_hub) if you also want a
+   `VectorCache.load(path)`. See [§7](#7-the-alternative-push_to_hub) if you also want a
    hub-viewer-friendly copy.
 
 ### Decide what the raw column is worth

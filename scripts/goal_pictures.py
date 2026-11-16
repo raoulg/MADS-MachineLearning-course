@@ -1,7 +1,7 @@
 """The learning goals of a lesson as a page with one picture per goal.
 
-Reads the goals from references/leerdoelen/les<N>.md and writes
-presentations/leerdoelen-les<N>.html, which GitHub Pages publishes. Each goal is a card
+Reads the goals from presentations/leerdoelen/les<N>.md and writes
+presentations/leerdoelen/les<N>.html, which GitHub Pages publishes. Each goal is a card
 with its code, a short title, one inline SVG and the goal text, and has the anchor
 #g<N>-<k> so a slide or notebook can link to one picture.
 
@@ -2006,7 +2006,7 @@ def marker(c: str, col: str) -> str:
 
 
 def build(lesson: int) -> Path:
-    md = (ROOT / f"references/leerdoelen/les{lesson}.md").read_text()
+    md = (ROOT / f"presentations/leerdoelen/les{lesson}.md").read_text()
     heading = re.match(r"# Les \d+ — (.*)", md)
     if heading is None:
         raise SystemExit(
@@ -2030,9 +2030,9 @@ def build(lesson: int) -> Path:
 <title>MADS-ML · Les {lesson} · Leerdoelen in beeld</title>
 <meta name="description" content="De leerdoelen van les {lesson} van MADS-ML, elk met één beeld.">
 <style>
-@font-face{{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}}
-@font-face{{font-family:'Outfit';font-weight:400;font-display:swap;src:url(fonts/Outfit-400.woff2) format('woff2')}}
-@font-face{{font-family:'Outfit';font-weight:500;font-display:swap;src:url(fonts/Outfit-500.woff2) format('woff2')}}
+@font-face{{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(../fonts/JetBrainsMono-400.woff2) format('woff2')}}
+@font-face{{font-family:'Outfit';font-weight:400;font-display:swap;src:url(../fonts/Outfit-400.woff2) format('woff2')}}
+@font-face{{font-family:'Outfit';font-weight:500;font-display:swap;src:url(../fonts/Outfit-500.woff2) format('woff2')}}
 :root{{color-scheme:light}}
 *{{box-sizing:border-box}}
 html,body{{margin:0;background:{BG};color:{INK}}}
@@ -2043,6 +2043,8 @@ h1{{font-size:clamp(34px,6vw,60px);font-weight:500;line-height:1.05;letter-spaci
 h1 span{{color:{V}}}
 .lead{{max-width:720px;color:{MUT};margin:0 0 20px}}
 .legend{{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:15px;color:{MUT};margin:0 0 8px}}
+.reference{{font-size:14px;margin:10px 0 0}}
+.reference a{{color:{P};text-underline-offset:2px}}
 .legend i{{display:inline-block;width:14px;height:14px;margin-right:7px;vertical-align:-2px;border:2px solid}}
 h2{{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;letter-spacing:2.4px;text-transform:uppercase;color:{MUT};margin:44px 0 16px;padding-top:16px;border-top:1px solid {RULE}}}
 .grid{{display:grid;gap:20px;grid-template-columns:1fr}}
@@ -2067,14 +2069,18 @@ svg .v{{fill:{V}}}
 svg .p{{fill:{P}}}
 svg .n.v{{fill:{V}}}
 </style>
+<link rel="stylesheet" href="../course-ui.css">
+<link rel="stylesheet" href="../course-bar.css">
 </head>
 <body>
+<div data-course-bar="goals" data-lesson="{lesson}" data-base="../"></div><script src="../course-bar.js"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>{markers}</defs></svg>
-<main>
+<main id="top">
 <p class="kick">MADS-ML · Les {lesson}</p>
 <h1>{title}</h1>
 <p class="lead">{n} leerdoelen, elk met één beeld. Het beeld draagt het punt; de tekst eronder is het leerdoel zoals je het afvinkt.</p>
 <p class="legend"><span><i style="border-color:{P};background:{PT}"></i>de data: een tensor en zijn assen</span><span><i style="border-color:{V};background:{VT}"></i>de operatie: wat er nu iets doet</span></p>
+<p class="reference">Naslag: <a href="../notatie.html">notatie en formules</a></p>
 <h2>De student begrijpt</h2>
 <div class="grid">
 {understands}
@@ -2087,7 +2093,7 @@ svg .n.v{{fill:{V}}}
 </body>
 </html>
 """
-    out = ROOT / f"presentations/leerdoelen-les{lesson}.html"
+    out = ROOT / f"presentations/leerdoelen/les{lesson}.html"
     out.write_text(page)
     return out
 

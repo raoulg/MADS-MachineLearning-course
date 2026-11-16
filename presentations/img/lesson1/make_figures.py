@@ -1074,7 +1074,7 @@ N_TRIALS = 24  # notebook 04's search budget
 def export_trials() -> Path:
     """The trials of the most recent run of notebook 04's search, as a csv."""
     target = DATA / "dtd_search_trials.csv"
-    src = REPO / "notebooks/1_pytorch_intro/ray_results/dtd_head_search"
+    src = REPO / "notebooks/1_representation_and_head/ray_results/dtd_head_search"
     rows = []
     for d in glob.glob(str(src / "trainable_*")):
         try:

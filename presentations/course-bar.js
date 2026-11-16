@@ -9,7 +9,7 @@
   const moon = '<svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg>';
   const lessons = Array.from({ length: 7 }, (_, index) => {
     const number = index + 1;
-    return `<a href="${base}leerdoelen-les${number}.html"${page === 'goals' && number === lesson ? ' aria-current="page"' : ''}>Les ${number}</a>`;
+    return `<a href="${base}leerdoelen/les${number}.html"${page === 'goals' && number === lesson ? ' aria-current="page"' : ''}>Les ${number}</a>`;
   }).join('');
   const topics = [
     ['harness', '1', 'Agentic AI'], ['statistiek', '3', 'Statistiek'],
@@ -20,14 +20,14 @@
     ? `<nav class="primary-links" id="toc" aria-label="Onderwerpen">${topics}</nav>`
     : `<nav class="primary-links" aria-label="Visuele leerdoelen per les">${lessons}</nav>`;
   const crossLinks = page === 'recap'
-    ? [['leerdoelen-les1.html', 'Leerdoelen'], ['notatie.html', 'Notatie']]
+    ? [['leerdoelen/les1.html', 'Leerdoelen'], ['notatie.html', 'Notatie']]
     : page === 'notation'
-      ? [['leerdoelen-les1.html', 'Leerdoelen'], ['dav-recap.html', 'DAV-recap']]
+      ? [['leerdoelen/les1.html', 'Leerdoelen'], ['dav-recap.html', 'DAV-recap']]
       : [['notatie.html', 'Notatie'], ['dav-recap.html', 'DAV-recap']];
   const cross = crossLinks.map(([href, label]) => `<a href="${base}${href}">${label}</a>`).join('');
   const brandLabel = page === 'recap' ? 'DAV-recap' : page === 'notation' ? 'notatie' : `les ${lesson}`;
   mount.outerHTML = `<header class="course-bar"><a class="skip" href="#top">Sla navigatie over</a><div class="inner">
-    <a class="brand" href="${base}leerdoelen-les1.html">MADS-ML <span>· ${brandLabel}</span></a>
+    <a class="brand" href="${base}leerdoelen/les1.html">MADS-ML <span>· ${brandLabel}</span></a>
     ${primary}
     ${page === 'recap' ? '<a class="review" id="cnt" href="#reviewlijst"><b id="n">0</b><span>reviewlijst</span></a>' : ''}
     <nav class="cross-links" aria-label="Andere cursuspagina’s">${cross}<a class="repo" href="https://github.com/raoulg/MADS-MachineLearning-course" aria-label="MADS-ML repository op GitHub">${github}</a></nav>
