@@ -1,0 +1,67 @@
+"""The design and the space check of lesson 1's exercise folder, without data."""
+
+import sys
+from dataclasses import fields
+from pathlib import Path
+
+import pytest
+import torch
+
+sys.path.insert(
+    0, str(Path(__file__).resolve().parents[1] / "notebooks/1_pytorch_intro/exercises")
+)
+
+from designs import Config, Head, combinations, option, options, trace  # ty: ignore[import-not-found]  (the exercise folder is put on sys.path above)
+from harness import check_space  # ty: ignore[import-not-found]
+
+DESIGN = [f.name for f in fields(Config)]
+
+
+@pytest.mark.parametrize("chosen", list(combinations(Head)), ids=str)
+@pytest.mark.parametrize("norm", ["none", "batch", "layer"])
+def test_every_combination_gives_batch_by_classes(chosen, norm):
+    config = Config(hidden_dim=16, n_hidden_layers=2, norm=norm, dropout=0.1, **chosen)
+    model = Head(config, dim=12, n_classes=5)
+    assert model(torch.randn(4, 12)).shape == (4, 5)
+    ran = [name for name, _ in trace(model, torch.randn(4, 12))]
+    for axis, on in chosen.items():
+        assert (axis in ran) == on
+
+
+def test_options_names_the_axes_of_the_design():
+    assert options(Head) == ["skip", "gate"]
+    assert len(list(combinations(Head))) == 4
+
+
+def test_option_leaves_the_stage_as_it_is():
+    def stage(x):
+        return x + 1
+
+    assert option("width")(stage) is stage
+    assert stage.__option__ == "width"
+
+
+SPACE = {
+    "dataset": "dtd",
+    "encoder": "dinov2-small",
+    "hidden_dim": 64,
+    "skip": False,
+    "gate": True,
+    "lr": 1e-3,
+    "epochs": 1,
+}
+
+
+def test_check_space_takes_a_space_that_searches_every_option():
+    check_space(SPACE, options(Head), DESIGN)
+
+
+def test_check_space_refuses_a_missing_option():
+    space = {k: v for k, v in SPACE.items() if k != "gate"}
+    with pytest.raises(ValueError, match="no axis 'gate'"):
+        check_space(space, options(Head), DESIGN)
+
+
+def test_check_space_refuses_an_unused_axis():
+    with pytest.raises(ValueError, match="'weight_decay', which neither"):
+        check_space({**SPACE, "weight_decay": 1e-4}, options(Head), DESIGN)
