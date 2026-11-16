@@ -183,6 +183,23 @@ architectures; it is submitted with the run as the artifact `design.py`. Nothing
 it is there to be read. `record` (the call a search's objective makes on its trial) takes
 the same two arguments.
 
+### Building on an idea
+
+A study carries an idea: what it investigates, in a few words. The class page shows the
+class's ideas as a graph, each with its name (`blissful-bee-18`). When the student builds
+on one, a classmate's or an earlier one of their own, they name it; ask them which, and
+what they expect, and do not choose for them:
+
+```python
+IDEA = idea("depth and norm together", builds_on=["blissful-bee-18", "zany-heron-41"])
+study = search_study("lesson1-study-sam-depth-norm", space, idea=IDEA)
+```
+
+The name of an idea is made from the student's GitHub login, the words and the names it
+builds on, so other words are another idea, and another idea is another study: give it
+another study name. An idea that is built on must be in the class repository, or be
+submitted in the same pull request.
+
 The imported runs live in `class.db`, never in the student's own store, and the submit
 script never submits them: a trial that carries `submission_ref` or `source_run_id` came
 from the class, and is left out with one line saying so.
@@ -231,6 +248,11 @@ The check's comment on the pull request names each file with one of these proble
 | `this run id is already submitted by <other>` | The run is another student's. Submit only runs the student made. |
 | `this run is already submitted by <other>, under another run id` | The run's content is another student's, relabelled. Submit only runs the student made. |
 | `not a regular file (mode ...)` | The branch holds a link or something else instead of a file. Submit again with the script. |
+| `builds on the idea <name>, which is not in the class repository` | The study's idea names a parent nobody has published. Check the name against the class page; if it is the student's own earlier idea, submit that study too (`--experiment`), in the same pull request. |
+| `the name <name> already stands for another idea` | Two different ideas got the same readable name. Change a word of the idea, give the study another name, and run it again. |
+| `study attr 'idea_author' is ...` | The idea names another author than the submitter. Run the study again from the student's own notebook; `artefacts/optuna/login` holds the login `optunalog` uses. |
+| `study attr 'idea_id' is not the id ...`, `'idea_name' is not the name ...` | The idea's attrs were changed after the study was made. Run the study again; do not edit by hand. |
+| `param '<x>' is not a value of the distribution it names`, `... is a finite number`, `nested too deep`, `a key is there twice` | A run Optuna could not have written. Run it again from the notebook; do not edit by hand. |
 | `the change touches N files, more than 200` | Too much in one pull request. Submit per study (`--experiment`), one pull request at a time. |
 | `param key ...`, `attr key ...`, `study attr key ...`, `distribution key ...` | A name with characters the format does not accept (letters, digits, `_ - . /` and spaces only), or longer than 250. Rename it in the notebook and log the run again. |
 | `... is N bytes, limit 20000` (a param, attr or study attr) / `limit 256000` (an artifact) | A value larger than a submission carries. Log a smaller one; for a design script, keep only the architectures in it. |

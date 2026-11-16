@@ -407,3 +407,127 @@ def test_one_name_stands_for_one_idea(tmp_path, submission, monkeypatch):
     problems = check(tmp_path, [rel], "alice", set())
     assert len(problems) == 1
     assert "zany-heron-41 already stands for another idea" in problems[0]
+
+
+LOG_RANGE = {"low": 0.001, "high": 0.1, "log": True, "step": None}
+
+
+@pytest.mark.parametrize(
+    "run_fields, expected",
+    [
+        ({"value": float("nan")}, "value"),
+        ({"value": float("inf")}, "value"),
+        ({"intermediate": [{"step": 10**30, "value": 0.5}]}, "intermediate.0.step"),
+        ({"intermediate": [{"step": 0, "value": float("nan")}]}, "intermediate.0"),
+        ({"start_time": -1}, "start_time"),
+        ({"end_time": 2**63}, "end_time"),
+        ({"params": {"lr": 10**400}}, "param 'lr' is a finite number"),
+        ({"artifacts": {"notes.txt": {"a": 1}}}, "a file that is not .json is text"),
+        ({"artifacts": {"C:evil.txt": "x"}}, "only letters, digits"),
+        ({"artifacts": {"a b.txt": "x"}}, "only letters, digits"),
+        ({"study": {"direction": "minimize", "attrs": {}}}, "maximizes"),
+        (
+            {
+                "distributions": {
+                    "lr": {"name": "FloatDistribution", "attributes": LOG_RANGE}
+                }
+            },
+            "",
+        ),
+        (
+            {
+                "params": {"lr": 5.0},
+                "distributions": {
+                    "lr": {"name": "FloatDistribution", "attributes": LOG_RANGE}
+                },
+            },
+            "param 'lr' is not a value of the distribution",
+        ),
+        (
+            {
+                "params": {"norm": "group"},
+                "distributions": {
+                    "norm": {
+                        "name": "CategoricalDistribution",
+                        "attributes": {"choices": ["none", "batch"]},
+                    }
+                },
+            },
+            "param 'norm' is not a value of the distribution",
+        ),
+    ],
+)
+def test_what_optuna_would_refuse_is_refused(
+    tmp_path, submission, run_fields, expected
+):
+    problems = invalid(tmp_path, submission("alice"), **run_fields)
+    if not expected:
+        assert problems == []
+    else:
+        assert problems and all(expected in p for p in problems), problems
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    [
+        {"low": "x", "high": [1], "log": "no", "step": {}},
+        {"low": 0.1, "high": 0.001, "log": False, "step": None},
+        {"low": 0.0, "high": 1.0, "log": True, "step": None},
+        {"low": 0.1, "high": 1.0, "log": True, "step": 0.1},
+        {"low": 0.1, "high": float("inf"), "log": False, "step": None},
+        {"low": 0.1, "high": 1.0, "log": False, "step": 0},
+    ],
+)
+def test_a_range_optuna_cannot_build_is_refused(tmp_path, submission, attributes):
+    dist = {"lr": {"name": "FloatDistribution", "attributes": attributes}}
+    assert invalid(tmp_path, submission("alice"), distributions=dist)
+
+
+def test_an_int_param_follows_its_step(tmp_path, submission):
+    attributes = {"low": 32, "high": 128, "log": False, "step": 32}
+    dist = {"width": {"name": "IntDistribution", "attributes": attributes}}
+    sub = submission("alice")
+    assert invalid(tmp_path, sub, params={"width": 96}, distributions=dist) == []
+    assert invalid(tmp_path, sub, params={"width": 100}, distributions=dist)
+    assert invalid(tmp_path, sub, params={"width": 96.0}, distributions=dist)
+
+
+def raw_problems(tmp_path, sub, text: str) -> list[str]:
+    path = tmp_path / sub.relpath()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text)
+    return check(tmp_path, [sub.relpath()], sub.student, set())
+
+
+def test_a_key_that_is_there_twice_is_refused(tmp_path, submission):
+    sub = submission("alice")
+    text = sub.dump().replace('"lesson": 1,', '"lesson": 1, "lesson": 1,', 1)
+    problems = raw_problems(tmp_path, sub, text)
+    assert len(problems) == 1 and "a key is there twice" in problems[0]
+
+
+def test_a_lone_surrogate_is_refused(tmp_path, submission):
+    sub = submission("alice")
+    text = sub.dump().replace('"baseline"', '"\\udfff"', 1)
+    problems = raw_problems(tmp_path, sub, text)
+    assert len(problems) == 1 and "not valid JSON" in problems[0]
+
+
+@pytest.mark.parametrize("depth", [300, 100_000])
+def test_deep_nesting_is_a_problem_not_a_crash(tmp_path, submission, depth):
+    sub = submission("alice")
+    nested = "[" * depth + "]" * depth
+    text = sub.dump().replace('"dataset": "dtd"', f'"dataset": {nested}', 1)
+    problems = raw_problems(tmp_path, sub, text)
+    assert len(problems) == 1 and "nested too deep" in problems[0]
+
+
+def test_a_key_outside_ascii_is_refused(tmp_path, submission):
+    problems = invalid(tmp_path, submission("alice"), attrs={"аccuracy": 1})
+    assert len(problems) == 1 and "attr key" in problems[0]
+
+
+def test_a_newline_in_a_key_stays_on_its_line(tmp_path, submission):
+    key = "x\n::warning::injected"
+    problems = invalid(tmp_path, submission("alice"), params={key: [1]})
+    assert problems and all("\n" not in p for p in problems)

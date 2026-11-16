@@ -249,7 +249,12 @@ class ClassStore:
         architecture = run.artifacts.get("architecture.json")
         if isinstance(architecture, dict):
             trial_id = study.trials[-1]._trial_id
-            body = f"`{architecture.get('signature', '')}`\n\n```\n{architecture.get('summary', '')}\n```"
+            signature = str(architecture.get("signature", "")).replace("`", "'")
+            summary = str(architecture.get("summary", ""))
+            # longer than any run of backticks in the text, so the text cannot close it
+            longest = max((len(m) for m in re.findall(r"`+", summary)), default=0)
+            fence = "`" * max(3, longest + 1)
+            body = f"`{signature}`\n\n{fence}\n{summary}\n{fence}"
             save_note_with_version(study._storage, study._study_id, trial_id, 1, body)
 
 
@@ -311,7 +316,13 @@ def main() -> None:
             counts["invalid"] += 1
             continue
 
-        store.add(sub, sub.content_hash())
+        try:
+            store.add(sub, sub.content_hash())
+        # one run Optuna refuses must not stop the class's import
+        except Exception as e:  # noqa: BLE001
+            print(f"skipped {rel}: {type(e).__name__}: {e}")
+            counts["invalid"] += 1
+            continue
         counts["new"] += 1
         students.setdefault(sub.lesson, set()).add(sub.student)
         per_student[(sub.lesson, sub.student)] += 1

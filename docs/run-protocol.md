@@ -196,6 +196,20 @@ def objective(trial):
   is the `submission_ref` of a run in the class store; `optunalog` and the validator both
   check that every entry has that form, and the validator that none names the run itself,
   not that the run exists (it may sit in a pull request not merged yet).
+- **The idea of a study**: `idea("does depth still help on eurosat", builds_on=[...])`
+  in `optunalog` gives the study attrs `idea` (the words), `idea_author` (the student's
+  GitHub login, or `course` for a study a lesson hands out), `idea_parents` (the names of
+  the ideas it builds on, comma-separated), `idea_id` and `idea_name`; `search_study` and
+  `use_study` take it as `idea=`. The id is the sha256 of the author, the words and the
+  parents' names, so an id holds its parents as a git commit's hash holds its parents';
+  the name (`blissful-bee-18`) is the first three bytes of the id read as an adjective, an
+  animal and a number. An idea with two parents is a merge: the class's ideas are a
+  graph that branches and joins, and cannot hold a cycle. The design script, the search
+  space and the scores are not in the id: other words are another idea, and a study
+  holds one idea. The validator recomputes id and name from the file, checks that the
+  author is the submitter (or `course`, for an experiment named `lesson<N>-notebook*`),
+  that every parent is the name of an idea in the class repository or in the same pull
+  request, and that a name stands for one id.
 - **submission_ref** attr, written by `collect_runs.py` on every imported trial:
   `lesson<N>/<login>/<run_id>`, the path of its file without `.json`. It is what a
   student copies from optuna-dashboard to build on that run. The import also writes
@@ -324,6 +338,8 @@ with each other: every picture that compares scores does so per dataset. The pic
 - **Each student's own study**: the trials in the order they ran (crosses: stopped early by
   the pruner), the baseline's band of two standard errors in grey, the final, rerun a few
   times, as a star, and under it every study's search space on one line.
+- **The ideas of the class**: one box per idea, an arrow from every idea to the one that
+  builds on it.
 - **Who built on whom**: per `builds_on` link, the student's run against the classmate's run
   it builds on, both scores and the difference; a link to a run not in the class store is
   listed as such.
@@ -346,6 +362,20 @@ store:
 
 The lesson discusses these runs live, with the students who made them: why did you do
 this, what was the idea, what did you learn when it disappointed.
+
+## What the check does not promise
+
+- **A copy is caught by a heuristic.** A run relabelled as another student's is found by
+  the hash of its content; a copy with one number changed is not. The check keeps honest
+  mistakes out, and the lesson does the rest: a run is discussed by the student who made
+  it.
+- **Two pull requests opened in the same minute are checked apart.** Each is validated
+  against `main` as it was when it was opened, so the same run in both merges twice.
+  `collect_runs.py` imports both; nothing else breaks.
+- **A file the check accepts can still be one Optuna refuses.** `collect_runs.py` skips
+  such a run with one line and imports the rest.
+- **There is no cap on what one student submits over time**, beyond 200 files and 2 MB
+  per file in one pull request.
 
 ## Why not a tracking server
 

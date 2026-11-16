@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import sys
 from datetime import datetime
@@ -61,7 +62,10 @@ SUBMISSION_REF = re.compile(
     r"lesson\d+/[A-Za-z0-9][A-Za-z0-9-]{0,38}/[0-9a-f]{32}", re.ASCII
 )
 EXPERIMENT = re.compile(r"lesson\d+-[a-z0-9-]+", re.ASCII)
-KEY = re.compile(r"[\w\-. /]{1,250}")  # a param or user attr name
+KEY = re.compile(r"[\w\-. /]{1,250}", re.ASCII)  # a param or user attr name
+ARTIFACT_PATH = re.compile(r"[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*", re.ASCII)
+# What sqlite holds as an integer; a larger step or time cannot be stored.
+MAX_INT = 2**63 - 1
 Scalar = str | int | float | bool
 # The attributes each distribution kind carries, as Optuna writes them.
 DISTRIBUTIONS = {
@@ -216,6 +220,24 @@ def check_idea(attrs: dict[str, Any]) -> None:
         raise ValueError("study attr 'idea_parents' names this idea itself")
 
 
+def is_number(value: Any, integer: bool = False) -> bool:
+    """A finite number that sqlite and a plot can hold; with `integer`, a whole one."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return False
+    if integer and not isinstance(value, int):
+        return False
+    return is_finite(value)
+
+
+def is_finite(value: Any) -> bool:
+    """False for NaN, an infinity, and a number beyond what sqlite stores."""
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        return True
+    if isinstance(value, int):
+        return abs(value) <= MAX_INT
+    return math.isfinite(value) and abs(value) <= MAX_INT
+
+
 def builds_on(attrs: dict[str, Any]) -> list[str]:
     """The submission_refs the user attr `builds_on` names, comma-separated; [] without
     it."""
@@ -248,8 +270,8 @@ class Point(BaseModel):
     """The value a trial reported at one step: the accuracy after one epoch, or of one
     repeat of a run."""
 
-    model_config = ConfigDict(extra="forbid")
-    step: int
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    step: int = Field(ge=0, le=MAX_INT)
     value: float
 
 
@@ -270,7 +292,46 @@ class Distribution(BaseModel):
             )
         if len(json.dumps(self.attributes)) > MAX_ATTR_BYTES:
             raise ValueError(f"{self.name} is larger than {MAX_ATTR_BYTES} bytes")
+        a = self.attributes
+        if self.name == "CategoricalDistribution":
+            choices = a["choices"]
+            if not isinstance(choices, list) or not choices:
+                raise ValueError("choices is a list with at least one value")
+            if not all(c is None or isinstance(c, Scalar) for c in choices):
+                raise ValueError("every choice is text, a number, true, false or null")
+            if not all(is_finite(c) for c in choices):
+                raise ValueError("a choice is a finite number")
+            return self
+        integer = self.name == "IntDistribution"
+        for end in ("low", "high"):
+            if not is_number(a[end], integer):
+                kind = "a whole number" if integer else "a finite number"
+                raise ValueError(f"{end} is {kind}")
+        if a["low"] > a["high"]:
+            raise ValueError("low is at most high")
+        if not isinstance(a["log"], bool):
+            raise ValueError("log is true or false")  # noqa: TRY004
+        step = a["step"]
+        if integer and not (is_number(step, True) and step >= 1):
+            raise ValueError("the step of an IntDistribution is a whole number from 1")
+        if not integer and step is not None and not (is_number(step) and step > 0):
+            raise ValueError("the step of a FloatDistribution is null or above 0")
+        if a["log"] and (a["low"] <= 0 or (step not in (None, 1))):
+            raise ValueError("a log range starts above 0 and has no step")
         return self
+
+    def holds(self, value: Any) -> bool:
+        """Whether `value` is one this distribution can give, as Optuna decides it."""
+        a = self.attributes
+        if self.name == "CategoricalDistribution":
+            return any(type(c) is type(value) and c == value for c in a["choices"])
+        integer = self.name == "IntDistribution"
+        if not is_number(value, integer) or not a["low"] <= value <= a["high"]:
+            return False
+        if a["step"] is None:
+            return True
+        steps = (value - a["low"]) / a["step"]
+        return abs(steps - round(steps)) < 1e-8
 
 
 class StudyInfo(BaseModel):
@@ -291,13 +352,15 @@ class StudyInfo(BaseModel):
 
 
 class Run(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
     run_id: str
     run_name: str
     experiment: str = Field(description="the name of the study the trial belongs to")
     status: Literal["COMPLETE", "PRUNED", "FAIL"]
-    start_time: int = Field(description="milliseconds since the epoch")
-    end_time: int | None
+    start_time: int = Field(
+        ge=0, le=MAX_INT, description="milliseconds since the epoch"
+    )
+    end_time: int | None = Field(ge=0, le=MAX_INT)
     params: dict[str, Scalar]
     distributions: dict[str, Distribution] = Field(
         description="per param: what it was drawn from; absent for a param that was given"
@@ -332,6 +395,9 @@ class Run(BaseModel):
     def _params(cls, v: dict[str, Scalar]) -> dict[str, Scalar]:
         check_keys("param", v)
         check_json_size("param", v)
+        for key, value in v.items():
+            if not is_finite(value):
+                raise ValueError(f"param {key!r} is a finite number")
         return v
 
     @field_validator("attrs")
@@ -355,6 +421,13 @@ class Run(BaseModel):
         if unknown:
             raise ValueError(f"distributions for params that are absent: {unknown}")
         check_keys("distribution", self.distributions)
+        for key, distribution in self.distributions.items():
+            if not distribution.holds(self.params[key]):
+                raise ValueError(
+                    f"param {key!r} is not a value of the distribution it names"
+                )
+        if HANDED_OUT.fullmatch(self.experiment) and self.study.direction != "maximize":
+            raise ValueError("a handed-out study maximizes")
         return self
 
     @field_validator("artifacts")
@@ -362,18 +435,19 @@ class Run(BaseModel):
     def _artifacts(cls, v: dict[str, Any]) -> dict[str, Any]:
         for path, content in v.items():
             parts = path.split("/")
-            if (
-                path.startswith("/")
-                or "\\" in path
-                or any(p in ("", ".", "..") for p in parts)
+            if not ARTIFACT_PATH.fullmatch(path) or any(
+                p in (".", "..") for p in parts
             ):
                 raise ValueError(
-                    f"artifact {path!r}: the path must be relative, without . or .."
+                    f"artifact {path[:80]!r}: the path must be relative, without . or "
+                    "..; only letters, digits, _ - . and / in it"
                 )
             if not path.endswith(ARTIFACT_SUFFIXES):
                 raise ValueError(
                     f"artifact {path!r}: only {ARTIFACT_SUFFIXES} files are submitted"
                 )
+            if not path.endswith(".json") and not isinstance(content, str):
+                raise ValueError(f"artifact {path!r}: a file that is not .json is text")
             size = len(json.dumps(content))
             if size > MAX_ARTIFACT_BYTES:
                 raise ValueError(
@@ -476,18 +550,38 @@ def load(path: Path, root: Path | None = None) -> Submission:
     return parse(path.read_bytes(), rel)
 
 
+TOO_DEEP = "nested too deep: submit again, do not edit by hand"
+
+
+def unique_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """A JSON object as a dict; a key that is there twice is an error, since readers
+    would disagree on which one counts."""
+    out = dict(pairs)
+    if len(out) != len(pairs):
+        raise ValueError("a key is there twice: submit again, do not edit by hand")
+    return out
+
+
 def parse(raw: bytes, rel: str | None = None) -> Submission:
     """Validate the bytes of one submission file. With `rel`, the path of the file in the
     runs repository, also check that it sits where its own content says it belongs."""
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError(f"{len(raw)} bytes, limit {MAX_FILE_BYTES}")
     try:
-        data = json.loads(raw.decode())
-    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        data = json.loads(raw.decode(), object_pairs_hook=unique_keys)
+        # a lone surrogate decodes, and cannot be written again
+        json.dumps(data, ensure_ascii=False).encode()
+    except (json.JSONDecodeError, UnicodeError) as e:
         raise ValueError(
             f"not valid JSON ({e}): submit again, do not edit by hand"
         ) from None
+    except RecursionError:
+        raise ValueError(TOO_DEEP) from None
     sub = Submission.model_validate(data)
+    try:
+        sub.copy_hash()
+    except ValueError:  # pydantic refuses to serialize beyond its depth
+        raise ValueError(TOO_DEEP) from None
     if rel is not None:
         m = PATH.fullmatch(rel)
         if m and m.group(2) != sub.student:
@@ -618,7 +712,7 @@ def explain(error: Exception) -> list[str]:
     """One readable line per problem in a failed `load`."""
     if isinstance(error, ValidationError):
         return [
-            f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}"
+            f"{'.'.join(shown(str(p)) for p in err['loc'])}: {err['msg']}"
             if err["loc"]
             else err["msg"]
             for err in error.errors()

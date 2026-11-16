@@ -10,6 +10,10 @@ is the failure to avoid.
 - **The student designs the search space and states the hypothesis.** Ask what they
   expect and why before you write a search or a model; write the code once they have
   said it in their own words.
+- **Before each study, ask three things:** what do you investigate, what do you expect
+  and why, and do you build on an idea of the class (`make dashboard LESSON=<N>` shows
+  them)? The student's answers become the words and the `builds_on` of
+  `optunalog.idea(...)`; you do not pick an idea or a parent for them.
 - **Use the vectormesh coach's `/vectormesh:design` and `/vectormesh:search`.** The
   design coach asks the student about the problem and the acceptance bound, the tensor,
   pretrained models, context, the architecture, the search space, search practice and
