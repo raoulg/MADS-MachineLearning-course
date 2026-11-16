@@ -11,6 +11,11 @@ course repository:
   trial in a second study (`use_study` + `log_run`), with the params it was given and
   one value per repeat.
 
+A study carries an idea (`idea`): what it investigates in a few words, who its author is
+and which ideas of the class it builds on. The idea's id is a hash of those three, and
+its name (`blissful-bee-18`) is that id made readable; a classmate builds on your idea by
+naming it. `budget` turns the minutes you have into the trials that fit on your machine.
+
 Every trial carries, as user attrs, what the class run protocol asks of a run: `role`,
 `dataset`, `session`, `n_params`, the one-line `architecture`, `train_seconds` and the
 loss curves (`record`). The layer table goes along twice: as the trial's note, which the
@@ -24,7 +29,11 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import re
+import statistics
+import subprocess
+import sys
 import tempfile
 import time
 import uuid
@@ -45,6 +54,20 @@ from optuna.distributions import (
 )
 from optuna_dashboard import save_note
 from torchinfo import summary
+
+# The idea's recipe has one source, the format of a submitted run.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+from run_submission import (  # ty: ignore[import-not-found]
+    COURSE,  # noqa: F401  (a notebook imports it from here)
+    IDEA_ATTRS,
+    IDEA_NAME,
+    LOGIN,
+    MAX_IDEA_CHARS,
+    MIN_IDEA_CHARS,
+    idea_id,
+    idea_name,
+    idea_words,
+)
 
 # The axes of a search space, under the names a space reads best with:
 # `Int(0, 3)`, `Int(32, 1024, log=True)`, `Float(1e-4, 1e-2, log=True)`, `Choice([...])`.
@@ -206,6 +229,144 @@ def _design_text(design: str | Path | None) -> str | None:
     return text
 
 
+def login() -> str:
+    """Your GitHub login in lowercase, the author of your ideas: read once through `gh`
+    and kept in `artefacts/optuna/login`. Under notebooktester it is `tester`."""
+    if TESTING:
+        return "tester"
+    kept = ROOT / "login"
+    if kept.exists() and LOGIN.fullmatch(kept.read_text().strip()):
+        return kept.read_text().strip()
+    try:
+        found = subprocess.run(
+            ["gh", "api", "user", "--jq", ".login"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        ).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        found = ""
+    if not LOGIN.fullmatch(found):
+        raise ValueError(
+            "idea: gh could not say who you are (is it installed and logged in? "
+            "`gh auth login`); or pass your GitHub login: idea(..., author='<login>')"
+        )
+    ROOT.mkdir(parents=True, exist_ok=True)
+    kept.write_text(found.lower() + "\n")
+    return found.lower()
+
+
+def idea(
+    words: str,
+    builds_on: str | Sequence[str] | None = None,
+    author: str | None = None,
+) -> dict[str, str]:
+    """The idea of a study, as the study attrs that carry it.
+
+    - `words`: what the study investigates, in a few words (`"does depth still help on
+      eurosat"`). Other words are another idea.
+    - `builds_on`: the name, or the names, of the ideas this one builds on: a
+      classmate's from the class view, or an earlier one of your own. They must be
+      published before this idea can be submitted.
+    - `author`: your GitHub login; read through `gh` when left out. `COURSE` for a study
+      a lesson hands out to everyone.
+
+    The id is a hash of the author, the words and the parents' names; the name is that
+    id made readable, and is what a classmate passes as `builds_on`."""
+    said = idea_words(words) if isinstance(words, str) else ""
+    if not MIN_IDEA_CHARS <= len(said) <= MAX_IDEA_CHARS:
+        raise ValueError(
+            f"idea: say what the study investigates in {MIN_IDEA_CHARS} to "
+            f"{MAX_IDEA_CHARS} characters, got {said!r}"
+        )
+    names = [builds_on] if isinstance(builds_on, str) else list(builds_on or [])
+    parents = sorted(
+        {n.strip() for part in names for n in part.split(",") if n.strip()}
+    )
+    for parent in parents:
+        if not IDEA_NAME.fullmatch(parent):
+            raise ValueError(
+                f"idea: builds_on {parent!r} is not the name of an idea; copy the "
+                "name from the class view, like 'blissful-bee-18'"
+            )
+    who = (author or login()).strip().lower()
+    if not LOGIN.fullmatch(who):
+        raise ValueError(f"idea: author {who!r} is not a GitHub login")
+    id_ = idea_id(who, said, parents)
+    values = (said, who, ",".join(parents), id_, idea_name(id_))
+    return dict(zip(IDEA_ATTRS, values, strict=True))
+
+
+def _carry(study: optuna.Study, idea: Mapping[str, str] | None) -> None:
+    """Write `idea` on `study`. A study holds one idea: with another one already on it,
+    a `ValueError` that names both."""
+    if idea is None:
+        return
+    held = study.user_attrs.get("idea_id")
+    if held is not None and held != idea["idea_id"]:
+        raise ValueError(
+            f"the study {study.study_name!r} holds the idea "
+            f"{study.user_attrs['idea_name']} ({study.user_attrs['idea']!r}), not "
+            f"{idea['idea_name']} ({idea['idea']!r}): another idea is another study, "
+            "so give this one another name; name the old idea in builds_on if the new "
+            "one builds on it"
+        )
+    for key in IDEA_ATTRS:
+        study.set_user_attr(key, idea[key])
+
+
+def budget(
+    minutes: float,
+    like: str,
+    *,
+    epochs: int | None = None,
+    repeats: int = 3,
+    reruns: int = 2,
+    space: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """What `minutes` of your time buys on this machine, as the study attr `budget`.
+
+    One trial costs what the finished trials of the study `like` took here (the median,
+    from start to end), scaled to `epochs` when those trials say how many epochs they
+    ran. `reruns` runs of `repeats` repeats each are set aside first (the baseline and
+    the winner); the rest is `n_trials`. With `space`, `trials_per_axis` is `n_trials`
+    over the axes it searches: how thin the search is spread."""
+    names = optuna.get_all_study_names(storage())
+    if like not in names:
+        raise ValueError(f"budget: no study {like!r} in the store; run it first")
+    done = [
+        t
+        for t in optuna.load_study(study_name=like, storage=storage()).trials
+        if t.state == optuna.trial.TrialState.COMPLETE
+    ]
+    took = [t.duration.total_seconds() for t in done if t.duration is not None]
+    if not took:
+        raise ValueError(f"budget: the study {like!r} has no finished trial yet")
+    seconds = statistics.median(took)
+    ran = [t.user_attrs.get("config", {}).get("epochs") for t in done]
+    ran = [e for e in ran if isinstance(e, int) and e > 0]
+    if epochs is not None and ran:
+        seconds *= epochs / statistics.median(ran)
+    seconds = max(seconds, 1e-3)
+    n_trials = max(0, int(minutes * 60 / seconds) - reruns * repeats)
+    out: dict[str, Any] = {
+        "minutes": minutes,
+        "seconds_per_trial": round(seconds, 2),
+        "measured_on": like,
+        "machine": f"{platform.system()} {platform.machine()}",
+        "n_trials": n_trials,
+        "repeats": repeats,
+    }
+    if epochs is not None:
+        out["epochs"] = epochs
+    if space is not None:
+        axes = searched_axes(space)
+        out["searched_axes"] = len(axes)
+        out["trials_per_axis"] = round(n_trials / max(1, len(axes)), 1)
+    return out
+
+
 def storage() -> str:
     """The sqlite URL of the store; its folder is created on first use."""
     ROOT.mkdir(parents=True, exist_ok=True)
@@ -258,20 +419,23 @@ def search_study(
     sampler: optuna.samplers.BaseSampler | None = None,
     pruner: optuna.pruners.BasePruner | None = None,
     attrs: Mapping[str, Any] | None = None,
+    idea: Mapping[str, str] | None = None,
 ) -> optuna.Study:
     """The study `name` in the store, made if it does not exist yet, that maximises
     accuracy over `space`.
 
     `sampler=None` draws every trial at random and independently; `pruner=None` lets
     every trial run to its last epoch. The study carries its space as user attrs
-    (`search_space`, `searched_axes`) next to whatever `attrs` holds. A study that
-    exists already gets the new trials added to it; `session` tells the executions apart.
+    (`search_space`, `searched_axes`) next to whatever `attrs` holds, and its `idea`
+    (see `idea`). A study that exists already gets the new trials added to it; `session`
+    tells the executions apart. A study that holds another idea raises a `ValueError`.
     """
     study = _study(
         name,
         sampler=sampler or optuna.samplers.RandomSampler(),
         pruner=pruner or optuna.pruners.NopPruner(),
     )
+    _carry(study, idea)
     study.set_user_attr("search_space", space_line(space))
     study.set_user_attr("searched_axes", ",".join(searched_axes(space)))
     for key, value in (attrs or {}).items():
@@ -376,10 +540,14 @@ def record(
             )
 
 
-def use_study(name: str) -> optuna.Study:
-    """Select the study `log_run` writes to, made if it does not exist yet."""
+def use_study(name: str, idea: Mapping[str, str] | None = None) -> optuna.Study:
+    """Select the study `log_run` writes to, made if it does not exist yet. With `idea`
+    (see `idea`) the study carries it; a study that holds another idea raises a
+    `ValueError`."""
     global _current
-    _current = _study(name)
+    study = _study(name)
+    _carry(study, idea)
+    _current = study
     return _current
 
 

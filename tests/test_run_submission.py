@@ -2,11 +2,18 @@ import json
 from pathlib import Path
 
 import pytest
+import run_submission  # ty: ignore[import-not-found]
 from pydantic import ValidationError
 from run_submission import (  # ty: ignore[import-not-found]
+    ADJECTIVES,
+    ANIMALS,
+    IDEA_NAME,
     Submission,
     check,
     explain,
+    idea_id,
+    idea_name,
+    idea_words,
     read_files,
 )
 
@@ -268,3 +275,135 @@ def test_explain_gives_a_model_level_error_without_a_location(submission):
 def test_design_script_is_an_allowed_artifact(tmp_path, submission):
     design = "import torch\n\nmodel = torch.nn.Linear(4, 2)\n"
     assert invalid(tmp_path, submission("alice"), artifacts={"design.py": design}) == []
+
+
+def with_idea(sub, words, parents=(), author=None, experiment=None):
+    """`sub` with a study that carries the idea `words`, built on `parents`."""
+    author = author or sub.student.lower()
+    id_ = idea_id(author, words, list(parents))
+    data = json.loads(sub.dump())
+    data["run"]["study"]["attrs"].update(
+        idea=idea_words(words),
+        idea_author=author,
+        idea_parents=",".join(sorted(parents)),
+        idea_id=id_,
+        idea_name=run_submission.idea_name(id_),
+    )
+    if experiment:
+        data["run"]["experiment"] = experiment
+    return Submission.model_validate(data)
+
+
+def study_attrs(tmp_path, sub, **attrs) -> list[str]:
+    """The problems of `sub` after its study attrs are changed by hand."""
+    data = json.loads(sub.dump())
+    for key, value in attrs.items():
+        if value is None:
+            del data["run"]["study"]["attrs"][key]
+        else:
+            data["run"]["study"]["attrs"][key] = value
+    path = tmp_path / sub.relpath()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data))
+    return check(tmp_path, [sub.relpath()], sub.student, set())
+
+
+def test_idea_id_holds_author_words_and_parents():
+    base = idea_id("alice", "does depth help on eurosat", [])
+    assert base == idea_id("Alice", "Does  depth help\non EuroSAT", [])
+    assert base != idea_id("bob", "does depth help on eurosat", [])
+    assert base != idea_id("alice", "does width help on eurosat", [])
+    assert base != idea_id("alice", "does depth help on eurosat", ["zany-heron-41"])
+    assert idea_id("alice", "x", ["b-b-02", "a-a-01"]) == idea_id(
+        "alice", "x", ["a-a-01", "b-b-02"]
+    )
+
+
+def test_idea_name_reads_three_bytes_of_the_id():
+    assert idea_name("000000" + "f" * 58) == f"{ADJECTIVES[0]}-{ANIMALS[0]}-00"
+    assert idea_name("01ffc8" + "0" * 58) == f"{ADJECTIVES[1]}-{ANIMALS[255]}-00"
+    assert len(set(ADJECTIVES)) == 256 and len(set(ANIMALS)) == 256
+    for word in (*ADJECTIVES, *ANIMALS):
+        assert IDEA_NAME.fullmatch(f"{word}-{word}-07")
+
+
+def test_a_study_with_its_idea_passes(tmp_path, submission):
+    rel = write(tmp_path, with_idea(submission("Alice"), "does depth help on eurosat"))
+    assert check(tmp_path, [rel], "Alice", set()) == []
+
+
+def test_an_idea_builds_on_a_published_idea(tmp_path, submission):
+    parent = with_idea(submission("bob"), "norm in the hidden block")
+    write(tmp_path, parent)
+    child = with_idea(
+        submission("alice"), "depth and norm together", [parent.idea()[0]]
+    )
+    rel = write(tmp_path, child)
+    assert check(tmp_path, [rel], "alice", set()) == []
+
+
+def test_an_idea_on_two_parents_in_one_pull_request(tmp_path, submission):
+    first = with_idea(submission("alice"), "depth on eurosat")
+    second = with_idea(submission("alice"), "norm in the hidden block")
+    names = [first.idea()[0], second.idea()[0]]
+    merged = with_idea(submission("alice"), "depth and norm together", names)
+    rels = [write(tmp_path, sub) for sub in (first, second, merged)]
+    assert check(tmp_path, rels, "alice", set()) == []
+
+
+def test_an_unpublished_parent_is_refused(tmp_path, submission):
+    child = with_idea(submission("alice"), "depth and norm together", ["zany-heron-41"])
+    rel = write(tmp_path, child)
+    problems = check(tmp_path, [rel], "alice", set())
+    assert len(problems) == 1
+    assert "builds on the idea zany-heron-41, which is not in the class" in problems[0]
+
+
+def test_another_students_idea_is_refused(submission):
+    with pytest.raises(ValidationError, match="'idea_author' is 'bob'"):
+        with_idea(submission("alice"), "does depth help on eurosat", author="bob")
+
+
+def test_the_course_is_the_author_of_a_handed_out_study_only(submission):
+    handed_out = with_idea(
+        submission("alice"), "lesson 1 as handed out", author="course"
+    )
+    assert handed_out.run.experiment == "lesson1-notebook-runs"
+    with pytest.raises(ValidationError, match="'idea_author' is 'course'"):
+        with_idea(
+            submission("alice"),
+            "lesson 1 as handed out",
+            author="course",
+            experiment="lesson1-study-alice-depth",
+        )
+
+
+@pytest.mark.parametrize(
+    "attrs, expected",
+    [
+        ({"idea": "does width help on eurosat"}, "'idea_id' is not the id"),
+        ({"idea_parents": "zany-heron-41"}, "'idea_id' is not the id"),
+        ({"idea_name": "zany-heron-41"}, "'idea_name' is not the name"),
+        ({"idea_id": None}, "missing ['idea_id']"),
+        ({"idea": "Does depth help"}, "in lowercase with single spaces"),
+        ({"idea": "short"}, "8 to 120 characters"),
+        ({"idea_parents": "Zany-Heron-41"}, "is not the name of an idea"),
+        ({"idea_parents": "zany-heron-41\n"}, "is not the name of an idea"),
+        ({"idea_parents": "b-b-02,a-a-01"}, "sorted, each name once"),
+        ({"idea_author": "Alice"}, "a GitHub login in lowercase"),
+        ({"idea_name": 7}, "are text"),
+    ],
+)
+def test_an_idea_edited_by_hand_is_refused(tmp_path, submission, attrs, expected):
+    sub = with_idea(submission("alice"), "does depth help on eurosat")
+    problems = study_attrs(tmp_path, sub, **attrs)
+    assert len(problems) == 1 and expected in problems[0]
+
+
+def test_one_name_stands_for_one_idea(tmp_path, submission, monkeypatch):
+    monkeypatch.setattr("run_submission.idea_name", lambda id_: "zany-heron-41")
+    write(tmp_path, with_idea(submission("bob"), "norm in the hidden block"))
+    rel = write(tmp_path, with_idea(submission("alice"), "depth on eurosat"))
+    problems = check(tmp_path, [rel], "alice", set())
+    assert len(problems) == 1
+    assert "zany-heron-41 already stands for another idea" in problems[0]

@@ -2,6 +2,7 @@
 
 import json
 import sys
+from datetime import timedelta
 from pathlib import Path
 
 import optuna
@@ -198,3 +199,107 @@ def test_check_study_name_names_a_first_name_and_a_topic():
     for bad in ("name-your-study", "", "sam", "Sam depth"):
         with pytest.raises(ValueError):
             optunalog.check_study_name(bad)
+
+
+def test_an_idea_has_an_id_and_a_name_of_its_author_words_and_parents():
+    idea = optunalog.idea("Does depth  help on EuroSAT", author="Alice")
+    assert idea["idea"] == "does depth help on eurosat"
+    assert idea["idea_author"] == "alice"
+    assert idea["idea_parents"] == ""
+    assert idea["idea_name"] == optunalog.idea_name(idea["idea_id"])
+    child = optunalog.idea(
+        "depth and norm together",
+        builds_on=["zany-heron-41", idea["idea_name"]],
+        author="alice",
+    )
+    assert child["idea_parents"] == ",".join(
+        sorted(["zany-heron-41", idea["idea_name"]])
+    )
+    assert child["idea_id"] != idea["idea_id"]
+
+
+@pytest.mark.parametrize(
+    "words, builds_on",
+    [("depth", None), ("x" * 121, None), ("does depth help", "Zany Heron")],
+)
+def test_an_idea_that_cannot_be_named_raises(words, builds_on):
+    with pytest.raises(ValueError, match="idea:"):
+        optunalog.idea(words, builds_on=builds_on, author="alice")
+
+
+def test_the_author_is_read_through_gh_once_and_kept(monkeypatch, store):
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return type("Done", (), {"stdout": "Alice-1\n"})()
+
+    monkeypatch.setattr(optunalog, "TESTING", False)
+    monkeypatch.setattr(optunalog.subprocess, "run", fake_run)
+    assert optunalog.idea("does depth help on eurosat")["idea_author"] == "alice-1"
+    assert optunalog.login() == "alice-1"
+    assert len(calls) == 1
+
+
+def test_without_gh_the_error_says_what_to_pass(monkeypatch):
+    def no_gh(cmd, **kwargs):
+        raise FileNotFoundError("gh")
+
+    monkeypatch.setattr(optunalog, "TESTING", False)
+    monkeypatch.setattr(optunalog.subprocess, "run", no_gh)
+    with pytest.raises(ValueError, match="author='<login>'"):
+        optunalog.idea("does depth help on eurosat")
+
+
+def test_a_study_carries_its_idea_and_refuses_another():
+    idea = optunalog.idea("does depth help on eurosat", author="alice")
+    study = optunalog.search_study("lesson1-study-alice-depth", SPACE, idea=idea)
+    assert {k: study.user_attrs[k] for k in idea} == idea
+    runs = optunalog.use_study("lesson1-study-alice-depth-runs", idea=idea)
+    assert runs.user_attrs["idea_name"] == idea["idea_name"]
+    optunalog.search_study("lesson1-study-alice-depth", SPACE, idea=idea)
+
+    other = optunalog.idea("does width help on eurosat", author="alice")
+    with pytest.raises(ValueError, match="another idea is another study"):
+        optunalog.search_study("lesson1-study-alice-depth", SPACE, idea=other)
+    with pytest.raises(ValueError, match="another idea is another study"):
+        optunalog.use_study("lesson1-study-alice-depth-runs", idea=other)
+
+
+def test_a_submitted_study_with_an_idea_passes_the_check(tmp_path):
+    """What optunalog writes is what the class repository's check recomputes."""
+    from run_submission import check_idea  # ty: ignore[import-not-found]
+
+    idea = optunalog.idea("depth and norm", builds_on="zany-heron-41", author="alice")
+    study = optunalog.search_study("lesson1-study-alice-depth", SPACE, idea=idea)
+    check_idea(dict(study.user_attrs))
+
+
+def test_budget_turns_minutes_into_trials(monkeypatch):
+    study = optunalog.search_study("lesson1-notebook", SPACE)
+
+    def objective(trial):
+        optunalog.draw(trial, {**SPACE, "epochs": 10})
+        return 0.5
+
+    study.optimize(objective, n_trials=3)
+    monkeypatch.setattr(
+        optuna.trial.FrozenTrial,
+        "duration",
+        property(lambda self: timedelta(seconds=20)),
+    )
+    out = optunalog.budget(10, like="lesson1-notebook", space=SPACE)
+    assert out["seconds_per_trial"] == 20
+    assert out["n_trials"] == 30 - 2 * 3
+    assert out["searched_axes"] == 3 and out["trials_per_axis"] == 8.0
+    half = optunalog.budget(10, like="lesson1-notebook", epochs=5)
+    assert half["seconds_per_trial"] == 10 and half["n_trials"] == 60 - 6
+    assert optunalog.budget(1, like="lesson1-notebook")["n_trials"] == 0
+
+
+def test_budget_needs_a_study_that_ran():
+    with pytest.raises(ValueError, match="run it first"):
+        optunalog.budget(10, like="lesson1-notebook")
+    optunalog.search_study("lesson1-notebook", SPACE)
+    with pytest.raises(ValueError, match="no finished trial"):
+        optunalog.budget(10, like="lesson1-notebook")

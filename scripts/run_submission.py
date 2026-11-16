@@ -71,6 +71,151 @@ DISTRIBUTIONS = {
 }
 
 
+# An idea: what a study investigates, in a few words. Its id is a hash of its author,
+# its words and the names of the ideas it builds on, so an id holds its parents the way
+# a git commit's hash holds its parents'; its name is that id made readable. The five
+# study attrs below carry it.
+IDEA_ATTRS = ("idea", "idea_author", "idea_parents", "idea_id", "idea_name")
+IDEA_NAME = re.compile(r"[a-z]+(?:-[a-z]+)*-[0-9]{2}", re.ASCII)
+MAX_IDEA_NAME_CHARS = 60
+MIN_IDEA_CHARS, MAX_IDEA_CHARS = 8, 120
+# The author of what a lesson hands out to everyone: one idea the whole class shares.
+COURSE = "course"
+HANDED_OUT = re.compile(r"lesson\d+-notebook[a-z0-9-]*", re.ASCII)
+
+# 256 words each, so one byte of an id picks one.
+ADJECTIVES = """
+    animated facetious stippled peppy joking riotous spotted multicolored vivid
+    opalescent vigorous malleable translucent gamesome showy tittering variegated
+    far-out agile glittery giggling hooting blissful bubbly checkered comical
+    speckled groovy splattered gossamer foamy carbonated jocular dazzling ornate
+    hilarious freckled deep harlequin loony velvety fluffy lighthearted laughter
+    lively silky glowing outlandish laughing fizzy wacky frisky ecstatic bizarre
+    effervescent rollicking humorous intense cheerful elated ludicrous kaleidoscopic
+    absurd jovial witty slapstick lustrous zany ridiculous luminous spellbinding
+    patchwork convivial flashy dynamic frothy piebald mottled captivating snappy
+    effulgent spirited bedazzling shiny colorful exuberant cackling entertaining
+    diaphanous teasing farcical spangled sudsy prankish light decorated vivacious
+    happy speedy goofy good-natured furry pied crystalline sportive ostentatious
+    gut-busting snickering bejeweled eye-catching chortling cordial jocose brilliant
+    extravagant prismatic breezy chuckling iridescent limpid perky ebullient jolly
+    affable incandescent bantering waggish mirthful smiley bellowing joyful sunny
+    giggly brisk pliable quick glossy striking mesmerizing billowy roaring blithe
+    zesty sprightly beaming mischievous sidesplitting mind-bending enchanting
+    whimsical kidding bright upbeat sparkling sleek droll quirky uproarious flecked
+    shimmery pearlescent coltish amusing plaid transparent vibrant plush energetic
+    supple gaudy wispy mind-boggling shining frolicsome lithe smooth coruscating
+    mind-expanding giddy kooky rubbery snorting nimble airy knee-slapping chipper
+    embellished adorned soft clear polished downy jesting trippy bewitching bouncy
+    good-humored playful bold hysterical gleaming eccentric grinning jubilant
+    carefree motley ethereal rainbow-hued amiable psychedelic resplendent spattered
+    scintillating jaunty dotted zippy peculiar merry howling buoyant flexible
+    sparkly dappled cushy polychromatic twinkling gleeful roguish saturated squishy
+    elastic genial springy flamboyant puckish impish elaborate swift delightful
+    funny silly nutty pellucid hypnotic odd mind-blowing cheery glittering diverting
+    rich limber radiant feathery fuzzy festooned rib-tickling
+""".split()  # noqa: SIM905
+ANIMALS = """
+    quetzal koala spider mongoose fish mouse rat chinchilla zebra mule camel owl
+    cormorant lobster echidna mandrill alpaca curlew mink gorilla panther cat goose
+    aardwolf beaver duck lark caterpillar mallard trout vulture tapir goshawk
+    salamander hippocampus chicken flamingo quail pheasant hyena vicuna monkey toad
+    kudu finch ostrich partridge skunk guanaco gull hedgehog kingfisher sparrow bat
+    rhinoceros red-eyed-tree-frog crocodile bee porcupine frog weasel aardvark
+    ferret lemur elk kiwi dhole gibbon falcon ibex shrew hornet dolphin quokka
+    chamois dugong fossa porpoise bouncing raccoon caribou sheep lyrebird kouprey
+    goldfish zebu gnu grasshopper hummingbird dove dog cheetah spoonbill seal
+    albatross oyster capybara deer pigeon macaroni-penguin chimpanzee opossum
+    elephant swallow bear snail wren iguana crow hare mosquito rabbit rook dingo
+    locust parrot sand-dollar yapok boar reindeer woodcock alligator jaguar cattle
+    jellyfish emu hawk yak dinosaur turkey dotterel herring stork ape mole magpie
+    rail numbat chough sandpiper lapwing cod platypus cobra newt tiger horse jackal
+    jay loris kangaroo cassowary ibis ram stingray antelope wolf woodpecker clam
+    hamster manatee red-deer seahorse wolverine wasp jerboa serval coati
+    whistling-duck moose ermine human wallaby xenops crab pony whale marten stinkbug
+    grouse narwhal nightingale bison goldfinch giraffe salmon turtle uakari
+    red-panda ocelot louse worm walrus gerbil octopus termite tardigrade snake
+    tarsier lion dunlin pig quelea oryx swan chameleon viper butterfly kookabura
+    badger eel meerkat dogfish baboon scorpion penguin wombat crane llama sardine
+    shark squirrel ant wildcat raven binturong squid anteater otter dragonfly
+    armadillo coyote leopard buffalo pelican fennec-fox okapi gazelle eland fox
+    cockroach heron barracuda goat beluga eagle axolotl donkey lemming peafowl
+    starling hippopotamus sloth fly gnat gaur
+""".split()  # noqa: SIM905
+
+
+def idea_words(text: str) -> str:
+    """The words of an idea as they are hashed and stored: lowercase, single spaces."""
+    return " ".join(text.lower().split())
+
+
+def idea_parents(value: Any) -> list[str]:
+    """The names in the study attr `idea_parents`, comma-separated; [] when empty."""
+    return [] if not isinstance(value, str) or not value else value.split(",")
+
+
+def idea_id(author: str, idea: str, parents: list[str]) -> str:
+    """The id of an idea: sha256 over its author, its words and its parents' names."""
+    body = {
+        "author": author.lower(),
+        "idea": idea_words(idea),
+        "parents": sorted(parents),
+    }
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
+
+
+def idea_name(id_: str) -> str:
+    """An idea's id as a name to say and to type: `<adjective>-<animal>-<NN>`, read from
+    the first three bytes of the id."""
+    first, second, third = bytes.fromhex(id_[:6])
+    return f"{ADJECTIVES[first]}-{ANIMALS[second]}-{third % 100:02d}"
+
+
+def check_idea(attrs: dict[str, Any]) -> None:
+    """A study's idea attrs, when it carries any: all five, and id and name are what the
+    words, the author and the parents give."""
+    present = [key for key in IDEA_ATTRS if key in attrs]
+    if not present:
+        return
+    missing = sorted(set(IDEA_ATTRS) - set(present))
+    if missing:
+        raise ValueError(f"an idea carries all of {IDEA_ATTRS}; missing {missing}")
+    if not all(isinstance(attrs[key], str) for key in IDEA_ATTRS):
+        raise ValueError(f"the study attrs {IDEA_ATTRS} are text")
+    words, author = attrs["idea"], attrs["idea_author"]
+    if words != idea_words(words) or not (
+        MIN_IDEA_CHARS <= len(words) <= MAX_IDEA_CHARS
+    ):
+        raise ValueError(
+            f"study attr 'idea': {MIN_IDEA_CHARS} to {MAX_IDEA_CHARS} characters, "
+            "in lowercase with single spaces"
+        )
+    if author != author.lower() or not LOGIN.fullmatch(author):
+        raise ValueError("study attr 'idea_author' is a GitHub login in lowercase")
+    parents = idea_parents(attrs["idea_parents"])
+    for parent in parents:
+        if len(parent) > MAX_IDEA_NAME_CHARS or not IDEA_NAME.fullmatch(parent):
+            raise ValueError(
+                f"study attr 'idea_parents': {parent[:MAX_IDEA_NAME_CHARS]!r} is not "
+                "the name of an idea, like blissful-bee-18"
+            )
+    if parents != sorted(set(parents)):
+        raise ValueError("study attr 'idea_parents': sorted, each name once")
+    expected = idea_id(author, words, parents)
+    if attrs["idea_id"] != expected:
+        raise ValueError(
+            "study attr 'idea_id' is not the id of this idea, its author and its "
+            "parents: submit again, do not edit by hand"
+        )
+    if attrs["idea_name"] != idea_name(expected):
+        raise ValueError(
+            "study attr 'idea_name' is not the name of this idea's id: submit again, "
+            "do not edit by hand"
+        )
+    if attrs["idea_name"] in parents:
+        raise ValueError("study attr 'idea_parents' names this idea itself")
+
+
 def builds_on(attrs: dict[str, Any]) -> list[str]:
     """The submission_refs the user attr `builds_on` names, comma-separated; [] without
     it."""
@@ -141,6 +286,7 @@ class StudyInfo(BaseModel):
     def _attrs(cls, v: dict[str, Any]) -> dict[str, Any]:
         check_keys("study attr", v)
         check_json_size("study attr", v)
+        check_idea(v)
         return v
 
 
@@ -267,6 +413,25 @@ class Submission(BaseModel):
             raise ValueError("attr 'builds_on' names this run itself")
         return self
 
+    @model_validator(mode="after")
+    def _own_idea(self) -> Submission:
+        author = self.run.study.attrs.get("idea_author")
+        if author is None or author == self.student.lower():
+            return self
+        if author == COURSE and HANDED_OUT.fullmatch(self.run.experiment):
+            return self
+        raise ValueError(
+            f"study attr 'idea_author' is {author!r}: an idea is its submitter's "
+            f"({self.student.lower()!r}), or {COURSE!r} for a study a lesson hands out"
+        )
+
+    def idea(self) -> tuple[str, str, list[str]] | None:
+        """(name, id, parents' names) of the idea this run's study carries, if any."""
+        attrs = self.run.study.attrs
+        if "idea_name" not in attrs:
+            return None
+        return attrs["idea_name"], attrs["idea_id"], idea_parents(attrs["idea_parents"])
+
     def ref(self) -> str:
         """The submission_ref: where the file sits, without `.json`."""
         return f"lesson{self.lesson}/{self.student}/{self.run.run_id}"
@@ -335,16 +500,22 @@ def parse(raw: bytes, rel: str | None = None) -> Submission:
     return sub
 
 
-def copies(root: Path) -> dict[str, set[str]]:
-    """copy hash -> the students whose directories hold a file with it."""
-    out: dict[str, set[str]] = {}
-    for path in root.glob("lesson*/*/*.json"):
-        try:
-            sub = load(path)
-        except ValueError:
-            continue
-        out.setdefault(sub.copy_hash(), set()).add(path.parent.name)
-    return out
+class Index:
+    """What a check of one file needs from all the others: per copy hash the students
+    whose directories hold a file with it, and per idea name the ids it stands for."""
+
+    def __init__(self, root: Path) -> None:
+        self.copies: dict[str, set[str]] = {}
+        self.ideas: dict[str, set[str]] = {}
+        for path in root.glob("lesson*/*/*.json"):
+            try:
+                sub = load(path)
+            except ValueError:
+                continue
+            self.copies.setdefault(sub.copy_hash(), set()).add(path.parent.name)
+            idea = sub.idea()
+            if idea:
+                self.ideas.setdefault(idea[0], set()).add(idea[1])
 
 
 def check(
@@ -356,7 +527,8 @@ def check(
     changed), and then every one of them must be a `lesson<N>/<student>/<run_id>.json`
     path, checked before anything else; with them, `actor` adds the rule that a student
     only writes inside the directory spelled exactly as their login. A run, by id or by
-    content, may sit in one student's directory only."""
+    content, may sit in one student's directory only. An idea builds on ideas that are
+    under `root`, and its name stands for one id there."""
     problems = []
     if files is None:
         rels = sorted(
@@ -364,7 +536,7 @@ def check(
         )
     else:
         rels = [f for f in files if f]
-    hashes: dict[str, set[str]] | None = None
+    index: Index | None = None
 
     for rel in rels:
         m = PATH.fullmatch(rel)
@@ -405,14 +577,29 @@ def check(
         except ValueError as e:  # pydantic's ValidationError is a ValueError
             problems.extend(f"{rel}: {line}" for line in explain(e))
             continue
-        if hashes is None:
-            hashes = copies(root)
-        copied = sorted(hashes.get(sub.copy_hash(), set()) - {owner, *others})
+        if index is None:
+            index = Index(root)
+        copied = sorted(index.copies.get(sub.copy_hash(), set()) - {owner, *others})
         if copied:
             problems.append(
                 f"{rel}: this run is already submitted by {', '.join(copied)}, "
                 "under another run id"
             )
+        idea = sub.idea()
+        if idea is None:
+            continue
+        name, _, parents = idea
+        if len(index.ideas.get(name, ())) > 1:
+            problems.append(
+                f"{rel}: the name {name} already stands for another idea in the "
+                "class repository; change a word of your idea and run the study again"
+            )
+        for parent in parents:
+            if parent not in index.ideas:
+                problems.append(
+                    f"{rel}: builds on the idea {parent}, which is not in the class "
+                    "repository; an idea builds on ideas that are published"
+                )
     return problems
 
 
