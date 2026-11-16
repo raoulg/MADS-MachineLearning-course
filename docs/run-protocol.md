@@ -153,8 +153,10 @@ def objective(trial):
   different datasets are never compared with each other.
 - **a student's own study** carries, as study attrs, `origin`, `study` (its name),
   `space_is_default` (`true` when the space is the notebook's, unchanged) and `budget`
-  (trials, epochs and repeats). What the student expected and why is not recorded: the
-  lesson discusses it live.
+  (the minutes given to it, the seconds one trial costs on that machine and the study
+  they were measured on, the trials that fit, epochs and repeats). A study run from
+  `exercises/study.py` also carries `expects`: what the student expected and why, in one
+  line, which the check never reads.
 - **a search** (a study made by `search_study`) carries its space as study attrs:
   - `search_space`: the whole space on one line, for example
     `encoder=dinov2-small | hidden_dim ~ logint(32, 1024) | lr ~ logU(1e-4, 1e-2)`;
@@ -247,8 +249,9 @@ study at a time. Its pages are in the bar on the left:
   shape at every layer), the accuracy per epoch, the params, the attrs (`role`, `dataset`,
   `n_params`, `architecture`, `train_seconds`, `run_id`, and in the class store
   `submission_ref` and `student`) and the artifacts `architecture.json` and `design.py`.
-  The study's own page shows its attrs: `search_space`, `searched_axes`, and for a
-  student's study `study`, `budget` and `space_is_default`.
+  The study's own page shows its attrs: its idea (`idea`, `idea_name`, `idea_author`,
+  `idea_parents`, `idea_id`), `search_space`, `searched_axes`, and for a student's study
+  `study`, `budget` and `space_is_default`.
 
 Questions it answers at a glance: where more width or depth stops paying in accuracy and
 starts costing in time; what a switch (`norm`, `skip`, `gate`) buys at equal width; how far

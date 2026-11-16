@@ -278,8 +278,10 @@ def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
     """One row per idea of the class: its name, words, author, parents (the names it
     builds on; `missing` those not among the submissions), the students who ran it and
     their number of runs, and its result where `comparisons` has one for a study of the
-    idea: the final against the baseline, in points and in sigmas. An idea is its name,
-    so the handed-out idea of author `course` is one row for the whole class."""
+    idea: the final against the baseline, in points and in sigmas. An idea searched in
+    several studies shows the one with the most trials. An idea is its name, so the
+    handed-out idea of author `course` is one row for the whole class; it has no result
+    of its own, the class's baselines and pooled search are its outcome."""
     if df.empty or "idea_name" not in df:
         return pd.DataFrame(columns=IDEA_COLUMNS)
     carried = df[df.idea_name.astype(bool)]
@@ -292,8 +294,10 @@ def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
     result: dict[str, SimpleNamespace] = {}
     for r in rows(cmp):
         name = idea_of.get((r.student, r.study))
-        if name is not None:
-            result.setdefault(name, r)
+        if name is not None and (
+            name not in result or r.n_trials > result[name].n_trials
+        ):
+            result[name] = r
     out = []
     for name, group in carried.groupby("idea_name", sort=False):
         first = group.iloc[0]
@@ -741,7 +745,9 @@ def fig_ideas(ids: pd.DataFrame) -> go.Figure:
     hover = []
     for r in rows(ids):
         d, y = place[r.name]
-        if r.verdict == "unmeasured":
+        if r.author == COURSE:
+            res = "handed out: its baselines and its search are in the sections above"
+        elif r.verdict == "unmeasured":
             res = "no baseline against final measured"
         else:
             res = (

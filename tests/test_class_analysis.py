@@ -259,3 +259,38 @@ def test_a_label_plotly_draws_holds_no_tag_of_a_student():
     )
     [trace] = [t for t in class_analysis.fig_architectures(df).data if len(t.x)]
     assert "<" not in trace.text[0] and "&lt;a href" in trace.text[0]
+
+
+@pytest.mark.parametrize(
+    ("sigma", "word"),
+    [(2.0, "better"), (1.9, "inside"), (-1.9, "inside"), (-2.0, "worse"),
+     (None, "unmeasured"), (math.nan, "unmeasured")],
+)  # fmt: skip
+def test_a_verdict_is_two_sigmas_either_way(sigma, word):
+    assert class_analysis.verdict(sigma) == word
+
+
+def test_a_parent_that_is_not_submitted_sits_left_of_its_child_inside_the_picture():
+    df = class_analysis.runs_frame(
+        [with_idea(sub("bob", "lesson1-study-bob-x", "trial-00", "trial", 0.8),
+                   idea_attrs("bob", "an idea on a parent nobody sent", ["plaid-eagle-75"]))]
+    )  # fmt: skip
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    [name] = ids.name
+    place = class_analysis.idea_layout(ids)
+    assert place["plaid-eagle-75"][0] == 0 and place[name][0] == 1
+
+
+def test_an_idea_searched_twice_shows_the_study_with_the_most_trials():
+    attrs = idea_attrs("alice", "depth on dtd once more")
+    runs = []
+    for study, final, n in (("alice-aaa", 0.80, 1), ("alice-zzz", 0.85, 3)):
+        full = f"lesson1-study-{study}"
+        runs += [
+            sub("alice", f"{full}-runs", "baseline", "baseline", 0.80, std=0.01),
+            sub("alice", f"{full}-runs", "winner", "final", final, std=0.01),
+            *(sub("alice", full, f"trial-{i:02d}", "trial", 0.8) for i in range(n)),
+        ]
+    df = class_analysis.runs_frame([with_idea(r, attrs) for r in runs])
+    [row] = class_analysis.ideas(df, class_analysis.comparisons(df)).itertuples()
+    assert (row.study, row.verdict) == ("alice-zzz", "better")
