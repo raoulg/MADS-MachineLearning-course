@@ -2,12 +2,17 @@
 data."""
 
 import importlib.util
+import runpy
+import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
+from hpo.exercise import Data
 from hpo.search import Space
 
 FOLDER = (
@@ -96,3 +101,31 @@ def test_check_space_refuses_an_unused_axis():
     check(space)
     with pytest.raises(ValueError, match="'weight_decay', which neither"):
         check({**space, "weight_decay": 1e-4})
+
+
+def test_the_design_script_runs_to_the_end_and_shows_every_combination(capsys):
+    runpy.run_path(str(FOLDER / "designs.py"), run_name="__main__")
+    shown = capsys.readouterr().out
+    assert "params)" in shown and "classify" in shown
+
+
+def test_make_model_builds_what_a_drawn_config_chooses(monkeypatch):
+    # study.py imports its folder's designs and harness by their plain names
+    monkeypatch.setitem(sys.modules, "designs", designs)
+    monkeypatch.setitem(sys.modules, "harness", harness)
+    # the handed-out study.py holds placeholders, which pass only under the tester
+    monkeypatch.setenv("NOTEBOOKTESTER_RUNNING", "1")
+    study = load("study")
+    loader: Any = DataLoader(TensorDataset(torch.zeros(1, 1), torch.zeros(1)))
+    data = Data(
+        train=loader,
+        test=loader,
+        classes=["N", "S", "V"],
+        example=beats(2),
+    )
+    for chosen in DESIGN.combinations():
+        drawn = {"width": 8, "depth": 2, "lr": 1e-3, "dataset": "mitbih", **chosen}
+        model = study.make_model(drawn, data)
+        assert isinstance(model, Beats)
+        assert model(beats()).shape == (4, 3)
+        assert model.config.state == chosen["state"]

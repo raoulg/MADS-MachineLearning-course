@@ -1,10 +1,14 @@
 """The design and the space check of lesson 1's exercise folder, without data."""
 
+import importlib.util
+import runpy
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 sys.path.insert(
     0,
@@ -18,7 +22,10 @@ from designs import DESIGN, Config, Head  # ty: ignore[import-not-found]  (the e
 from harness import HARNESS  # ty: ignore[import-not-found]
 from vectormesh.design import axis_of, option
 
+from hpo.exercise import Data
 from hpo.search import Space
+
+LESSON = Path(__file__).resolve().parents[1] / "notebooks/1_representation_and_head"
 
 
 @pytest.mark.parametrize("chosen", list(DESIGN.combinations()), ids=str)
@@ -101,3 +108,40 @@ def test_trace_leaves_the_model_as_it_found_it():
 def test_a_head_without_a_hidden_block_is_refused_by_name():
     with pytest.raises(ValueError, match="n_hidden_layers must be at least 1"):
         Head(Config(n_hidden_layers=0), dim=12, n_classes=5)
+
+
+@pytest.mark.parametrize(
+    "script", [LESSON / "exercises/designs.py", LESSON / "fusion_architecture.py"]
+)
+def test_a_design_script_runs_to_the_end_and_shows_every_combination(script, capsys):
+    runpy.run_path(str(script), run_name="__main__")
+    shown = capsys.readouterr().out
+    assert "params)" in shown and "classify" in shown
+
+
+def test_make_model_builds_what_a_drawn_config_chooses(monkeypatch):
+    # the handed-out study.py holds placeholders, which pass only under the tester
+    monkeypatch.setenv("NOTEBOOKTESTER_RUNNING", "1")
+    spec = importlib.util.spec_from_file_location(
+        "lesson1_study", LESSON / "exercises/study.py"
+    )
+    assert spec is not None and spec.loader is not None
+    study = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(study)
+    loader: Any = DataLoader(TensorDataset(torch.zeros(1, 1), torch.zeros(1)))
+    data = Data(
+        train=loader,
+        test=loader,
+        classes=["a", "b", "c"],
+        example=torch.randn(2, 12),
+        dims={"embed_dim": 12},
+    )
+    for chosen in DESIGN.combinations():
+        drawn = {"hidden_dim": 16, "lr": 1e-3, "dataset": "dtd", **chosen}
+        model = study.make_model(drawn, data)
+        assert isinstance(model, Head)
+        assert model(torch.randn(4, 12)).shape == (4, 3)
+        assert (model.config.skip, model.config.gate) == (
+            chosen["skip"],
+            chosen["gate"],
+        )

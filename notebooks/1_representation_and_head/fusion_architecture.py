@@ -108,31 +108,12 @@ class Fusion(nn.Module):
 DESIGN = Design(Fusion, Config)
 
 
-def random_pair(
-    batch_size: int, dino_dim: int, resnet_dim: int
-) -> tuple[
-    Float[Tensor, "{batch_size} {dino_dim}"], Float[Tensor, "{batch_size} {resnet_dim}"]
-]:
-    return torch.randn(batch_size, dino_dim), torch.randn(batch_size, resnet_dim)
-
-
-def main() -> None:
-    # dinov2-small is 384 wide, resnet-18 is 512, and DTD has 47 textures
-    model = Fusion(Config(shared_dim=128), dino_dim=384, resnet_dim=512, n_classes=47)
-    streams = random_pair(batch_size=64, dino_dim=384, resnet_dim=512)
-    logits = model.forward(streams)
-    print(model)
-    print(
-        f"{tuple(streams[0].shape)} + {tuple(streams[1].shape)} -> {tuple(logits.shape)}"
-    )
-    print()
-    DESIGN.show(
-        lambda chosen: Fusion(
-            DESIGN.drawn(chosen), dino_dim=384, resnet_dim=512, n_classes=47
-        ),
-        random_pair(batch_size=2, dino_dim=384, resnet_dim=512),
-    )
-
-
 if __name__ == "__main__":
-    main()
+    # dinov2-small is 384 wide, resnet-18 is 512, and DTD has 47 textures; two rows
+    # trace every shape
+    DESIGN.show(
+        (torch.randn(2, 384), torch.randn(2, 512)),
+        dino_dim=384,
+        resnet_dim=512,
+        n_classes=47,
+    )
