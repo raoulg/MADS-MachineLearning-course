@@ -85,3 +85,10 @@ uv run notebooktester notebooks/ -t 300 -pb
 installs the **published** versions — do not rely on an editable install or a
 `PYTHONPATH` shim, because students will not have one. If a notebook needs a library
 change, that change ships as a release first.
+
+## Publishing new presentation links
+
+GitHub Pages publishes `presentations/` after a push to `master`. When a commit links
+to a new presentation URL, verify that its local file exists under `presentations/`.
+The pre-commit `lychee` check sees a 404 until the Pages deployment; use
+`LEFTHOOK_EXCLUDE=lychee` for that commit and check the published URL afterward.

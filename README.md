@@ -55,6 +55,7 @@ Handy to have open:
 - [Notation and formulas](https://raoulg.github.io/MADS-MachineLearning-course/notatie.html):
   a reference card for tensor shapes, composition, diagrams, gradients and the GRU.
 - [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-tensors.html).
+- [Kernels, state and gates, the slides of lesson 2](https://raoulg.github.io/MADS-MachineLearning-course/lesson2-kernels_states_gates.html).
 - [Submitting your runs](docs/submit-runs.md) to the class repository.
 
 ## How the repository is built
