@@ -813,9 +813,9 @@ ARROW_STYLE = {  # colour, width
     "unmeasured": ("#9aa1ab", 1.8),
 }
 SELECTED = "#b0452f"
-BOX_PX, ROW_PX, BOX_H_PX = 230, 150, 116  # a box's width; a row's height, a box's
+BOX_PX, ROW_PX, BOX_H_PX = 206, 150, 116  # a box's width; a row's height, a box's
 SUB_GAP_PX = 28  # between the columns of one round
-ROUND_GAP_PX = 96  # between rounds: the arrows' lanes, and their numbers
+ROUND_GAP_PX = 74  # between rounds: the arrows' lanes, and their numbers
 BAND_PX = 10  # how far a round's band reaches past its boxes
 LANE_PX = 9  # between two arrows' lanes in a gap
 HEAD_PX = 30  # the round titles above the boxes
@@ -2506,6 +2506,11 @@ def main() -> None:
         help="the metric every figure reads: accuracy, macro_recall, or one class of a "
         "metric per class, as recall/F (default: the objective most studies search)",
     )
+    parser.add_argument(
+        "--source",
+        help="what the page says its runs were submitted to, in place of the class "
+        "repository's name: for a page of a rehearsal",
+    )
     args = parser.parse_args()
 
     if args.demo:
@@ -2519,6 +2524,7 @@ def main() -> None:
         owner = class_repository(repo)
         teacher = owner[0] if owner else None
     teacher = args.teacher or teacher
+    source = args.source or source
     if not subs:
         sys.exit(f"no runs of lesson {args.lesson} to show")
     metric = args.metric or page_metric(subs)
