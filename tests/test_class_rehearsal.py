@@ -20,8 +20,8 @@ def test_the_plan_is_a_dag_whose_rounds_name_earlier_parents():
     plan = rehearsal.PLAN
     rehearsal.check_plan(plan)
     by_key = {p.key: p for p in plan}
-    assert sorted(by_key) == ["a1", "b1", "b2", "c1", "c2", "d1"]
-    assert sorted({p.student for p in plan}) == ["a", "b", "c", "d"]
+    assert sorted(by_key) == ["a1", "b1", "b2", "c1", "c2", "d1", "h0"]
+    assert sorted({p.student for p in plan if p.round > 0}) == ["a", "b", "c", "d"]
     edges = sorted((parent, p.key) for p in plan for parent in p.builds_on)
     assert edges == [
         ("a1", "b1"),
@@ -29,24 +29,36 @@ def test_the_plan_is_a_dag_whose_rounds_name_earlier_parents():
         ("b2", "c1"),
         ("c1", "c2"),
         ("c1", "d1"),
+        ("h0", "a1"),
+        ("h0", "b2"),
     ]
     for p in plan:
         assert all(by_key[parent].round < p.round for parent in p.builds_on)
-        assert p.builds_on or p.round == 1
+
+
+def test_round_0_is_the_teacher_publishing_what_the_lesson_hands_out():
+    [h0] = [p for p in rehearsal.PLAN if p.round == 0]
+    assert h0.handed_out and h0.student == rehearsal.TEACHER and not h0.builds_on
+    assert h0.hands_in == "lesson1-notebook*"
+    assert {p.hands_in for p in rehearsal.PLAN if p.round > 0} == {"lesson1-study*"}
+    assert [p.key for p in rehearsal.PLAN if p.round == 1] == ["a1", "b2"]
+    assert all(p.builds_on == ("h0",) for p in rehearsal.PLAN if p.round == 1)
 
 
 @pytest.mark.parametrize(
-    ("key", "builds_on", "says"),
+    ("key", "change", "says"),
     [
-        ("b1", ("c1",), "a parent is of an earlier round"),  # same round
-        ("a1", ("d1",), "a parent is of an earlier round"),  # a later round
-        ("b1", ("zz",), "not planned"),
+        ("b1", {"builds_on": ("c1",)}, "a parent is of an earlier round"),  # same round
+        ("a1", {"builds_on": ("d1",)}, "a parent is of an earlier round"),  # later
+        ("b1", {"builds_on": ("zz",)}, "not planned"),
+        ("a1", {"builds_on": ()}, "builds on nothing"),
+        ("h0", {"builds_on": ("a1",)}, "round 0 is the teacher's"),
+        ("a1", {"round": 0}, "round 0 is the teacher's"),
     ],
 )
-def test_a_plan_that_names_no_earlier_study_is_refused(key, builds_on, says):
+def test_a_plan_that_names_no_earlier_study_is_refused(key, change, says):
     plan = tuple(
-        dataclasses.replace(p, builds_on=builds_on) if p.key == key else p
-        for p in rehearsal.PLAN
+        dataclasses.replace(p, **change) if p.key == key else p for p in rehearsal.PLAN
     )
     with pytest.raises(rehearsal.Stop, match=says):
         rehearsal.check_plan(plan)

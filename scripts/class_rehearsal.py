@@ -7,17 +7,21 @@ teacher's class page of what was merged.
     make rehearsal ARGS="--minutes 2"
 
 `PLAN` below is the whole rehearsal: who runs which study in which round, which earlier
-studies it builds on, and what the student answers in `exercises/study.py`. Everything
-happens in a sandbox, `artefacts/rehearsal/<timestamp>/`:
+studies it builds on, and what the student answers in `exercises/study.py`. Round 0 is
+the teacher's: before the lesson, the teacher publishes the part of the exercise that is
+handed out (`lesson1-notebook*`), whose idea every student's first study builds on.
+Everything happens in a sandbox, `artefacts/rehearsal/<timestamp>/`:
 
-- `gh-root/`: the class repository and a fork per student, as bare git repositories,
+- `gh-root/`: the class repository and a fork per student and for the teacher, as bare
+  git repositories,
   reached through their github.com URLs by git's `insteadOf` in `gitconfig`;
 - `bin/gh`: a fake `gh` that answers `gh api user` with the student's login and records
   the pull requests in `gh-prs.json` (`scripts/gitworld.py`);
 - `students/<login>/course`: a clone of the course repository at the commit this script
   runs from, with its own environment and its own Optuna store, and next to it
   `students/<login>/mads-runs`, the student's clone of their fork;
-- `teacher/`: the teacher's clones, and `dashboard/index.html`, the class page.
+- `teacher/`: the teacher's clones, the same two, and `dashboard/index.html`, the class
+  page.
 
 A student's steps are the commands a student types, in their own clone: the class read
 as `make dashboard LESSON=1` reads it (without a browser or optuna-dashboard), the
@@ -28,8 +32,11 @@ checked with the steps of the class repository's workflow
 repository as it would be after the merge, and squash-merged into its `main` when the
 check passes. A refused pull request stops the rehearsal with the check's message.
 
-Each student's store gets the handed-out search `lesson1-notebook` of this checkout's
-store, so a study's budget comes from trials measured on this machine. Nothing reaches
+The teacher's store gets the handed-out studies `lesson1-notebook` and
+`lesson1-notebook-runs` of this checkout's store, with their artifacts, and the teacher
+hands them in with `make share LESSON=1`. Each student's store gets `lesson1-notebook`
+too, so a study's budget comes from trials measured on this machine; a student hands in
+only their own studies. Nothing reaches
 GitHub: before anything runs, the script makes sure that every command finds the fake
 `gh`, that the `insteadOf` rewriting lives in the sandbox, and that no remote of any
 sandbox repository resolves to github.com.
@@ -61,15 +68,18 @@ EXERCISE = "notebooks/1_representation_and_head/05_exercises.ipynb"
 STUDY_FILE = "notebooks/1_representation_and_head/exercises/study.py"
 WORKFLOW = "docs/runs-repo-template/.github/workflows/validate.yml"
 HANDED_OUT_STUDY = f"lesson{LESSON}-notebook"
+HANDED_OUT_STUDIES = (HANDED_OUT_STUDY, f"{HANDED_OUT_STUDY}-runs")
+HANDED_OUT = f"lesson{LESSON}-notebook*"
 OWN_STUDIES = f"lesson{LESSON}-study*"
 
 
 @dataclass(frozen=True)
 class Planned:
     """One study of the rehearsal: who runs it in which round, the earlier studies it
-    builds on (none: the idea handed out with the lesson), and the student's answers.
-    `changes` are the axes of `SPACE`, as typed in `study.py`, that differ from the
-    space of its parents (for a root, the space as handed out)."""
+    builds on, and the student's answers. `changes` are the axes of `SPACE`, as typed in
+    `study.py`, that differ from the space of its parents. A row of round 0 is the
+    teacher publishing what the lesson hands out: no study is run, the studies
+    `hands_in` names are handed in, and its idea is the root of the class's ideas."""
 
     key: str
     student: str
@@ -79,11 +89,23 @@ class Planned:
     idea: str
     expects: str
     changes: dict[str, str] = field(default_factory=dict)
+    hands_in: str = OWN_STUDIES
+
+    @property
+    def handed_out(self) -> bool:
+        return self.round == 0
 
 
 PLAN: tuple[Planned, ...] = (
     Planned(
-        key="a1", student="a", round=1, builds_on=(),
+        key="h0", student=TEACHER, round=0, builds_on=(),
+        study=HANDED_OUT_STUDY,
+        idea=f"lesson {LESSON} as handed out",
+        expects="",
+        hands_in=HANDED_OUT,
+    ),
+    Planned(
+        key="a1", student="a", round=1, builds_on=("h0",),
         study="a-depth-with-skip",
         idea="does a skip connection let a deeper head help on dtd",
         expects="the skip keeps the linear path of the baseline open, so two or three "
@@ -91,7 +113,7 @@ PLAN: tuple[Planned, ...] = (
         changes={"n_hidden_layers": "Int(1, 3)", "gate": "False"},
     ),
     Planned(
-        key="b2", student="b", round=1, builds_on=(),
+        key="b2", student="b", round=1, builds_on=("h0",),
         study="b-gate-on-dtd",
         idea="does a gate on the hidden block help on dtd",
         expects="a gate can shut hidden units that only fit noise, so it should help "
@@ -143,8 +165,9 @@ class Stop(Exception):
 
 
 def check_plan(plan: tuple[Planned, ...]) -> None:
-    """A plan is a DAG in rounds: every key and study name once, and a study builds
-    only on studies of earlier rounds."""
+    """A plan is a DAG in rounds: every key and study name once; round 0 is the
+    teacher's and builds on nothing, and every later study builds on studies of earlier
+    rounds."""
     keys = [p.key for p in plan]
     if len(set(keys)) < len(keys):
         raise Stop(f"plan: a key is there twice in {keys}")
@@ -153,8 +176,14 @@ def check_plan(plan: tuple[Planned, ...]) -> None:
         raise Stop(f"plan: a study name is there twice in {studies}")
     by_key = {p.key: p for p in plan}
     for p in plan:
-        if p.round < 1:
-            raise Stop(f"plan: {p.key} is in round {p.round}; rounds start at 1")
+        if p.round < 0:
+            raise Stop(f"plan: {p.key} is in round {p.round}; rounds start at 0")
+        if p.handed_out and (p.builds_on or p.student != TEACHER):
+            raise Stop(
+                f"plan: {p.key} in round 0 is the teacher's and builds on nothing"
+            )
+        if not p.handed_out and not p.builds_on:
+            raise Stop(f"plan: {p.key} builds on nothing; a study builds on an idea")
         for parent in p.builds_on:
             if parent not in by_key:
                 raise Stop(f"plan: {p.key} builds on {parent}, which is not planned")
@@ -398,7 +427,7 @@ class Rehearsal:
         self.bin = sandbox / "bin"
         self.fake = self.bin / "gh"
         self.gitconfig = sandbox / "gitconfig"
-        self.students = sorted({p.student for p in PLAN})
+        self.students = sorted({p.student for p in PLAN if not p.handed_out})
         self.outcomes: dict[str, Outcome] = {}
         self.verdicts: list[str] = []
         self.world: World | None = None
@@ -462,7 +491,7 @@ class Rehearsal:
         self.step(f"sandbox {self.sandbox}: guards hold; fake gh at {self.fake}")
 
         self.world = World(
-            self.sandbox, upstream=CLASS_REPO, students=tuple(self.students),
+            self.sandbox, upstream=CLASS_REPO, students=(*self.students, TEACHER),
             clone=False,
         )  # fmt: skip
         # GitHub serves a pull request's head by its commit
@@ -472,7 +501,7 @@ class Rehearsal:
         )  # fmt: skip
         self.step(
             f"class repository {CLASS_REPO} at {self.world.upstream}, a fork per "
-            f"student: {', '.join(self.students)}"
+            f"student and the teacher: {', '.join([*self.students, TEACHER])}"
         )
         self.head = git_out(["rev-parse", "HEAD"], COURSE_ROOT, base)
         dirty = git_out(
@@ -491,11 +520,7 @@ class Rehearsal:
         teacher = self.sandbox / "teacher"
         teacher.mkdir()
         self.clone_course(teacher / "course")
-        subprocess.run(
-            ["git", "clone", "--quiet", f"https://github.com/{CLASS_REPO}.git",
-             str(teacher / "mads-runs")],
-            env=base, check=True, capture_output=True,
-        )  # fmt: skip
+        self.world.clone_fork(teacher / "mads-runs", TEACHER)
         check_remotes(repositories(self.sandbox), base)
         self.step(
             f"{len(repositories(self.sandbox))} repositories in the sandbox; none has "
@@ -505,12 +530,10 @@ class Rehearsal:
         for who in self.students:
             course = self.sandbox / "students" / who / "course"
             self.run(["uv", "sync", "--quiet"], course, who)
-            copied = self.copy_handed_out(
-                course / "artefacts" / "optuna" / "studies.db"
+            copied = self.copy_studies(
+                course / "artefacts" / "optuna", (HANDED_OUT_STUDY,)
             )
-            self.step(
-                f"{who}: {HANDED_OUT_STUDY} ({copied} trials) copied from {self.store}"
-            )
+            self.step(f"{who}: {copied} copied from {self.store}")
         self.run(["uv", "sync", "--quiet"], teacher / "course", TEACHER)
 
     def clone_course(self, where: Path) -> None:
@@ -519,19 +542,41 @@ class Rehearsal:
                 self.sandbox, env)  # fmt: skip
         git_out(["checkout", "--quiet", "--detach", self.head], where, env)
 
-    def copy_handed_out(self, to: Path) -> int:
+    def copy_studies(
+        self, to: Path, names: tuple[str, ...], artifacts: bool = False
+    ) -> str:
+        """The studies `names` that the source store holds, copied into the store
+        folder `to`, with the source's artifacts when `artifacts`; what was copied."""
         import optuna
 
-        to.parent.mkdir(parents=True, exist_ok=True)
-        optuna.copy_study(
-            from_study_name=HANDED_OUT_STUDY,
-            from_storage=f"sqlite:///{self.store}",
-            to_storage=f"sqlite:///{to}",
+        to.mkdir(parents=True, exist_ok=True)
+        source = f"sqlite:///{self.store}"
+        held = optuna.get_all_study_names(source)
+        copied = []
+        for name in (n for n in names if n in held):
+            optuna.copy_study(
+                from_study_name=name,
+                from_storage=source,
+                to_storage=f"sqlite:///{to / 'studies.db'}",
+            )
+            n = len(optuna.load_study(study_name=name, storage=source).trials)
+            copied.append(f"{name} ({n} trials)")
+        if artifacts and (self.store.parent / "artifacts").is_dir():
+            shutil.copytree(self.store.parent / "artifacts", to / "artifacts")
+            copied.append("their artifacts")
+        return ", ".join(copied)
+
+    # -- the teacher's round 0
+
+    def publish(self, planned: Planned) -> None:
+        """The teacher hands in what the lesson hands out, from a store that holds it."""
+        course = self.sandbox / "teacher" / "course"
+        copied = self.copy_studies(
+            course / "artefacts" / "optuna", HANDED_OUT_STUDIES, artifacts=True
         )
-        study = optuna.load_study(
-            study_name=HANDED_OUT_STUDY, storage=f"sqlite:///{to}"
-        )
-        return len(study.trials)
+        self.step(f"{TEACHER}: {copied} copied from {self.store}")
+        self.outcomes[planned.key] = Outcome(planned, (), handed_out_name())
+        self.hand_in(planned, self.sandbox / "teacher")
 
     # -- a student's study
 
@@ -564,7 +609,11 @@ class Rehearsal:
         by_key = {p.key: p for p in PLAN}
         for key in planned.builds_on:
             parent = by_key[key]
-            study = f"lesson{LESSON}-study-{parent.study}@{parent.student}"
+            study = (
+                parent.study  # the handed-out study is pooled over the class
+                if parent.handed_out
+                else f"lesson{LESSON}-study-{parent.study}@{parent.student}"
+            )
             try:
                 attrs = optuna.load_study(study_name=study, storage=url).user_attrs
             except KeyError:
@@ -586,11 +635,19 @@ class Rehearsal:
     def study(self, planned: Planned, handed_out: dict[str, str]) -> None:
         who = planned.student
         course = self.sandbox / "students" / who / "course"
-        parents = self.parents_of(planned) if planned.builds_on else ()
+        parents = self.parents_of(planned)
+        by_key = {p.key: p for p in PLAN}
+        on_root = all(by_key[k].handed_out for k in planned.builds_on)
+        if on_root and parents != (handed_out_name(),):
+            raise Stop(
+                f"{planned.key}: the class page names the handed-out idea {parents}, "
+                f"Idea.handed_out({LESSON}) is {handed_out_name()}"
+            )
         answers = Answers(
             study=planned.study,
             idea=planned.idea,
-            builds_on=parents,
+            # a first study keeps the handed-out idea as study.py names it
+            builds_on=() if on_root else parents,
             expects=planned.expects,
             space=space_of(planned.key, PLAN, handed_out),
             minutes=self.minutes,
@@ -603,7 +660,7 @@ class Rehearsal:
                       for name in ANSWERED)
         )  # fmt: skip
         out = self.run(["make", "study", f"LESSON={LESSON}"], course, who)
-        outcome = Outcome(planned, parents or ("(handed out)",))
+        outcome = Outcome(planned, parents)
         for line in out.splitlines():
             for label in ("budget", "winner", "idea"):
                 if line.startswith(f"{label:<9}:"):
@@ -617,13 +674,13 @@ class Rehearsal:
 
     # -- handing in
 
-    def hand_in(self, planned: Planned) -> None:
+    def hand_in(self, planned: Planned, home: Path | None = None) -> None:
         who = planned.student
-        course = self.sandbox / "students" / who / "course"
+        course = (home or self.sandbox / "students" / who) / "course"
         check_remotes(repositories(self.sandbox), self.env(who))
         out = self.run(
             ["make", "share", f"LESSON={LESSON}",
-             f"ARGS=--experiment {shlex.quote(OWN_STUDIES)}"],
+             f"ARGS=--experiment {shlex.quote(planned.hands_in)}"],
             course, who,
         )  # fmt: skip
         urls = re.findall(r"^pull request: (\S+)$", out, re.MULTILINE)
@@ -841,26 +898,26 @@ def main() -> None:
             planned = [p for p in PLAN if p.round == rnd]
             rehearsal.step(f"round {rnd}: {', '.join(p.key for p in planned)}")
             for p in planned:
-                rehearsal.study(p, handed_out)
+                if p.handed_out:
+                    rehearsal.publish(p)
+                else:
+                    rehearsal.study(p, handed_out)
             for p in planned:
-                rehearsal.hand_in(p)
+                if not p.handed_out:
+                    rehearsal.hand_in(p)
         page = rehearsal.teacher()
         ideas = rehearsal.ideas()
     except Stop as stop:
         summary(rehearsal)
         sys.exit(f"\nthe rehearsal stops: {stop}\nsandbox: {sandbox}")
     summary(rehearsal)
-    root = handed_out_name()
-    key_of = {o.idea: k for k, o in rehearsal.outcomes.items()} | {root: "handed out"}
+    key_of = {o.idea: k for k, o in rehearsal.outcomes.items()}
     print("\nthe ideas of the class, as the class repository holds them:")
     for name, author, words, parents in ideas:
         named = ", ".join(f"{p} ({key_of.get(p, '?')})" for p in parents) or "nothing"
         print(f"  {name:<28} {key_of.get(name, '?'):<10} by {author:<6} {words!r}")
         print(f"  {'':<28} builds on {named}")
-    expected = {
-        o.idea: sorted(o.parents if o.planned.builds_on else (root,))
-        for o in rehearsal.outcomes.values()
-    }
+    expected = {o.idea: sorted(o.parents) for o in rehearsal.outcomes.values()}
     held = {name: sorted(parents) for name, _, _, parents in ideas}
     print(
         "the ideas and their parents are as planned"
@@ -878,7 +935,7 @@ def summary(rehearsal: Rehearsal) -> None:
         p = o.planned
         print(f"{key} ({p.student}, round {p.round}) {p.study}")
         print(f"  idea   : {o.lines.get('idea', '-')}")
-        print(f"  parents: {', '.join(o.parents)}")
+        print(f"  parents: {', '.join(o.parents) or 'nothing (the root)'}")
         for label in ("budget", "winner", "sigma"):
             print(f"  {label:<7}: {o.lines.get(label, '-')}")
     for verdict in rehearsal.verdicts:
