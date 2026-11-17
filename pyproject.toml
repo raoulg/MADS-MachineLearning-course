@@ -77,6 +77,11 @@ dev = [
 
 [tool.uv.sources]
 
+# The suite lives in tests/; a rehearsal's sandbox under artefacts/ holds whole clones
+# of the course, tests included.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.ruff]
 # Scouting scripts kept as evidence for how a research number was produced. They import
 # packages this project does not declare (sentence-transformers, nltk) and are deleted

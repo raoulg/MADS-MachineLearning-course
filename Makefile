@@ -1,4 +1,4 @@
-.PHONY: help study share dashboard optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
+.PHONY: help study share dashboard rehearsal optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
         build-heartbeats publish-heartbeats
 
@@ -54,6 +54,16 @@ dashboard: check-lesson
 	uv run scripts/class_analysis.py --lesson $(LESSON) --open $(if $(METRIC),--metric $(METRIC))
 	uv run scripts/collect_runs.py --lesson $(LESSON) --no-pull --ui $(ARGS)
 
+# A rehearsal of the class on this machine: four students in clones of their own, six
+# studies that build on each other, handed in to a local class repository, and the
+# teacher's class page of what was merged (scripts/class_rehearsal.py). Nothing reaches
+# GitHub. ARGS="--minutes 2" gives each study two minutes.
+#
+#   make rehearsal
+
+rehearsal:
+	uv run scripts/class_rehearsal.py $(ARGS)
+
 # The Optuna studies of notebooks/1_representation_and_head/05_exercises.ipynb, in
 # optuna-dashboard on http://127.0.0.1:$(OPTUNA_PORT). The store exists once that notebook
 # has run.
@@ -89,6 +99,7 @@ help:
 	@echo "  study [LESSON=<N>]    run your study over your design (notebooks/<N>_*/exercises; lesson 1 by default)"
 	@echo "  share LESSON=<N>      submit your runs of lesson N (ARGS=--list to preview)"
 	@echo "  dashboard LESSON=<N>  open the class page of lesson N, and optuna-dashboard on the class's runs (METRIC=<name> to read another metric)"
+	@echo "  rehearsal             rehearse the class here: four students, six studies, the class page (ARGS=\"--minutes <N>\")"
 	@echo "  optuna-dashboard      open optuna-dashboard on your Optuna studies (05_exercises)"
 	@echo "  list-caches      show the artefact folders these targets would pick"
 	@echo "  publish-fashion  fashion-mnist x \$$ENCODER  (default: $(ENCODER))"

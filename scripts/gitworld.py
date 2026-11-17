@@ -1,10 +1,11 @@
 """A git world for the scripts that talk to the class runs repository: local bare
-repositories and a fake `gh`.
+repositories and a fake `gh`. The tests build one per test; `class_rehearsal.py` builds
+one for a whole class.
 
 `https://github.com/<owner>/<repo>.git` is rewritten by git's `insteadOf` to a bare
-repository under `gh-root/`: `class/runs.git` plays the class repository, `alice/runs`
-the student's fork. A fake `gh` on PATH records every call and keeps the pull requests
-in a JSON file, filtering them the way `gh pr list` does.
+repository under `gh-root/`: by default `class/runs.git` plays the class repository and
+`alice/runs.git` the student's fork. A fake `gh` on PATH records every call and keeps
+the pull requests in a JSON file, filtering them the way `gh pr list` does.
 """
 
 import json
@@ -65,11 +66,24 @@ def run(*args: str, cwd: Path | None = None) -> str:
 
 
 class World:
-    def __init__(self, tmp: Path) -> None:
+    """The class repository `upstream` (`owner/name`) and a fork of it per student in
+    `students`, the first student's clone of their fork at `mads-runs` when `clone`."""
+
+    def __init__(
+        self,
+        tmp: Path,
+        upstream: str = "class/runs",
+        students: tuple[str, ...] = ("alice",),
+        clone: bool = True,
+    ) -> None:
         self.tmp = tmp
         self.root = tmp / "gh-root"
-        self.upstream = self.root / "class/runs.git"
-        self.fork = self.root / "alice/runs.git"
+        self.slug = upstream
+        self.name = upstream.split("/")[1]
+        self.upstream = self.root / f"{upstream}.git"
+        self.forks = {s: self.root / s / f"{self.name}.git" for s in students}
+        self.student = students[0]
+        self.fork = self.forks[self.student]
         self.clone = tmp / "mads-runs"
         self.log = tmp / "gh-log.jsonl"
         self.state = tmp / "gh-prs.json"
@@ -80,14 +94,20 @@ class World:
         run("git", "add", "README.md", cwd=seed)
         run("git", "commit", "--quiet", "-m", "start", cwd=seed)
         run("git", "clone", "--quiet", "--bare", str(seed), str(self.upstream))
-        run("git", "clone", "--quiet", "--bare", str(self.upstream), str(self.fork))
+        for fork in self.forks.values():
+            run("git", "clone", "--quiet", "--bare", str(self.upstream), str(fork))
         shutil.rmtree(seed)
-        self.clone_fork(self.clone)
+        if clone:
+            self.clone_fork(self.clone)
 
-    def clone_fork(self, where: Path) -> Path:
-        run("git", "clone", "--quiet", "https://github.com/alice/runs.git", str(where))
+    def clone_fork(self, where: Path, student: str | None = None) -> Path:
+        """`student`'s clone of their fork at `where`, with the class repository as
+        `upstream`, both by their github.com URLs."""
+        student = student or self.student
+        fork_url = f"https://github.com/{student}/{self.name}.git"
+        run("git", "clone", "--quiet", fork_url, str(where))
         run(
-            "git", "remote", "add", "upstream", "https://github.com/class/runs.git",
+            "git", "remote", "add", "upstream", f"https://github.com/{self.slug}.git",
             cwd=where,
         )  # fmt: skip
         return where
@@ -134,18 +154,27 @@ class World:
         run("git", "commit", "--quiet", "-m", "teacher", cwd=work)
         run("git", "push", "--quiet", "origin", "main", cwd=work)
 
-    def squash_merge(self, branch: str = "lesson1") -> None:
-        """What the workflow's `gh pr merge --squash` does to the class repository."""
+    def squash_merge(
+        self,
+        branch: str = "lesson1",
+        student: str | None = None,
+        message: str = "squash",
+    ) -> None:
+        """What the workflow's `gh pr merge --squash` does to the class repository: the
+        branch of `student`'s fork squashed onto main, and their pull request from it
+        marked merged."""
+        student = student or self.student
         work = self.tmp / "merge"
         shutil.rmtree(work, ignore_errors=True)
         run("git", "clone", "--quiet", str(self.upstream), str(work))
-        run("git", "fetch", "--quiet", str(self.fork), branch, cwd=work)
+        run("git", "fetch", "--quiet", str(self.forks[student]), branch, cwd=work)
         run("git", "merge", "--quiet", "--squash", "FETCH_HEAD", cwd=work)
-        run("git", "commit", "--quiet", "-m", "squash", cwd=work)
+        run("git", "commit", "--quiet", "-m", message, cwd=work)
         run("git", "push", "--quiet", "origin", "main", cwd=work)
+        shutil.rmtree(work)
         prs = json.loads(self.state.read_text())
         for pr in prs:
-            if pr["head_branch"] == branch:
+            if pr["head_branch"] == branch and pr["head_owner"] == student:
                 pr["state"] = "merged"
         self.state.write_text(json.dumps(prs))
 
