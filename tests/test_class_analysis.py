@@ -343,3 +343,195 @@ def test_a_parent_of_another_lesson_is_named_with_its_lesson():
     ids = class_analysis.ideas(df, class_analysis.comparisons(df))
     page = class_analysis.ideas_note(ids, {"blissful-bee-18": 1})
     assert "an idea of lesson 1" in page
+
+
+# ---- the ideas on top of the page, and the window ------------------------------------
+
+
+def study_runs(student, name, attrs, base, final, std=0.01, trials=(), **study):
+    """The runs of one student's study as `hpo.exercise.study.Exercise` logs them: the
+    baseline and the winner with their spread, and `trials` as (score, status, params),
+    each with its curve; `study` adds study attrs (expects, searched_axes, objective)."""
+    full = f"lesson1-study-{name}"
+    attrs = {**attrs, **study}
+    runs = [
+        sub(student, f"{full}-runs", "baseline", "baseline", base, std=std),
+        sub(student, f"{full}-runs", "winner", "final", final, std=std),
+    ]
+    for i, (score, status, params) in enumerate(trials):
+        t = sub(
+            student,
+            full,
+            f"trial-{i:02d}",
+            "trial",
+            score,
+            accuracy=[score - 0.1, score],
+        )
+        run = t.run.model_copy(
+            update={"status": status, "params": params, "start_time": i}
+        )
+        runs.append(t.model_copy(update={"run": run}))
+    return [with_idea(r, attrs) for r in runs]
+
+
+def with_attrs(s, **attrs):
+    """`s` with `attrs` added to its run's user attrs."""
+    run = s.run.model_copy(update={"attrs": {**s.run.attrs, **attrs}})
+    return s.model_copy(update={"run": run})
+
+
+def rehearsal():
+    """The plan of the rehearsal: a1 and b2 on the course's idea, b1 on a1, c1 on b2, c2 a
+    merge of b1 and c1, d1 on c1."""
+    a1 = idea_attrs("a", "does a wider head still help", [ROOT["idea_name"]])
+    b2 = idea_attrs("b", "skip or gate, which one carries it", [ROOT["idea_name"]])
+    b1 = idea_attrs("b", "a second layer on the wide head", [a1["idea_name"]])
+    c1 = idea_attrs("c", "the skip with a lower learning rate", [b2["idea_name"]])
+    c2 = idea_attrs(
+        "c", "wide and deep with the skip", [b1["idea_name"], c1["idea_name"]]
+    )
+    d1 = idea_attrs("d", "input noise on the skip head", [c1["idea_name"]])
+    runs = [
+        with_idea(
+            sub("a", "lesson1-notebook-runs", "baseline", "baseline", 0.70, std=0.01),
+            ROOT,
+        )
+    ]
+    for student, name, attrs, final in (
+        ("a", "a-wide", a1, 0.75), ("b", "b-skip", b2, 0.74), ("b", "b-deep", b1, 0.755),
+        ("c", "c-lr", c1, 0.76), ("c", "c-both", c2, 0.80), ("d", "d-noise", d1, 0.70),
+    ):  # fmt: skip
+        runs += study_runs(student, name, attrs, 0.70, final, expects=f"{name} pays")
+    return runs, {"a1": a1, "b2": b2, "b1": b1, "c1": c1, "c2": c2, "d1": d1}
+
+
+def test_an_idea_stands_one_column_right_of_its_furthest_parent():
+    runs, named = rehearsal()
+    df = class_analysis.runs_frame(runs)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df)).set_index("name")
+    rounds = {k: ids.loc[v["idea_name"], "round"] for k, v in named.items()}
+    assert rounds == {"a1": 1, "b2": 1, "b1": 2, "c1": 2, "c2": 3, "d1": 3}
+    assert ids.loc[ROOT["idea_name"], "round"] == 0
+    assert ids.loc[named["c2"]["idea_name"], "expects"] == "c-both pays"
+    eds = class_analysis.edges(ids.reset_index())
+    assert len(eds) == 7 and eds.number.sum() == 5  # the two from the course carry none
+
+
+def test_an_arrow_carries_the_childs_winner_on_its_parents_and_says_whether_it_counts():
+    runs, named = rehearsal()
+    df = class_analysis.runs_frame(runs)
+    eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
+    arrow = eds.set_index(["parent", "child"])
+    se = math.sqrt(2 * 0.01**2 / 3)  # two winners of three repeats, spread 0.01
+
+    def at(parent, child):
+        return arrow.loc[(named[parent]["idea_name"], named[child]["idea_name"])]
+
+    inside = at("a1", "b1")  # 0.755 on 0.75
+    assert inside.diff_pt == pytest.approx(0.5) and inside.verdict == "inside"
+    assert inside.sigma == pytest.approx(0.005 / se)
+    assert inside.band_pt == pytest.approx(200 * se)
+    assert at("c1", "c2").verdict == "better"  # 0.80 on 0.76
+    worse = at("c1", "d1")  # 0.70 on 0.76
+    assert worse.diff_pt == pytest.approx(-6.0) and worse.verdict == "worse"
+    course = arrow.loc[(ROOT["idea_name"], named["a1"]["idea_name"])]
+    assert not course.number and "handed-out" in course.why
+
+
+GHOST_CHILD = idea_attrs("dave", "on a parent nobody sent", ["plaid-eagle-75"])
+
+
+def test_an_arrow_between_datasets_or_metrics_or_from_a_lost_parent_has_no_number():
+    alice = idea_attrs("alice", "does depth still help", [ROOT["idea_name"]])
+    on_beats = idea_attrs("bob", "depth on another dataset", [alice["idea_name"]])
+    on_recall = idea_attrs("carol", "depth read on recall", [alice["idea_name"]])
+    runs = study_runs("alice", "alice-a", alice, 0.7, 0.8)
+    runs += [
+        with_attrs(r, dataset="beats")
+        for r in study_runs("bob", "bob-b", on_beats, 0.7, 0.8)
+    ]
+    runs += study_runs(
+        "carol", "carol-c", on_recall, 0.7, 0.8, objective="macro_recall"
+    )
+    runs = [
+        with_attrs(r, metrics={"accuracy": r.run.value, "macro_recall": r.run.value})
+        for r in runs
+    ]
+    runs += study_runs("dave", "dave-d", GHOST_CHILD, 0.7, 0.8)
+    df = class_analysis.runs_frame(runs)
+    eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
+    why = dict(zip(eds.child, eds.why, strict=True))
+    assert not eds.number.any()
+    assert why[on_beats["idea_name"]].startswith("different datasets")
+    assert why[on_recall["idea_name"]].startswith("different metrics")
+    assert "not among the submissions" in why[GHOST_CHILD["idea_name"]]
+
+
+def test_the_window_shows_the_idea_its_parents_and_the_class_faded():
+    runs, named = rehearsal()
+    df = class_analysis.runs_frame(runs)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    eds = class_analysis.edges(ids)
+    bars = class_analysis.gain_rows(ids, eds, named["c2"]["idea_name"])
+    assert bars[0]["label"] == "vs its baseline"
+    assert sorted(b["label"] for b in bars[1:3]) == ["vs b", "vs c"]
+    assert bars[0]["value"] == pytest.approx(10.0) and not bars[0]["faded"]
+    assert [b["faded"] for b in bars[3:]] == [True, True, True]  # the other arrows
+    everyone = class_analysis.gain_rows(ids, eds)
+    assert len(everyone) == 5 and not any(b["faded"] for b in everyone)
+    ps = class_analysis.panels(df, ids, eds)
+    assert set(ps) == {"", *ids.name}
+    assert "expected: c-both pays" in ps[named["c2"]["idea_name"]]["head"]
+
+
+def test_the_window_draws_the_trials_of_the_study_with_the_best_finished_one_as_winner():
+    alice = idea_attrs("alice", "does depth still help", [ROOT["idea_name"]])
+    runs = study_runs(
+        "alice", "alice-a", alice, 0.7, 0.8, searched_axes="hidden_dim,lr",
+        trials=[(0.78, "COMPLETE", {"lr": 1e-3, "hidden_dim": 64}),
+                (0.90, "PRUNED", {"lr": 1e-2, "hidden_dim": 128}),
+                (0.81, "COMPLETE", {"lr": 1e-4, "hidden_dim": 1024})],
+    )  # fmt: skip
+    df = class_analysis.runs_frame(runs)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    trials = class_analysis.idea_trials(df, ids, alice["idea_name"])
+    assert list(trials.score[trials.winner]) == [0.81]  # a pruned trial never wins
+    assert trials.curve.iloc[0] == pytest.approx([0.68, 0.78])
+    values, labels = class_analysis.scaled(trials, ["hidden_dim", "lr"])
+    assert len(values) == 2  # the finished trials
+    assert [a for a, _, _ in labels] == ["hidden_dim", "lr", "score"]
+    assert values.lr.tolist() == [1.0, 0.0] and values.hidden_dim.tolist() == [0.0, 1.0]
+    one = class_analysis.scaled(trials[trials.winner], ["lr"])[0]
+    assert one.lr.tolist() == [0.5]  # one trial sits in the middle
+    assert class_analysis.shared_axes(ids) == ["hidden_dim", "lr"]
+
+
+def test_the_tiles_count_ideas_rounds_and_building_on_a_classmate():
+    runs, _ = rehearsal()
+    df = class_analysis.runs_frame(runs)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    tiles = class_analysis.class_tiles(df, ids, class_analysis.edges(ids), "accuracy")
+    assert "<b>6</b><span>ideas, in 3 rounds</span>" in tiles
+    # b1 on a1, c1 on b2, c2 on b1, d1 on c1; c2 on c's own c1 is no classmate's
+    assert "<b>4</b><span>times built on a classmate</span>" in tiles
+    assert "<b>0.800</b><span>best so far (baseline 0.700)</span>" in tiles
+
+
+def test_a_class_with_only_studies_of_its_own_says_what_is_missing():
+    alice = idea_attrs("alice", "does depth still help", [ROOT["idea_name"]])
+    df = class_analysis.runs_frame(study_runs("alice", "alice-a", alice, 0.7, 0.8))
+    page = class_analysis.build_page(df, 1)
+    assert page.count("No run of the handed-out notebook was submitted") == 3
+    assert "id='panels'" in page and "not among the submissions" in page
+
+
+def test_the_demo_keeps_a_merge_a_missing_parent_and_curves():
+    from class_demo import demo_submissions  # ty: ignore[import-not-found]
+
+    df = class_analysis.runs_frame(demo_submissions())
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    assert (ids.parents.map(len) == 2).any()
+    assert ids.missing.map(bool).any()
+    assert (ids[ids.author != "course"].expects != "").all()
+    assert df[df.role == "trial"].curve.map(bool).all()
+    assert class_analysis.edges(ids).number.any()

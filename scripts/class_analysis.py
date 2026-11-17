@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import math
 import os
 import re
@@ -47,7 +48,7 @@ from plotly.subplots import make_subplots
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from run_submission import COURSE, Submission, explain, idea_parents
+from run_submission import COURSE, Submission, explain, idea_parents, is_number
 
 COURSE_ROOT = Path(__file__).resolve().parents[1]
 METRIC = "accuracy"
@@ -126,15 +127,30 @@ def metric_names(subs: Iterable[Submission]) -> list[str]:
     return sorted(seen, key=lambda n: ("/" in n, n))
 
 
+def curve_of(sub: Submission, metric: str) -> list[float] | None:
+    """`metric` after every epoch of a run: the curve a trial logs as the user attr of
+    that name, or, for a trial of a search on `metric`, the values it reported per
+    epoch. None for a run without one."""
+    attrs = sub.run.attrs
+    logged = attrs.get(metric)
+    if isinstance(logged, list) and logged and all(is_number(v) for v in logged):
+        return [float(v) for v in logged]
+    if attrs.get("role") == "trial" and metric == sub.objective():
+        return [p.value for p in sub.run.intermediate] or None
+    return None
+
+
 def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame:
     """One row per submitted run, with the params as `p_<name>` columns. `score` and
     `std` are `metric` (a scalar such as `macro_recall`, or one class as `recall/F`) and
-    its spread between runs; a run that does not log it has no score."""
+    its spread between runs, `curve` the metric per epoch; a run that does not log it
+    has no score."""
     rows = []
     for sub in subs:
         run = sub.run
         attrs = run.attrs
         study_attrs = run.study.attrs
+        budget = study_attrs.get("budget")
         row = {
             "student": sub.student,
             "lesson": sub.lesson,
@@ -163,9 +179,13 @@ def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame
             "idea_name": word(study_attrs.get("idea_name")),
             "idea_author": word(study_attrs.get("idea_author")),
             "idea_parents": word(study_attrs.get("idea_parents")),
+            "expects": word(study_attrs.get("expects")),
+            "budget": budget if isinstance(budget, dict) else None,
+            "curve": curve_of(sub, metric),
             "epochs_run": len(run.intermediate),
             "start": run.start_time,
             "design": "design.py" in run.artifacts,
+            "design_script": word(run.artifacts.get("design.py")) or None,
         }
         row.update({f"p_{k}": v for k, v in run.params.items()})
         # a trial's fixed axes (the dataset, ...) are in its config, not its params
@@ -220,10 +240,13 @@ def comparisons(df: pd.DataFrame) -> pd.DataFrame:
                 "student": student,
                 "study": study,
                 "dataset": f.dataset,
+                "objective": f.objective,
                 "base": b.score,
                 "base_std": b["std"],
+                "base_n": b["n"],
                 "final": f.score,
                 "final_std": f["std"],
+                "final_n": f["n"],
                 "gain_pt": 100 * gain,
                 "sigma": sigma(f, b),
                 "best_trial": best,
@@ -282,9 +305,31 @@ def links(df: pd.DataFrame) -> pd.DataFrame:
 
 
 IDEA_COLUMNS = [
-    "name", "idea", "author", "parents", "missing", "students", "n_runs", "study",
-    "base", "final", "gain_pt", "sigma", "verdict",
+    "name", "idea", "author", "parents", "missing", "students", "n_runs", "student",
+    "study", "dataset", "objective", "base", "base_std", "base_n", "final", "final_std",
+    "final_n", "gain_pt", "sigma", "verdict", "expects", "budget", "axes", "round",
 ]  # fmt: skip
+
+
+def number(value: object) -> float:
+    """`value` as a float; NaN for anything that is not a finite number."""
+    try:
+        out = float(value)  # ty: ignore[invalid-argument-type]
+    except (TypeError, ValueError):
+        return float("nan")
+    return out if math.isfinite(out) else float("nan")
+
+
+def standard_error(*runs: tuple[object, object]) -> float:
+    """The pooled standard error of the means of `runs`, each (spread, repeats); NaN
+    when one of them has no spread."""
+    total = 0.0
+    for std, n in runs:
+        s, k = number(std), number(n)
+        if math.isnan(s) or math.isnan(k) or k <= 0:
+            return float("nan")
+        total += s**2 / k
+    return math.sqrt(total) if total > 0 else float("nan")
 
 
 def verdict(sig: float | None) -> str:
@@ -297,14 +342,36 @@ def verdict(sig: float | None) -> str:
     return "worse" if sig <= -2 else "inside"
 
 
+# What an idea's row takes from the study that stands for it, when it has a result.
+RESULT = (
+    "base",
+    "base_std",
+    "base_n",
+    "final",
+    "final_std",
+    "final_n",
+    "gain_pt",
+    "sigma",
+)
+
+
+def first_of(values: Iterable[object], kind: type) -> object | None:
+    """The first of `values` that is a non-empty `kind`."""
+    return next((v for v in values if isinstance(v, kind) and v), None)
+
+
 def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
     """One row per idea of the class: its name, words, author, parents (the names it
     builds on; `missing` those not among the submissions), the students who ran it and
-    their number of runs, and its result where `comparisons` has one for a study of the
-    idea: the final against the baseline, in points and in sigmas. An idea searched in
-    several studies shows the one with the most trials. An idea is its name, so the
-    handed-out idea of author `course` is one row for the whole class; it has no result
-    of its own, the class's baselines and pooled search are its outcome."""
+    their number of runs, its round (the column of the graph, `idea_layout`), and the
+    study that stands for it: the one `comparisons` has with the most trials, or else
+    the one with the most trials. Of that study: its result (the winner against its own
+    baseline, in points and in sigmas, both with their spread and repeats), its dataset
+    and objective, what its author `expects`, its `budget` and the axes it searched.
+
+    An idea is its name, so the handed-out idea of author `course` is one row for the
+    whole class; it has no result of its own, the class's baselines and pooled search
+    are its outcome, and its axes are those of the handed-out search."""
     if df.empty or "idea_name" not in df:
         return pd.DataFrame(columns=IDEA_COLUMNS)
     carried = df[df.idea_name.astype(bool)]
@@ -326,6 +393,19 @@ def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
         first = group.iloc[0]
         parents = idea_parents(first.idea_parents)
         c = result.get(str(name))
+        if c is not None:
+            student, study = c.student, c.study
+        else:
+            own = group[group.study.map(lambda s: isinstance(s, str))]
+            counts = own[own.role == "trial"].groupby(["student", "study"]).size()
+            if counts.empty:
+                counts = own.groupby(["student", "study"]).size()
+            student, study = counts.idxmax() if len(counts) else (None, None)
+        if study is None:
+            ran = group[(group.origin == "notebook") & (group.role == "trial")]
+        else:
+            ran = group[(group.student == student) & (group.study == study)]
+        axes = first_of(ran.searched_axes, str)
         out.append(
             {
                 "name": name,
@@ -335,16 +415,78 @@ def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
                 "missing": [p for p in parents if p not in names],
                 "students": sorted(group.student.unique()),
                 "n_runs": len(group),
-                "study": None if c is None else c.study,
-                "base": np.nan if c is None else c.base,
-                "final": np.nan if c is None else c.final,
-                "gain_pt": np.nan if c is None else c.gain_pt,
-                "sigma": np.nan if c is None else c.sigma,
+                "student": student,
+                "study": study,
+                "dataset": None if c is None else c.dataset,
+                "objective": None if c is None else c.objective,
+                **{key: np.nan if c is None else getattr(c, key) for key in RESULT},
                 "verdict": verdict(None if c is None else c.sigma),
+                "expects": first_of(ran.expects, str) or "",
+                "budget": first_of(ran.budget, dict),
+                "axes": str(axes).split(",") if axes else [],
             }
         )
     out.sort(key=lambda r: (r["author"] != COURSE, r["author"], r["name"]))
-    return pd.DataFrame(out, columns=IDEA_COLUMNS)
+    frame = pd.DataFrame(out, columns=IDEA_COLUMNS)
+    place = idea_layout(frame)
+    frame["round"] = [place[n][0] for n in frame.name]
+    return frame
+
+
+EDGE_COLUMNS = [
+    "parent", "child", "parent_author", "child_author", "diff_pt", "band_pt", "sigma",
+    "verdict", "number", "why",
+]  # fmt: skip
+
+
+def edges(ids: pd.DataFrame) -> pd.DataFrame:
+    """One row per arrow of the graph, from a parent to the idea that builds on it. The
+    number on it, `diff_pt`, is the child's winner minus the parent's winner in points;
+    `sigma` is that difference in pooled standard errors of the two winners' repeats,
+    `band_pt` two of those standard errors in points, and `verdict` reads `sigma` as
+    `verdict` does. An arrow has no number (`number` False, `why` says why) from a
+    parent that is not submitted, from the course's idea (the child's box holds its
+    winner against that baseline already), from or to an idea without a winner, and
+    between winners of different datasets or metrics."""
+    by = {r.name: r for r in rows(ids)}
+    out = []
+    for child in rows(ids):
+        for p in child.parents:
+            parent = by.get(p)
+            row = {
+                "parent": p, "child": child.name, "child_author": child.author,
+                "parent_author": None if parent is None else parent.author,
+                "diff_pt": np.nan, "band_pt": np.nan, "sigma": np.nan,
+                "verdict": "unmeasured", "number": False, "why": "",
+            }  # fmt: skip
+            if parent is None:
+                row["why"] = "the parent is not among the submissions"
+            elif parent.author == COURSE:
+                row["why"] = (
+                    "the handed-out idea: the box holds the gain on its baseline"
+                )
+            elif math.isnan(number(parent.final)) or math.isnan(number(child.final)):
+                row["why"] = "no winner against a baseline on both ends"
+            elif parent.dataset != child.dataset:
+                row["why"] = f"different datasets ({parent.dataset}, {child.dataset})"
+            elif parent.objective != child.objective:
+                row["why"] = (
+                    f"different metrics ({parent.objective}, {child.objective})"
+                )
+            else:
+                diff = child.final - parent.final
+                se = standard_error(
+                    (child.final_std, child.final_n), (parent.final_std, parent.final_n)
+                )
+                row.update(
+                    diff_pt=100 * diff,
+                    band_pt=200 * se,
+                    sigma=diff / se,
+                    verdict=verdict(diff / se),
+                    number=True,
+                )
+            out.append(row)
+    return pd.DataFrame(out, columns=EDGE_COLUMNS)
 
 
 def rows(df: pd.DataFrame) -> list[SimpleNamespace]:
@@ -597,13 +739,31 @@ AUTHOR_COLORS = [
     "#2f6f9f",
 ]  # fmt: skip
 VERDICT_STYLE = {  # border colour, border width, mark
-    "better": (GAIN, 3.0, "▲"),
-    "worse": (LOSS, 3.0, "▼"),
+    "better": (GAIN, 2.5, "▲"),
+    "worse": (LOSS, 2.5, "▼"),
     "inside": (MUTED, 1.5, "≈"),
     "unmeasured": ("#c9ced6", 1.0, ""),
 }
-LAYER_PX, BOX_PX = 250, 186  # the width of a layer, and of a box in it
-ROW_PX, BOX_H_PX = 100, 80  # the height of a row, and of a box in it
+ARROW_STYLE = {  # colour, width
+    "better": (GAIN, 3.0),
+    "worse": (LOSS, 3.0),
+    "inside": ("#9aa1ab", 1.8),
+    "unmeasured": ("#9aa1ab", 1.8),
+}
+SELECTED = "#b0452f"
+LAYER_PX, BOX_PX = 280, 230  # the width of a column, and of a box in it
+ROW_PX, BOX_H_PX = 150, 116  # the height of a row, and of a box in it
+HEAD_PX = 30  # the column titles above the boxes
+PAD_PX = 3  # room for a selected box's border
+
+
+def signed(value: float, digits: int = 1) -> str:
+    """`value` with its sign, a minus sign rather than a hyphen; no sign on a value that
+    rounds to zero."""
+    text = f"{value:+.{digits}f}"
+    if float(text) == 0:
+        return f"{0:.{digits}f}"
+    return text.replace("-", "−")
 
 
 def tint(color: str, alpha: float) -> str:
@@ -666,9 +826,21 @@ def idea_layout(ids: pd.DataFrame) -> dict[str, tuple[int, float]]:
             return centre, author != COURSE, author, name
 
         group = sorted(layers[d], key=key)
-        offset = (widest - len(group)) / 2
-        for i, name in enumerate(group):
-            place[name] = (d, offset + i)
+        targets = [key(name)[0] for name in group]
+        ys: list[float] = []
+        if all(t < 0 for t in targets):
+            offset = (widest - len(group)) / 2
+            ys = [offset + i for i in range(len(group))]
+        else:
+            # by its parents, one row apart, the group centred on where it wants to be
+            for t in targets:
+                ys.append(max(t, ys[-1] + 1) if ys else max(t, 0.0))
+            known = [t for t in targets if t >= 0]
+            shift = sum(known) / len(known) - sum(ys) / len(ys)
+            ys = [y + shift for y in ys]
+            ys = [y - min(0.0, ys[0]) for y in ys]
+        for name, y in zip(group, ys, strict=True):
+            place[name] = (d, y)
     return place
 
 
@@ -691,15 +863,34 @@ def name_lines(name: str, width: int = 27) -> list[str]:
     return [name[: at + 1], name[at + 1 :]]
 
 
+def score_line(r: SimpleNamespace) -> tuple[str, str]:
+    """The last line of an idea's box, and its colour: the winner against its own
+    baseline, in points and sigmas."""
+    if r.verdict == "unmeasured" and math.isnan(number(r.gain_pt)):
+        return "no winner against a baseline yet", MUTED
+    border, _, mark = VERDICT_STYLE[r.verdict]
+    sig = "" if math.isnan(number(r.sigma)) else f" · {r.sigma:.1f}σ"
+    text = f"{r.final:.3f} · {mark} {signed(r.gain_pt)} pt{sig}".replace("·  ", "· ")
+    return text, (border if r.verdict in ("better", "worse") else MUTED)
+
+
 def fig_ideas(
-    ids: pd.DataFrame, elsewhere: Mapping[str, int] | None = None
+    ids: pd.DataFrame,
+    eds: pd.DataFrame | None = None,
+    elsewhere: Mapping[str, int] | None = None,
+    root_score: str = "",
 ) -> go.Figure:
     """The ideas of the class as a graph: one box per idea, an arrow from each parent to
-    the idea that builds on it, in layers by depth from the course's root on the left.
-    The colour says whose idea it is, the border what it gave against its baseline. A
-    parent that is not among the submissions is an open, dashed box; `elsewhere` names
-    the lesson of a parent that is an idea of another lesson."""
+    the idea that builds on it, in columns by the longest path from the course's idea on
+    the left (`idea_layout`). A box holds the idea's name, author, words, what its author
+    expected, and its winner against its own baseline (`root_score` for the course's
+    idea); its colour says whose idea it is, its border what the winner gave. An arrow
+    carries the number of `edges`. A parent that is not among the submissions is an
+    open, dashed box; `elsewhere` names the lesson of a parent that is an idea of
+    another lesson. Every box answers a click with its name (the markers' customdata),
+    and the annotation `selected` waits, hidden, for the page to place it."""
     elsewhere = elsewhere or {}
+    eds = edges(ids) if eds is None else eds
     fig = go.Figure()
     if ids.empty:
         return style(fig, 160)
@@ -708,7 +899,8 @@ def fig_ideas(
     n_layers = 1 + max(d for d, _ in place.values())
     n_rows = max(math.ceil(y + 1) for _, y in place.values())
     bw, bh = BOX_PX / LAYER_PX, BOX_H_PX / ROW_PX
-    line = 15  # px between the lines of a box's text
+    px, py_ = 1 / LAYER_PX, 1 / ROW_PX  # one pixel across, one down
+    submitted = set(ids.name)
 
     def box(name: str, **kw) -> None:
         d, y = place[name]
@@ -717,71 +909,101 @@ def fig_ideas(
             name=name, **kw,
         )  # fmt: skip
 
+    def text_in(name: str, lines: list[str], color: str = INK) -> None:
+        d, y = place[name]
+        fig.add_annotation(
+            x=d - bw / 2 + 14 * px, y=y - bh / 2 + 9 * py_, xanchor="left",
+            yanchor="top", text="<br>".join(lines), align="left", showarrow=False,
+            font={"size": 11.5, "color": color},
+        )  # fmt: skip
+
+    for d in range(n_layers):
+        fig.add_annotation(
+            x=d - bw / 2, y=1, xref="x", yref="paper", xanchor="left", yanchor="bottom",
+            text="HANDED OUT" if d == 0 else f"ROUND {d}", showarrow=False,
+            font={"size": 12, "color": MUTED},
+        )  # fmt: skip
+    for e in rows(eds):
+        (pd_, py), (cd, cy) = place[e.parent], place[e.child]
+        color, width = ARROW_STYLE[e.verdict if e.number else "unmeasured"]
+        fig.add_annotation(
+            x=cd - bw / 2, y=cy, ax=pd_ + bw / 2, ay=py, xref="x", yref="y",
+            axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.1,
+            arrowwidth=width, arrowcolor=color, text="", name=f"{e.parent}->{e.child}",
+            standoff=2,
+        )  # fmt: skip
+        if e.number:
+            mark = VERDICT_STYLE[e.verdict][2]
+            sig = "" if math.isnan(e.sigma) else f", {e.sigma:+.1f} σ"
+            fig.add_annotation(
+                x=(pd_ + bw / 2 + cd - bw / 2) / 2, y=(py + cy) / 2, yshift=10,
+                text=f"<b>{mark} {signed(e.diff_pt)}</b>".replace("<b> ", "<b>"),
+                showarrow=False, bgcolor="rgba(255,255,255,0.9)",
+                font={"size": 11.5, "color": color if e.verdict != "inside" else MUTED},
+                hovertext=plain(f"{e.diff_pt:+.2f} pt on its parent's winner{sig}"),
+                name=f"label:{e.parent}->{e.child}",
+            )  # fmt: skip
     for r in rows(ids):
         color = colors.get(r.author, COURSE_TONE)
-        border, width, mark = VERDICT_STYLE[r.verdict]
+        border, width, _ = VERDICT_STYLE[r.verdict]
         d, y = place[r.name]
         box(r.name, fillcolor=tint(color, 0.14), line={"color": border, "width": width})
         fig.add_shape(
-            type="rect", x0=d - bw / 2, x1=d - bw / 2 + 6 / LAYER_PX,
+            type="rect", x0=d - bw / 2, x1=d - bw / 2 + 5 * px,
             y0=y - bh / 2, y1=y + bh / 2, fillcolor=color, line_width=0,
             name=f"stripe:{r.name}",
         )  # fmt: skip
-        name = name_lines(r.name)
-        words = cut(r.idea, 30, 3 - len(name))
-        size = 12 if len(r.name) <= 22 else 10.5
-        text = [
-            *(
-                f"<span style='font-size:{size}px'><b>{html.escape(n)}</b></span>"
-                for n in name
-            ),
-            f"<span style='color:{color}'>{html.escape(r.author)}</span>",
-            *(html.escape(w) for w in words),
-        ]
-        fig.add_annotation(
-            x=d - bw / 2 + 12 / LAYER_PX, y=y, xanchor="left", yanchor="middle",
-            text="<br>".join(text), align="left", showarrow=False,
-            font={"size": 11, "color": INK},
-        )  # fmt: skip
-        if r.verdict != "unmeasured":
-            fig.add_annotation(
-                x=d + bw / 2 - 8 / LAYER_PX, y=y, xanchor="right", yanchor="middle",
-                yshift=(len(text) / 2 - len(name) - 0.5) * line,  # the author's line
-                text=f"<b>{mark} {r.gain_pt:+.1f} pt</b>", showarrow=False,
-                font={"size": 11, "color": border if r.verdict != "inside" else MUTED},
-            )  # fmt: skip
+        names = name_lines(r.name)
+        words = cut(r.idea, 34, 2)
+        room = 7 - len(names) - len(words) - 2
+        if r.author == COURSE:
+            said = []
+            last, last_color = root_score, MUTED
+        else:
+            said = (
+                cut(f"expected: {r.expects}", 35, min(2, room))
+                if r.expects
+                else ["expected: not said"]
+            )
+            last, last_color = score_line(r)
+        text_in(
+            r.name,
+            [
+                *(f"<b>{html.escape(n)}</b>" for n in names),
+                f"<span style='color:{color}'><b>{html.escape(r.author)}</b></span>",
+                *(html.escape(w) for w in words),
+                *(f"<i style='color:{MUTED}'>{html.escape(s)}</i>" for s in said),
+                f"<b style='color:{last_color}'>{html.escape(last)}</b>",
+            ],
+        )
     for name in place:
-        if name in set(ids.name):
+        if name in submitted:
             continue
-        d, y = place[name]
         box(
             name, fillcolor="white", line={"color": MUTED, "width": 1.2, "dash": "dash"}
         )
-        fig.add_annotation(
-            x=d - bw / 2 + 12 / LAYER_PX, y=y, xanchor="left", yanchor="middle",
-            text="<br>".join(f"<b>{html.escape(n)}</b>" for n in name_lines(name))
-            + (
-                f"<br><i>an idea of lesson {elsewhere[name]}</i>"
-                if name in elsewhere
-                else "<br><i>not among the submissions</i>"
-            ),
-            align="left", showarrow=False, font={"size": 11, "color": MUTED},
-        )  # fmt: skip
-    for r in rows(ids):
-        for p in r.parents:
-            (pd_, py), (cd, cy) = place[p], place[r.name]
-            fig.add_annotation(
-                x=cd - bw / 2, y=cy, ax=pd_ + bw / 2, ay=py, xref="x", yref="y",
-                axref="x", ayref="y", showarrow=True, arrowhead=2, arrowsize=1.1,
-                arrowwidth=1.4, arrowcolor="#9aa1ab", text="", name=f"{p}->{r.name}",
-                standoff=2,
-            )  # fmt: skip
-    # invisible marks across each box carry the hover
+        where = (
+            f"an idea of lesson {elsewhere[name]}"
+            if name in elsewhere
+            else "not among the submissions"
+        )
+        text_in(
+            name,
+            [
+                *(f"<b>{html.escape(n)}</b>" for n in name_lines(name)),
+                f"<i>{where}</i>",
+            ],
+            MUTED,
+        )
+    fig.add_annotation(
+        x=0, y=0, yshift=8, yanchor="bottom", text="<b>selected</b>", showarrow=False,
+        font={"size": 11, "color": SELECTED}, visible=False, name="selected",
+    )  # fmt: skip
+    # invisible marks across each box carry the hover and the click
     hover = []
     for r in rows(ids):
-        d, y = place[r.name]
         if r.author == COURSE:
-            res = "handed out: its baselines and its search are in the sections above"
+            res = "handed out: its baselines and its search are further down"
         elif r.verdict == "unmeasured":
             res = "no baseline against final measured"
         else:
@@ -796,31 +1018,527 @@ def fig_ideas(
             f"ran by {len(r.students)}: " + plain(", ".join(r.students)),
             f"{r.n_runs} runs",
             html.escape(res),
+            "click: show this idea in the window below",
         ]
-        for dx in (-0.3, 0.0, 0.3):
-            hover.append((d + dx * bw, y, "<br>".join(parts)))
+        hover.append((r.name, "<br>".join(parts)))
     for name in place:
-        if name not in set(ids.name):
-            d, y = place[name]
-            text = (
-                f"<b>{html.escape(name)}</b><br>an idea of lesson {elsewhere[name]}"
-                if name in elsewhere
-                else f"<b>{html.escape(name)}</b><br>named as a parent, not submitted"
+        if name not in submitted:
+            hover.append(
+                (
+                    name,
+                    f"<b>{html.escape(name)}</b><br>an idea of lesson {elsewhere[name]}"
+                    if name in elsewhere
+                    else f"<b>{html.escape(name)}</b><br>named as a parent, not submitted",
+                )
             )
-            hover += [(d + dx * bw, y, text) for dx in (-0.3, 0.0, 0.3)]
-    xs, ys, texts = zip(*hover, strict=True)
+    marks = [
+        (place[n][0] + dx * bw, place[n][1] + dy * bh, text, n)
+        for n, text in hover
+        for dx in (-0.36, -0.12, 0.12, 0.36)
+        for dy in (-0.22, 0.22)
+    ]
+    xs, ys, texts, ns = zip(*marks, strict=True)
     fig.add_scatter(
-        x=xs, y=ys, mode="markers", text=texts, hovertemplate="%{text}<extra></extra>",
-        marker={"size": 60, "symbol": "square", "color": "rgba(0,0,0,0)"},
+        x=xs, y=ys, mode="markers", text=texts, customdata=ns,
+        hovertemplate="%{text}<extra></extra>",
+        marker={"size": 54, "symbol": "square", "color": "rgba(0,0,0,0)"},
         showlegend=False,
     )  # fmt: skip
-    fig.update_xaxes(range=[-0.5, n_layers - 0.5], visible=False, fixedrange=True)
+    pad = (bw / 2) + PAD_PX * px
+    fig.update_xaxes(range=[-pad, n_layers - 1 + pad], visible=False, fixedrange=True)
     fig.update_yaxes(range=[n_rows - 0.5, -0.5], visible=False, fixedrange=True)
-    margin = {"l": 10, "r": 10, "t": 10, "b": 10}
+    width = (n_layers - 1) * LAYER_PX + BOX_PX + 2 * PAD_PX
+    margin = {"l": 0, "r": 0, "t": HEAD_PX, "b": 6}
     return style(
-        fig, ROW_PX * n_rows + 20, width=LAYER_PX * n_layers + 20, margin=margin,
-        hovermode="closest", hoverlabel={"align": "left"},
+        fig, ROW_PX * n_rows + HEAD_PX + 6, width=width, margin=margin,
+        hovermode="closest", hoverlabel={"align": "left"}, dragmode=False,
     )  # fmt: skip
+
+
+# ---- the window: one experiment, or the whole class ------------------------------------
+
+
+def idea_trials(df: pd.DataFrame, ids: pd.DataFrame, name: str) -> pd.DataFrame:
+    """The trials of the study that stands for the idea `name` (the pooled handed-out
+    search for the course's idea), in the order they ran, with a column `winner`: True
+    for the finished trial with the best score."""
+    [r] = rows(ids[ids.name == name])
+    if df.empty:
+        return df.assign(winner=pd.Series(dtype=bool))
+    trial = (df.idea_name == name) & (df.role == "trial")
+    if not isinstance(r.study, str):  # the course's idea has no study of its own
+        sel = df[trial & (df.origin == "notebook")]
+    else:
+        sel = df[trial & (df.student == r.student) & (df.study == r.study)]
+    sel = sel.sort_values("start").reset_index(drop=True)
+    done = sel[(sel.status == "COMPLETE") & sel.score.notna()]
+    winner = done.score.idxmax() if len(done) else None
+    return sel.assign(winner=sel.index == winner)
+
+
+def class_trials(df: pd.DataFrame, ids: pd.DataFrame) -> pd.DataFrame:
+    """The trials of every student's idea (`idea_trials`), with the idea's name and
+    author as `idea_name` and `author`."""
+    parts = [
+        idea_trials(df, ids, r.name).assign(author=r.author)
+        for r in rows(ids)
+        if r.author != COURSE
+    ]
+    parts = [p for p in parts if len(p)]
+    if not parts:
+        return df.iloc[:0].assign(
+            winner=pd.Series(dtype=bool), author=pd.Series(dtype=object)
+        )
+    return pd.concat(parts, ignore_index=True)
+
+
+def shared_axes(ids: pd.DataFrame) -> list[str]:
+    """The axes every student's idea searched, in the order the first one lists them."""
+    lists = [r.axes for r in rows(ids) if r.author != COURSE and r.axes]
+    if not lists:
+        return []
+    return [a for a in lists[0] if all(a in other for other in lists[1:])]
+
+
+def gain_rows(
+    ids: pd.DataFrame, eds: pd.DataFrame, name: str | None = None
+) -> list[dict]:
+    """The bars of the gain picture, top to bottom. For the idea `name`: its winner
+    against its own baseline, then against the winner of each parent the course did not
+    hand out, then every other arrow of the class, `faded`. For the class (`name` None):
+    every arrow that carries a number. Each bar: `label`, `value` and `band` (two
+    standard errors) in points, `verdict`, `text`, and `why` for a bar without a value."""
+    out = []
+
+    def arrow(e: SimpleNamespace, label: str, faded: bool) -> dict:
+        mark = VERDICT_STYLE[e.verdict][2]
+        return {
+            "label": label, "value": e.diff_pt if e.number else np.nan,
+            "band": e.band_pt, "verdict": e.verdict, "faded": faded,
+            "text": f"{mark} {signed(e.diff_pt)}".strip() if e.number else "",
+            "why": "" if e.number else e.why,
+        }  # fmt: skip
+
+    by = {r.name: r for r in rows(ids)}
+    mine = []
+    if name is not None:
+        r = by[name]
+        if r.author != COURSE:
+            band = 200 * standard_error(
+                (r.base_std, r.base_n), (r.final_std, r.final_n)
+            )
+            sig = "" if math.isnan(number(r.sigma)) else f" · {r.sigma:.1f}σ"
+            measured = not math.isnan(number(r.gain_pt))
+            out.append(
+                {
+                    "label": "vs its baseline",
+                    "value": r.gain_pt if measured else np.nan,
+                    "band": band, "verdict": r.verdict, "faded": False,
+                    "text": f"{signed(r.gain_pt)}{sig}" if measured else "",
+                    "why": "" if measured else "no winner against a baseline yet",
+                }
+            )  # fmt: skip
+        mine = [e for e in rows(eds) if e.child == name and e.parent_author != COURSE]
+        for e in mine:
+            parent = by.get(e.parent)
+            label = (
+                f"vs {parent.author}"
+                if parent is not None
+                else f"vs {cut(e.parent, 16, 1)[0]}"
+            )
+            bar = arrow(e, label, False)
+            if parent is None:
+                bar["why"] = "not submitted"
+            out.append(bar)
+    shown = {(e.parent, e.child) for e in mine}
+    for e in rows(eds):
+        if e.number and (e.parent, e.child) not in shown:
+            out.append(
+                arrow(e, f"{e.parent_author} → {e.child_author}", name is not None)
+            )
+    return out
+
+
+def fits(value: float, reach: float, text: str, plot_px: float = 160) -> bool:
+    """Whether `text` fits inside a bar of `value` on an axis from -`reach` to `reach`
+    that is at least `plot_px` wide."""
+    return abs(value) / (2 * reach) * plot_px > 6.5 * len(text) + 6
+
+
+def room(values: list[float], bars: list[dict], reach: float) -> list[float]:
+    """The x range of the gain picture: -`reach` to `reach`, wider on the side where a
+    label beside its bar needs the room (on a plot area of 160 px)."""
+    low, high = -reach, reach
+    for v, b in zip(values, bars, strict=True):
+        text = b["text"] or b["why"]
+        k = (6.5 * len(text) + 8) / 160
+        if fits(v, reach, b["text"]) or k >= 0.8:
+            continue
+        if v >= 0:
+            high = max(high, (v - k * low) / (1 - k))
+        else:
+            low = min(low, (v - k * high) / (1 - k))
+    return [low, high]
+
+
+def fig_gain(bars: list[dict], note: str = "") -> go.Figure:
+    """`gain_rows` as horizontal bars in points, each on the grey band of its spread:
+    a bar inside the band is no gain."""
+    fig = go.Figure()
+    n = len(bars)
+    for i, b in enumerate(bars):
+        band = number(b["band"])
+        if not math.isnan(band):
+            fig.add_shape(
+                type="rect", x0=-band, x1=band, y0=i - 0.42, y1=i + 0.42, layer="below",
+                fillcolor="#eef0f3", line_width=0,
+            )  # fmt: skip
+    color = {"better": GAIN, "worse": LOSS}
+    values = [number(b["value"]) for b in bars]
+    fills = [
+        tint(color.get(b["verdict"], "#9aa1ab"), 0.3 if b["faded"] else 1.0)
+        for b in bars
+    ]
+    finite = [abs(v) for v in values if not math.isnan(v)]
+    finite += [number(b["band"]) for b in bars if not math.isnan(number(b["band"]))]
+    reach = max(finite, default=1.0) * 1.5 + 0.6
+    shown = [0 if math.isnan(v) else v for v in values]
+    fig.add_bar(
+        x=shown, y=list(range(n)),
+        orientation="h", marker_color=fills, width=0.55,
+        text=[b["text"] or b["why"] for b in bars],
+        textposition=[
+            "inside" if fits(v, reach, b["text"]) else "outside"
+            for v, b in zip(shown, bars, strict=True)
+        ],
+        insidetextanchor="end", textangle=0, constraintext="none",
+        textfont={"size": 11},
+        outsidetextfont={"size": 11, "color": [MUTED if b["faded"] else INK for b in bars]},
+        insidetextfont={"size": 11, "color": "white"},
+        hovertemplate="%{text}<extra></extra>", cliponaxis=False,
+    )  # fmt: skip
+    if n:
+        fig.add_vline(x=0, line_color=INK, line_width=1)
+    fig.update_yaxes(
+        tickvals=list(range(n)),
+        ticktext=[plain(b["label"]) for b in bars],
+        range=[n - 0.5, -0.5] if n else [0.5, -0.5],
+        showgrid=False, showline=False,
+    )  # fmt: skip
+    fig.update_xaxes(
+        range=room(shown, bars, reach),
+        nticks=5,
+        tickfont={"size": 10},
+        title_text="points",
+        title_font={"size": 11},
+        title_standoff=2,
+    )
+    if not n:
+        empty_note(fig, note or "no arrow carries a number yet")  # the page's own text
+    ticks = [len(b["label"]) for b in bars] or [10]
+    left = min(110, 6 * max(ticks) + 10)
+    return style(
+        fig, 236, margin={"l": left, "r": 10, "t": 6, "b": 40}, showlegend=False
+    )
+
+
+def with_curve(trials: pd.DataFrame) -> pd.DataFrame:
+    """The trials of `trials` that logged a curve."""
+    if trials.empty or "curve" not in trials:
+        return trials.iloc[:0]
+    return trials[
+        trials.curve.map(lambda c: isinstance(c, list) and len(c) > 0).astype(bool)
+    ]
+
+
+def curve_trace(trials: pd.DataFrame) -> tuple[list, list]:
+    """The curves of `trials` as one line with gaps: x the epoch from 1, y the metric."""
+    xs: list = []
+    ys: list = []
+    for c in trials.curve:
+        xs += [*range(1, len(c) + 1), None]
+        ys += [*c, None]
+    return xs, ys
+
+
+def fig_curves(
+    trials: pd.DataFrame,
+    color: str,
+    baseline: tuple[float, float] | None,
+    metric: str = METRIC,
+) -> go.Figure:
+    """The metric after every epoch of every trial in `trials`: the winner bold in
+    `color`, a pruned trial ending in a cross, the baseline with its spread as a band."""
+    fig = go.Figure()
+    has = with_curve(trials)
+    if baseline is not None and len(has):
+        add_baseline(fig, baseline)
+    rest = has[~has.winner]
+    xs, ys = curve_trace(rest)
+    fig.add_scatter(
+        x=xs, y=ys, mode="lines", line={"color": "#9db7d5", "width": 1.2},
+        opacity=0.85, hoverinfo="skip", showlegend=False,
+    )  # fmt: skip
+    stopped = has[has.status == "PRUNED"]
+    fig.add_scatter(
+        x=[len(c) for c in stopped.curve], y=[c[-1] for c in stopped.curve],
+        mode="markers", marker={"symbol": "x-thin", "size": 8, "color": "#6a7280",
+                                "line": {"width": 1.5, "color": "#6a7280"}},
+        hovertemplate="pruned after epoch %{x}<extra></extra>", showlegend=False,
+    )  # fmt: skip
+    best = has[has.winner]
+    xs, ys = curve_trace(best)
+    fig.add_scatter(
+        x=xs, y=ys, mode="lines+markers", line={"color": color, "width": 3},
+        marker={"size": 4, "color": color},
+        hovertemplate="the winner, epoch %{x}: %{y:.4f}<extra></extra>",
+        showlegend=False,
+    )  # fmt: skip
+    if has.empty:
+        empty_note(fig, "no trial of this study logged its curves")
+    fig.update_xaxes(title_text="epoch", title_standoff=2, title_font={"size": 11})
+    return style(fig, 236, margin={"l": 46, "r": 10, "t": 6, "b": 40}, showlegend=False)
+
+
+def fig_class_curves(
+    trials: pd.DataFrame,
+    colors: Mapping[str, str],
+    baseline: tuple[float, float] | None,
+) -> go.Figure:
+    """The winning trial's curve of every student's idea, in its author's colour."""
+    fig = go.Figure()
+    won = with_curve(trials)
+    won = won[won.winner.astype(bool)]
+    if baseline is not None and len(won):
+        add_baseline(fig, baseline)
+    for r in rows(won):
+        fig.add_scatter(
+            x=list(range(1, len(r.curve) + 1)), y=r.curve, mode="lines",
+            line={"color": colors.get(r.author, COURSE_TONE), "width": 2},
+            name=plain(f"{r.author} · {r.idea_name}"),
+            hovertemplate="%{fullData.name}<br>epoch %{x}: %{y:.4f}<extra></extra>",
+        )  # fmt: skip
+    if won.empty:
+        empty_note(fig, "no winner logged its curves")
+    fig.update_xaxes(title_text="epoch", title_standoff=2, title_font={"size": 11})
+    return style(fig, 236, margin={"l": 46, "r": 10, "t": 6, "b": 40}, showlegend=False)
+
+
+def add_baseline(fig: go.Figure, baseline: tuple[float, float]) -> None:
+    score, spread = baseline
+    spread = 0.0 if math.isnan(number(spread)) else spread
+    fig.add_hrect(
+        y0=score - spread, y1=score + spread, fillcolor="#8a8f98", opacity=0.16,
+        line_width=0, layer="below",
+    )  # fmt: skip
+    fig.add_hline(
+        y=score, line_color="#8a8f98", line_dash="dot", line_width=1.2,
+        annotation_text="baseline ± spread", annotation_position="bottom right",
+        annotation_font={"size": 10, "color": "#8a8f98"},
+    )  # fmt: skip
+
+
+def empty_note(fig: go.Figure, text: str) -> None:
+    """`text` in the middle of a picture that has nothing to draw, without its axes."""
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    fig.add_annotation(
+        x=0.5, y=0.5, xref="paper", yref="paper", showarrow=False, text=text,
+        font={"size": 12, "color": MUTED},
+    )  # fmt: skip
+
+
+def scaled(trials: pd.DataFrame, axes: list[str]) -> tuple[pd.DataFrame, list[tuple]]:
+    """The finished trials of `trials` on `axes` and their score, each axis scaled to
+    0..1: a number from its lowest to its highest value (on a log scale when it spans
+    more than a factor 20), a choice spread evenly over its values. With the scaled
+    columns, per axis (name, lowest, highest) as text. An axis no trial carries is left
+    out."""
+    done = trials[(trials.status == "COMPLETE") & trials.score.notna()]
+    out = pd.DataFrame(index=done.index)
+    labels = []
+    for axis in [*axes, "score"]:
+        col = done.get(axis if axis == "score" else f"p_{axis}")
+        if col is None or col.isna().all():
+            continue
+        values = pd.to_numeric(col, errors="coerce")
+        if col.dtype == bool or col.dtype == object or values.isna().any():
+            cats = sorted(col.dropna().astype(str).unique())
+            codes = col.astype(str).map({c: i for i, c in enumerate(cats)})
+            out[axis] = codes / max(len(cats) - 1, 1) if len(cats) > 1 else 0.5
+            labels.append((axis, cats[0], cats[-1]))
+            continue
+        low, high = values.min(), values.max()
+        log = low > 0 and high / low > 20
+        key = np.log10(values) if log else values
+        span = key.max() - key.min()
+        out[axis] = (key - key.min()) / span if span > 0 else 0.5
+        labels.append((axis, tick(low), tick(high)))
+    return out, labels
+
+
+def tick(value: float) -> str:
+    """A number at the end of an axis, short: two digits below 0.01, three above."""
+    return f"{value:.2g}" if abs(value) < 0.01 else f"{value:.3g}"
+
+
+def fig_lines(
+    trials: pd.DataFrame,
+    axes: list[str],
+    metric: str = METRIC,
+    color: str = "#7a5aa6",
+    by: Mapping[str, str] | None = None,
+) -> go.Figure:
+    """Parallel coordinates drawn as lines: one line per finished trial over `axes`,
+    ending in its score, the winner bold in `color`. With `by` (author -> colour) every
+    line takes its author's colour, as the whole class is drawn."""
+    fig = go.Figure()
+    if not axes:
+        empty_note(fig, "the studies share no searched axis")
+        return style(fig, 236, margin={"l": 16, "r": 16, "t": 24, "b": 40})
+    values, labels = scaled(trials, axes)
+    names = [a for a, _, _ in labels]
+    if values.empty or names == ["score"]:
+        empty_note(fig, "no finished trial over the searched axes")
+        return style(fig, 236, margin={"l": 16, "r": 16, "t": 24, "b": 40})
+    xs = list(range(len(names)))
+    winner = trials.winner.reindex(values.index).fillna(False).astype(bool)
+    groups: dict[str, list] = {}
+    for i, v in values.iterrows():
+        key = "winner" if winner[i] and by is None else (
+            trials.author[i] if by is not None else "rest"
+        )  # fmt: skip
+        groups.setdefault(key, []).append([*v[names].tolist(), None])
+    for key, lines in groups.items():
+        y = [p for line in lines for p in line]
+        x = (xs + [None]) * len(lines)
+        if key == "winner":
+            line = {"color": color, "width": 3}
+        elif by is not None:
+            line = {"color": by.get(key, COURSE_TONE), "width": 1.2}
+        else:
+            line = {"color": "#8fa9cc", "width": 1.2}
+        fig.add_scatter(
+            x=x, y=y, mode="lines", line=line, hoverinfo="skip", showlegend=False,
+            opacity=1.0 if key == "winner" else 0.75, connectgaps=False,
+        )  # fmt: skip
+    if by is not None:  # the winners on top, bold
+        for i, v in values[winner].iterrows():
+            fig.add_scatter(
+                x=xs, y=v[names].tolist(), mode="lines", showlegend=False,
+                line={"color": by.get(trials.author[i], COURSE_TONE), "width": 2.6},
+                hoverinfo="skip",
+            )  # fmt: skip
+    crowded = len(labels) > 5  # every other label a line further out
+    for i, (axis, low, high) in enumerate(labels):
+        step = 12 if crowded and i % 2 else 0
+        fig.add_shape(
+            type="line", x0=i, x1=i, y0=0, y1=1, line={"color": INK, "width": 1}
+        )
+        title = metric if axis == "score" else axis
+        fig.add_annotation(x=i, y=1, yshift=4 + step, yanchor="bottom", text=plain(title),
+                           showarrow=False, font={"size": 10, "color": INK})  # fmt: skip
+        fig.add_annotation(x=i, y=0, yshift=-4 - step, yanchor="top", showarrow=False,
+                           text=plain(f"{low} … {high}" if low != high else low),
+                           font={"size": 9.5, "color": MUTED})  # fmt: skip
+    fig.update_xaxes(visible=False, range=[-0.35, len(names) - 0.65])
+    fig.update_yaxes(visible=False, range=[-0.04, 1.04])
+    room = 36 if crowded else 24
+    return style(
+        fig, 236, margin={"l": 16, "r": 16, "t": room, "b": room}, showlegend=False
+    )
+
+
+def plural(n: object, word: str) -> str:
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
+
+
+def budget_text(budget: object, n_trials: int) -> str:
+    """The budget of a study in words: its minutes and its trials."""
+    if isinstance(budget, dict) and is_number(budget.get("minutes")):
+        minutes = float(budget["minutes"])
+        trials = budget.get("n_trials", n_trials)
+        unit = "minute" if minutes == 1 else "minutes"
+        return f"{minutes:g} {unit}, {plural(trials, 'trial')}"
+    return plural(n_trials, "trial")
+
+
+def panel_head(
+    r: SimpleNamespace | None, color: str, trials: pd.DataFrame, n: int
+) -> str:
+    """The line on top of the window: which idea it shows, or the whole class."""
+    if r is None:
+        return (
+            "<h2>The whole class</h2><span class='cap'>"
+            f"{n} ideas · every arrow as a bar, the winners' curves by student, the "
+            "trials of every study over the axes they share · click a box above to "
+            "see one idea</span>"
+        )
+    where = "handed out" if r.author == COURSE else f"round {r.round}"
+    said = (
+        f" · <i>expected: {html.escape(r.expects)}</i>"
+        if r.expects
+        else (" · <i>expected: not said</i>" if r.author != COURSE else "")
+    )
+    pooled = " pooled over the class" if r.author == COURSE else ""
+    return (
+        f"<h2>{html.escape(r.name)}</h2>"
+        f"<span class='who' style='color:{color}'>{html.escape(r.author)} · {where}</span>"
+        f"<span class='cap'>{html.escape(r.idea)}{said} · "
+        f"{html.escape(budget_text(r.budget, len(trials)))}{pooled}</span>"
+    )
+
+
+def baseline_of(df: pd.DataFrame) -> tuple[float, float] | None:
+    """The handed-out baseline of the class: the median of the students' baselines and
+    the median of their spreads; None without one."""
+    base = handed_out_baselines(df)
+    if base.empty:
+        return None
+    return float(base.score.median()), float(base["std"].median())
+
+
+def panels(
+    df: pd.DataFrame,
+    ids: pd.DataFrame,
+    eds: pd.DataFrame,
+    metric: str = METRIC,
+) -> dict[str, dict]:
+    """What the window shows, per idea name and for the whole class (the key ""): the
+    line on top (`head`, HTML) and the three pictures, gain, curves and lines."""
+    colors = author_colors(ids)
+    class_base = baseline_of(df)
+    everyone = class_trials(df, ids)
+    out = {
+        "": {
+            "head": panel_head(None, INK, everyone, int((ids.author != COURSE).sum())),
+            "gain": fig_gain(gain_rows(ids, eds)),
+            "curves": fig_class_curves(everyone, colors, class_base),
+            "lines": fig_lines(everyone, shared_axes(ids), metric, by=colors),
+        }
+    }
+    for r in rows(ids):
+        color = colors.get(r.author, COURSE_TONE)
+        trials = idea_trials(df, ids, r.name)
+        if r.author == COURSE:
+            base, bars = class_base, []
+            note = (
+                "handed out: each box above holds<br>its idea's gain on this baseline"
+            )
+        else:
+            measured = not math.isnan(number(r.base))
+            base, bars, note = (
+                ((r.base, r.base_std) if measured else None),
+                gain_rows(ids, eds, r.name),
+                "",
+            )
+        out[r.name] = {
+            "head": panel_head(r, color, trials, len(ids)),
+            "gain": fig_gain(bars, note),
+            "curves": fig_curves(trials, color, base, metric),
+            "lines": fig_lines(trials, r.axes, metric, color),
+        }
+    return out
 
 
 def fig_links(lk: pd.DataFrame) -> go.Figure:
@@ -884,47 +1602,317 @@ def section(title: str, caption: str, fig: go.Figure | None, note: str = "") -> 
     )
 
 
+def missing(text: str) -> str:
+    """A section's line in place of a picture that has nothing to draw."""
+    return f'<p class="missing">{html.escape(text)}</p>'
+
+
+HINT = (
+    "<p class='cap hint'>Click a box to filter: the window at the bottom then shows "
+    "that experiment. With nothing selected it shows the whole class: every arrow, "
+    "every winner's curve by student, every trial.</p>"
+)
+NO_HANDED_OUT = (
+    "No run of the handed-out notebook was submitted: the class handed in only "
+    "studies of their own, so there is nothing to show here."
+)
+
 CSS = f"""
 body {{ font-family: {FONT}; color: {INK}; margin: 0; background: #f6f7f9; }}
-main {{ max-width: 1120px; margin: 0 auto; padding: 28px 24px 80px; }}
+main {{ max-width: 1120px; margin: 0 auto; padding: 28px 24px 0; }}
 h1 {{ font-size: 28px; margin: 0 0 4px; }}
 h2 {{ font-size: 20px; margin: 0 0 2px; }}
 section {{ background: white; border-radius: 10px; padding: 20px 22px 14px; margin: 18px 0;
           box-shadow: 0 1px 3px rgba(20,30,50,.08); }}
 .cap {{ margin: 0 0 6px; color: {MUTED}; font-size: 14px; }}
 .sub {{ color: {MUTED}; margin: 0 0 18px; }}
+.missing {{ color: {MUTED}; font-size: 14px; background: #f6f7f9; border-radius: 6px;
+           padding: 10px 14px; margin: 8px 0 4px; }}
 .tiles {{ display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 6px; }}
 .tile {{ background: white; border-radius: 10px; padding: 12px 18px; min-width: 120px;
         box-shadow: 0 1px 3px rgba(20,30,50,.08); }}
 .tile b {{ display: block; font-size: 26px; }}
 .tile span {{ color: {MUTED}; font-size: 13px; }}
-code {{ background: #eef0f3; padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }}
-.space {{ font-size: 12.5px; color: {MUTED}; margin: 4px 0; }}
+code {{ background: #eef0f3; padding: 1px 5px; border-radius: 4px; font-size: 12.5px;
+       overflow-wrap: anywhere; }}
 .wide {{ overflow-x: auto; }}
+.hint {{ margin: 4px 2px; }}
+.study {{ border-top: 1px solid #eef0f3; padding: 12px 0 6px; }}
+.study h3 {{ font-size: 15px; margin: 0; }}
+.study h3 span {{ color: {MUTED}; font-weight: 500; }}
+.kv {{ display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 6px 10px;
+      font-size: 14px; margin-top: 8px; }}
+.kv > b {{ color: {MUTED}; font-weight: 500; font-size: 13px; }}
+.chips span {{ display: inline-block; background: #eef0f3; border-radius: 4px; padding: 2px 7px;
+              margin: 2px 4px 2px 0; font-size: 12.5px; font-family: ui-monospace, Menlo, monospace; }}
+.chips .on {{ background: #dff0e4; color: #1c6b3a; }}
+.chips .off {{ background: #f1f1f1; color: #9aa0a8; text-decoration: line-through; }}
+details pre {{ background: #f6f7f9; border-radius: 6px; padding: 8px 10px; font-size: 12px;
+              overflow-x: auto; max-height: 320px; }}
+summary {{ cursor: pointer; color: {MUTED}; font-size: 13px; }}
+.dock {{ position: sticky; bottom: 0; background: white; border-top: 3px solid #9aa1ab;
+        border-radius: 10px 10px 0 0; box-shadow: 0 -4px 18px rgba(20,30,50,.16);
+        padding: 12px 22px 8px; margin: 18px -6px 0; z-index: 5; }}
+.dock h2 {{ font-size: 16px; margin: 0; }}
+.dock h3 {{ font-size: 13px; margin: 8px 0 2px; }}
+.dock .head {{ display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }}
+.dock .head .cap {{ margin: 0; }}
+.dock .who {{ font-weight: 600; }}
+.dock .x {{ margin-left: auto; color: {MUTED}; font: inherit; font-size: 13px; background: white;
+           border: 1px solid #c9cdd3; border-radius: 6px; padding: 1px 9px; cursor: pointer; }}
+.dock .x[hidden] {{ display: none; }}
+.dock .foot {{ text-align: center; color: {MUTED}; font-size: 11px; margin: 0; }}
+.three {{ display: grid; grid-template-columns: .85fr 1fr 1.15fr; gap: 22px; }}
+.three > div {{ min-width: 0; }}
+@media (max-width: 800px) {{
+  .three {{ grid-template-columns: 1fr; }}
+  .dock {{ position: static; margin: 18px 0 0; }}
+  main {{ padding: 20px 16px 0; }}
+  section {{ padding: 16px 14px 10px; }}
+}}
 """
 
+OPTION = re.compile(r"""@option\(\s*["']([^"']+)["']""")
+ON = (True, "true", "on", "yes", 1)
+OFF = (False, "false", "off", "no", 0)
 
-def spaces_note(cmp: pd.DataFrame) -> str:
-    """The search space of every study, one line each, under the studies picture."""
-    lines = []
+
+def chip_value(value: object) -> str:
+    if isinstance(value, float):
+        return f"{value:.3g}"
+    return str(value)
+
+
+def study_notes(df: pd.DataFrame, cmp: pd.DataFrame) -> str:
+    """Per student's study, under the studies picture: the searched space, the winner's
+    config (the searched axes first), the options of the design (`@option` in the design
+    script) on or off in the winner, the budget and the design script itself."""
+    blocks = []
     for r in rows(cmp):
-        if isinstance(r.search_space, str):
-            lines.append(
-                f'<div class="space"><b>{html.escape(r.student)} · {html.escape(str(r.study))}</b>'
-                f" <code>{html.escape(r.search_space)}</code></div>"
+        group = df[(df.student == r.student) & (df.study == r.study)]
+        finals = group[group.role == "final"].sort_values("start")
+        if finals.empty:
+            continue
+        final = finals.iloc[-1]
+        params = {
+            k[2:]: v
+            for k, v in final.items()
+            if k.startswith("p_") and not (isinstance(v, float) and math.isnan(v))
+            and v is not None
+        }  # fmt: skip
+        space = first_of(group.search_space, str)
+        axes = str(first_of(group.searched_axes, str) or "").split(",")
+        order = [a for a in axes if a in params] + [a for a in params if a not in axes]
+        winner = "".join(
+            f"<span{' class=on' if a in axes else ''}>{html.escape(a)}="
+            f"{html.escape(chip_value(params[a]))}</span>"
+            for a in order
+        )
+        script = final.design_script or first_of(group.design_script, str)
+        options = list(dict.fromkeys(OPTION.findall(str(script or ""))))
+        chips = []
+        for o in options:
+            v = params.get(o)
+            state = "on" if v in ON else ("off" if v in OFF else "")
+            chips.append(
+                f"<span class='{state}'>{html.escape(o)}</span>"
+                if state
+                else f"<span>{html.escape(o)}: not in the winner's config</span>"
             )
-    return "".join(lines)
+        budget = first_of(group.budget, dict)
+        n_trials = int((group.role == "trial").sum())
+        spent = budget_text(budget, n_trials)
+        if isinstance(budget, dict) and isinstance(budget.get("measured_on"), str):
+            spent += f", the cost of a trial measured on {budget['measured_on']}"
+        design = (
+            f"<details><summary>design.py · {len(str(script).splitlines())} lines"
+            f"</summary><pre>{html.escape(str(script))}</pre></details>"
+            if script
+            else "<span class='cap'>not submitted</span>"
+        )
+        idea = first_of(group.idea_name, str)
+        blocks.append(
+            f"<div class='study'><h3>{html.escape(r.student)} · {html.escape(str(r.study))}"
+            + (f" <span>{html.escape(str(idea))}</span>" if idea else "")
+            + "</h3><div class='kv'>"
+            + f"<b>space</b><div><code>{html.escape(str(space or 'not submitted'))}</code></div>"
+            + f"<b>winner</b><div class='chips'>{winner or '—'}</div>"
+            + "<b>options</b><div class='chips'>"
+            + ("".join(chips) or "<i class='cap'>the design marks no @option</i>")
+            + "</div>"
+            + f"<b>budget</b><div>{html.escape(spent)}</div>"
+            + f"<b>design</b><div>{design}</div></div></div>"
+        )
+    return "".join(blocks)
 
 
-def ideas_note(ids: pd.DataFrame, elsewhere: Mapping[str, int] | None = None) -> str:
+def ideas_note(
+    ids: pd.DataFrame,
+    elsewhere: Mapping[str, int] | None = None,
+    eds: pd.DataFrame | None = None,
+    root_score: str = "",
+) -> str:
     """The graph of the ideas, scrolling sideways inside its section when it is wider
     than the page; one line when no run carries an idea."""
     if ids.empty:
-        return '<p class="cap">No submitted run carries an idea yet.</p>'
-    fig = fig_ideas(ids, elsewhere).to_html(
-        full_html=False, include_plotlyjs=False, config={"displaylogo": False}
+        return missing("No submitted run carries an idea yet.")
+    fig = fig_ideas(ids, eds, elsewhere, root_score).to_html(
+        full_html=False,
+        include_plotlyjs=False,
+        div_id="ideas-graph",
+        config={"displaylogo": False, "displayModeBar": False},
     )
     return f'<div class="wide">{fig}</div>'
+
+
+PANEL_NOTES = {
+    "class": [
+        "points · each arrow: the child's winner on its parent's · grey band: the spread",
+        "each idea's winning trial, in its author's colour",
+        "every trial over the axes all studies searched · bold: the winners",
+    ],
+    "idea": [
+        "points · grey band: inside the spread · faded: the class's other arrows",
+        "bold: the winner · ×: pruned",
+        "one line per trial · bold: the winner",
+    ],
+}
+
+
+def panels_json(
+    ps: Mapping[str, dict], colors: Mapping[str, str], ids: pd.DataFrame
+) -> str:
+    """The window's data for the page's script, as JSON that is safe inside a script tag."""
+    authors = dict(zip(ids.name, ids.author, strict=True))
+    parts = []
+    for name, p in ps.items():
+        color = colors.get(authors.get(name, ""), "#9aa1ab") if name else "#9aa1ab"
+        notes = PANEL_NOTES["idea" if name else "class"]
+        figs = ",".join(f'"{k}":{p[k].to_json()}' for k in ("gain", "curves", "lines"))
+        parts.append(
+            f'{json.dumps(name)}:{{"head":{json.dumps(p["head"])},'
+            f'"color":{json.dumps(color)},"notes":{json.dumps(notes)},{figs}}}'
+        )
+    return ("{" + ",".join(parts) + "}").replace("</", "<\\/")
+
+
+DOCK = """
+<div class="dock" id="dock">
+<div class="head"><span id="dock-head" style="display:contents"></span>
+<button class="x" id="dock-all" hidden>show the whole class ✕</button></div>
+<div class="three">
+<div><h3>Gain</h3><div id="panel-gain"></div><p class="foot" id="note-gain"></p></div>
+<div><h3>Learning curves · {metric} per epoch</h3><div id="panel-curves"></div><p class="foot" id="note-curves"></p></div>
+<div><h3>Parallel coordinates</h3><div id="panel-lines"></div><p class="foot" id="note-lines"></p></div>
+</div></div>
+"""
+
+# The window's filter: a click on a box shows that idea, a second click or the button
+# the whole class; the URL's #<idea-name> opens the page on that idea.
+SCRIPT = """
+window.addEventListener('DOMContentLoaded', function () {
+  const P = JSON.parse(document.getElementById('panels').textContent);
+  const CONFIG = {displaylogo: false, responsive: true, displayModeBar: false};
+  const graph = document.getElementById('ideas-graph');
+  const dock = document.getElementById('dock');
+  const all = document.getElementById('dock-all');
+  const border = {};
+  if (graph && graph.layout) {
+    graph.layout.shapes.forEach(function (s) {
+      if (s.name && s.name.indexOf('stripe:') !== 0 && s.name in P) {
+        border[s.name] = [s.line.color, s.line.width];
+      }
+    });
+  }
+  let current = null;
+  function mark(name) {
+    if (!graph || !graph.layout) return;
+    const update = {};
+    graph.layout.shapes.forEach(function (s, i) {
+      if (!(s.name in border)) return;
+      const on = s.name === name;
+      update['shapes[' + i + '].line.color'] = on ? '#1d2330' : border[s.name][0];
+      update['shapes[' + i + '].line.width'] = on ? 3 : border[s.name][1];
+      if (on) {
+        const k = graph.layout.annotations.findIndex(function (a) { return a.name === 'selected'; });
+        update['annotations[' + k + '].x'] = (s.x0 + s.x1) / 2;
+        update['annotations[' + k + '].y'] = Math.min(s.y0, s.y1);
+      }
+    });
+    const k = graph.layout.annotations.findIndex(function (a) { return a.name === 'selected'; });
+    if (k >= 0) update['annotations[' + k + '].visible'] = name !== '';
+    Plotly.relayout(graph, update);
+  }
+  function show(name) {
+    if (!(name in P)) name = '';
+    if (name === current) return;
+    current = name;
+    const p = P[name];
+    document.getElementById('dock-head').innerHTML = p.head;
+    ['gain', 'curves', 'lines'].forEach(function (key, i) {
+      Plotly.react('panel-' + key, p[key].data, p[key].layout, CONFIG);
+      document.getElementById('note-' + key).textContent = p.notes[i];
+    });
+    all.hidden = name === '';
+    dock.style.borderTopColor = p.color;
+    mark(name);
+    const url = location.pathname + location.search + (name ? '#' + encodeURIComponent(name) : '');
+    try { history.replaceState(null, '', url); } catch (e) { /* a page opened from disk may refuse */ }
+  }
+  function fromHash() {
+    let name = '';
+    try { name = decodeURIComponent(location.hash.slice(1)); } catch (e) { name = ''; }
+    show(name);
+  }
+  if (graph && graph.on) {
+    graph.on('plotly_click', function (ev) {
+      const name = ev.points && ev.points[0] && ev.points[0].customdata;
+      if (name in P) show(name === current ? '' : name);
+    });
+  }
+  all.addEventListener('click', function () { show(''); });
+  window.addEventListener('hashchange', fromHash);
+  fromHash();
+});
+"""
+
+
+def class_tiles(
+    df: pd.DataFrame, ids: pd.DataFrame, eds: pd.DataFrame, metric: str
+) -> str:
+    """The tiles on top: students, ideas and their rounds, how often an idea builds on a
+    classmate's, runs, the best winner beside the baseline, and the metric."""
+    own = ids[ids.author != COURSE]
+    rounds = int(own["round"].max()) if len(own) else 0
+    authors = dict(zip(ids.name, ids.author, strict=True))
+    on_classmate = sum(
+        1
+        for e in rows(eds)
+        if authors.get(e.parent) not in (None, COURSE, e.child_author)
+    )
+    measured = own[own.final.notna()]
+    if len(measured):
+        dataset = measured.dataset.value_counts().index[0]
+        on = measured[measured.dataset == dataset]
+        best = f"{on.final.max():.3f}"
+        base = baseline_of(df[df.dataset == dataset])
+        base_score = base[0] if base is not None else float(on.base.median())
+        several = measured.dataset.nunique() > 1
+        label = f"best so far{f' on {dataset}' if several else ''} (baseline {base_score:.3f})"
+    else:
+        best, label = "—", "best so far: no winner measured yet"
+    return "".join(
+        [
+            tile(str(df.student.nunique()), "students"),
+            tile(
+                str(len(own)), f"ideas, in {rounds} round{'s' if rounds != 1 else ''}"
+            ),
+            tile(str(on_classmate), "times built on a classmate"),
+            tile(str(len(df)), "runs"),
+            tile(best, label),
+            tile(metric, "the metric every figure reads"),
+        ]
+    )
 
 
 def build_page(
@@ -941,19 +1929,14 @@ def build_page(
     base_median = float(base.score.median()) if len(base) else None
     lk = links(df)
     ids = ideas(df, cmp)
-
-    students = df.student.nunique()
-    tiles = "".join(
-        [
-            tile(str(students), "students"),
-            tile(str(len(df)), "runs"),
-            tile(str(df.study.nunique()), "own studies"),
-            tile(str(len(ids)), "ideas"),
-            tile(str(len(trials)), "trials of the handed-out search"),
-            tile(str(int(df.design.sum())), "runs with a design script"),
-            tile(html.escape(metric), "the metric every figure reads"),
-        ]
+    eds = edges(ids)
+    class_base = baseline_of(df)
+    root_score = (
+        f"baseline {class_base[0]:.3f} ± {class_base[1]:.3f}"
+        if class_base is not None
+        else "no handed-out baseline submitted"
     )
+
     other = [m for m in others if m != metric and "/" not in m]
     per_class: dict[str, int] = {}
     for m in others:
@@ -971,7 +1954,26 @@ def build_page(
         if other
         else ""
     )
+    no_search = (
+        NO_HANDED_OUT
+        if base.empty and trials.empty
+        else "No trial of the handed-out search was submitted."
+    )
     parts = [
+        section(
+            "The ideas of the class",
+            "One box per idea, from left to right in the order they were built: a "
+            "column is the longest path from the handed-out idea. Colour: whose idea. "
+            "The number on a box: its winner against its own baseline. The number on an "
+            "arrow: the child's winner against that parent's winner, in points; grey ≈ "
+            "is inside the spread between runs of the two, green ▲ and red ▼ clear two "
+            "sigma; no number between different datasets or metrics. Dashed: a parent "
+            "that is not among the submissions. To build on an idea, name it in "
+            "study.py: IDEA = Idea.of('...', builds_on='blissful-bee-18').",
+            None,
+            ideas_note(ids, elsewhere, eds, root_score),
+        ),
+        HINT,
         section(
             "Who submitted what",
             "Every submitted run, per student and role. A student with only baselines "
@@ -983,13 +1985,17 @@ def build_page(
             "The same model on the same data, on every student's machine. Each dot is "
             "one student's baseline; the bar is the spread between their own runs. "
             "How far the dots lie apart is how large a difference has to be to mean anything.",
-            fig_baselines(df, metric),
+            fig_baselines(df, metric) if len(base) else None,
+            "" if len(base) else missing(NO_HANDED_OUT),
         ),
         section(
             "Baseline against final, per study",
             "Each student's own study. Grey line: a gain inside the spread between runs "
             "(under two sigma). Green: a gain that clears it.",
-            fig_baseline_vs_final(cmp, metric),
+            fig_baseline_vs_final(cmp, metric) if len(cmp) else None,
+            ""
+            if len(cmp)
+            else missing("No study has both a baseline and a final submitted yet."),
         ),
         section(
             "The handed-out search, pooled over the class",
@@ -997,39 +2003,32 @@ def build_page(
             "independent draw from the same space: one random search many times the "
             "size. One line is one trial; drag along an axis to keep a range.",
             parcoords(trials, AXES, metric=metric) if len(trials) else None,
+            "" if len(trials) else missing(no_search),
         ),
         section(
             "Axis by axis",
             f"{metric} against each searched axis. Faint dots: every trial. Line or "
             "ringed dots: the median per bin or value. Dotted: the class's median baseline.",
             fig_axes(trials, base_median, metric) if len(trials) else None,
+            "" if len(trials) else missing(no_search),
         ),
         section(
             "Each student's own study",
             "Trials in the order they ran (crosses: stopped early by the pruner). Grey "
-            "band: the baseline ± two standard errors of its runs. Star: the final, rerun a few times.",
-            fig_studies(df, cmp, metric),
-            spaces_note(cmp),
-        ),
-        section(
-            "The ideas of the class",
-            "One box per idea: its name, its author and its words; an arrow runs from "
-            "an idea to each idea that builds on it. Colour: whose idea it is (grey: the "
-            "course's). Border: green ▲ better than its baseline by more than two sigma, "
-            "red ▼ worse, grey ≈ inside the spread between runs, thin: not measured. "
-            "Dashed: a parent that is not among the submissions. To build on an idea, "
-            "pass its name as builds_on to idea(...), as in "
-            "idea('...', builds_on='blissful-bee-18').",
-            None,
-            ideas_note(ids, elsewhere),
+            "band: the baseline ± two standard errors of its runs. Star: the final, rerun "
+            "a few times. Under the picture, per study: the space it searched, the "
+            "winner's config (green: the searched axes), the options of the design on or "
+            "off in the winner, the budget and the design script.",
+            fig_studies(df, cmp, metric) if len(cmp) else None,
+            study_notes(df, cmp)
+            if len(cmp)
+            else missing("No study has both a baseline and a final submitted yet."),
         ),
         section(
             "Who built on whom",
             "A run that names a classmate's run in builds_on, and what it scored against that run.",
             fig_links(lk) if len(lk) else None,
-            ""
-            if len(lk)
-            else '<p class="cap">Nobody has built on a classmate\'s run yet.</p>',
+            "" if len(lk) else missing("Nobody has built on a classmate's run yet."),
         ),
         section(
             "What a larger head costs and buys",
@@ -1037,15 +2036,25 @@ def build_page(
             fig_architectures(df, metric),
         ),
     ]
+    window = ""
+    if len(ids):
+        ps = panels(df, ids, eds, metric)
+        window = (
+            DOCK.format(metric=html.escape(metric))
+            + f"<script type='application/json' id='panels'>{panels_json(ps, author_colors(ids), ids)}</script>"
+            + f"<script>{SCRIPT}</script>"
+        )
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
         f"<title>Lesson {lesson}: what the class did</title><style>{CSS}</style>"
         f"<script>{get_plotlyjs()}</script></head><body><main>"
         f"<h1>Lesson {lesson}: what the class did</h1>"
-        f"<p class='sub'>{html.escape(source)}</p>{reads}<div class='tiles'>{tiles}</div>"
+        f"<p class='sub'>{html.escape(source)}</p>{reads}"
+        f"<div class='tiles'>{class_tiles(df, ids, eds, metric)}</div>"
         + "".join(parts)
-        + "</main></body></html>"
+        + window
+        + "<div style='height:24px'></div></main></body></html>"
     )
 
 
