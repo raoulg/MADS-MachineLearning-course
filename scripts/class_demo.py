@@ -24,6 +24,7 @@ import numpy as np
 from run_submission import COURSE, IDEA_ATTRS, Submission, idea_id, idea_name
 
 NAMES = ["alma", "bram", "chen", "dina", "emre", "fenna", "gijs", "hana"]
+DEMO_TEACHER = "ines"  # owns the class repository; ran the handed-out notebook twice
 NOISE = 0.0035  # the spread between runs of one config, as a standard deviation
 ACT = {"relu": 0.0, "gelu": 0.002, "tanh": -0.004, "sigmoid": -0.012}
 EPOCHS = 15
@@ -284,7 +285,9 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
         scores = np.array([accuracy(cfg, rng, machine) for _ in range(n)])
         return float(scores.mean()), float(scores.std())
 
-    def trial(student, experiment, i, cfg, acc, searched, sattrs, pruned=False):
+    def trial(
+        student, experiment, i, cfg, acc, searched, sattrs, pruned=False, when=None
+    ):
         """One trial of a search: its curve to the end, or to where the pruner stopped
         it, its params on the axes the study searches and its config."""
         values = curve(acc, cfg["lr"], rng, PRUNED_AFTER if pruned else EPOCHS)
@@ -294,7 +297,7 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
             status="PRUNED" if pruned else "COMPLETE",
             intermediate=[{"step": s, "value": v} for s, v in enumerate(values)],
             attrs={"n_params": n_params(cfg), "config": {"dataset": "dtd", **cfg},
-                   **curves(values)},
+                   **curves(values), **(when or {})},
             study_attrs=sattrs)  # fmt: skip
 
     linear = {"n_hidden_layers": 0, "hidden_dim": 0, "activation": "relu", "norm": "none",
@@ -342,21 +345,28 @@ def demo_submissions(lesson: int = 1, seed: int = 7) -> list[Submission]:
             study_attrs=rattrs, artifacts={"design.py": script})  # fmt: skip
         return subs[-1].ref()
 
-    own_ideas = {s: make_idea(s, v[3], [ROOT]) for s, v in STUDIES.items()}
-    machines = {}
-    for student in NAMES:
-        machine = machines[student] = float(rng.normal(0, 0.004))
+    def handed_out(student: str, machine: float, session: str | None = None) -> None:
+        """The handed-out notebook as one execution logs it: a baseline and 24 trials."""
+        when = {"session": session} if session else {}
         mean, std = repeats(linear, machine)
-        # handed-out part
         add(student, f"lesson{lesson}-notebook-runs", "baseline", "baseline", mean,
-            params=params_of(linear), attrs={"accuracy_std": std, "n_repeats": 3, "n_params": n_params(linear), "name": "baseline"},
+            params=params_of(linear), attrs={"accuracy_std": std, "n_repeats": 3, "n_params": n_params(linear), "name": "baseline", **when},
             study_attrs=ROOT)  # fmt: skip
         notebook = {"search_space": SPACE_LINE, "searched_axes": ",".join(sorted(SPACE)),
                     "origin": "notebook", **ROOT}  # fmt: skip
         for i in range(24):
             cfg = draw(rng)
             trial(student, f"lesson{lesson}-notebook", i, cfg, accuracy(cfg, rng, machine),
-                  list(SPACE), notebook)  # fmt: skip
+                  list(SPACE), notebook, when=when)  # fmt: skip
+
+    # the teacher ran the notebook before the class did, and once more with it
+    handed_out(DEMO_TEACHER, 0.0, "2026-11-19 09:00:00")
+    handed_out(DEMO_TEACHER, 0.0)
+    own_ideas = {s: make_idea(s, v[3], [ROOT]) for s, v in STUDIES.items()}
+    machines = {}
+    for student in NAMES:
+        machine = machines[student] = float(rng.normal(0, 0.004))
+        handed_out(student, machine)
         if student in STUDIES:
             name, searched, edge, _, expects = STUDIES[student]
             finals[student] = study(

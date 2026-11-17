@@ -78,11 +78,48 @@ def test_baseline_against_final_in_points_and_sigmas():
     [row] = class_analysis.comparisons(df).itertuples()
     assert (row.student, row.study) == ("alice", "alice-depth")
     assert row.gain_pt == pytest.approx(3.0)
-    # 0.03 against sqrt(0.01^2/3 + 0.01^2/3) = 0.00816
-    assert row.sigma == pytest.approx(0.03 / math.sqrt(2 * 0.01**2 / 3))
+    # a stored std is over n=3 repeats with ddof=0: the standard error is
+    # sqrt(0.01^2/2 + 0.01^2/2) = 0.01
+    assert row.sigma == pytest.approx(0.03 / math.sqrt(2 * 0.01**2 / 2))
     assert row.best_trial == 0.84
     assert row.survived == pytest.approx(0.03 / 0.04)
     assert row.n_trials == 2
+
+
+def test_the_page_and_compare_give_the_same_sigma_for_the_same_repeats():
+    import numpy as np
+
+    from hpo.measure.compare import Comparison
+
+    base, final = np.array([0.80, 0.81, 0.795]), np.array([0.82, 0.835, 0.81, 0.83])
+    study = "lesson1-study-alice-depth"
+    df = class_analysis.runs_frame(
+        [
+            sub("alice", f"{study}-runs", "baseline", "baseline", float(base.mean()),
+                std=float(base.std()), n=len(base)),
+            sub("alice", f"{study}-runs", "winner", "final", float(final.mean()),
+                std=float(final.std()), n=len(final)),
+        ]
+    )  # fmt: skip
+    [row] = class_analysis.comparisons(df).itertuples()
+    assert row.sigma == pytest.approx(Comparison.of("final", final, base).sigmas)
+
+
+def test_a_single_run_has_no_sigma_and_its_box_says_so():
+    study = "lesson1-study-alice-depth"
+    df = class_analysis.runs_frame(
+        [
+            sub("alice", f"{study}-runs", "baseline", "baseline", 0.80, std=0.0, n=1),
+            sub("alice", f"{study}-runs", "winner", "final", 0.83, std=0.01),
+        ]
+    )
+    [row] = class_analysis.comparisons(df).itertuples()
+    assert math.isnan(row.sigma)
+    r = class_analysis.SimpleNamespace(
+        verdict="unmeasured", gain_pt=3.0, final=0.83, sigma=row.sigma,
+        base_n=1, final_n=3,
+    )  # fmt: skip
+    assert "no σ: one run" in class_analysis.score_line(r)[0]
 
 
 def test_a_study_without_a_baseline_or_a_final_is_not_compared():
@@ -102,21 +139,6 @@ def test_pruned_trials_are_not_scores_of_the_pooled_search():
     )
     df = class_analysis.runs_frame([kept, stopped])
     assert len(class_analysis.handed_out_trials(df)) == 1
-
-
-def test_who_built_on_whom():
-    bob = sub("bob", "lesson1-study-bob-wide", "wide", "final", 0.70)
-    dangling = f"lesson2/carol/{'c' * 32}"
-    alice = sub(
-        "alice", "lesson1-study-alice-deeper", "deeper", "final", 0.75,
-        builds_on=f"{bob.ref().replace('bob', 'bob')},{dangling}",
-    )  # fmt: skip
-    lk = class_analysis.links(class_analysis.runs_frame([bob, alice]))
-    found = lk[lk.found].iloc[0]
-    assert (found.student, found.builds_on, found.on_run) == ("alice", "bob", "wide")
-    assert found.diff_pt == pytest.approx(5.0)
-    lost = lk[~lk.found].iloc[0]
-    assert lost.builds_on == "carol" and math.isnan(lost.on_score)
 
 
 def idea_attrs(author, words, parents=()):
@@ -197,8 +219,10 @@ def test_the_graph_has_a_box_per_idea_and_an_arrow_per_parent_in_layers():
     assert boxes == {*ids.name, GHOST["idea_name"]}
     ghost = next(s for s in fig.layout.shapes if s.name == GHOST["idea_name"])
     assert ghost.line.dash == "dash"
-    arrows = [a for a in fig.layout.annotations if a.showarrow]
+    arrows = [d for d in fig.data if d.name and "->" in d.name]
     assert len(arrows) == sum(len(p) for p in ids.parents) == 5
+    # an arrow is a line drawn under the boxes
+    assert all(s.layer == "above" for s in fig.layout.shapes if s.name in boxes)
     place = class_analysis.idea_layout(ids)
     for r in ids.itertuples():
         for p in r.parents:
@@ -232,9 +256,9 @@ def test_the_page_is_one_self_contained_file_with_every_picture():
         "The handed-out search, pooled over the class",
         "Each student&#x27;s own study",
         "The ideas of the class",
-        "Who built on whom",
     ):
         assert title in page
+    assert "Who built on whom" not in page
 
 
 def test_an_attr_of_another_type_is_read_as_absent():
@@ -422,7 +446,8 @@ def test_an_arrow_carries_the_childs_winner_on_its_parents_and_says_whether_it_c
     df = class_analysis.runs_frame(runs)
     eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
     arrow = eds.set_index(["parent", "child"])
-    se = math.sqrt(2 * 0.01**2 / 3)  # two winners of three repeats, spread 0.01
+    # two winners of three repeats, each a std of 0.01 over its repeats (ddof=0)
+    se = math.sqrt(2 * 0.01**2 / 2)
 
     def at(parent, child):
         return arrow.loc[(named[parent]["idea_name"], named[child]["idea_name"])]
@@ -514,6 +539,7 @@ def test_the_tiles_count_ideas_rounds_and_building_on_a_classmate():
     assert "<b>6</b><span>ideas, in 3 rounds</span>" in tiles
     # b1 on a1, c1 on b2, c2 on b1, d1 on c1; c2 on c's own c1 is no classmate's
     assert "<b>4</b><span>times built on a classmate</span>" in tiles
+    assert "<b>4</b><span>students</span>" in tiles
     assert "<b>0.800</b><span>best so far (baseline 0.700)</span>" in tiles
 
 
@@ -535,3 +561,209 @@ def test_the_demo_keeps_a_merge_a_missing_parent_and_curves():
     assert (ids[ids.author != "course"].expects != "").all()
     assert df[df.role == "trial"].curve.map(bool).all()
     assert class_analysis.edges(ids).number.any()
+
+
+# ---- a large class, the teacher, and what an arrow or a window shows -----------------
+
+
+def big_class(n=30):
+    """`n` students, each with a baseline and a final of a study of their own on the
+    course's root."""
+    runs = []
+    for i in range(n):
+        student = f"s{i:02d}"
+        idea = idea_attrs(student, f"idea number {i}", [ROOT["idea_name"]])
+        runs += study_runs(student, f"{student}-x", idea, 0.70, 0.70 + i / 1000)
+    return runs
+
+
+def test_the_page_builds_for_thirty_students_with_a_baseline_and_a_final_each():
+    df = class_analysis.runs_frame(big_class())
+    page = class_analysis.build_page(df, 1)
+    assert "id='panels'" in page
+    fig = class_analysis.fig_studies(df, class_analysis.comparisons(df))
+    assert len([a for a in fig.layout.annotations if " · " in a.text]) == 30
+
+
+def test_a_large_round_wraps_into_columns_under_one_heading_and_no_colour_repeats():
+    df = class_analysis.runs_frame(big_class())
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    place = class_analysis.idea_layout(ids)
+    per_column = class_analysis.Counter(c for c, _ in place.values())
+    assert max(per_column.values()) <= class_analysis.MAX_PER_COLUMN
+    assert len(per_column) == 1 + math.ceil(30 / class_analysis.MAX_PER_COLUMN)
+    fig = class_analysis.fig_ideas(ids)
+    heads = [a for a in fig.layout.annotations if (a.name or "").startswith("round:")]
+    assert [a.text for a in heads] == ["HANDED OUT", "ROUND 1 · 30 ideas"]
+    colors = class_analysis.author_colors(ids)
+    students = [a for a in ids.author if a != "course"]
+    assert len({colors[a] for a in students}) == len(students) == 30
+
+
+def test_a_merge_stands_right_of_its_deepest_parent_not_its_nearest():
+    runs, named = rehearsal()
+    # on a1 (round 1) and b1 (round 2): round 3 by the longest path, 2 by the shortest
+    e1 = idea_attrs("e", "the wide head and its second layer", [named["a1"]["idea_name"], named["b1"]["idea_name"]])  # fmt: skip
+    runs += study_runs("e", "e-merge", e1, 0.70, 0.76)
+    df = class_analysis.runs_frame(runs)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df)).set_index("name")
+    assert ids.loc[e1["idea_name"], "round"] == 3
+    place = class_analysis.idea_layout(ids.reset_index())
+    assert place[e1["idea_name"]][0] > place[named["b1"]["idea_name"]][0]
+
+
+def test_an_arrow_at_one_and_a_half_standard_errors_is_grey():
+    a = idea_attrs("a", "the parent", [ROOT["idea_name"]])
+    b = idea_attrs("b", "the child", [a["idea_name"]])
+    # winners of three repeats, std 0.01 each: the standard error is 0.01
+    runs = study_runs("a", "a-p", a, 0.70, 0.750) + study_runs(
+        "b", "b-c", b, 0.70, 0.765
+    )
+    df = class_analysis.runs_frame(runs)
+    eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
+    [arrow] = eds[eds.number].itertuples()
+    assert arrow.sigma == pytest.approx(1.5)
+    assert arrow.verdict == "inside"
+    assert class_analysis.ARROW_STYLE[arrow.verdict][0] not in (
+        class_analysis.GAIN,
+        class_analysis.LOSS,
+    )
+
+
+def test_an_ideas_window_is_its_own_not_the_class():
+    runs, named = rehearsal()
+    df = class_analysis.runs_frame(
+        runs
+        + study_runs(
+            "a", "a-wide", named["a1"], 0.70, 0.75, searched_axes="lr",
+            trials=[(0.74, "COMPLETE", {"lr": 1e-3}), (0.75, "COMPLETE", {"lr": 1e-2})],
+        )
+        + study_runs(
+            "c", "c-lr", named["c1"], 0.70, 0.76, searched_axes="lr",
+            trials=[(0.72, "COMPLETE", {"lr": 1e-4}), (0.76, "COMPLETE", {"lr": 1e-3})],
+        )
+    )  # fmt: skip
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    eds = class_analysis.edges(ids)
+    ps = class_analysis.panels(df, ids, eds)
+    mine, everyone = ps[named["a1"]["idea_name"]], ps[""]
+    for key in ("gain", "curves", "lines"):
+        assert mine[key].to_json() != everyone[key].to_json(), key
+    assert class_analysis.gain_rows(ids, eds, named["a1"]["idea_name"]) != (
+        class_analysis.gain_rows(ids, eds)
+    )
+
+
+def test_an_idea_of_two_studies_says_so_and_the_window_lists_both():
+    a = idea_attrs("a", "one idea, two tries", [ROOT["idea_name"]])
+    runs = study_runs("a", "a-big", a, 0.7, 0.8, trials=[(0.8, "COMPLETE", {})] * 3)
+    runs += study_runs("a", "a-small", a, 0.7, 0.75, trials=[(0.75, "COMPLETE", {})])
+    df = class_analysis.runs_frame(runs)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    [r] = [r for r in class_analysis.rows(ids) if r.author == "a"]
+    assert [s[1] for s in r.studies] == ["a-big", "a-small"]
+    text = " ".join(a.text for a in class_analysis.fig_ideas(ids).layout.annotations)
+    assert "2 studies, the larger one shown" in text
+    head = class_analysis.panels(df, ids, class_analysis.edges(ids))[r.name]["head"]
+    assert "a-big, 3 trials (shown)" in head and "a-small, 1 trial" in head
+
+
+def test_a_quote_in_a_students_words_shows_as_a_quote():
+    a = idea_attrs("a", 'the "wide" head', [ROOT["idea_name"]])
+    df = class_analysis.runs_frame(study_runs("a", "a-q", a, 0.7, 0.8))
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    text = " ".join(a.text for a in class_analysis.fig_ideas(ids).layout.annotations)
+    assert 'the "wide" head' in text and "&quot;" not in text
+
+
+def test_a_dataset_name_in_a_bar_is_escaped():
+    bars = [{"label": "x", "value": float("nan"), "band": float("nan"),
+             "verdict": "unmeasured", "faded": False, "text": "",
+             "why": "different datasets (<b>dtd</b>, beats)"}]  # fmt: skip
+    [bar] = class_analysis.fig_gain(bars).data
+    assert "<b>" not in bar.text[0] and "&lt;b&gt;dtd" in bar.text[0]
+
+
+def test_an_idea_without_axes_says_so_of_its_study():
+    fig = class_analysis.fig_lines(class_analysis.pd.DataFrame(), [])
+    assert fig.layout.annotations[0].text == "this study names no searched axis"
+
+
+def teacher_class():
+    """Four students' studies, and the teacher's handed-out notebook run twice: an
+    earlier execution and the latest, which holds two baselines."""
+    runs, _ = rehearsal()
+    for session, n in (("2026-11-16 22:00:00", 1), ("2026-11-16 23:00:00", 2)):
+        for i in range(n):
+            runs.append(
+                with_idea(
+                    sub("tutor", "lesson1-notebook-runs", "baseline", "baseline", 0.71 + i / 100,
+                        std=0.01, session=session),
+                    ROOT,
+                )
+            )  # fmt: skip
+    return runs
+
+
+def test_a_class_with_a_teacher_counts_its_students_without_the_teacher():
+    runs = teacher_class()
+    df = class_analysis.runs_frame(runs)
+    page = class_analysis.build_page(df, 1, "owner/runs at main", teacher="tutor",
+                                     submitted=len(runs))  # fmt: skip
+    assert "<b>4</b><span>students, the teacher not counted</span>" in page
+    shown = class_analysis.as_teacher(df, "tutor")
+    assert class_analysis.students(shown) == ["a", "b", "c", "d"]
+    base = class_analysis.handed_out_baselines(shown)
+    assert list(base.student).count("tutor · teacher") == 1  # one baseline per person
+    ids = class_analysis.ideas(shown, class_analysis.comparisons(shown))
+    course = ids[ids.author == "course"]
+    assert len(course) == 1 and "tutor · teacher" in course.iloc[0].students
+
+
+def test_an_idea_of_the_teacher_is_drawn_in_the_neutral_colour():
+    t = idea_attrs("tutor", "the teacher's own try", [ROOT["idea_name"]])
+    a = idea_attrs("a", "a student's try", [ROOT["idea_name"]])
+    df = class_analysis.runs_frame(
+        study_runs("tutor", "tutor-t", t, 0.7, 0.8)
+        + study_runs("a", "a-a", a, 0.7, 0.8)
+    )
+    shown = class_analysis.as_teacher(df, "tutor")
+    ids = class_analysis.ideas(shown, class_analysis.comparisons(shown))
+    colors = class_analysis.author_colors(ids)
+    assert colors["tutor · teacher"] == class_analysis.COURSE_TONE
+    assert colors["a"] != class_analysis.COURSE_TONE
+
+
+def test_the_page_says_one_number_of_runs_and_names_the_rest():
+    runs = teacher_class()
+    df = class_analysis.runs_frame(runs)
+    assert len(runs) - len(df) == 1  # the teacher's earlier execution
+    page = class_analysis.build_page(df, 1, "owner/runs at main", teacher="tutor",
+                                     submitted=len(runs))  # fmt: skip
+    line = class_analysis.source_line("owner/runs at main", len(runs), len(df))
+    assert line.startswith(
+        f"{len(runs)} runs submitted to owner/runs at main. 1 of them"
+    )
+    assert f"the page reads {len(df)} runs." in line
+    assert class_analysis.html.escape(line) in page
+    assert f"<b>{len(df)}</b><span>runs on this page</span>" in page
+    same = class_analysis.source_line("owner/runs at main", len(df), len(df))
+    assert same == f"{len(df)} runs submitted to owner/runs at main."
+
+
+def test_the_class_repository_names_its_owner():
+    m = class_analysis.GITHUB.search("https://github.com/someone/class-runs.git")
+    assert m is not None and m.groups() == ("someone", "class-runs")
+    m = class_analysis.GITHUB.search("git@github.com:owner/runs")
+    assert m is not None and m.groups() == ("owner", "runs")
+
+
+def test_the_demo_has_a_teacher_who_ran_the_notebook_twice():
+    from class_demo import DEMO_TEACHER, demo_submissions  # ty: ignore[import-not-found]
+
+    subs = demo_submissions()
+    df = class_analysis.runs_frame(subs)
+    assert len(subs) - len(df) == 25  # the teacher's earlier baseline and 24 trials
+    page = class_analysis.build_page(df, 1, "made-up data", teacher=DEMO_TEACHER,
+                                     submitted=len(subs))  # fmt: skip
+    assert "<b>8</b><span>students, the teacher not counted</span>" in page
