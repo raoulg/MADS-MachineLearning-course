@@ -20,7 +20,7 @@ from pathlib import Path
 import datasets
 import designs  # ty: ignore[import-not-found]  (a script's own folder is on sys.path)
 import optuna
-from designs import DESIGN, Head  # ty: ignore[import-not-found]
+from designs import DESIGN  # ty: ignore[import-not-found]
 from harness import EPOCHS, HARNESS  # ty: ignore[import-not-found]
 from huggingface_hub.utils import disable_progress_bars as hub_quiet
 from loguru import logger
@@ -78,7 +78,7 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
 def make_model(config: Config, data: Data) -> nn.Module:
-    return Head(DESIGN.drawn(config), data.dims["embed_dim"], len(data.classes))
+    return DESIGN.build(config, dim=data.dims["embed_dim"], n_classes=len(data.classes))
 
 
 def main() -> None:

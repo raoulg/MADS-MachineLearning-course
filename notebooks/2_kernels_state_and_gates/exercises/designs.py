@@ -275,12 +275,6 @@ class Beats(nn.Module):
 DESIGN = Design(Beats, Config)
 
 
-def main() -> None:
-    DESIGN.show(
-        lambda chosen: Beats(DESIGN.drawn(chosen), n_classes=3),
-        torch.randn(2, STEPS, 1),  # two beats are enough to trace every shape
-    )
-
-
 if __name__ == "__main__":
-    main()
+    # two beats are enough to trace every shape
+    DESIGN.show(torch.randn(2, STEPS, 1), n_classes=3)

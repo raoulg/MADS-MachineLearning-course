@@ -29,16 +29,21 @@ To design your own:
 
 from dataclasses import dataclass
 from itertools import pairwise
-from typing import Literal
 
 import torch
 from beartype import beartype
 from jaxtyping import Float, jaxtyped
 from torch import Tensor, nn
-from vectormesh.components import Gate, GaussianNoise, Norm, Projection, Serial
+from vectormesh.components import (
+    ActivationKind,
+    Dense,
+    Gate,
+    GaussianNoise,
+    NormKind,
+    Projection,
+    Serial,
+)
 from vectormesh.design import Design, option
-
-ACTIVATIONS = {"gelu": nn.GELU, "relu": nn.ReLU, "tanh": nn.Tanh, "sigmoid": nn.Sigmoid}
 
 
 @dataclass(frozen=True)
@@ -48,8 +53,8 @@ class Config:
 
     n_hidden_layers: int = 1
     hidden_dim: int = 256
-    activation: str = "gelu"  # a key of ACTIVATIONS
-    norm: Literal["none", "batch", "layer"] = "none"
+    activation: ActivationKind = "gelu"
+    norm: NormKind = "none"
     dropout: float = 0.0
     sigma: float = 0.0  # Gaussian noise on the input vectors, relative to their spread
     skip: bool = False  # a skip connection around the hidden block
@@ -77,19 +82,19 @@ class Head(nn.Module):
         self.hidden_dim = config.hidden_dim
         self.n_classes = n_classes
         self.noise = GaussianNoise(sigma=config.sigma)
-        # one hidden layer is Linear, Norm, activation, Dropout; `norm="none"` and
-        # `dropout=0.0` leave their layer in as the identity
+        # a Dense is Linear, Norm, activation, Dropout; `norm="none"` and `dropout=0.0`
+        # leave their part in as the identity
         widths = [dim] + [config.hidden_dim] * config.n_hidden_layers
         self.block = Serial(
             [
-                layer
-                for width_in, width_out in pairwise(widths)
-                for layer in (
-                    nn.Linear(width_in, width_out),
-                    Norm(width_out, kind=config.norm),
-                    ACTIVATIONS[config.activation](),
-                    nn.Dropout(config.dropout),
+                Dense(
+                    width_in,
+                    width_out,
+                    norm=config.norm,
+                    activation=config.activation,
+                    dropout=config.dropout,
                 )
+                for width_in, width_out in pairwise(widths)
             ]
         )
         # an optional stage's layers exist only in the subgraph that uses them, so
@@ -149,22 +154,6 @@ class Head(nn.Module):
 DESIGN = Design(Head, Config)
 
 
-def random_batch(batch_size: int, dim: int) -> Float[Tensor, "{batch_size} {dim}"]:
-    return torch.randn(batch_size, dim)
-
-
-def main() -> None:
-    # dinov2-small is 384 wide and DTD has 47 textures. The first call runs the head
-    # with every option on, which is the forward pass atlas draws; `show` then builds
-    # every combination of the options.
-    model = Head(Config(skip=True, gate=True), dim=384, n_classes=47)
-    logits = model.forward(random_batch(batch_size=2, dim=384))
-    print(f"every option on: (2, 384) -> {tuple(logits.shape)}\n")
-    DESIGN.show(
-        lambda chosen: Head(DESIGN.drawn(chosen), dim=384, n_classes=47),
-        random_batch(batch_size=2, dim=384),  # two rows trace every shape
-    )
-
-
 if __name__ == "__main__":
-    main()
+    # dinov2-small is 384 wide and DTD has 47 textures; two rows trace every shape
+    DESIGN.show(torch.randn(2, 384), dim=384, n_classes=47)
