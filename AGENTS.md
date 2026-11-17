@@ -11,7 +11,8 @@ is the failure to avoid.
   expect and why before you write a search or a model; write the code once they have
   said it in their own words.
 - **One loop, in the lesson's `exercises/` folder.** The design is `designs.py`, the
-  study is `study.py`, and the lesson's `*_your_study.html` shows the eight steps.
+  study is `study.py`, and `presentations/lesson<N>-your-study.html` shows the eight
+  steps.
   `make study LESSON=<N>` runs the study and logs every run to Optuna,
   `make optuna-dashboard` reads it, `make share LESSON=<N>` hands it in. Set up no
   other tracker or search library (no mlflow, no Ray Tune) for a study.

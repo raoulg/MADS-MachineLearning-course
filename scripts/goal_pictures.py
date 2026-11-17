@@ -1964,8 +1964,14 @@ def goals(block: str, lesson: int) -> list[tuple[str, str]]:
 
 
 def inline(text: str) -> str:
+    """Code spans, *emphasis*, and bare addresses as links that open in a new tab."""
     coded = re.sub(r"`([^`]+)`", r"<code>\1</code>", html.escape(text))
-    return re.sub(r"\*([^*]+)\*", r"<em>\1</em>", coded)
+    linked = re.sub(
+        r"(https?://[^\s<()]+[^\s<().,;:])",
+        r'<a href="\1" target="_blank" rel="noopener">\1</a>',
+        coded,
+    )
+    return re.sub(r"\*([^*]+)\*", r"<em>\1</em>", linked)
 
 
 # What a picture leaves out of its goal, shown under the picture.

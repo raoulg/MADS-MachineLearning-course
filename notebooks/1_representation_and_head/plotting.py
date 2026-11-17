@@ -697,7 +697,7 @@ def plot_learning_curves(
 
 
 # ---------------------------------------------------------------------------------------
-# 05_exercises: the loop of 06_your_study.html, drawn in the notebook
+# 05_exercises: the loop of presentations/lesson1-your-study.html, drawn in the notebook
 # ---------------------------------------------------------------------------------------
 
 import re
@@ -723,15 +723,19 @@ _LOOP_STYLE = """
 """
 
 
-def study_loop(page: str = "06_your_study.html") -> HTML:
-    """The eight-step loop drawn on `page`, as a figure in the notebook. Every box links
-    to its step on the page."""
-    html = Path(page).read_text()
+PRESENTATIONS = Path(__file__).resolve().parents[2] / "presentations"
+PAGES_URL = "https://raoulg.github.io/MADS-MachineLearning-course/"
+
+
+def study_loop(page: str = "lesson1-your-study.html") -> HTML:
+    """The eight-step loop drawn on `page` in `presentations/`, as a figure in the notebook.
+    Every box links to its step on the published page."""
+    html = (PRESENTATIONS / page).read_text()
     markers = re.search(r"<defs>.*?</defs>", html, flags=re.DOTALL)
     loop = re.search(r'<svg class="loop-wide".*?</svg>', html, flags=re.DOTALL)
     if markers is None or loop is None:
         raise ValueError(f"{page} holds no loop figure")
-    svg = loop.group(0).replace('href="#', f'target="_blank" href="{page}#')
+    svg = loop.group(0).replace('href="#', f'target="_blank" href="{PAGES_URL}{page}#')
     svg = svg.replace("every box opens its step below", "")
     svg = svg.replace(">", f">{markers.group(0)}", 1)
     return HTML(f'<div class="study-loop"><style>{_LOOP_STYLE}</style>{svg}</div>')

@@ -64,8 +64,9 @@ gemiste patiënt zwaarder dan een vals alarm), en elke keuze in het ontwerp kunn
 uitleggen zonder de agent erbij.
 
 2.12 Werken als klas: de eigen runs en het design script publiceren naar de
-runs-repository, het werk van anderen bekijken in het overzicht van de klas, en daarop
-voortbouwen met bronvermelding.
+runs-repository (de stappen staan in
+https://raoulg.github.io/MADS-MachineLearning-course/lesson2-your-study.html), het werk van anderen bekijken
+in het overzicht van de klas, en daarop voortbouwen met bronvermelding.
 
 ## Materiaal
 
@@ -78,7 +79,7 @@ voortbouwen met bronvermelding.
 | 2.8 | 1D of 2D | les | 2.1 `01_kernels` |
 | 2.10 | design script, atlas | les | `exercises/designs.py`, de opdracht van les 1 |
 | 2.9 | encoder gebruiken of zelf trainen | les | 2.1 `01_kernels` |
-| 2.11, 2.12 | ontwerpen, verdedigen, werken als klas | les | 2.4 `04_exercise`, `exercises/`, `05_your_study.html`, `docs/submit-runs.md` |
+| 2.11, 2.12 | ontwerpen, verdedigen, werken als klas | les | 2.4 `04_exercise`, `exercises/`, [your study](https://raoulg.github.io/MADS-MachineLearning-course/lesson2-your-study.html), `docs/submit-runs.md` |
 
 Optioneel: 2.3 `03_decomposition_and_nbeats` bouwt de decompositie uit MADS-DAV in een
 architectuur in — een route die trend en seizoen uitrekent, en een netwerk dat de rest

@@ -86,9 +86,11 @@ waarom? Lees daarna het resultaat van een hyperparametersearch per as, ook wanne
 geen verbetering vindt. Herhaal de winnende configuratie binnen budget om een verschil
 overtuigend winst te noemen.
 
-1.15 Publiceer je runs volgens `docs/submit-runs.md`. Bekijk daarna de resultaten van
-klasgenoten in het klasoverzicht en bouw met bronvermelding voort op wat hun
-experimenten laten zien.
+1.15 Het eigen werk publiceren naar de runs-repository van de klas
+(`docs/submit-runs.md`; de stappen van idee tot publicatie staan in
+https://raoulg.github.io/MADS-MachineLearning-course/lesson1-your-study.html), het werk van anderen bekijken in het
+overzicht van de klas waarmee de volgende les opent, en daarop voortbouwen met
+bronvermelding.
 
 ## Materiaal
 
@@ -104,7 +106,7 @@ experimenten laten zien.
 | 1.12 | compositieschema's en tensor shapes | les | `04_search`, `05_exercises` |
 | 1.13 | de baseline | les | `03_training`, `04_search`, `05_exercises` |
 | 1.14 | de zoekruimte en de search | les | `04_search`, `05_exercises` |
-| 1.15 | publiceren en voortbouwen | les | `05_exercises`, `docs/submit-runs.md` |
+| 1.15 | publiceren en voortbouwen | les | `05_exercises`, [your study](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-your-study.html), `docs/submit-runs.md` |
 
 Optioneel: `01c_build_your_own_cache` laat zien hoe een cache gemaakt wordt. Je hebt het
 niet nodig om de rest van de cursus te volgen — de caches staan klaar op de hub — maar
