@@ -3,12 +3,14 @@
     uv run scripts/class_analysis.py --lesson 1          # fetch main, write the page, print its path
     uv run scripts/class_analysis.py --lesson 1 --open   # ... and open it in the browser
     uv run scripts/class_analysis.py --demo              # the page on made-up data
+    uv run scripts/class_analysis.py --plotly cdn        # plotly.js from cdnjs: a small page
 
 The class's runs are the `lesson<N>/<student>/<run_id>.json` files on the class
 repository's `main`; they are read with git exactly as `collect_runs.py` reads them. The
 result is one self-contained HTML page, `artefacts/class-analysis/lesson<N>/index.html`.
 It opens on the ideas of the class as a graph of what builds on what, one column per
-round. A window at the bottom of the screen shows one idea, or the whole class: a click
+round. A box holds an idea's gain, its winner against its own baseline; an arrow how
+many points more the idea gained than the idea it builds on. A window at the bottom of the screen shows one idea, or the whole class: a click
 on a box opens it on that idea (its gain, its learning curves, its trials over the axes
 it searched). Below the graph, from top to bottom: who submitted what; the handed-out
 baselines side by side; baseline against final per study; the handed-out search pooled
@@ -32,7 +34,9 @@ metric has no score on the page.
 from __future__ import annotations
 
 import argparse
+import base64
 import colorsys
+import hashlib
 import html
 import json
 import math
@@ -49,7 +53,7 @@ from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from plotly.offline import get_plotlyjs
+from plotly.offline import get_plotlyjs, get_plotlyjs_version
 from plotly.subplots import make_subplots
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -471,24 +475,31 @@ EDGE_COLUMNS = [
 def arrow_between(
     parent: SimpleNamespace, child: SimpleNamespace
 ) -> tuple[float, float]:
-    """What an arrow compares, as (difference, standard error): the child's winner
-    against the parent's winner. Every number an arrow carries comes from here."""
-    diff = child.final - parent.final
+    """What an arrow compares, as (difference, standard error): the child's gain on its
+    own baseline minus the parent's gain on its own baseline, so how much more the child
+    gained than the idea it builds on. The standard error is that of a difference of two
+    differences: four means, each over its own repeats. Every number an arrow carries
+    comes from here."""
+    diff = (child.final - child.base) - (parent.final - parent.base)
     se = standard_error(
-        (child.final_std, child.final_n), (parent.final_std, parent.final_n)
+        (child.final_std, child.final_n),
+        (child.base_std, child.base_n),
+        (parent.final_std, parent.final_n),
+        (parent.base_std, parent.base_n),
     )
     return diff, se
 
 
 def edges(ids: pd.DataFrame) -> pd.DataFrame:
     """One row per arrow of the graph, from a parent to the idea that builds on it. The
-    number on it, `diff_pt`, is the child's winner minus the parent's winner in points;
-    `sigma` is that difference in pooled standard errors of the two winners' repeats,
-    `band_pt` two of those standard errors in points, and `verdict` reads `sigma` as
-    `verdict` does. An arrow has no number (`number` False, `why` says why) from a
-    parent that is not submitted, from the course's idea (the child's box holds its
-    winner against that baseline already), from or to an idea without a winner, and
-    between winners of different datasets or metrics."""
+    number on it, `diff_pt`, is how many points more the child gained on its own
+    baseline than the parent did on its own (`arrow_between`); `sigma` is that number in
+    its standard errors, `band_pt` two of those standard errors in points, and `verdict`
+    reads `sigma` as `verdict` does. An arrow has no number (`number` False, `why` says
+    why) from a parent that is not submitted, from the course's idea (the child's box
+    holds its gain on that baseline already), from or to an idea without a gain on its
+    own baseline, where a side has a single run, and between ideas of different
+    datasets or metrics."""
     by = {r.name: r for r in rows(ids)}
     out = []
     for child in rows(ids):
@@ -506,14 +517,18 @@ def edges(ids: pd.DataFrame) -> pd.DataFrame:
                 row["why"] = (
                     "the handed-out idea: the box holds the gain on its baseline"
                 )
-            elif math.isnan(number(parent.final)) or math.isnan(number(child.final)):
-                row["why"] = "no winner against a baseline on both ends"
+            elif math.isnan(number(parent.gain_pt)) or math.isnan(
+                number(child.gain_pt)
+            ):
+                row["why"] = "no gain on its own baseline at both ends"
             elif parent.dataset != child.dataset:
                 row["why"] = f"different datasets ({parent.dataset}, {child.dataset})"
             elif parent.objective != child.objective:
                 row["why"] = (
                     f"different metrics ({parent.objective}, {child.objective})"
                 )
+            elif math.isnan(arrow_between(parent, child)[1]):
+                row["why"] = "a side has a single run: no standard error"
             else:
                 diff, se = arrow_between(parent, child)
                 row.update(
@@ -784,7 +799,7 @@ AUTHOR_COLORS = [
     "#a0522d", "#5b6b8c", "#b07ac4", "#3d7a8a", "#c98a1b", "#6d4c9f", "#a35d7a",
     "#2f6f9f",
 ]  # fmt: skip
-MAX_PER_COLUMN = 6  # boxes in one column: about one screen high
+MAX_PER_COLUMN = 12  # boxes in one column before a round wraps: two screens high
 VERDICT_STYLE = {  # border colour, border width, mark
     "better": (GAIN, 2.5, "▲"),
     "worse": (LOSS, 2.5, "▼"),
@@ -798,8 +813,11 @@ ARROW_STYLE = {  # colour, width
     "unmeasured": ("#9aa1ab", 1.8),
 }
 SELECTED = "#b0452f"
-LAYER_PX, BOX_PX = 280, 230  # the width of a column, and of a box in it
-ROW_PX, BOX_H_PX = 150, 116  # the height of a row, and of a box in it
+BOX_PX, ROW_PX, BOX_H_PX = 230, 150, 116  # a box's width; a row's height, a box's
+SUB_GAP_PX = 28  # between the columns of one round
+ROUND_GAP_PX = 96  # between rounds: the arrows' lanes, and their numbers
+BAND_PX = 10  # how far a round's band reaches past its boxes
+LANE_PX = 9  # between two arrows' lanes in a gap
 HEAD_PX = 30  # the round titles above the boxes
 PAD_PX = 3  # room for a selected box's border
 
@@ -874,7 +892,7 @@ def idea_depths(ids: pd.DataFrame) -> dict[str, int]:
 
 def round_columns(ids: pd.DataFrame) -> dict[int, tuple[int, int]]:
     """Per round, its first column and its number of columns: a round of more than
-    `MAX_PER_COLUMN` ideas wraps into as many columns as it needs."""
+    `MAX_PER_COLUMN` ideas wraps into as few columns as hold it, filled evenly."""
     sizes = Counter(idea_depths(ids).values())
     out, first = {}, 0
     for d in sorted(sizes):
@@ -886,10 +904,10 @@ def round_columns(ids: pd.DataFrame) -> dict[int, tuple[int, int]]:
 
 def idea_layout(ids: pd.DataFrame) -> dict[str, tuple[int, float]]:
     """(column, row) of every idea and of every parent that is not submitted, the rounds
-    of `idea_depths` from left to right and `round_columns` wide. The first round starts
-    at the top; inside a later round the ideas sit by their parents' rows, one row
-    apart; a round that wraps fills its columns from the top, in the order of its
-    parents' rows."""
+    of `idea_depths` from left to right and `round_columns` wide, every row a whole
+    number so the space between two rows is free for arrows. The first round starts at
+    the top; inside a later round the ideas sit by their parents' rows; a round that
+    wraps fills its columns from the top, in the order of its parents' rows."""
     parents = dict(zip(ids.name, ids.parents, strict=True))
     depth = idea_depths(ids)
     columns = round_columns(ids)
@@ -916,24 +934,107 @@ def idea_layout(ids: pd.DataFrame) -> dict[str, tuple[int, float]]:
         group = sorted(layers[d], key=key)
         first, n_columns = columns[d]
         if n_columns > 1:
+            per = math.ceil(len(group) / n_columns)
             for i, name in enumerate(group):
-                place[name] = (first + i // MAX_PER_COLUMN, float(i % MAX_PER_COLUMN))
+                place[name] = (first + i // per, float(i % per))
             continue
         targets = [key(name)[0] for name in group]
         ys: list[float] = []
         if all(t < 0 for t in targets):
             ys = [float(i) for i in range(len(group))]
         else:
-            # by its parents, one row apart, the group centred on where it wants to be
+            # by its parents, on whole rows, the group centred on where it wants to be
             for t in targets:
-                ys.append(max(t, ys[-1] + 1) if ys else max(t, 0.0))
+                ys.append(max(round(t), ys[-1] + 1) if ys else max(round(t), 0.0))
             known = [t for t in targets if t >= 0]
-            shift = sum(known) / len(known) - sum(ys) / len(ys)
+            shift = round(sum(known) / len(known) - sum(ys) / len(ys))
             ys = [y + shift for y in ys]
             ys = [y - min(0.0, ys[0]) for y in ys]
         for name, y in zip(group, ys, strict=True):
             place[name] = (first, y)
     return place
+
+
+def column_lefts(
+    ids: pd.DataFrame,
+) -> tuple[dict[int, float], dict[int, tuple[float, float]]]:
+    """In pixels: the left edge of every column, and per round the left edge of its
+    first column and the right edge of its last. The columns of one round stand
+    `SUB_GAP_PX` apart, rounds `ROUND_GAP_PX`."""
+    lefts: dict[int, float] = {}
+    spans: dict[int, tuple[float, float]] = {}
+    cursor = 0.0
+    for d, (first, n) in round_columns(ids).items():
+        for i in range(n):
+            lefts[first + i] = cursor + i * (BOX_PX + SUB_GAP_PX)
+        right = lefts[first + n - 1] + BOX_PX
+        spans[d] = (cursor, right)
+        cursor = right + ROUND_GAP_PX
+    return lefts, spans
+
+
+def arrow_paths(
+    ids: pd.DataFrame, eds: pd.DataFrame
+) -> dict[tuple[str, str], list[tuple[float, float]]]:
+    """The path of every arrow, as points (x in pixels, y in rows), so that no arrow
+    runs under a box. An arrow leaves its parent's right edge and runs to its lane in
+    the gap after the parent's round (from a column that is not the round's last, it
+    first drops into the space between rows); the arrows of one parent share that lane,
+    a trunk with a branch to each child. To a round further on it crosses the rounds
+    between in the space above the child's row and comes down a lane of the gap before
+    the child's round. It enters its child's left edge (a child in a later column of a
+    wrapped round from the space above its row); the arrows into one box enter it at
+    different heights."""
+    place = idea_layout(ids)
+    depth = idea_depths(ids)
+    columns = round_columns(ids)
+    lefts, spans = column_lefts(ids)
+    edges_ = [(e.parent, e.child) for e in rows(eds)]
+    lanes: dict[int, list[str]] = {}  # per gap, after round d: the parents in it
+    for p_, c in edges_:
+        dp, dc = depth[p_], depth[c]
+        for g in {dp, dc - 1}:
+            lanes.setdefault(g, [])
+            if p_ not in lanes[g]:
+                lanes[g].append(p_)
+
+    def lane(g: int, parent: str) -> float:
+        i = lanes[g].index(parent) % 4
+        return spans[g][1] + 12 + i * LANE_PX
+
+    into: dict[str, list[str]] = {}
+    for p_, c in edges_:
+        into.setdefault(c, []).append(p_)
+    for c, ps in into.items():
+        ps.sort(key=lambda q: place[q][1])
+    out = {}
+    for p_, c in edges_:
+        (pcol, prow), (ccol, crow) = place[p_], place[c]
+        dp, dc = depth[p_], depth[c]
+        right = lefts[pcol] + BOX_PX
+        left = lefts[ccol]
+        m, j = len(into[c]), into[c].index(p_)
+        end = crow + (j - (m - 1) / 2) * 0.16
+        pts = [(right, prow)]
+        y = prow
+        if pcol != columns[dp][0] + columns[dp][1] - 1:  # not the round's last column
+            y = prow + (0.5 if crow >= prow else -0.5)
+            pts += [(right + SUB_GAP_PX / 2, prow), (right + SUB_GAP_PX / 2, y)]
+        x = lane(dp, p_)
+        pts.append((x, y))
+        if dc > dp + 1:  # across the rounds between, above the child's row
+            y = crow - 0.5
+            pts.append((x, y))
+            x = lane(dc - 1, p_)
+            pts.append((x, y))
+        if ccol != columns[dc][0]:  # a later column of a wrapped round
+            ch = crow - 0.5
+            pts += [(x, ch), (left - SUB_GAP_PX / 2, ch), (left - SUB_GAP_PX / 2, end)]
+        else:
+            pts.append((x, end))
+        pts.append((left - 3, end))
+        out[(p_, c)] = pts
+    return out
 
 
 def cut(text: str, width: int, lines: int) -> list[str]:
@@ -999,75 +1100,80 @@ def fig_ideas(
         return style(fig, 160)
     place = idea_layout(ids)
     colors = author_colors(ids)
-    n_layers = 1 + max(d for d, _ in place.values())  # columns: a round may wrap
+    lefts, spans = column_lefts(ids)
     n_rows = max(math.ceil(y + 1) for _, y in place.values())
-    bw, bh = BOX_PX / LAYER_PX, BOX_H_PX / ROW_PX
-    px, py_ = 1 / LAYER_PX, 1 / ROW_PX  # one pixel across, one down
+    bh = BOX_H_PX / ROW_PX
+    py_ = 1 / ROW_PX  # one pixel down
     submitted = set(ids.name)
 
     def box(name: str, **kw) -> None:
-        d, y = place[name]
+        col, y = place[name]
         fig.add_shape(
-            type="rect", x0=d - bw / 2, x1=d + bw / 2, y0=y - bh / 2, y1=y + bh / 2,
-            name=name, layer="above", **kw,
+            type="rect", x0=lefts[col], x1=lefts[col] + BOX_PX, y0=y - bh / 2,
+            y1=y + bh / 2, name=name, layer="above", **kw,
         )  # fmt: skip
 
     def text_in(name: str, lines: list[str], color: str = INK) -> None:
-        d, y = place[name]
+        col, y = place[name]
         fig.add_annotation(
-            x=d - bw / 2 + 14 * px, y=y - bh / 2 + 9 * py_, xanchor="left",
+            x=lefts[col] + 14, y=y - bh / 2 + 9 * py_, xanchor="left",
             yanchor="top", text="<br>".join(lines), align="left", showarrow=False,
             font={"size": 11.5, "color": color},
         )  # fmt: skip
 
     depth = idea_depths(ids)
-    for d, (first, n) in round_columns(ids).items():
+    for d, (_, n) in round_columns(ids).items():
         count = sum(1 for v in depth.values() if v == d)
         title = "HANDED OUT" if d == 0 else f"ROUND {d}"
+        left, right = spans[d]
+        # one band behind the round's columns: a round is one group, however wide
+        fig.add_shape(
+            type="rect", x0=left - BAND_PX, x1=right + BAND_PX, y0=-0.5,
+            y1=n_rows - 0.5, layer="below", fillcolor="#f2f4f7", line_width=0,
+            name=f"band:{d}",
+        )  # fmt: skip
         fig.add_annotation(
-            x=first - bw / 2, y=1, xref="x", yref="paper", xanchor="left",
+            x=left - BAND_PX, y=1, xref="x", yref="paper", xanchor="left",
             yanchor="bottom", showarrow=False, font={"size": 12, "color": MUTED},
             text=title + (f" · {count} ideas" if n > 1 else ""), name=f"round:{d}",
         )  # fmt: skip
-        if n > 1:  # a rule under the heading spans the round's columns
-            fig.add_shape(
-                type="line", x0=first - bw / 2, x1=first + n - 1 + bw / 2, y0=1, y1=1,
-                xref="x", yref="paper", line={"color": "#c9ced6", "width": 1.5},
-                name=f"rule:{d}",
-            )  # fmt: skip
+    paths = arrow_paths(ids, eds)
     for e in rows(eds):
-        (pd_, py), (cd, cy) = place[e.parent], place[e.child]
         color, width = ARROW_STYLE[e.verdict if e.number else "unmeasured"]
-        # a line under the boxes, so an arrow that passes a box goes behind it
+        pts = paths[(e.parent, e.child)]
+        xs, ys = zip(*pts, strict=True)
+        # a line under the boxes, through the gaps between them
         fig.add_scatter(
-            x=[pd_ + bw / 2, cd - bw / 2 - 6 * px], y=[py, cy], mode="lines+markers",
-            line={"color": color, "width": width}, hoverinfo="skip", showlegend=False,
-            marker={"size": [0, 11], "symbol": "arrow", "angleref": "previous",
-                    "color": color},
+            x=xs, y=ys, mode="lines+markers", hoverinfo="skip", showlegend=False,
+            line={"color": color, "width": width},
+            marker={"size": [0] * (len(pts) - 1) + [10], "symbol": "arrow",
+                    "angleref": "previous", "color": color},
             name=f"{e.parent}->{e.child}",
         )  # fmt: skip
         if e.number:
             mark = VERDICT_STYLE[e.verdict][2]
             sig = "" if math.isnan(e.sigma) else f", {e.sigma:+.1f} σ"
-            # in the gap just left of the child, where no box stands
-            x0, x1 = pd_ + bw / 2, cd - bw / 2
-            at = x1 - (1 - bw) / 2
-            share = (at - x0) / (x1 - x0) if x1 > x0 else 0.5
+            # beside the child, on the arrow's last stretch before it
+            x1, y1 = pts[-1]
+            if x1 - pts[-2][0] < 50:  # a child in a later column: above its row
+                x1, y1 = pts[-3]
             fig.add_annotation(
-                x=at, y=py + share * (cy - py), yshift=10,
+                x=x1 - 4, y=y1, yshift=9, xanchor="right",
                 text=f"<b>{mark} {signed(e.diff_pt)}</b>".replace("<b> ", "<b>"),
                 showarrow=False, bgcolor="rgba(255,255,255,0.9)",
                 font={"size": 11.5, "color": color if e.verdict != "inside" else MUTED},
-                hovertext=plain(f"{e.diff_pt:+.2f} pt on its parent's winner{sig}"),
+                hovertext=plain(
+                    f"gained {e.diff_pt:+.2f} pt more than the idea it builds on{sig}"
+                ),
                 name=f"label:{e.parent}->{e.child}",
             )  # fmt: skip
     for r in rows(ids):
         color = colors.get(r.author, COURSE_TONE)
         border, width, _ = VERDICT_STYLE[r.verdict]
-        d, y = place[r.name]
+        col, y = place[r.name]
         box(r.name, fillcolor=tint(color, 0.14), line={"color": border, "width": width})
         fig.add_shape(
-            type="rect", x0=d - bw / 2, x1=d - bw / 2 + 5 * px,
+            type="rect", x0=lefts[col], x1=lefts[col] + 5,
             y0=y - bh / 2, y1=y + bh / 2, fillcolor=color, line_width=0,
             name=f"stripe:{r.name}",
         )  # fmt: skip
@@ -1158,7 +1264,7 @@ def fig_ideas(
                 )
             )
     marks = [
-        (place[n][0] + dx * bw, place[n][1] + dy * bh, text, n)
+        (lefts[place[n][0]] + (0.5 + dx) * BOX_PX, place[n][1] + dy * bh, text, n)
         for n, text in hover
         for dx in (-0.36, -0.12, 0.12, 0.36)
         for dy in (-0.22, 0.22)
@@ -1170,10 +1276,11 @@ def fig_ideas(
         marker={"size": 54, "symbol": "square", "color": "rgba(0,0,0,0)"},
         showlegend=False,
     )  # fmt: skip
-    pad = (bw / 2) + PAD_PX * px
-    fig.update_xaxes(range=[-pad, n_layers - 1 + pad], visible=False, fixedrange=True)
+    pad = BAND_PX + PAD_PX
+    full = spans[max(spans)][1]
+    fig.update_xaxes(range=[-pad, full + pad], visible=False, fixedrange=True)
     fig.update_yaxes(range=[n_rows - 0.5, -0.5], visible=False, fixedrange=True)
-    width = (n_layers - 1) * LAYER_PX + BOX_PX + 2 * PAD_PX
+    width = full + 2 * pad
     margin = {"l": 0, "r": 0, "t": HEAD_PX, "b": 6}
     return style(
         fig, ROW_PX * n_rows + HEAD_PX + 6, width=width, margin=margin,
@@ -1229,9 +1336,9 @@ def shared_axes(ids: pd.DataFrame) -> list[str]:
 def gain_rows(
     ids: pd.DataFrame, eds: pd.DataFrame, name: str | None = None
 ) -> list[dict]:
-    """The bars of the gain picture, top to bottom. For the idea `name`: its winner
-    against its own baseline, then against the winner of each parent the course did not
-    hand out, then every other arrow of the class, `faded`. For the class (`name` None):
+    """The bars of the gain picture, top to bottom. For the idea `name`: its gain on its
+    own baseline, then its gain minus the gain of each parent the course did not hand
+    out, then every other arrow of the class, `faded`. For the class (`name` None):
     every arrow that carries a number. Each bar: `label`, `value` and `band` (two
     standard errors) in points, `verdict`, `text`, and `why` for a bar without a value."""
     out = []
@@ -1902,12 +2009,12 @@ def ideas_note(
 
 PANEL_NOTES = {
     "class": [
-        "points · each arrow: the child's winner on its parent's · grey band: two standard errors",
+        "points · each arrow: how much more the child gained than its parent · grey band: two standard errors",
         "each idea's winning trial, in its author's colour",
         "every trial over the axes all studies searched · bold: the winners",
     ],
     "idea": [
-        "points · grey band: two standard errors · faded: the class's other arrows",
+        "points · first its gain, then how much more than each parent's · grey band: two standard errors · faded: the class's other arrows",
         "bold: the winner · ×: pruned",
         "one line per trial · bold: the winner",
     ],
@@ -1919,6 +2026,7 @@ def panels_json(
 ) -> str:
     """The window's data for the page's script, as JSON that is safe inside a script tag."""
     authors = dict(zip(ids.name, ids.author, strict=True))
+    parents = dict(zip(ids.name, ids.parents, strict=True))
     parts = []
     for name, p in ps.items():
         color = colors.get(authors.get(name, ""), "#9aa1ab") if name else "#9aa1ab"
@@ -1926,7 +2034,8 @@ def panels_json(
         figs = ",".join(f'"{k}":{p[k].to_json()}' for k in ("gain", "curves", "lines"))
         parts.append(
             f'{json.dumps(name)}:{{"head":{json.dumps(p["head"])},'
-            f'"color":{json.dumps(color)},"notes":{json.dumps(notes)},{figs}}}'
+            f'"color":{json.dumps(color)},"notes":{json.dumps(notes)},'
+            f'"parents":{json.dumps(list(parents.get(name, [])))},{figs}}}'
         )
     return ("{" + ",".join(parts) + "}").replace("</", "<\\/")
 
@@ -1946,6 +2055,7 @@ DOCK = """
 # The window's filter: the window shows its one-line head until it is opened, by its
 # toggle, by a click on a box (which shows that idea; a second click or the button shows
 # the whole class) or by the URL's #<idea-name>. Its pictures are drawn when it is open.
+# On a select, the page scrolls the box and its parents clear of the opened window.
 SCRIPT = """
 window.addEventListener('DOMContentLoaded', function () {
   const P = JSON.parse(document.getElementById('panels').textContent);
@@ -1997,6 +2107,38 @@ window.addEventListener('DOMContentLoaded', function () {
     toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
     draw();
   }
+  function reveal(name) {
+    if (!graph || !graph._fullLayout || !name) return;
+    const fl = graph._fullLayout;
+    const box = graph.getBoundingClientRect();
+    const wide = graph.closest('.wide');
+    function span(names) {
+      let top = Infinity, bottom = -Infinity, left = Infinity, right = -Infinity;
+      graph.layout.shapes.forEach(function (s) {
+        if (names.indexOf(s.name) < 0) return;
+        const ys = [s.y0, s.y1].map(function (v) { return box.top + fl._size.t + fl.yaxis.l2p(v); });
+        const xs = [s.x0, s.x1].map(function (v) { return fl._size.l + fl.xaxis.l2p(v); });
+        top = Math.min(top, ys[0], ys[1]); bottom = Math.max(bottom, ys[0], ys[1]);
+        left = Math.min(left, xs[0], xs[1]); right = Math.max(right, xs[0], xs[1]);
+      });
+      return {top: top, bottom: bottom, left: left, right: right};
+    }
+    const room = dock.getBoundingClientRect().top - 16;
+    let s = span([name].concat(P[name].parents));
+    if (s.bottom - s.top > room - 16) s = span([name]);  // the box alone, then
+    if (s.top === Infinity) return;
+    let dy = 0;
+    if (s.bottom > room) dy = s.bottom - room;
+    if (s.top - dy < 16) dy = s.top - 16;
+    if (dy) window.scrollBy(0, dy);
+    if (wide) {
+      const view = wide.clientWidth;
+      if (s.right > wide.scrollLeft + view || s.left < wide.scrollLeft) {
+        const target = s.right > wide.scrollLeft + view ? s.right - view + 24 : s.left - 24;
+        wide.scrollLeft = Math.max(0, target);
+      }
+    }
+  }
   function show(name) {
     if (!(name in P)) name = '';
     if (name === current) return;
@@ -2017,12 +2159,19 @@ window.addEventListener('DOMContentLoaded', function () {
     let name = '';
     try { name = decodeURIComponent(location.hash.slice(1)); } catch (e) { name = ''; }
     show(name);
-    if (name in P && name !== '') open(true);
+    if (name in P && name !== '') {
+      open(true);
+      reveal(name);
+    }
   }
   if (graph && graph.on) {
     graph.on('plotly_click', function (ev) {
       const name = ev.points && ev.points[0] && ev.points[0].customdata;
-      if (name in P) { show(name === current ? '' : name); open(true); }
+      if (name in P) {
+        show(name === current ? '' : name);
+        open(true);
+        reveal(current);
+      }
     });
   }
   all.addEventListener('click', function () { show(''); });
@@ -2083,6 +2232,23 @@ def class_tiles(
     )
 
 
+def plotly_script(how: str) -> str:
+    """The page's plotly.js: inside it (`inline`), or (`cdn`) loaded from cdnjs in the
+    exact version plotly.py bundles, checked against the bundled file's hash, which keeps
+    the page small enough to commit."""
+    js = get_plotlyjs()
+    if how == "inline":
+        return f"<script>{js}</script>"
+    if how != "cdn":
+        raise ValueError(f"plotly is inline or cdn, not {how!r}")
+    digest = base64.b64encode(hashlib.sha384(js.encode()).digest()).decode()
+    url = f"https://cdnjs.cloudflare.com/ajax/libs/plotly.js/{get_plotlyjs_version()}/plotly.min.js"
+    return (
+        f'<script src="{url}" integrity="sha384-{digest}" '
+        'crossorigin="anonymous"></script>'
+    )
+
+
 def source_line(source: str, submitted: int | None, read: int) -> str:
     """Where the runs came from and how many the page reads, one number: the submitted
     runs, and the earlier executions of a handed-out notebook among them that the page
@@ -2109,11 +2275,14 @@ def build_page(
     elsewhere: Mapping[str, int] | None = None,
     teacher: str | None = None,
     submitted: int | None = None,
+    plotly: str = "inline",
 ) -> str:
     """The page of `lesson` from `df` (`runs_frame`). `source` names where the runs came
     from, `submitted` how many submission files `df` was read from: `runs_frame` keeps
     every one but a handed-out notebook's earlier executions, so the difference is
-    named as those. The `teacher`'s runs are drawn as the teacher's (`as_teacher`)."""
+    named as those. The `teacher`'s runs are drawn as the teacher's (`as_teacher`).
+    `plotly` is `inline` (plotly.js inside the page, which then opens from disk with no
+    network) or `cdn` (`plotly_script`)."""
     df = as_teacher(df, teacher)
     cmp = comparisons(df)
     trials = handed_out_trials(df)
@@ -2155,11 +2324,12 @@ def build_page(
             "The ideas of the class",
             "One box per idea, from left to right in the order they were built: a "
             "column is the longest path from the handed-out idea. Colour: whose idea. "
-            "The number on a box: its winner against its own baseline. The number on an "
-            "arrow: the child's winner against that parent's winner, in points; grey ≈ "
-            "is inside two standard errors of the two, green ▲ and red ▼ clear two "
-            "standard errors; no number between different datasets or metrics, and no σ "
-            "where a side has a single run. Dashed: a parent "
+            "The number on a box: its gain, its winner against its own baseline. The "
+            "number on an arrow: how many points more the child gained than the idea it "
+            "builds on, each on its own baseline; grey ≈ is inside two standard errors, "
+            "green ▲ and red ▼ clear two standard errors; no number between different "
+            "datasets or metrics, or where a side has a single run or no baseline. "
+            "Dashed: a parent "
             "that is not among the submissions. To build on an idea, name it in "
             "study.py: IDEA = Idea.of('...', builds_on='blissful-bee-18').",
             None,
@@ -2234,7 +2404,7 @@ def build_page(
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
         f"<title>Lesson {lesson}: what the class did</title><style>{CSS}</style>"
-        f"<script>{get_plotlyjs()}</script></head><body><main>"
+        f"{plotly_script(plotly)}</head><body><main>"
         f"<h1>Lesson {lesson}: what the class did</h1>"
         f"<p class='sub'>{html.escape(source_line(source, submitted, len(df)))}</p>{reads}"
         f"<div class='tiles'>{class_tiles(df, ids, eds, metric)}</div>"
@@ -2313,6 +2483,12 @@ def main() -> None:
     )
     parser.add_argument("--no-pull", action="store_true")
     parser.add_argument(
+        "--plotly",
+        choices=["inline", "cdn"],
+        default="inline",
+        help="plotly.js inside the page (opens from disk) or from cdnjs (a small page)",
+    )
+    parser.add_argument(
         "--teacher",
         help="the teacher's login (default: the owner of the class repository)",
     )
@@ -2361,7 +2537,15 @@ def main() -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(
         build_page(
-            df, args.lesson, source, metric, known, elsewhere, teacher, len(subs)
+            df,
+            args.lesson,
+            source,
+            metric,
+            known,
+            elsewhere,
+            teacher,
+            len(subs),
+            args.plotly,
         )
     )
     by_role = Counter(df.role)

@@ -1,5 +1,6 @@
 """The numbers behind the pictures of class_analysis.py, and the page it writes."""
 
+import itertools
 import math
 
 import class_analysis  # ty: ignore[import-not-found]
@@ -215,7 +216,7 @@ def test_the_graph_has_a_box_per_idea_and_an_arrow_per_parent_in_layers():
     ids = class_analysis.ideas(df, class_analysis.comparisons(df))
     fig = class_analysis.fig_ideas(ids)
     boxes = {s.name for s in fig.layout.shapes if s.type == "rect" and s.name}
-    boxes = {b for b in boxes if not b.startswith("stripe:")}
+    boxes = {b for b in boxes if not b.startswith(("stripe:", "band:"))}
     assert boxes == {*ids.name, GHOST["idea_name"]}
     ghost = next(s for s in fig.layout.shapes if s.name == GHOST["idea_name"])
     assert ghost.line.dash == "dash"
@@ -446,8 +447,9 @@ def test_an_arrow_carries_the_childs_winner_on_its_parents_and_says_whether_it_c
     df = class_analysis.runs_frame(runs)
     eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
     arrow = eds.set_index(["parent", "child"])
-    # two winners of three repeats, each a std of 0.01 over its repeats (ddof=0)
-    se = math.sqrt(2 * 0.01**2 / 2)
+    # two gains, four means of three repeats, each a std of 0.01 (ddof=0); all the
+    # baselines are 0.70, so the difference of the gains is that of the winners
+    se = math.sqrt(4 * 0.01**2 / 2)
 
     def at(parent, child):
         return arrow.loc[(named[parent]["idea_name"], named[child]["idea_name"])]
@@ -615,9 +617,10 @@ def test_a_merge_stands_right_of_its_deepest_parent_not_its_nearest():
 def test_an_arrow_at_one_and_a_half_standard_errors_is_grey():
     a = idea_attrs("a", "the parent", [ROOT["idea_name"]])
     b = idea_attrs("b", "the child", [a["idea_name"]])
-    # winners of three repeats, std 0.01 each: the standard error is 0.01
-    runs = study_runs("a", "a-p", a, 0.70, 0.750) + study_runs(
-        "b", "b-c", b, 0.70, 0.765
+    # four means of three repeats, std 0.01 each: the standard error is 0.01·√2
+    child = 0.75 + 1.5 * math.sqrt(2) * 0.01
+    runs = study_runs("a", "a-p", a, 0.70, 0.75) + study_runs(
+        "b", "b-c", b, 0.70, child
     )
     df = class_analysis.runs_frame(runs)
     eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
@@ -767,3 +770,114 @@ def test_the_demo_has_a_teacher_who_ran_the_notebook_twice():
     page = class_analysis.build_page(df, 1, "made-up data", teacher=DEMO_TEACHER,
                                      submitted=len(subs))  # fmt: skip
     assert "<b>8</b><span>students, the teacher not counted</span>" in page
+
+
+def under_a_box(ids, eds):
+    """The arrows of the graph that run under a box: (arrow, box) pairs."""
+    place = class_analysis.idea_layout(ids)
+    lefts, _ = class_analysis.column_lefts(ids)
+    half = class_analysis.BOX_H_PX / class_analysis.ROW_PX / 2
+    found = []
+    for key, pts in class_analysis.arrow_paths(ids, eds).items():
+        for (x0, y0), (x1, y1) in itertools.pairwise(pts):
+            assert x0 == x1 or y0 == y1  # every stretch runs across or down
+            for name, (col, y) in place.items():
+                left, right = lefts[col], lefts[col] + class_analysis.BOX_PX
+                if (
+                    min(x0, x1) < right
+                    and max(x0, x1) > left
+                    and min(y0, y1) < y + half
+                    and max(y0, y1) > y - half
+                ):
+                    found.append((key, name))
+    return found
+
+
+def test_no_arrow_runs_under_a_box():
+    from class_demo import demo_submissions  # ty: ignore[import-not-found]
+
+    runs, _ = rehearsal()
+    many = big_class()
+    many += study_runs("z", "z-on-two", idea_attrs("z", "on two classmates", [
+        idea_attrs("s03", "idea number 3", [ROOT["idea_name"]])["idea_name"],
+        idea_attrs("s27", "idea number 27", [ROOT["idea_name"]])["idea_name"],
+    ]), 0.7, 0.75)  # fmt: skip
+    for subs in (runs, demo_submissions(), many):
+        df = class_analysis.runs_frame(subs)
+        ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+        assert under_a_box(ids, class_analysis.edges(ids)) == []
+
+
+def test_a_round_wraps_only_when_it_does_not_fit_and_stands_on_one_band():
+    seven = []
+    for i in range(7):
+        idea = idea_attrs(f"s{i}", f"idea {i}", [ROOT["idea_name"]])
+        seven += study_runs(f"s{i}", f"s{i}-x", idea, 0.7, 0.71)
+    df = class_analysis.runs_frame(seven)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    assert class_analysis.round_columns(ids) == {0: (0, 1), 1: (1, 1)}
+    df = class_analysis.runs_frame(big_class())
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    fig = class_analysis.fig_ideas(ids)
+    bands = [s for s in fig.layout.shapes if (s.name or "").startswith("band:")]
+    assert [b.name for b in bands] == ["band:0", "band:1"]  # one per round
+    lefts, spans = class_analysis.column_lefts(ids)
+    first, n = class_analysis.round_columns(ids)[1]
+    assert n == 3
+    inside = lefts[first + 1] - lefts[first] - class_analysis.BOX_PX
+    between = spans[1][0] - spans[0][1]
+    assert inside < between  # the columns of a round stand closer than rounds
+
+
+def test_the_arrows_of_one_parent_share_a_trunk():
+    runs, _named = rehearsal()
+    df = class_analysis.runs_frame(runs)
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    paths = class_analysis.arrow_paths(ids, class_analysis.edges(ids))
+    root = [pts for (p, _), pts in paths.items() if p == ROOT["idea_name"]]
+    assert len(root) == 2
+    assert root[0][:2] == root[1][:2]  # out of the root and to one lane together
+
+
+def test_an_arrow_compares_gain_with_gain_not_winner_with_winner():
+    a = idea_attrs("a", "the parent", [ROOT["idea_name"]])
+    b = idea_attrs("b", "the child", [a["idea_name"]])
+    # the same gain of 5 pt, on baselines 1 pt apart
+    runs = study_runs("a", "a-p", a, 0.70, 0.75) + study_runs("b", "b-c", b, 0.71, 0.76)
+    df = class_analysis.runs_frame(runs)
+    eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
+    [arrow] = eds[eds.number].itertuples()
+    assert arrow.diff_pt == pytest.approx(0.0, abs=1e-9)
+    assert arrow.verdict == "inside"
+
+
+def test_an_arrow_without_a_baseline_or_with_a_single_run_has_no_number():
+    a = idea_attrs("a", "the parent", [ROOT["idea_name"]])
+    b = idea_attrs("b", "no baseline", [a["idea_name"]])
+    c = idea_attrs("c", "one run", [a["idea_name"]])
+    runs = study_runs("a", "a-p", a, 0.70, 0.75)
+    runs += [
+        r
+        for r in study_runs("b", "b-b", b, 0.70, 0.76)
+        if r.run.attrs["role"] != "baseline"
+    ]
+    runs += [
+        with_attrs(r, n_repeats=1) if r.run.attrs["role"] == "final" else r
+        for r in study_runs("c", "c-c", c, 0.70, 0.76)
+    ]
+    df = class_analysis.runs_frame(runs)
+    eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
+    why = dict(zip(eds.child, eds.why, strict=True))
+    assert not eds[eds.parent == a["idea_name"]].number.any()
+    assert why[b["idea_name"]] == "no gain on its own baseline at both ends"
+    assert why[c["idea_name"]] == "a side has a single run: no standard error"
+
+
+def test_the_page_can_load_plotly_from_cdnjs_with_its_hash():
+    from plotly.offline import get_plotlyjs_version
+
+    df = class_analysis.runs_frame(teacher_class())
+    small = class_analysis.build_page(df, 1, plotly="cdn")
+    url = f"cdnjs.cloudflare.com/ajax/libs/plotly.js/{get_plotlyjs_version()}/plotly.min.js"
+    assert url in small and 'integrity="sha384-' in small
+    assert len(small) < len(class_analysis.build_page(df, 1)) - 4_000_000
