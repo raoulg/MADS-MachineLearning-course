@@ -12,16 +12,16 @@ the teacher's: before the lesson, the teacher publishes the part of the exercise
 handed out (`lesson1-notebook*`), whose idea every student's first study builds on.
 Everything happens in a sandbox, `artefacts/rehearsal/<timestamp>/`:
 
-- `gh-root/`: the class repository and a fork per student and for the teacher, as bare
-  git repositories,
+- `gh-root/`: the class repository and a fork per student, as bare git repositories,
   reached through their github.com URLs by git's `insteadOf` in `gitconfig`;
 - `bin/gh`: a fake `gh` that answers `gh api user` with the student's login and records
   the pull requests in `gh-prs.json` (`scripts/gitworld.py`);
 - `students/<login>/course`: a clone of the course repository at the commit this script
   runs from, with its own environment and its own Optuna store, and next to it
   `students/<login>/mads-runs`, the student's clone of their fork;
-- `teacher/`: the teacher's clones, the same two, and `dashboard/index.html`, the class
-  page.
+- `teacher/`: the teacher's clones, the same two; the teacher owns the class
+  repository, so their `mads-runs` has it as `origin` and as `upstream`, and their pull
+  request comes from a branch of it. `dashboard/index.html` is the class page.
 
 A student's steps are the commands a student types, in their own clone: the class read
 as `make dashboard LESSON=1` reads it (without a browser or optuna-dashboard), the
@@ -491,9 +491,12 @@ class Rehearsal:
         self.step(f"sandbox {self.sandbox}: guards hold; fake gh at {self.fake}")
 
         self.world = World(
-            self.sandbox, upstream=CLASS_REPO, students=(*self.students, TEACHER),
+            self.sandbox, upstream=CLASS_REPO, students=tuple(self.students),
             clone=False,
         )  # fmt: skip
+        # The teacher owns the class repository, and GitHub forks no repository into
+        # the account that owns it: the teacher's branch lives in the class repository.
+        self.world.forks[TEACHER] = self.world.upstream
         # GitHub serves a pull request's head by its commit
         git_out(
             ["config", "uploadpack.allowAnySHA1InWant", "true"],
@@ -501,7 +504,7 @@ class Rehearsal:
         )  # fmt: skip
         self.step(
             f"class repository {CLASS_REPO} at {self.world.upstream}, a fork per "
-            f"student and the teacher: {', '.join([*self.students, TEACHER])}"
+            f"student: {', '.join(self.students)}"
         )
         self.head = git_out(["rev-parse", "HEAD"], COURSE_ROOT, base)
         dirty = git_out(
