@@ -187,8 +187,9 @@ def gitconfig(tmp: Path, user: bool = True) -> str:
     return text
 
 
-def make_world(tmp_path: Path, monkeypatch) -> World:
-    """The world in `tmp_path`, with git and `gh` pointed at it through `monkeypatch`."""
+def make_world(tmp_path: Path, monkeypatch, upstream: str = "class/runs") -> World:
+    """The world in `tmp_path`, with git and `gh` pointed at it through `monkeypatch`;
+    `upstream` names the class repository."""
     config = tmp_path / "gitconfig"
     config.write_text(gitconfig(tmp_path))
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(config))
@@ -202,7 +203,7 @@ def make_world(tmp_path: Path, monkeypatch) -> World:
     fake.write_text(FAKE_GH)
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
     monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
-    w = World(tmp_path)
+    w = World(tmp_path, upstream=upstream)
     monkeypatch.setenv("FAKE_GH_LOG", str(w.log))
     monkeypatch.setenv("FAKE_GH_STATE", str(w.state))
     monkeypatch.setenv("FAKE_GH_LOGIN", "alice")

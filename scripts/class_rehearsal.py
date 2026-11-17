@@ -13,11 +13,17 @@ handed out (`lesson1-notebook*`), whose idea every student's first study builds 
 Everything happens in a sandbox, `artefacts/rehearsal/<timestamp>/`:
 
 - `gh-root/`: the class repository and a fork per student, as bare git repositories,
-  reached through their github.com URLs by git's `insteadOf` in `gitconfig`;
+  reached through their github.com URLs by git's `insteadOf` in `gitconfig`, which
+  rewrites only those URLs and lets git use no network protocol at all (`https`,
+  `http`, `ssh` and `git` are `never`); every clone of the sandbox carries the same
+  lines in its own `.git/config`, so a plain `git fetch` from a normal shell reaches
+  only the sandbox as well;
 - `bin/gh`: a fake `gh` that answers `gh api user` with the student's login and records
   the pull requests in `gh-prs.json` (`scripts/gitworld.py`);
 - `students/<login>/course`: a clone of the course repository at the commit this script
-  runs from, with its own environment and its own Optuna store, and next to it
+  runs from, whose `origin` is the course repository's github.com URL as a student's
+  is (git refuses to fetch it), with its own environment and its own Optuna store, and
+  next to it
   `students/<login>/mads-runs`, the student's clone of their fork;
 - `teacher/`: the teacher's clones, the same two; the teacher owns the class
   repository, so their `mads-runs` has it as `origin` and as `upstream`, and their pull
@@ -36,10 +42,22 @@ The teacher's store gets the handed-out studies `lesson1-notebook` and
 `lesson1-notebook-runs` of this checkout's store, with their artifacts, and the teacher
 hands them in with `make share LESSON=1`. Each student's store gets `lesson1-notebook`
 too, so a study's budget comes from trials measured on this machine; a student hands in
-only their own studies. Nothing reaches
-GitHub: before anything runs, the script makes sure that every command finds the fake
-`gh`, that the `insteadOf` rewriting lives in the sandbox, and that no remote of any
-sandbox repository resolves to github.com.
+only their own studies. Nothing reaches GitHub: before anything runs, the script makes
+sure that every command finds the fake `gh`, that the `insteadOf` rewriting lives in the
+sandbox, and that no remote of any sandbox repository can reach github.com, with the
+sandbox's git config or without it. It warns when a study's planned runs are more files
+than the check accepts in one pull request, and when the validator at the rehearsed
+commit differs from the local `origin/master`, the branch the check takes it from on
+GitHub. At the end it stops unless the class repository holds the ideas and parents the
+plan gave, and no submitted file holds a path of this machine.
+
+Not rehearsed: the workflow's trigger filter (`pull_request_target` on `main` and the
+event types), its permissions and its concurrency group; the `comment` job; the `merge`
+job's settings (`AUTO_MERGE`, `--match-head-commit`); GitHub's approval gate for pull
+requests from a fork; the two pull requests of a round checked at the same time (here
+one after the other, each against `main` with the one before merged); and the default
+`make share LESSON=1`, which hands in the notebook's runs and the student's study in one
+pull request (here a student hands in `lesson1-study*` only).
 """
 
 from __future__ import annotations
@@ -57,11 +75,17 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from gitworld import FAKE_GH, World, gitconfig
+from gitworld import FAKE_GH, World
+from run_submission import MAX_CHANGED_FILES
 
 COURSE_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_STORE = COURSE_ROOT / "artefacts" / "optuna" / "studies.db"
 CLASS_REPO = "raoulg/mads-ml-runs-2026-11"
+COURSE_REPO = "https://github.com/raoulg/MADS-MachineLearning-course.git"
+# the branch the workflow takes the validator from: the course repository's default
+COURSE_DEFAULT = "origin/master"
+VALIDATOR = "scripts/run_submission.py"
+HARNESS = "notebooks/1_representation_and_head/exercises/harness.py"
 TEACHER = "raoulg"
 LESSON = 1
 EXERCISE = "notebooks/1_representation_and_head/05_exercises.ipynb"
@@ -315,9 +339,31 @@ def inside(path: Path, root: Path) -> bool:
     return path.resolve().is_relative_to(root.resolve())
 
 
+# the network protocols git may not use in the sandbox
+NETWORK = ("https", "http", "ssh", "git")
+
+
+def sandbox_gitconfig(sandbox: Path, owners: list[str]) -> str:
+    """The sandbox's git config: the class repository and the fork of each of `owners`
+    by their github.com URLs, rewritten to the bare repositories under `gh-root`, and
+    no network protocol, so a URL nothing rewrites is refused rather than fetched."""
+    root, name = sandbox / "gh-root", CLASS_REPO.split("/")[1]
+    lines = []
+    for slug in [CLASS_REPO, *(f"{owner}/{name}" for owner in owners)]:
+        lines += [f'[url "file://{root}/{slug}.git"]']
+        lines += [f"  insteadOf = https://github.com/{slug}.git"]
+    for protocol in NETWORK:
+        lines += [f'[protocol "{protocol}"]', "  allow = never"]
+    lines += ['[protocol "file"]', "  allow = always"]
+    lines += ["[init]", "  defaultBranch = main"]
+    lines += ["[user]", "  name = Student", "  email = student@example.invalid"]
+    return "\n".join(lines) + "\n"
+
+
 def check_rewrite(env: dict[str, str], sandbox: Path) -> None:
-    """git reads its global config from the sandbox, no system config, and every
-    `insteadOf` it knows comes from a file inside the sandbox; github.com is rewritten."""
+    """git reads its global config from the sandbox, no system config, every
+    `insteadOf` it knows comes from a file inside the sandbox, the class repository is
+    rewritten, and no network protocol is allowed."""
     global_config = env.get("GIT_CONFIG_GLOBAL")
     if not global_config or not inside(Path(global_config), sandbox):
         raise Stop(
@@ -338,6 +384,39 @@ def check_rewrite(env: dict[str, str], sandbox: Path) -> None:
     got = git_out(["ls-remote", "--get-url", url], sandbox, env)
     if "github.com" in got:
         raise Stop(f"guard: git does not rewrite {url}; it resolves to {got}")
+    refused(sandbox, env, "the sandbox's git config")
+
+
+def refused(repo: Path, env: dict[str, str], where: str) -> None:
+    """git, run in `repo` with `env`, may use no network protocol."""
+    for protocol in NETWORK:
+        allow = subprocess.run(
+            ["git", "config", "--get", f"protocol.{protocol}.allow"],
+            cwd=repo, env=env, capture_output=True, text=True, check=False,
+        ).stdout.strip()  # fmt: skip
+        if allow != "never":
+            raise Stop(
+                f"guard: {where} lets git use {protocol} (protocol.{protocol}.allow "
+                f"is {allow or 'unset'}), so a github.com URL could be fetched"
+            )
+
+
+def pin(repo: Path, config: Path, env: dict[str, str]) -> None:
+    """The rewrites and protocol rules of the sandbox's `config`, written into the
+    clone `repo`'s own `.git/config`, so they hold in a shell without the sandbox."""
+    listed = git_out(
+        ["config", "--file", str(config), "--get-regexp", r"^(url|protocol)\."],
+        repo, env,
+    )  # fmt: skip
+    for line in listed.splitlines():
+        key, value = line.split(" ", 1)
+        git_out(["config", "--local", "--add", key, value], repo, env)
+
+
+def plain_env(env: dict[str, str]) -> dict[str, str]:
+    """`env` as a normal shell has it: no sandbox git config, none of the user's."""
+    plain = {k: v for k, v in env.items() if not k.startswith("GIT_CONFIG")}
+    return {**plain, "GIT_CONFIG_GLOBAL": os.devnull}
 
 
 def git_out(args: list[str], cwd: Path, env: dict[str, str]) -> str:
@@ -359,7 +438,8 @@ def repositories(sandbox: Path) -> list[Path]:
 
 
 def check_remotes(repos: list[Path], env: dict[str, str]) -> None:
-    """No remote of `repos` fetches from or pushes to github.com, as git resolves it."""
+    """No remote of `repos` can reach github.com: as git resolves it, it points into the
+    sandbox, or git refuses every network protocol in that repository."""
     for repo in repos:
         for remote in git_out(["remote"], repo, env).split():
             urls = git_out(["remote", "get-url", "--all", remote], repo, env).split()
@@ -368,9 +448,7 @@ def check_remotes(repos: list[Path], env: dict[str, str]) -> None:
             ).split()
             for url in urls:
                 if "github.com" in url:
-                    raise Stop(
-                        f"guard: the remote {remote} of {repo} resolves to {url}"
-                    )
+                    refused(repo, env, f"the remote {remote} of {repo} ({url}):")
 
 
 # ---- the workflow of the class repository ----------------------------------------------
@@ -395,6 +473,77 @@ def outputs_of(path: Path) -> dict[str, str]:
         out[key] = value
         i += 1
     return out
+
+
+def validator_drift() -> str | None:
+    """A warning when the validator at this checkout's commit is not the one on the
+    local `COURSE_DEFAULT`, the branch the workflow checks it out from on GitHub."""
+
+    def show(ref: str) -> str | None:
+        shown = subprocess.run(
+            ["git", "-C", str(COURSE_ROOT), "show", f"{ref}:{VALIDATOR}"],
+            capture_output=True, text=True, check=False,
+        )  # fmt: skip
+        return shown.stdout if shown.returncode == 0 else None
+
+    default = show(COURSE_DEFAULT)
+    if default is None:
+        return (
+            f"warning: this checkout has no {COURSE_DEFAULT}, so the rehearsed {VALIDATOR} "
+            "cannot be compared with the one the check uses on GitHub"
+        )
+    if show("HEAD") != default:
+        return (
+            f"warning: {VALIDATOR} at this commit differs from {COURSE_DEFAULT} (as last "
+            "fetched); the rehearsal checks with this commit's, GitHub with the default "
+            "branch's"
+        )
+    return None
+
+
+def run_files(minutes: float, seconds_per_trial: float, repeats: int) -> int:
+    """The run files a study of `minutes` hands in: the trials its budget buys, and its
+    baseline and its winner."""
+    from hpo.search.budget import Budget
+
+    budget = Budget.at(minutes, seconds_per_trial, "", repeats=repeats)
+    return budget.n_trials + 2
+
+
+def file_warnings(
+    plan: tuple[Planned, ...], study_files: int, handed_out_files: int
+) -> dict[str, str]:
+    """Per row of `plan` whose pull request holds more files than the check accepts
+    (`MAX_CHANGED_FILES` of `run_submission.py`), the warning; a student's row hands in
+    `study_files`, the teacher's `handed_out_files`."""
+    out = {}
+    for p in plan:
+        n = handed_out_files if p.handed_out else study_files
+        if n > MAX_CHANGED_FILES:
+            out[p.key] = (
+                f"warning: {p.key} plans {n} run files in one pull request, more than "
+                f"the {MAX_CHANGED_FILES} changed files the check accepts; it will be "
+                "refused"
+            )
+    return out
+
+
+def check_ideas(outcomes: dict[str, Outcome], ideas: list[tuple]) -> None:
+    """The class repository holds the ideas the plan's studies made, each with the
+    parents it was given, and no other."""
+    planned = {o.idea: sorted(o.parents) for o in outcomes.values()}
+    held = {name: sorted(parents) for name, _, _, parents in ideas}
+    if planned != held:
+        raise Stop(
+            f"the ideas in the class repository differ from the plan: planned "
+            f"{planned}, held {held}"
+        )
+
+
+def local_paths(texts: dict[str, str]) -> list[str]:
+    """The files among `texts` (path: content) that hold a path of this machine."""
+    home = str(Path.home())
+    return sorted(p for p, t in texts.items() if "/Users/" in t or home in t)
 
 
 # ---- the rehearsal ------------------------------------------------------------------------
@@ -432,6 +581,7 @@ class Rehearsal:
         self.verdicts: list[str] = []
         self.world: World | None = None
         self.head = ""
+        self.warnings: dict[str, str] = {}
 
     # -- running a command
 
@@ -481,7 +631,7 @@ class Rehearsal:
         self.bin.mkdir()
         self.fake.write_text(FAKE_GH)
         self.fake.chmod(0o755)
-        self.gitconfig.write_text(gitconfig(self.sandbox))
+        self.gitconfig.write_text(sandbox_gitconfig(self.sandbox, self.students))
         base = self.env("rehearsal")
         check_gh(base["PATH"], self.fake)
         check_rewrite(base, self.sandbox)
@@ -515,6 +665,9 @@ class Rehearsal:
                 f"the checkout {COURSE_ROOT} has uncommitted changes; the clones are "
                 f"at its commit {self.head[:12]} and do not have them"
             )
+        drift = validator_drift()
+        if drift:
+            self.step(drift)
         for who in self.students:
             home = self.sandbox / "students" / who
             home.mkdir(parents=True)
@@ -524,10 +677,15 @@ class Rehearsal:
         teacher.mkdir()
         self.clone_course(teacher / "course")
         self.world.clone_fork(teacher / "mads-runs", TEACHER)
-        check_remotes(repositories(self.sandbox), base)
+        repos = repositories(self.sandbox)
+        for repo in repos:
+            if (repo / ".git").exists():
+                pin(repo, self.gitconfig, base)
+        check_remotes(repos, base)
+        check_remotes(repos, plain_env(base))
         self.step(
-            f"{len(repositories(self.sandbox))} repositories in the sandbox; none has "
-            "a remote that resolves to github.com"
+            f"{len(repos)} repositories in the sandbox; none has a remote that can "
+            "reach github.com, with the sandbox's git config or without it"
         )
 
         for who in self.students:
@@ -544,6 +702,8 @@ class Rehearsal:
         git_out(["clone", "--quiet", "--no-checkout", str(COURSE_ROOT), str(where)],
                 self.sandbox, env)  # fmt: skip
         git_out(["checkout", "--quiet", "--detach", self.head], where, env)
+        # the URL a student's clone has; nothing rewrites it, and git fetches no https
+        git_out(["remote", "set-url", "origin", COURSE_REPO], where, env)
 
     def copy_studies(
         self, to: Path, names: tuple[str, ...], artifacts: bool = False
@@ -573,6 +733,8 @@ class Rehearsal:
 
     def publish(self, planned: Planned) -> None:
         """The teacher hands in what the lesson hands out, from a store that holds it."""
+        if planned.key in self.warnings:
+            self.step(self.warnings[planned.key])
         course = self.sandbox / "teacher" / "course"
         copied = self.copy_studies(
             course / "artefacts" / "optuna", HANDED_OUT_STUDIES, artifacts=True
@@ -637,6 +799,8 @@ class Rehearsal:
 
     def study(self, planned: Planned, handed_out: dict[str, str]) -> None:
         who = planned.student
+        if planned.key in self.warnings:
+            self.step(self.warnings[planned.key])
         course = self.sandbox / "students" / who / "course"
         parents = self.parents_of(planned)
         by_key = {p.key: p for p in PLAN}
@@ -696,6 +860,11 @@ class Rehearsal:
         prs = json.loads((self.sandbox / "gh-prs.json").read_text())
         pr = next(p for p in prs if p["url"] == url)
         number = int(url.rsplit("/", 1)[1])
+        if pr["repo"] != CLASS_REPO or pr["base"] != "main":
+            raise Stop(
+                f"pull request {url} is against {pr['repo']}:{pr['base']}, not "
+                f"{CLASS_REPO}:main; the workflow checks only pull requests on main"
+            )
         fork = self.world.forks[pr["head_owner"]]
         env = self.env(pr["author"])
         head = git_out(["--git-dir", str(fork), "rev-parse", pr["head_branch"]],
@@ -805,6 +974,7 @@ class Rehearsal:
             print(f"\n  step: checkout {CLASS_REPO} into {where.name}", flush=True)
             git_out(["clone", "--quiet", f"https://github.com/{CLASS_REPO}.git",
                      str(where)], ws, env)  # fmt: skip
+            pin(where, self.gitconfig, env)
             return
         print(f"\n  step: checkout {repo} ({given.get('sparse-checkout')}) at "
               f"{self.head[:12]} into {where.name}", flush=True)  # fmt: skip
@@ -830,14 +1000,18 @@ class Rehearsal:
         )  # fmt: skip
         return page
 
-    def ideas(self) -> list[tuple[str, str, str, list[str]]]:
-        """(name, author, words, parents) of every idea of the lesson as the class
-        repository's main holds it, read as the class page reads it."""
+    def class_runs(self) -> list:
+        """The submissions of the lesson on the class repository's main, read as the
+        class page reads them."""
         from class_analysis import read_class
 
         subs, _, _ = read_class(
             self.sandbox / "teacher" / "mads-runs", LESSON, fetch=True
         )
+        return subs
+
+    def ideas(self, subs: list) -> list[tuple[str, str, str, list[str]]]:
+        """(name, author, words, parents) of every idea among `subs`."""
         seen = {}
         for sub in subs:
             idea = sub.idea()
@@ -870,6 +1044,43 @@ def check_source(store: Path) -> None:
         )
 
 
+def planned_warnings(store: Path, minutes: float) -> dict[str, str]:
+    """`file_warnings` for this machine: a study's trials from the cost of a trial on
+    the handed-out search and the epochs and repeats of the lesson's harness, the
+    teacher's runs from the handed-out studies of `store`."""
+    import importlib.util
+
+    import optuna
+
+    from hpo.record.runs import StudyLog
+    from hpo.record.store import Store
+
+    folder = str((COURSE_ROOT / HARNESS).parent)
+    sys.path.insert(0, folder)
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "rehearsed_harness", COURSE_ROOT / HARNESS
+        )
+        assert spec is not None and spec.loader is not None
+        harness = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(harness)
+    finally:
+        sys.path.remove(folder)
+    if store.name != "studies.db":
+        raise Stop(f"--store names {store}; a store is a studies.db")
+    like = StudyLog.load(HANDED_OUT_STUDY, Store(store.parent))
+    seconds = like.seconds_per_trial(harness.EPOCHS)
+    url = f"sqlite:///{store}"
+    held = optuna.get_all_study_names(url)
+    states = (optuna.trial.TrialState.COMPLETE, optuna.trial.TrialState.PRUNED)
+    handed_out = sum(
+        len(optuna.load_study(study_name=n, storage=url).get_trials(states=states))
+        for n in HANDED_OUT_STUDIES
+        if n in held
+    )
+    return file_warnings(PLAN, run_files(minutes, seconds, harness.REPEATS), handed_out)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -893,6 +1104,9 @@ def main() -> None:
     try:
         check_plan(PLAN)
         check_source(args.store)
+        rehearsal.warnings = planned_warnings(args.store, args.minutes)
+        for warning in rehearsal.warnings.values():
+            rehearsal.step(warning)
         rehearsal.build()
         handed_out = handed_out_space(
             (sandbox / "teacher" / "course" / STUDY_FILE).read_text()
@@ -909,24 +1123,26 @@ def main() -> None:
                 if not p.handed_out:
                     rehearsal.hand_in(p)
         page = rehearsal.teacher()
-        ideas = rehearsal.ideas()
+        subs = rehearsal.class_runs()
+        ideas = rehearsal.ideas(subs)
+        summary(rehearsal)
+        key_of = {o.idea: k for k, o in rehearsal.outcomes.items()}
+        print("\nthe ideas of the class, as the class repository holds them:")
+        for name, author, words, parents in ideas:
+            named = ", ".join(f"{p} ({key_of.get(p, '?')})" for p in parents)
+            print(f"  {name:<28} {key_of.get(name, '?'):<10} by {author:<6} {words!r}")
+            print(f"  {'':<28} builds on {named or 'nothing'}")
+        check_ideas(rehearsal.outcomes, ideas)
+        print("the ideas and their parents are as planned")
+        leaked = local_paths({sub.relpath(): sub.dump() for sub in subs})
+        if leaked:
+            raise Stop(
+                f"{len(leaked)} submitted files hold a path of this machine: {leaked[:3]}"
+            )
+        print(f"none of the {len(subs)} submitted files holds a path of this machine")
     except Stop as stop:
         summary(rehearsal)
         sys.exit(f"\nthe rehearsal stops: {stop}\nsandbox: {sandbox}")
-    summary(rehearsal)
-    key_of = {o.idea: k for k, o in rehearsal.outcomes.items()}
-    print("\nthe ideas of the class, as the class repository holds them:")
-    for name, author, words, parents in ideas:
-        named = ", ".join(f"{p} ({key_of.get(p, '?')})" for p in parents) or "nothing"
-        print(f"  {name:<28} {key_of.get(name, '?'):<10} by {author:<6} {words!r}")
-        print(f"  {'':<28} builds on {named}")
-    expected = {o.idea: sorted(o.parents) for o in rehearsal.outcomes.values()}
-    held = {name: sorted(parents) for name, _, _, parents in ideas}
-    print(
-        "the ideas and their parents are as planned"
-        if all(held.get(n) == ps for n, ps in expected.items())
-        else f"the ideas differ from the plan: planned {expected}, held {held}"
-    )
     print(f"\nclass page: {page}\nsandbox: {sandbox}")
 
 

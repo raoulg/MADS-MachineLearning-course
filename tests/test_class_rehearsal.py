@@ -3,12 +3,20 @@ here trains or downloads."""
 
 import dataclasses
 import importlib.util
+import json
+import os
 import subprocess
 from pathlib import Path
 
 import class_rehearsal as rehearsal  # ty: ignore[import-not-found]  (scripts/ is on sys.path, see conftest.py)
 import pytest
-from gitworld import FAKE_GH, gitconfig  # ty: ignore[import-not-found]
+import submit_runs  # ty: ignore[import-not-found]
+from gitworld import FAKE_GH, gitconfig, make_world  # ty: ignore[import-not-found]
+from run_submission import (  # ty: ignore[import-not-found]
+    MAX_CHANGED_FILES,
+    idea_id,
+    idea_name,
+)
 
 from hpo.search import Choice, Float, Int
 
@@ -164,36 +172,181 @@ def git_env(config: Path) -> dict[str, str]:
 def test_the_guard_refuses_a_rewrite_outside_the_sandbox(tmp_path):
     sandbox = tmp_path / "sandbox"
     sandbox.mkdir()
-    (sandbox / "gitconfig").write_text(gitconfig(sandbox))
+    text = rehearsal.sandbox_gitconfig(sandbox, ["a", "b"])
+    (sandbox / "gitconfig").write_text(text)
     rehearsal.check_rewrite(git_env(sandbox / "gitconfig"), sandbox)
 
-    (tmp_path / "gitconfig").write_text(gitconfig(sandbox))
+    with_system = git_env(sandbox / "gitconfig")
+    del with_system["GIT_CONFIG_NOSYSTEM"]
+    with pytest.raises(rehearsal.Stop, match="GIT_CONFIG_NOSYSTEM"):
+        rehearsal.check_rewrite(with_system, sandbox)
+
+    (tmp_path / "gitconfig").write_text(text)
     with pytest.raises(rehearsal.Stop, match="not a file inside"):
         rehearsal.check_rewrite(git_env(tmp_path / "gitconfig"), sandbox)
+
+    (sandbox / "gitconfig").write_text(gitconfig(sandbox))  # rewrites, allows https
+    with pytest.raises(rehearsal.Stop, match="lets git use https"):
+        rehearsal.check_rewrite(git_env(sandbox / "gitconfig"), sandbox)
 
     (sandbox / "gitconfig").write_text("[user]\n  name = x\n")
     with pytest.raises(rehearsal.Stop, match="does not rewrite"):
         rehearsal.check_rewrite(git_env(sandbox / "gitconfig"), sandbox)
 
 
-def test_the_guard_refuses_a_remote_on_github(tmp_path):
+def test_a_remote_on_github_passes_only_where_git_cannot_fetch_it(tmp_path):
+    sandbox = tmp_path / "sandbox"
+    repo = sandbox / "students/a/course"
+    repo.mkdir(parents=True)
+    config = sandbox / "gitconfig"
+    config.write_text("[user]\n  name = x\n")
+    env = git_env(config)
+    subprocess.run(["git", "init", "--quiet", str(repo)], env=env, check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "remote", "add", "origin", rehearsal.COURSE_REPO],
+        env=env, check=True,
+    )  # fmt: skip
+    assert rehearsal.repositories(sandbox) == [repo]
+    with pytest.raises(rehearsal.Stop, match="lets git use https"):
+        rehearsal.check_remotes([repo], env)
+
+    config.write_text(rehearsal.sandbox_gitconfig(sandbox, ["a"]))
+    rehearsal.check_remotes([repo], env)
+    # a normal shell reads none of the sandbox's config, until the clone holds it
+    with pytest.raises(rehearsal.Stop, match="lets git use https"):
+        rehearsal.check_remotes([repo], rehearsal.plain_env(env))
+    rehearsal.pin(repo, config, env)
+    rehearsal.check_remotes([repo], rehearsal.plain_env(env))
+
+
+def test_a_pinned_fork_clone_reaches_the_sandbox_in_a_plain_shell(tmp_path):
     sandbox = tmp_path / "sandbox"
     repo = sandbox / "students/a/mads-runs"
     repo.mkdir(parents=True)
     config = sandbox / "gitconfig"
-    config.write_text("[user]\n  name = x\n")
+    config.write_text(rehearsal.sandbox_gitconfig(sandbox, ["a"]))
     env = git_env(config)
     subprocess.run(["git", "init", "--quiet", str(repo)], env=env, check=True)
     url = "https://github.com/a/mads-ml-runs-2026-11.git"
     subprocess.run(
         ["git", "-C", str(repo), "remote", "add", "origin", url], env=env, check=True
     )
-    assert rehearsal.repositories(sandbox) == [repo]
-    with pytest.raises(rehearsal.Stop, match="resolves to https://github.com"):
-        rehearsal.check_remotes([repo], env)
+    rehearsal.pin(repo, config, env)
+    plain = rehearsal.plain_env(env)
+    got = rehearsal.git_out(["ls-remote", "--get-url", "origin"], repo, plain)
+    assert got == f"file://{sandbox}/gh-root/a/mads-ml-runs-2026-11.git"
 
-    config.write_text(gitconfig(sandbox))
-    rehearsal.check_remotes([repo], env)
+
+def test_the_sandbox_env_finds_the_fake_gh_before_a_real_one(tmp_path, monkeypatch):
+    real = executable(tmp_path / "elsewhere/gh", "#!/bin/sh\necho real\n")
+    monkeypatch.setenv("PATH", f"{real.parent}:/usr/bin:/bin")
+    r = rehearsal.Rehearsal(tmp_path / "sandbox", tmp_path / "studies.db", 1)
+    executable(r.fake, FAKE_GH)
+    rehearsal.check_gh(r.env("a")["PATH"], r.fake)
+
+
+def with_idea_on(sub, parent: str):
+    """`sub` with a study idea of its student that builds on `parent`."""
+    words = "an idea on something unpublished"
+    id_ = idea_id(sub.student, words, [parent])
+    attrs = {
+        **sub.run.study.attrs,
+        "idea": words, "idea_author": sub.student, "idea_parents": parent,
+        "idea_id": id_, "idea_name": idea_name(id_),
+    }  # fmt: skip
+    study = sub.run.study.model_copy(update={"attrs": attrs})
+    return sub.model_copy(update={"run": sub.run.model_copy(update={"study": study})})
+
+
+@pytest.fixture
+def rehearsed(tmp_path, monkeypatch):
+    """A rehearsal over a git world whose class repository is the rehearsal's, its
+    validator and workflow those of this checkout's commit."""
+    world = make_world(tmp_path, monkeypatch, upstream=rehearsal.CLASS_REPO)
+    r = rehearsal.Rehearsal(tmp_path, tmp_path / "studies.db", 1)
+    r.world = world
+    r.head = rehearsal.git_out(["rev-parse", "HEAD"], ROOT, dict(os.environ))
+    return r
+
+
+def pull_requests(r) -> list[dict]:
+    return json.loads((r.sandbox / "gh-prs.json").read_text())
+
+
+def test_the_check_merges_a_valid_pull_request_and_stops_an_invalid_one(
+    rehearsed, submission
+):
+    world = rehearsed.world
+    good = submission("alice")
+    submit_runs.submit(world.clone, 1, "alice", [good])
+    [pr] = pull_requests(rehearsed)
+    rehearsed.check_and_merge(pr["url"], "good")
+    assert world.on_upstream() == [good.relpath()]
+    assert pull_requests(rehearsed)[0]["state"] == "merged"
+
+    bad = with_idea_on(submission("alice"), "missing-idea-01")
+    submit_runs.submit(world.clone, 1, "alice", [good, bad])
+    url = pull_requests(rehearsed)[-1]["url"]
+    with pytest.raises(rehearsal.Stop, match="missing-idea-01, which is not in the"):
+        rehearsed.check_and_merge(url, "bad")
+    assert world.on_upstream() == [good.relpath()]
+    assert pull_requests(rehearsed)[-1]["state"] == "open"
+
+
+@pytest.mark.parametrize(
+    "change", [{"base": "develop"}, {"repo": "someone/mads-ml-runs-2026-11"}]
+)
+def test_a_pull_request_off_main_of_the_class_repository_is_refused(
+    rehearsed, submission, change
+):
+    submit_runs.submit(rehearsed.world.clone, 1, "alice", [submission("alice")])
+    [pr] = pull_requests(rehearsed)
+    (rehearsed.sandbox / "gh-prs.json").write_text(json.dumps([{**pr, **change}]))
+    with pytest.raises(rehearsal.Stop, match="not raoulg/mads-ml-runs-2026-11:main"):
+        rehearsed.check_and_merge(pr["url"], "x")
+    assert rehearsed.world.on_upstream() == []
+
+
+def outcome(key: str, idea: str, parents: tuple[str, ...]):
+    planned = next(p for p in rehearsal.PLAN if p.key == key)
+    return rehearsal.Outcome(planned, parents, idea)
+
+
+def test_the_closing_check_stops_when_the_parents_differ_from_the_plan():
+    outcomes = {
+        "h0": outcome("h0", "root-idea-01", ()),
+        "a1": outcome("a1", "first-idea-02", ("root-idea-01",)),
+    }
+    held = [
+        ("root-idea-01", "course", "lesson 1 as handed out", []),
+        ("first-idea-02", "a", "words", ["root-idea-01"]),
+    ]
+    rehearsal.check_ideas(outcomes, held)
+    with pytest.raises(rehearsal.Stop, match="differ from the plan"):
+        rehearsal.check_ideas(outcomes, [held[0], (*held[1][:3], [])])
+    with pytest.raises(rehearsal.Stop, match="differ from the plan"):
+        rehearsal.check_ideas(outcomes, held[:1])
+
+
+def test_a_submitted_path_of_this_machine_is_found():
+    texts = {
+        "lesson1/a/x.json": '{"remote": "https://github.com/raoulg/x.git"}',
+        "lesson1/a/y.json": f'{{"remote": "{Path.home()}/code/course"}}',
+        "lesson1/a/z.json": '{"remote": "/Users/someone/course"}',
+    }
+    assert rehearsal.local_paths(texts) == ["lesson1/a/y.json", "lesson1/a/z.json"]
+
+
+def test_a_study_planned_over_the_check_s_file_limit_is_warned_about():
+    seconds, repeats = 3.25, 3
+    short = rehearsal.run_files(1, seconds, repeats)
+    long = rehearsal.run_files(15, seconds, repeats)
+    assert short < MAX_CHANGED_FILES < long
+    assert rehearsal.file_warnings(rehearsal.PLAN, short, 128) == {}
+    warned = rehearsal.file_warnings(rehearsal.PLAN, long, 128)
+    assert sorted(warned) == ["a1", "b1", "b2", "c1", "c2", "d1"]
+    assert str(MAX_CHANGED_FILES) in warned["a1"]
+    assert list(rehearsal.file_warnings(rehearsal.PLAN, short, 500)) == ["h0"]
 
 
 def test_a_step_output_is_read_as_github_writes_it(tmp_path):
