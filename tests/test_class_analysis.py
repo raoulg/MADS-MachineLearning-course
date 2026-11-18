@@ -2,6 +2,7 @@
 
 import itertools
 import math
+import re
 
 import class_analysis  # ty: ignore[import-not-found]
 import pytest
@@ -881,3 +882,18 @@ def test_the_page_can_load_plotly_from_cdnjs_with_its_hash():
     url = f"cdnjs.cloudflare.com/ajax/libs/plotly.js/{get_plotlyjs_version()}/plotly.min.js"
     assert url in small and 'integrity="sha384-' in small
     assert len(small) < len(class_analysis.build_page(df, 1)) - 4_000_000
+
+
+def test_a_page_links_the_course_start_page_only_when_asked():
+    df = class_analysis.runs_frame(
+        [sub("carol", "lesson1-notebook-runs", "baseline", "baseline", 0.8)]
+    )
+    own = class_analysis.build_page(df, 1)
+    assert "course-link" not in own and "MADS-ML start" not in own
+    start = "https://raoulg.github.io/MADS-MachineLearning-course/index.html"
+    published = class_analysis.build_page(df, 1, course=start)
+    assert f"<a href='{start}'>← MADS-ML start</a>" in published
+    assert published.index("course-link'") < published.index("<h1>")
+    ids = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+    rest = published.replace(class_analysis.course_link(start), "")
+    assert ids.sub("id", rest) == ids.sub("id", own)  # plotly draws fresh div ids

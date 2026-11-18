@@ -95,6 +95,9 @@ HANDED_OUT_STUDY = f"lesson{LESSON}-notebook"
 HANDED_OUT_STUDIES = (HANDED_OUT_STUDY, f"{HANDED_OUT_STUDY}-runs")
 HANDED_OUT = f"lesson{LESSON}-notebook*"
 OWN_STUDIES = f"lesson{LESSON}-study*"
+# the rehearsal's class page is published as presentations/lesson1-class-rehearsal.html,
+# among the course pages, so it links their start page
+COURSE_START = "https://raoulg.github.io/MADS-MachineLearning-course/index.html"
 
 
 @dataclass(frozen=True)
@@ -993,11 +996,7 @@ class Rehearsal:
         page = self.sandbox / "dashboard" / "index.html"
         self.run(["uv", "run", "scripts/collect_runs.py", "--lesson", str(LESSON)],
                  course, TEACHER)  # fmt: skip
-        self.run(
-            ["uv", "run", "scripts/class_analysis.py", "--lesson", str(LESSON),
-             "--out", str(page)],
-            course, TEACHER,
-        )  # fmt: skip
+        self.run(teacher_page_command(page), course, TEACHER)
         return page
 
     def class_runs(self) -> list:
@@ -1144,6 +1143,15 @@ def main() -> None:
         summary(rehearsal)
         sys.exit(f"\nthe rehearsal stops: {stop}\nsandbox: {sandbox}")
     print(f"\nclass page: {page}\nsandbox: {sandbox}")
+
+
+def teacher_page_command(page: Path) -> list[str]:
+    """The teacher's `class_analysis.py` command that writes the class page to `page`,
+    with a link to the course's start page."""
+    return [
+        "uv", "run", "scripts/class_analysis.py", "--lesson", str(LESSON),
+        "--out", str(page), "--course-link", COURSE_START,
+    ]  # fmt: skip
 
 
 def summary(rehearsal: Rehearsal) -> None:

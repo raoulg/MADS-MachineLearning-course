@@ -2266,6 +2266,24 @@ def source_line(source: str, submitted: int | None, read: int) -> str:
     return text + "."
 
 
+COURSE_LINK_CSS = (
+    ".course-link { margin: 0 0 14px; font-size: 14px; }"
+    f" .course-link a {{ color: {MUTED}; text-decoration: none; }}"
+    " .course-link a:hover { text-decoration: underline; }"
+)
+
+
+def course_link(course: str) -> str:
+    """A link back to the course's start page at `course`, for a class page published
+    among the course pages; nothing when `course` is empty."""
+    if not course:
+        return ""
+    return (
+        f"<style>{COURSE_LINK_CSS}</style><p class='course-link'>"
+        f"<a href='{html.escape(course, quote=True)}'>← MADS-ML start</a></p>"
+    )
+
+
 def build_page(
     df: pd.DataFrame,
     lesson: int,
@@ -2276,13 +2294,15 @@ def build_page(
     teacher: str | None = None,
     submitted: int | None = None,
     plotly: str = "inline",
+    course: str = "",
 ) -> str:
     """The page of `lesson` from `df` (`runs_frame`). `source` names where the runs came
     from, `submitted` how many submission files `df` was read from: `runs_frame` keeps
     every one but a handed-out notebook's earlier executions, so the difference is
     named as those. The `teacher`'s runs are drawn as the teacher's (`as_teacher`).
     `plotly` is `inline` (plotly.js inside the page, which then opens from disk with no
-    network) or `cdn` (`plotly_script`)."""
+    network) or `cdn` (`plotly_script`). `course`, when given, is the address of the
+    course's start page, linked above the title (`course_link`)."""
     df = as_teacher(df, teacher)
     cmp = comparisons(df)
     trials = handed_out_trials(df)
@@ -2404,7 +2424,7 @@ def build_page(
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         f"<meta name='viewport' content='width=device-width, initial-scale=1'>"
         f"<title>Lesson {lesson}: what the class did</title><style>{CSS}</style>"
-        f"{plotly_script(plotly)}</head><body><main>"
+        f"{plotly_script(plotly)}</head><body><main>{course_link(course)}"
         f"<h1>Lesson {lesson}: what the class did</h1>"
         f"<p class='sub'>{html.escape(source_line(source, submitted, len(df)))}</p>{reads}"
         f"<div class='tiles'>{class_tiles(df, ids, eds, metric)}</div>"
@@ -2511,6 +2531,13 @@ def main() -> None:
         help="what the page says its runs were submitted to, in place of the class "
         "repository's name: for a page of a rehearsal",
     )
+    parser.add_argument(
+        "--course-link",
+        default="",
+        metavar="URL",
+        help="link the course's start page at URL above the title: for a class page "
+        "published among the course pages",
+    )
     args = parser.parse_args()
 
     if args.demo:
@@ -2552,6 +2579,7 @@ def main() -> None:
             teacher,
             len(subs),
             args.plotly,
+            args.course_link,
         )
     )
     by_role = Counter(df.role)

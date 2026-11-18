@@ -356,3 +356,13 @@ def test_a_step_output_is_read_as_github_writes_it(tmp_path):
         "problems": "line one\nline=two",
         "status": "1",
     }
+
+
+def test_the_teachers_class_page_links_the_course_start_page(tmp_path):
+    page = tmp_path / "dashboard" / "index.html"
+    command = rehearsal.teacher_page_command(page)
+    assert command[:3] == ["uv", "run", "scripts/class_analysis.py"]
+    assert command[command.index("--out") + 1] == str(page)
+    start = command[command.index("--course-link") + 1]
+    assert start == rehearsal.COURSE_START
+    assert (ROOT / "presentations" / start.rsplit("/", 1)[-1]).exists()
