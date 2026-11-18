@@ -49,8 +49,8 @@ The learning goals are in Dutch, one picture per goal.
 Handy to have open:
 
 - [The start page](https://raoulg.github.io/MADS-MachineLearning-course/index.html): the
-  course map, and per lesson the slides, the learning goals, your study, the homework and
-  the notebooks; every course page links back to it.
+  course map, and per lesson the slides, the learning goals, your research and the
+  notebooks; every course page links back to it.
 - [learn.pttrn.io](https://learn.pttrn.io): sign up for the `Machine Learning` course to see
   what to read and watch per lesson, and to tick off what you have done.
 - [DAV recap](https://raoulg.github.io/MADS-MachineLearning-course/dav-recap.html): what this
