@@ -32,24 +32,34 @@ html{scroll-padding-top:calc(var(--course-bar-height) + 12px)}
 .course-bar .review{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:400;display:flex;align-items:center;gap:6px;white-space:nowrap;color:var(--bar-ink)}
 .course-bar .review b{display:inline-grid;place-items:center;min-width:1.8em;height:1.8em;padding:0 .35em;background:var(--bar-raised);border:1px solid var(--bar-rule);font-variant-numeric:tabular-nums}
 .course-bar .review.has b{background:var(--bar-hot);border-color:var(--bar-hot);color:var(--bar-paper)}
-.course-bar .cross-links{display:flex;align-items:center;gap:14px;white-space:nowrap}
-.course-bar .cross-links a{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:400;color:var(--bar-accent)}
-.course-bar .cross-links .repo{display:inline-flex;align-items:center;color:var(--bar-ink)}
+.course-bar .cross-links{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.course-bar .cross-links a{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:400;color:var(--bar-accent);padding:7px 0 5px;border-bottom:2px solid transparent}
+.course-bar .cross-links a[aria-current]{color:var(--bar-ink);border-bottom-color:var(--bar-ink)}
+.course-bar .repo{display:inline-flex;align-items:center;color:var(--bar-ink)}
 .course-bar .repo svg{width:19px;height:19px;fill:currentColor}
 .course-bar .theme-toggle{display:inline-flex;align-items:center;gap:7px;background:var(--bar-ink);color:var(--bar-paper);border:1px solid var(--bar-ink);padding:7px 10px;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:400;cursor:pointer}
 section[id]{scroll-margin-top:calc(var(--course-bar-height) + 12px)}
 .course-bar .theme-toggle svg{width:17px;height:17px;fill:currentColor;flex:none}
 .course-bar .theme-toggle[data-mode="dark"] .moon,.course-bar .theme-toggle[data-mode="light"] .sun{display:none}
+@media(min-width:761px){
+  .course-bar .inner.stacked{flex-wrap:wrap;row-gap:0}
+  .course-bar .inner.stacked .cross-links{margin-left:auto}
+  .course-bar .inner.stacked .primary-links{order:9;flex-basis:100%;margin-inline:-6px}
+}
 @media(max-width:760px){
-  :root{--course-bar-height:90px}
-  .course-bar .inner{flex-wrap:wrap;gap:5px 9px}
-  .course-bar .primary-links{order:3;flex-basis:100%;margin-inline:-6px}
+  :root{--course-bar-height:118px}
+  .course-bar .inner{flex-wrap:wrap;gap:4px 9px}
   .course-bar .review{margin-left:auto}
+  .course-bar .repo{margin-left:auto}
+  .course-bar .review+.cross-links+.repo{margin-left:0}
+  .course-bar .cross-links{order:3;flex-basis:100%;flex-wrap:wrap;gap:0 14px}
+  .course-bar .cross-links a{padding:4px 0 3px}
+  .course-bar .primary-links{order:4;flex-basis:100%;margin-inline:-6px}
 }
 @media(max-width:540px){
   .course-bar .brand span,.course-bar .review span,.course-bar .theme-toggle span{display:none}
   .course-bar .brand{font-size:13px}
-  .course-bar .cross-links{gap:9px}
-  .course-bar .cross-links a{font-size:11px}
+  .course-bar .cross-links{gap:0 12px}
+  .course-bar .cross-links a{font-size:11.5px}
   .course-bar .theme-toggle{padding:6px}
 }

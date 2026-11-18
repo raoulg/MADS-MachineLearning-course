@@ -19,20 +19,42 @@
   const primary = page === 'recap'
     ? `<nav class="primary-links" id="toc" aria-label="Onderwerpen">${topics}</nav>`
     : `<nav class="primary-links" aria-label="Visuele leerdoelen per les">${lessons}</nav>`;
-  const crossLinks = page === 'recap'
-    ? [['leerdoelen/les1.html', 'Leerdoelen'], ['notatie.html', 'Notatie']]
-    : page === 'notation'
-      ? [['leerdoelen/les1.html', 'Leerdoelen'], ['dav-recap.html', 'DAV-recap']]
-      : [['notatie.html', 'Notatie'], ['dav-recap.html', 'DAV-recap']];
-  const cross = crossLinks.map(([href, label]) => `<a href="${base}${href}">${label}</a>`).join('');
-  const brandLabel = page === 'recap' ? 'DAV-recap' : page === 'notation' ? 'notatie' : `les ${lesson}`;
+  const slides = { 1: 'lesson1-tensors.html', 2: 'lesson2-kernels_states_gates.html' };
+  const studies = [1, 2];
+  const at = lesson || 1;
+  const crossLinks = [
+    ['start', 'index.html', 'Start'],
+    ['slides', slides[at] || 'index.html#lessons', 'Slides'],
+    ['goals', `leerdoelen/les${at}.html`, 'Leerdoelen'],
+    ['exercise', studies.includes(at) ? `your-study.html#lesson-${at}` : 'your-study.html', 'Your study'],
+    ['example', 'lesson1-class-rehearsal.html', 'Class example'],
+    ['notation', 'notatie.html', 'Notatie'],
+    ['recap', 'dav-recap.html', 'DAV-recap'],
+  ];
+  const cross = crossLinks.map(([id, href, label]) => `<a href="${base}${href}"${id === page ? ' aria-current="page"' : ''}>${label}</a>`).join('');
+  const brandLabel = page === 'recap' ? 'DAV-recap' : page === 'notation' ? 'notatie' : page === 'start' ? 'start' : `les ${lesson}`;
   mount.outerHTML = `<header class="course-bar"><a class="skip" href="#top">Sla navigatie over</a><div class="inner">
-    <a class="brand" href="${base}leerdoelen/les1.html">MADS-ML <span>· ${brandLabel}</span></a>
+    <a class="brand" href="${base}index.html">MADS-ML <span>· ${brandLabel}</span></a>
     ${primary}
     ${page === 'recap' ? '<a class="review" id="cnt" href="#reviewlijst"><b id="n">0</b><span>reviewlijst</span></a>' : ''}
-    <nav class="cross-links" aria-label="Andere cursuspagina’s">${cross}<a class="repo" href="https://github.com/raoulg/MADS-MachineLearning-course" aria-label="MADS-ML repository op GitHub">${github}</a></nav>
+    <nav class="cross-links" aria-label="Andere cursuspagina’s">${cross}</nav>
+    <a class="repo" href="https://github.com/raoulg/MADS-MachineLearning-course" aria-label="MADS-ML repository op GitHub">${github}</a>
     <button class="theme-toggle" type="button" aria-label="Zet donker thema aan" data-mode="light">${sun}${moon}<span>Donker</span></button>
   </div></header>`;
+  const bar = document.querySelector('.course-bar');
+  const inner = bar.querySelector('.inner');
+  const primaryNav = bar.querySelector('.primary-links');
+  // The page's own links take a row of their own when they do not fit beside the
+  // cross links; the bar's height then goes to --course-bar-height for scroll offsets.
+  const fitBar = () => {
+    inner.classList.remove('stacked');
+    if (primaryNav.scrollWidth > primaryNav.clientWidth + 1) inner.classList.add('stacked');
+    document.documentElement.style.setProperty('--course-bar-height', `${bar.offsetHeight}px`);
+  };
+  addEventListener('resize', fitBar);
+  addEventListener('load', fitBar);
+  document.fonts?.ready.then(fitBar);
+  fitBar();
   const root = document.documentElement;
   const button = document.querySelector('.course-bar .theme-toggle');
   const key = 'mads-course-theme';
@@ -68,7 +90,7 @@
       const links = [...toc.querySelectorAll('a')];
       const sections = links.map(link => document.getElementById(link.hash.slice(1)));
       const markSection = () => {
-        const edge = document.querySelector('.course-bar').offsetHeight + 40;
+        const edge = bar.offsetHeight + 40;
         let current = -1;
         sections.forEach((section, index) => { if (section?.getBoundingClientRect().top <= edge) current = index; });
         if (sections.at(-1)?.getBoundingClientRect().bottom < edge) current = -1;
