@@ -366,3 +366,10 @@ def test_the_teachers_class_page_links_the_course_start_page(tmp_path):
     start = command[command.index("--course-link") + 1]
     assert start == rehearsal.COURSE_START
     assert (ROOT / "presentations" / start.rsplit("/", 1)[-1]).exists()
+
+
+def test_the_published_rehearsal_page_holds_the_start_link_once():
+    from class_analysis import course_link  # ty: ignore[import-not-found]
+
+    page = (ROOT / "presentations" / "lesson1-class-rehearsal.html").read_text()
+    assert page.count(course_link(rehearsal.COURSE_START)) == 1

@@ -897,3 +897,18 @@ def test_a_page_links_the_course_start_page_only_when_asked():
     ids = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
     rest = published.replace(class_analysis.course_link(start), "")
     assert ids.sub("id", rest) == ids.sub("id", own)  # plotly draws fresh div ids
+
+
+def test_the_command_line_links_the_start_page_only_with_course_link(
+    tmp_path, monkeypatch
+):
+    start = "https://example.invalid/course/index.html"
+    pages = {}
+    for name, extra in (("linked", ["--course-link", start]), ("own", [])):
+        out = tmp_path / f"{name}.html"
+        argv = ["class_analysis.py", "--demo", "--plotly", "cdn", "--out", str(out)]
+        monkeypatch.setattr("sys.argv", argv + extra)
+        class_analysis.main()
+        pages[name] = out.read_text()
+    assert pages["linked"].count(class_analysis.course_link(start)) == 1
+    assert "course-link" not in pages["own"]
