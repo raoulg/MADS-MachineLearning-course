@@ -1,7 +1,7 @@
 # Your study: instructions for a coding agent
 
 A student pointed you here to walk the loop of a study with them: one idea, a design that
-can test it, a search, and a result the class can build on. The loop has eight steps and
+can test it, a search, and a result the class can build on. The loop has nine steps and
 is the same in every lesson; it lives in the lesson's `exercises/` folder. The student
 reads the same steps, with what each is for, on
 [Your study, as a loop](https://raoulg.github.io/MADS-MachineLearning-course/your-study.html)
@@ -23,6 +23,7 @@ tells you which you have). The plain form is what the `Makefile` recipe runs.
 | run the study | 1 | `make study` or `make study LESSON=1` | `uv run notebooks/1_representation_and_head/exercises/study.py` |
 | run the study | 2 | `make study LESSON=2` | `uv run notebooks/2_kernels_state_and_gates/exercises/study.py` |
 | read the student's own runs | any | `make optuna-dashboard` | `uv run optuna-dashboard sqlite:///artefacts/optuna/studies.db --artifact-dir artefacts/optuna/artifacts --port 8088` |
+| build and open the student's page | any | `make page LESSON=<N>` | `uv run scripts/study_page.py --lesson <N> --open` |
 | hand in | 1 | `make share LESSON=1` | `uv run scripts/submit_runs.py --lesson 1` |
 | hand in | 2 | `make share LESSON=2` | `uv run scripts/submit_runs.py --lesson 2` |
 | the class's ideas and runs | 1 | `make dashboard LESSON=1` | `uv run scripts/class_analysis.py --lesson 1 --open`, then `uv run scripts/collect_runs.py --lesson 1 --no-pull --ui` |
@@ -40,8 +41,8 @@ The lesson folders are `notebooks/1_representation_and_head/exercises/` and
 
 ## Before the loop: Part 1 of the exercise notebook
 
-Part 1 of the lesson's exercise notebook walks steps 3 to 7 once, with a design and a
-space that are given. It measures the baseline and what one trial costs on the student's
+Part 1 of the lesson's exercise notebook walks steps 3 to 6 once, with a design and a
+space that are given, and its runs are handed in with the study's in step 8. It measures the baseline and what one trial costs on the student's
 machine, which steps 3 and 4 use. Ask whether it has run on this machine; if not, the
 student runs it first.
 
@@ -120,14 +121,58 @@ make optuna-dashboard
 Inside about two sigmas, the difference is not a result, whatever its sign. Every run logs
 more than the objective, for a question asked later.
 
-## 7. Share
+## 7. Explain
+
+The student builds their page and you interview them about it, so that what stands on
+the page is what they can say themselves. The page is what the teacher reads in class,
+walking past, in three minutes.
+
+```bash
+make page LESSON=<N>
+```
+
+It writes `artefacts/study-page/lesson<N>/index.html` and opens it; the student reads it
+in the browser. The template fills what the store holds: the line of their ideas, the
+architecture, the search space, the winner next to its baseline, and a tab per study.
+What is the student's own stands in `exercises/page.toml` of the lesson folder: `message`,
+`picture`, `surprised` and `next`. The script creates that file with empty keys once the
+lesson has runs, and never writes it afterwards; an empty key shows as an open slot on the
+page.
+
+**Ask, one question at a time, and wait for each answer before you ask the next:**
+
+1. Do you understand everything on your own page?
+2. Can you say in three sentences what you did, without looking?
+3. What did you expect, and what surprised you?
+4. What do you want to look into next, and which idea of the class does it build on?
+5. Is there one picture that would carry your message, and what would be on it?
+
+Write the student's own words into `exercises/page.toml`: their three sentences into
+`message`, what surprised them into `surprised`, what they look into next into `next`.
+Rebuild the page with the same command and ask the student to read it back. Correct
+spelling and nothing else: do not write the message for them, do not improve their
+sentences, and do not judge the page.
+
+When the student cannot explain a part of the page, name that part and send them back to
+the step it belongs to: the blocks of the architecture to step 1, the shapes to step 2,
+the spread of the baseline to step 3, the axes and ranges to step 4, a refusal or a
+missing trial to step 5, the winner in sigmas to step 6. The interview goes on once they
+can say it.
+
+For the picture, the student says what it shows, and you draw it with the beelddenker
+skill (https://github.com/raoulg/beelddenker) as an `.svg` or an `.html` fragment in the
+lesson's `exercises/` folder. Name it under `picture` in `page.toml`, as a path relative
+to that folder; a file outside the folder is refused. Rebuild the page. The student
+decides whether the picture stays; one they do not want is taken out of `page.toml`.
+
+## 8. Share
 
 **Ask:** is the list of runs that will be handed in the one they mean to hand in?
 
 Handing in follows [`docs/submit-runs.md`](submit-runs.md); go there and follow it. Every
 run of the study carries `designs.py` as its design script.
 
-## 8. Build on
+## 9. Build on
 
 **Ask:** which idea of the class does the next one build on, and what do they expect it to
 add?
