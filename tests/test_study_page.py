@@ -207,3 +207,55 @@ def test_a_study_without_a_finished_trial_says_so(tmp_path, folder):
     search.optimize(pruned, 2)
     text = page(store, folder)
     assert "No finished trial yet." in text
+
+
+def test_a_search_over_two_datasets_is_drawn_per_dataset(tmp_path, folder):
+    store = Store(tmp_path / "optuna")
+    store.root.mkdir()
+    (store.root / "login").write_text("alice\n")
+    space = Space(
+        {"dataset": Choice(["dtd", "eurosat"]), "lr": Float(1e-4, 1e-2, log=True)}
+    )
+    idea = Idea.of(FIRST[0], builds_on=Idea.handed_out(1).name, author="alice")
+    search = StudyLog.search(
+        "lesson1-study-alice-two",
+        space,
+        idea,
+        sampler=optuna.samplers.RandomSampler(seed=3),
+        store=store,
+    )
+
+    def objective(trial: optuna.Trial) -> float:
+        config = space.draw(trial)
+        # eurosat scores far higher: a picture over both would rank by dataset
+        value = (0.95 if config["dataset"] == "eurosat" else 0.6) + trial.number / 100
+        trial.report(value, 0)
+        search.record(
+            trial,
+            RunRecord(role="trial", dataset=str(config["dataset"]), config=config),
+        )
+        return value
+
+    search.optimize(objective, 8)
+    drawn = {t.user_attrs["dataset"] for t in search.trials()}
+    assert drawn == {"dtd", "eurosat"}
+    runs = StudyLog.runs("lesson1-study-alice-two-runs", idea, store=store)
+    runs.log("baseline", "baseline", repeats([6, 7, 6]), dataset="dtd")
+    runs.log("winner", "final", repeats([7, 8, 7]), dataset="dtd")
+
+    subs, _, _ = study_page.read_store(store, 1)
+    [two] = study_page.studies_of(subs)
+    assert two.dataset == "dtd" and two.datasets() == ["dtd", "eurosat"]
+    tab = study_page.study_tab(two)
+    assert "<h4>dataset</h4>" not in tab  # no card compares datasets by score
+    assert tab.count("<p class='ds'>on dtd</p>") == tab.count(
+        "<p class='ds'>on eurosat</p>"
+    )
+    assert tab.count("<p class='ds'>on eurosat</p>") >= 2  # the lr card and the curves
+    for d in ("dtd", "eurosat"):
+        best = two.trials_on(d)
+        assert set(best[best.winner].dataset) == {d}
+    results = study_page.fig_results(two)
+    assert "dtd, the winner&#x27;s dataset (the search also drew eurosat)" in results
+    space_panel = study_page.fig_space(two)
+    assert "class='s on' text-anchor='middle'>dtd</text>" in space_panel

@@ -337,13 +337,32 @@ class Study:
     @property
     def trials(self) -> pd.DataFrame:
         """The trials of the search in the order they ran, `winner` True for the best
-        finished one."""
-        sel = (
-            self.df[self.df.role == "trial"].sort_values("start").reset_index(drop=True)
-        )
+        finished one, as the search picks it."""
+        return self.trials_on(None)
+
+    def trials_on(self, dataset: str | None) -> pd.DataFrame:
+        """The trials on `dataset` (all with None), `winner` True for the best finished
+        one among them: a score is compared only with scores of its own dataset."""
+        sel = self.df[self.df.role == "trial"]
+        if dataset is not None:
+            sel = sel[sel.dataset == dataset]
+        sel = sel.sort_values("start").reset_index(drop=True)
         done = sel[(sel.status == "COMPLETE") & sel.score.notna()]
         best = done.score.idxmax() if len(done) else None
         return sel.assign(winner=sel.index == best)
+
+    def datasets(self) -> list[str]:
+        """Every dataset the study's runs are on, the winner's first."""
+        first = self.dataset
+        return sorted({str(d) for d in self.df.dataset}, key=lambda d: (d != first, d))
+
+    def on_text(self) -> str:
+        """The dataset its scores are on, in words: the winner's, and the others the
+        search drew."""
+        others = self.datasets()[1:]
+        if not others:
+            return self.dataset
+        return f"{self.dataset}, the winner's dataset (the search also drew {', '.join(others)})"
 
     def latest(self, role: str) -> pd.Series | None:
         sel = self.df[(self.df.role == role) & self.df.score.notna()]
@@ -351,7 +370,17 @@ class Study:
 
     @property
     def base(self) -> pd.Series | None:
-        return self.latest("baseline")
+        """The baseline on the winner's dataset; with no winner rerun yet, the latest
+        baseline."""
+        f = self.final
+        if f is None:
+            return self.latest("baseline")
+        sel = self.df[
+            (self.df.role == "baseline")
+            & self.df.score.notna()
+            & (self.df.dataset == f.dataset)
+        ]
+        return None if sel.empty else sel.sort_values("start").iloc[-1]
 
     @property
     def final(self) -> pd.Series | None:
@@ -388,8 +417,11 @@ class Study:
         return 100 * (f.score - b.score), sig, verdict(sig)
 
     def params(self) -> dict[str, object]:
-        """The winner's config: the final's params, else the winning trial's."""
-        for row in (self.final, self.winner):
+        """The winner's config: the final's params, else those of the best trial on the
+        winner's dataset."""
+        on = self.trials_on(self.dataset if self.final is not None else None)
+        best = on[on.winner]
+        for row in (self.final, None if best.empty else best.iloc[0]):
             if row is None:
                 continue
             out = {
@@ -660,7 +692,7 @@ def fig_results(study: Study) -> str:
         svg(width, y + 22, "".join(body), f"winner and baseline of {study.label}")
         + f"<p class='gain {word}'>{html.escape(gain)}</p>"
         + f"<ul class='plain'>{lines}</ul>"
-        + f"<p class='foot'>{html.escape(study.objective)} on {html.escape(study.dataset)}"
+        + f"<p class='foot'>{html.escape(study.objective)} on {html.escape(study.on_text())}"
         " · ± one standard deviation between runs</p>"
     )
 
@@ -907,20 +939,22 @@ def scatter(
     )
 
 
-def fig_curves(study: Study) -> str:
-    """The objective after every epoch: every trial faint, the winner bold, and the
-    baseline as its own curve when it logged one, else as its score ± one standard
-    deviation."""
-    trials = study.trials
+def fig_curves(
+    study: Study, trials: pd.DataFrame, b: pd.Series | None, dataset: str | None
+) -> str:
+    """The objective after every epoch of `trials` (one dataset's): every trial faint,
+    the best one bold, and the baseline `b` of that dataset as its own curve when it
+    logged one, else as its score ± one standard deviation. `dataset` names the panel
+    when the study drew more than one."""
     has = trials[trials.curve.map(lambda c: isinstance(c, list) and len(c) > 0)]
-    b = study.base
     base_curve = (
         b.curve
         if b is not None and isinstance(b.curve, list) and len(b.curve)
         else None
     )
+    head = f"<p class='ds'>on {html.escape(dataset)}</p>" if dataset else ""
     if has.empty and base_curve is None:
-        return missing("No run of this study logged its learning curve.")
+        return head + missing("No run of this study logged its learning curve.")
     curves = list(has.curve) + ([base_curve] if base_curve else [])
     ys = [v for c in curves for v in c]
     if b is not None:
@@ -966,7 +1000,11 @@ def fig_curves(study: Study) -> str:
             "the baseline logs no curve: its band is its score ± one standard deviation"
         )
     elif b is None:
-        note.append("no baseline was logged")
+        note.append(
+            "no baseline was logged on this dataset"
+            if dataset
+            else "no baseline was logged"
+        )
     for r in has.itertuples():
         if not r.winner:
             body.append(f"<path d='{path(r.curve)}' class='faint'/>")
@@ -978,7 +1016,8 @@ def fig_curves(study: Study) -> str:
     if won.empty:
         note.append("the winner logged no curve")
     return (
-        f"<p class='ylab'>{html.escape(study.objective)} per epoch</p>"
+        head
+        + f"<p class='ylab'>{html.escape(study.objective)} per epoch</p>"
         + svg(width, height, "".join(body), f"learning curves of {study.label}")
         + "<p class='foot'>bold: the winning trial · faint: the other trials · "
         "dotted: the baseline" + (" · " + " · ".join(note) if note else "") + "</p>"
@@ -1095,7 +1134,7 @@ def idea_box(study: Study, known: Mapping[str, Study]) -> str:
         f"aria-pressed='false'><span class='label'>{html.escape(study.label)}</span>"
         f"<span class='name'>{html.escape(study.idea_name or study.key)}</span>"
         f"<span class='words'>{html.escape(words)}</span>{expects}{result}{builds}"
-        f"<span class='meta'>{html.escape(study.objective)} on {html.escape(study.dataset)}"
+        f"<span class='meta'>{html.escape(study.objective)} on {html.escape(study.on_text())}"
         f" · {html.escape(budget_text(study.budget, study.finished + study.pruned))}</span>"
         "</button></li>"
     )
@@ -1146,37 +1185,63 @@ def overview(studies: Sequence[Study], own: Mapping[str, str], folder: Path) -> 
 
 
 def study_tab(study: Study) -> str:
-    """A study's own tab."""
+    """A study's own tab. When the search drew more than one dataset, every picture is
+    drawn once per dataset, and no picture compares scores of two datasets."""
     trials = study.trials
-    done = trials[(trials.status == "COMPLETE") & trials.score.notna()]
+    datasets = study.datasets()
+    several = len(datasets) > 1
     space = {a.name: a for a in parse_space(study.space)}
     axes = study.axes or [a for a, v in space.items() if v.kind != "fixed"]
+    if several:
+        axes = [a for a in axes if a != "dataset"]
+    on = {d: study.trials_on(d) for d in datasets}
+    done = {d: t[(t.status == "COMPLETE") & t.score.notna()] for d, t in on.items()}
     cards = []
     for axis in axes:
         col = f"p_{axis}"
-        if col not in done:
-            cards.append(
-                f"<div class='card'><h4>{html.escape(axis)}</h4>"
-                f"{missing('No finished trial carries this axis.')}</div>"
-            )
-            continue
-        xs = list(done[col])
-        win = list(done.winner)
+        parts = []
+        for d in datasets:
+            head = f"<p class='ds'>on {html.escape(d)}</p>" if several else ""
+            got = done[d]
+            if col not in got or got.empty:
+                parts.append(head + missing("No finished trial carries this axis."))
+                continue
+            xs, win = list(got[col]), list(got.winner)
+            parts.append(
+                head
+                + scatter(xs, list(got.score), win, space.get(axis), axis, study.objective)
+                + scatter(
+                    xs, [number(v) for v in got.train_seconds], win, space.get(axis),
+                    axis, "train_seconds",
+                )
+            )  # fmt: skip
         cards.append(
-            f"<div class='card'><h4>{html.escape(axis)}</h4>"
-            + scatter(xs, list(done.score), win, space.get(axis), axis, study.objective)
-            + scatter(
-                xs, [number(v) for v in done.train_seconds], win, space.get(axis), axis,
-                "train_seconds",
-            )
-            + "</div>"
-        )  # fmt: skip
+            f"<div class='card'><h4>{html.escape(axis)}</h4>{''.join(parts)}</div>"
+        )
+    finished = any(len(t) for t in done.values())
     effects = (
         "<div class='cards'>" + "".join(cards) + "</div>"
         if cards
         else missing("This study names no searched axis.")
-        if not done.empty
+        if finished
         else missing("No finished trial yet.")
+    )
+    drew = (
+        f"<p class='cap'>The search drew the dataset ({html.escape(', '.join(datasets))}): "
+        "every picture is drawn per dataset, and the best trial filled is the best on "
+        "that dataset. Scores of two datasets are never compared.</p>"
+        if several
+        else ""
+    )
+    base = study.base
+    curves = "".join(
+        fig_curves(
+            study,
+            on[d],
+            base if base is not None and str(base.dataset) == d else None,
+            d if several else None,
+        )
+        for d in datasets
     )
     expects = (
         f"<p><b>Expected</b> {html.escape(study.expects)}</p>"
@@ -1189,14 +1254,14 @@ def study_tab(study: Study) -> str:
         f"<span class='name'>{html.escape(study.idea_name or study.key)}</span></h2>"
         f"<p><b>Idea</b> {html.escape(study.idea or 'the study carries no idea')}</p>"
         f"{expects}<p class='cap'>{html.escape(study.key)} · {html.escape(study.objective)}"
-        f" on {html.escape(study.dataset)} · {html.escape(counts)} · "
+        f" on {html.escape(study.on_text())} · {html.escape(counts)} · "
         f"{html.escape(budget_text(study.budget, len(trials)))}</p></section>"
         "<section><h2>Each searched axis</h2><p class='cap'>One dot per finished "
-        f"trial, the winner filled: {html.escape(study.objective)} above, the seconds "
+        f"trial, the best filled: {html.escape(study.objective)} above, the seconds "
         "it trained below. Read an axis on its own: the others varied at the same "
-        f"time.</p>{effects}</section>"
+        f"time.</p>{drew}{effects}</section>"
         "<div class='two'>"
-        f"<section><h2>Learning curves</h2>{fig_curves(study)}</section>"
+        f"<section><h2>Learning curves</h2>{curves}</section>"
         f"<section><h2>The winner's other metrics</h2>{metrics_table(study)}</section>"
         "</div>"
     )
@@ -1291,6 +1356,7 @@ code,.name,.metrics td{font-family:'JetBrains Mono',monospace;font-size:13px;col
 .sub,.cap,.foot,.meta,.ylab{color:var(--course-muted);font-size:13.5px;overflow-wrap:anywhere}
 .foot{font-size:12px;margin-top:2px}
 .ylab{margin:8px 0 0;font-size:12px}
+.ds{margin:10px 0 0;font-size:13px;font-weight:500;color:var(--course-ink)}
 section{background:var(--course-surface);border-radius:10px;padding:16px 18px;margin:14px 0;min-width:0}
 .tabs{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 0;border-bottom:1px solid var(--course-rule)}
 .tabs button{font:inherit;font-size:14px;background:none;border:0;border-bottom:3px solid transparent;
