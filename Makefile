@@ -1,4 +1,4 @@
-.PHONY: help study share dashboard rehearsal optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
+.PHONY: help study page share dashboard rehearsal optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
         build-heartbeats publish-heartbeats
 
@@ -92,12 +92,22 @@ study:
 	@test -n "$(STUDY_SCRIPT)" || { echo "lesson $(or $(LESSON),1) has no exercises/study.py"; exit 2; }
 	uv run $(STUDY_SCRIPT)
 
+# Your page of a lesson, from your own store: artefacts/study-page/lesson<N>/index.html.
+# What is yours on it comes from notebooks/<N>_*/exercises/page.toml.
+#
+#   make page LESSON=1
+#   make page LESSON=1 ARGS="--submitted <login>"   # from a login's submitted runs
+
+page: check-lesson
+	uv run scripts/study_page.py --lesson $(LESSON) --open $(ARGS)
+
 # newest artefact folder matching a glob, or empty
 latest = $(shell ls -dt artefacts/$(1) 2>/dev/null | head -1)
 
 help:
 	@echo "targets:"
 	@echo "  study [LESSON=<N>]    run your study over your design (notebooks/<N>_*/exercises; lesson 1 by default)"
+	@echo "  page LESSON=<N>       open your page of lesson N: your ideas, design, search and results"
 	@echo "  share LESSON=<N>      submit your runs of lesson N (ARGS=--list to preview)"
 	@echo "  dashboard LESSON=<N>  open the class page of lesson N, and optuna-dashboard on the class's runs (METRIC=<name> to read another metric)"
 	@echo "  rehearsal             rehearse the class here: four students, six studies, the class page (ARGS=\"--minutes <N>\")"
