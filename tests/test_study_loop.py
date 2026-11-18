@@ -21,9 +21,9 @@ def plotting():
 @pytest.mark.parametrize(
     "page", ["your-study.html", "lesson1-your-study.html", "lesson2-your-study.html"]
 )
-def test_every_address_of_the_page_draws_the_eight_steps(plotting, page: str) -> None:
+def test_every_address_of_the_page_draws_the_nine_steps(plotting, page: str) -> None:
     figure = plotting.study_loop(page).data
-    for step in range(1, 9):
+    for step in range(1, 10):
         assert f'href="{plotting.PAGES_URL}your-study.html#step-{step}"' in figure
 
 

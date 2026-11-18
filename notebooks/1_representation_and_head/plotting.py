@@ -728,7 +728,7 @@ PAGES_URL = "https://raoulg.github.io/MADS-MachineLearning-course/"
 
 
 def study_loop(page: str = "your-study.html") -> HTML:
-    """The eight-step loop drawn on `page` in `presentations/`, as a figure in the notebook.
+    """The nine-step loop drawn on `page` in `presentations/`, as a figure in the notebook.
     A page that redirects (a meta refresh) is followed to the page it names. Every box links
     to its step on the published page."""
     html = (PRESENTATIONS / page).read_text()
