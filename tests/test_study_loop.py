@@ -82,31 +82,62 @@ def lesson_block(html: str, lesson: int) -> str:
     return block.group(0)
 
 
+NOTEBOOK = {
+    1: "notebooks/1_representation_and_head/05_exercises.ipynb",
+    2: "notebooks/2_kernels_state_and_gates/04_exercise.ipynb",
+}
+
+
+def words(fragment: str) -> str:
+    """The text of a fragment: tags dropped, whitespace folded."""
+    return " ".join(re.sub(r"<[^>]*>", " ", fragment).split())
+
+
 @pytest.mark.parametrize("lesson", [1, 2])
 def test_each_lesson_block_opens_with_your_research_and_its_three_prompts(
     lesson: int,
 ) -> None:
     block = lesson_block(PAGE.read_text(), lesson)
-    after_title = block[block.index("</h3>") :]
-    assert re.match(
-        r'</h3>\s*<div class="research">\s*<h4>Your research</h4>', after_title
-    )
-    titles = re.findall(r'<div class="prompt-head"><span>([^<]*)</span>', block)
-    assert titles == PROMPTS
-    prompts = re.findall(r"<pre>([^<]*)</pre>", block)
+    research = block[block.index("</h3>") : block.index("<dl>")]
+    assert words(research).startswith("Your research ")
+    assert f"To lesson {lesson + 1} you bring your page" in words(research)
+    assert f"lesson {lesson + 1} opens on the class's runs" in words(research)
+    assert f'/blob/master/{NOTEBOOK[lesson]}"' in research
+    assert NOTEBOOK[3 - lesson] not in research
+    heads = re.findall(r'<div class="prompt-head">(.*?)</div>', research, re.DOTALL)
+    assert [words(head.split("<button")[0]) for head in heads] == PROMPTS
+    assert all("<button" in head for head in heads)
+    prompts = [
+        words(pre) for pre in re.findall(r"<pre>(.*?)</pre>", research, re.DOTALL)
+    ]
     assert len(prompts) == 3
-    other = 3 - lesson
     for prompt in prompts:
-        assert f"lesson {lesson}" in prompt and f"lesson {other}" not in prompt
+        assert f"lesson {lesson}" in prompt and f"lesson {3 - lesson}" not in prompt
     start, explain, submit = prompts
     assert "docs/your-study.md" in start and f"{RAW}your-study.md" in start
+    assert "ask me first" in start and "in my own words" in start
     assert f"make page LESSON={lesson}" in explain and f"{RAW}your-study.md" in explain
+    assert "one question at a time" in explain and "in my own words" in explain
     assert "docs/submit-runs.md" in submit and f"{RAW}submit-runs.md" in submit
+    assert "Show me the list of runs first" in submit
 
 
 def test_the_page_says_how_it_counts_once_and_never_says_homework() -> None:
     html = PAGE.read_text()
     assert html.count('id="how-it-counts"') == 1
-    assert html.count("above 5.5") == 1
+    counts = html[html.index('id="how-it-counts"') : html.index('id="per-lesson"')]
+    text = words(counts)
+    assert "five criteria" in text
+    assert "at most 0.5" in text and "5.5" in text
+    assert "Lesson 7 is the last lesson" in text
+    assert "at most 0.5" not in words(html.replace(counts, ""))
     assert "homework" not in html.lower()
-    assert f'href="{RAW}' not in html  # the raw URLs are prompt text, not links
+
+
+def test_a_copy_button_copies_its_own_prompt_and_says_so() -> None:
+    html = PAGE.read_text()
+    assert html.count('<button type="button">Copy</button>') == 6
+    assert html.count('role="status"') == 1
+    script = html[html.rindex("<script>") :]
+    assert "navigator.clipboard.writeText(pre.textContent)" in script
+    assert "selectNodeContents(pre)" in script

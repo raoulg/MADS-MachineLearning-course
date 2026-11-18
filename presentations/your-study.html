@@ -86,6 +86,7 @@ svg marker.g path{fill:var(--course-green)}
 .prompt-head span{font-size:15.5px;font-weight:500}
 .prompt-head button{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--course-ink);background:var(--course-paper);border:1px solid var(--course-rule);padding:4px 10px;cursor:pointer;flex-shrink:0}
 .prompt-head button:hover{border-color:var(--course-blue)}
+.prompt-said{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .prompt pre{margin:0;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--course-ink)}
 </style>
 </head>
@@ -311,29 +312,46 @@ svg marker.g path{fill:var(--course-green)}
 </section>
 </div>
 </main>
+<p class="prompt-said" role="status"></p>
 <script>
-document.querySelectorAll('.prompt button').forEach(function (button) {
-  var pre = button.closest('.prompt').querySelector('pre');
-  function say(text) {
-    document.querySelectorAll('.prompt button').forEach(function (b) { b.textContent = 'Copy'; });
-    button.textContent = text;
+(function () {
+  var said = document.querySelector('.prompt-said');
+  var buttons = document.querySelectorAll('.prompt button');
+  var timer;
+  function reset() {
+    buttons.forEach(function (b) { b.textContent = 'Copy'; });
   }
-  function select() {
-    var range = document.createRange();
-    range.selectNodeContents(pre);
-    var selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    say('Selected: press Ctrl+C or Cmd+C');
-  }
-  button.addEventListener('click', function () {
-    if (navigator.clipboard && window.isSecureContext) {
-      navigator.clipboard.writeText(pre.textContent).then(function () { say('Copied'); }, select);
-    } else {
-      select();
+  buttons.forEach(function (button) {
+    var prompt = button.closest('.prompt');
+    var pre = prompt.querySelector('pre');
+    var title = prompt.querySelector('.prompt-head span').textContent;
+    button.setAttribute('aria-label', 'Copy the prompt: ' + title);
+    function say(label, sentence) {
+      clearTimeout(timer);
+      reset();
+      button.textContent = label;
+      said.textContent = sentence;
+      timer = setTimeout(reset, 2500);
     }
+    function select() {
+      var range = document.createRange();
+      range.selectNodeContents(pre);
+      var selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      say('Selected', 'The prompt "' + title + '" is selected: copy it yourself.');
+    }
+    button.addEventListener('click', function () {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(pre.textContent).then(function () {
+          say('Copied', 'Copied the prompt "' + title + '".');
+        }, select);
+      } else {
+        select();
+      }
+    });
   });
-});
+})();
 </script>
 </body>
 </html>
