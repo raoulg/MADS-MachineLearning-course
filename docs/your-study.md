@@ -42,9 +42,9 @@ The lesson folders are `notebooks/1_representation_and_head/exercises/` and
 ## Before the loop: Part 1 of the exercise notebook
 
 Part 1 of the lesson's exercise notebook walks steps 3 to 6 once, with a design and a
-space that are given, and its runs are handed in with the study's in step 8. It measures the baseline and what one trial costs on the student's
-machine, which steps 3 and 4 use. Ask whether it has run on this machine; if not, the
-student runs it first.
+space that are given, and its runs are handed in with the study's in step 8. It measures
+the baseline and what one trial costs on the student's machine, which steps 3 and 4 use.
+Ask whether it has run on this machine; if not, the student runs it first.
 
 ## 1. Design
 
