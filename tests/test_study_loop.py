@@ -134,6 +134,13 @@ def test_the_page_says_how_it_counts_once_and_never_says_homework() -> None:
     assert "homework" not in html.lower()
 
 
+def test_explain_sends_the_student_to_dav_and_the_beelddenker_skill() -> None:
+    html = PAGE.read_text()
+    card = html[html.index('id="step-7"') : html.index('id="step-8"')]
+    assert "the first impression should be the message" in words(card)
+    assert 'href="https://github.com/raoulg/beelddenker"' in card
+
+
 def test_a_copy_button_copies_its_own_prompt_and_says_so() -> None:
     html = PAGE.read_text()
     assert html.count('<button type="button">Copy</button>') == 6
