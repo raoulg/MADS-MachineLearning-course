@@ -38,5 +38,8 @@ artefacts/**
 **/own_caches/
 # old course material, kept locally until the course ends
 legacy/
-# claude code worktrees
-.claude/
+# claude code's local files; the course's skill under .claude/skills/ is tracked
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/your-study/
