@@ -201,13 +201,20 @@ def own_text(own: Mapping[str, str] | None, key: str) -> str:
 
 def picture(own: Mapping[str, str] | None, folder: Path) -> str:
     """The student's picture inside the page: an svg or an html fragment as it is, a png
-    as data; an open slot without one, and a line saying so when the file is not there."""
+    as data; an open slot without one, and a line saying so when the file is not there or
+    lies outside `folder` (an absolute path, or one that climbs out with `..`)."""
     if own is None:
         return absent("picture")
     name = own.get("picture", "")
     if not name:
         return open_slot("picture")
     path = (folder / name).resolve()
+    if Path(name).is_absolute() or not path.is_relative_to(folder.resolve()):
+        return (
+            "<div class='slot open'><span class='tag'>page.toml · picture</span>"
+            f"<p>{html.escape(name)} lies outside the folder of page.toml: name a file "
+            "inside it.</p></div>"
+        )
     if not path.is_file():
         return (
             "<div class='slot open'><span class='tag'>page.toml · picture</span>"

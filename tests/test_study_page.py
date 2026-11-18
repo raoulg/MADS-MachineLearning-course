@@ -321,3 +321,20 @@ def test_paths_inside_the_repository_are_named_from_its_root(tmp_path):
     assert study_page.shown(tmp_path / "studies.db") == str(
         (tmp_path / "studies.db").resolve()
     )
+
+
+@pytest.mark.parametrize(
+    "name", ["../secret.svg", "/etc/hosts", "sub/../../secret.svg"]
+)
+def test_a_picture_outside_the_folder_is_refused(tmp_path, folder, name):
+    (tmp_path / "secret.svg").write_text("<svg><text>secret</text></svg>")
+    text = study_page.picture({"picture": name}, folder)
+    assert "lies outside the folder of page.toml" in text
+    assert "secret</text>" not in text
+
+
+def test_a_picture_inside_the_folder_is_inlined_as_it_is(folder):
+    (folder / "pics").mkdir()
+    (folder / "pics" / "idea.svg").write_text("<svg><text>my idea</text></svg>")
+    text = study_page.picture({"picture": "pics/idea.svg"}, folder)
+    assert "<svg><text>my idea</text></svg>" in text
