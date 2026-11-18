@@ -697,7 +697,7 @@ def plot_learning_curves(
 
 
 # ---------------------------------------------------------------------------------------
-# 05_exercises: the loop of presentations/lesson1-your-study.html, drawn in the notebook
+# 05_exercises: the loop of presentations/your-study.html, drawn in the notebook
 # ---------------------------------------------------------------------------------------
 
 import re
@@ -727,10 +727,15 @@ PRESENTATIONS = Path(__file__).resolve().parents[2] / "presentations"
 PAGES_URL = "https://raoulg.github.io/MADS-MachineLearning-course/"
 
 
-def study_loop(page: str = "lesson1-your-study.html") -> HTML:
+def study_loop(page: str = "your-study.html") -> HTML:
     """The eight-step loop drawn on `page` in `presentations/`, as a figure in the notebook.
-    Every box links to its step on the published page."""
+    A page that redirects (a meta refresh) is followed to the page it names. Every box links
+    to its step on the published page."""
     html = (PRESENTATIONS / page).read_text()
+    refresh = re.search(r'http-equiv="refresh" content="[^"]*url=([^"#]+)', html)
+    if refresh is not None:
+        page = refresh.group(1)
+        html = (PRESENTATIONS / page).read_text()
     markers = re.search(r"<defs>.*?</defs>", html, flags=re.DOTALL)
     loop = re.search(r'<svg class="loop-wide".*?</svg>', html, flags=re.DOTALL)
     if markers is None or loop is None:
