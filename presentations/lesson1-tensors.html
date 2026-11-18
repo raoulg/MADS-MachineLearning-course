@@ -156,11 +156,11 @@ pre.code .r{color:#c43a14}
   <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>▲ question 01</p><p>where does deep learning fit?</p></div>
   <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
-    <h2 class="claim">Machines that learn are the latest in a line of discoveries that moved humans off the centre. They learn in three ways.</h2>
+    <h2 class="claim">Approaches to learning machines</h2>
     <div class="cards">
       <div class="card"><p class="ck">1 · The <span class="v">wounds</span></p><p class="s">Copernicus, Darwin, Freud: each took away a privilege. Schrödinger and Turing took two more.</p></div>
       <div class="card"><p class="ck">2 · Three <span class="v">kinds</span></p><p class="s">Supervised, unsupervised, reinforcement. What your data gives you decides which one you are doing.</p></div>
-      <div class="card"><p class="ck">3 · A <span class="v">loop</span></p><p class="s">Reinforcement learning is a loop: act, check, repeat until a stop condition. Agents work the same way.</p></div>
+      <div class="card"><p class="ck">3 · A <span class="v">loop</span></p><p class="s">Reinforcement learning is a loop: act, test, repeat until a stop condition. Agents work the same way.</p></div>
     </div>
   </div>
   <p class="pn n"></p>
@@ -186,6 +186,34 @@ pre.code .r{color:#c43a14}
   </div>
   <div class="foot"><p>1 / where does deep learning fit?</p><p class="n"></p></div>
   <aside>Freud wrote in 1917 that science had dealt human self-love three blows. Copernicus: the earth, and we with it, is not the centre of the universe. Darwin: humans are not a separate creation but a product of evolution, an animal among animals. And, Freud's own claim, psychoanalysis: we are not even masters in our own house, because much of what drives us is unconscious. Then click. Two more can be added. Schrödinger, standing for quantum mechanics: the logic we use every day, in which a thing is here or there, falls short of how the world behaves at small scales. And Turing: the idea that a machine can do what we call thinking, which takes away the last privilege, that humans are the peak of intelligence. You do not have to agree with the fifth to see why it provokes; the discussion around large language models is full of it. "It is just statistics, so it cannot understand" is the same move people made against Darwin: it is just chemistry, so love cannot exist. A description at a low level, statistics or chemistry, does not by itself rule out a property at a higher level. Keep that in mind when you read claims in either direction. This course stays at the level where we can measure things, and the habit we train is: say what you measured, and how sure you are.</aside>
+</section>
+
+<section id="rsi" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>recursive self improvement</p></div>
+  <div class="body">
+    <h2 class="t"><span class="v">Recursive self improvement:</span> a machine that improves the machine</h2>
+    <div class="row" style="gap:72px">
+      <svg aria-label="Two curves of capability over generations. Compounding: each generation improves the next faster, and the curve bends upward. Diminishing returns: each step gains less and the curve flattens." width="820" height="560" viewBox="0 0 820 560">
+        <line x1="70" y1="500" x2="790" y2="500" stroke="#5a544d" stroke-width="2.5"/>
+        <line x1="70" y1="500" x2="70" y2="30" stroke="#5a544d" stroke-width="2.5"/>
+        <path d="M70,480 C300,470 520,430 640,300 C700,230 740,130 770,40" fill="none" stroke="#c43a14" stroke-width="4"/>
+        <path d="M70,480 C200,350 340,250 520,215 C640,195 720,190 780,188" fill="none" stroke="#1d5a73" stroke-width="4"/>
+        <text x="772" y="30" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="24" fill="#c43a14">each cycle speeds up the next</text>
+        <text x="330" y="170" text-anchor="start"font-family="Outfit, Arial, sans-serif" font-size="24" fill="#1d5a73">each cycle gains less</text>
+        <text x="430" y="540" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#5a544d">generations of the machine</text>
+        <text x="50" y="270" text-anchor="middle" transform="rotate(-90 50 270)" font-family="JetBrains Mono, monospace" font-size="22" fill="#5a544d">capability</text>
+      </svg>
+      <div class="col" style="gap:24px">
+        <p class="s"><span class="pe">The idea:</span> a system good enough at machine learning research improves its own successor: it writes code, designs experiments and trains the next version. That version does the same.</p>
+        <p class="s"><span class="pe">The potential:</span> if each cycle makes the next one faster, capability compounds, the “intelligence explosion” I. J. Good described in 1965. If each cycle gains less, it levels off.</p>
+        <p class="s"><span class="pe">The condition:</span> it is a loop, so the rule of the next slides applies. Each cycle can only improve what it can <span class="v">test</span>.</p>
+        <p class="s">Which of the two curves is real is an open question, not a result.</p>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><p>1 / where does deep learning fit?</p><p class="n"></p></div>
+  <aside>Recursive self improvement: a system that improves the process that produces it. Concretely, a model that is good enough at machine learning research writes code, proposes and runs experiments, and trains a better model, which is then better at doing the same. The idea is old: I. J. Good wrote in 1965 about an ultraintelligent machine that designs better machines, and called it an intelligence explosion. The potential is the compounding curve: if every cycle shortens the next, progress accelerates. The other possibility is diminishing returns, where every improvement is harder to find than the last and the curve flattens. Nobody knows which holds; the honest position is that it is open. What it has in common with everything on the next slides is that it is a loop, so it can only get as good as the test it can run: a benchmark that is saturated, or a test that can be gamed, stops the improvement or points it in the wrong direction. That is also why devising good tests is where humans stay useful.</aside>
 </section>
 
 <section id="kinds" class="paper std">
@@ -233,9 +261,9 @@ pre.code .r{color:#c43a14}
   <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>loop engineering</p></div>
   <div class="body">
-    <h2 class="t">A loop runs until a <span class="v">check</span> says stop</h2>
+    <h2 class="t">A loop runs until a <span class="v">test</span> says stop</h2>
     <div class="row" style="gap:72px">
-      <svg aria-label="A loop diagram. A trigger starts the agent. The agent acts, the world changes, a check scores the result. If the stop condition is met the loop ends; if not, the agent updates and acts again." width="820" height="640" viewBox="0 0 820 640">
+      <svg aria-label="A loop diagram. A trigger starts the agent. The agent acts, the world changes, a test scores the result. If the stop condition is met the loop ends; if not, the agent updates and acts again." width="820" height="640" viewBox="0 0 820 640">
         <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a544d"/></marker></defs>
         <rect x="20" y="40" width="210" height="64" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
         <text x="125" y="70" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="22" fill="#5a544d">trigger</text>
@@ -247,7 +275,7 @@ pre.code .r{color:#c43a14}
         <rect x="500" y="310" width="200" height="60" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
         <text x="600" y="348" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#111111">world changes</text>
         <rect x="310" y="498" width="180" height="60" fill="#1d5a73" stroke="#1d5a73" stroke-width="2"/>
-        <text x="400" y="536" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#f4f1ec">check</text>
+        <text x="400" y="536" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#f4f1ec">test</text>
         <rect x="100" y="310" width="200" height="60" fill="#f4f1ec" stroke="#cfc7bb" stroke-width="1.5"/>
         <text x="200" y="348" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#111111">update</text>
         <path d="M484,170 A190,190 0 0 1 585,300" fill="none" stroke="#5a544d" stroke-width="2.5" marker-end="url(#ah)"/>
@@ -262,15 +290,15 @@ pre.code .r{color:#c43a14}
       </svg>
       <div class="col" style="gap:24px">
         <p class="s"><span class="pe">Reinforcement learning:</span> an agent acts, the world answers with a reward, the agent updates and acts again.</p>
-        <p class="s"><span class="pe">Loop engineering:</span> design what starts the loop, what checks the work, and when it stops. The Claude Code team defines a loop as “an agent repeating cycles of work until a stop condition is met”.</p>
+        <p class="s"><span class="pe">Loop engineering:</span> design what starts the loop, what tests the work, and when it stops. The Claude Code team defines a loop as “an agent repeating cycles of work until a stop condition is met”.</p>
         <table class="tab" style="font-size:24px">
           <tr><th style="width:40%">started by</th><th>stops when</th></tr>
           <tr><td>your prompt</td><td>the agent judges it done</td></tr>
-          <tr><td>a goal</td><td>a checker confirms the goal</td></tr>
+          <tr><td>a goal</td><td>a test confirms the goal</td></tr>
           <tr><td>a clock</td><td>you cancel it</td></tr>
           <tr><td>an event</td><td>each task's goal is met</td></tr>
         </table>
-        <p class="s">The check plays the part of the reward. A loop can only get as good as <span class="v">what it can check</span>.</p>
+        <p class="s">The test plays the part of the reward. A loop can only get as good as <span class="v">what it can test</span>, and devising the test is what the human does.</p>
       </div>
     </div>
   </div>
@@ -283,16 +311,15 @@ pre.code .r{color:#c43a14}
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 01 — where does deep learning fit?</p></div>
     <div class="again">
-      <p class="big">Machines that learn are the fifth wound. They learn from <span class="v">answers</span>, from structure, or from a score.</p>
+      <p class="big">There are several <span class="v">ways</span> in which machines can learn.</p>
       <div style="display:flex; flex-direction:column; gap:28px">
         <p class="m">Supervised: x with y. Unsupervised: only x. Reinforcement: no y, only a score after acting.</p>
-        <p class="m">Write down which one you have <span style="color:#111111">before</span> you choose a method.</p>
-        <p class="m">A loop needs a trigger, a <span class="v">check</span> and a stop condition. The check decides how good it can get.</p>
+        <p class="m">A loop needs a trigger, a <span class="v">test</span> and a stop condition. The test decides how good it can get.</p>
       </div>
     </div>
   </div>
   <p class="pn n"></p>
-  <aside>Said again. Deep learning is one more step in a long line of findings that took a privilege away from us, and the discussion around it is loud in both directions; we stay with what can be measured. A learning problem is supervised when you have the answers, unsupervised when you only have the data, and reinforcement learning when all you get is a score after you act. And a loop, the shape of every agent and of every training run, is only as good as the check inside it.</aside>
+  <aside>Said again. There are several ways in which machines can learn. A learning problem is supervised when you have the answers, unsupervised when you only have the data, and reinforcement learning when all you get is a score after you act. And a loop, the shape of every agent and of every training run, is only as good as the test inside it.</aside>
 </section>
 
 <!-- ============================================================ 02 -->
@@ -370,8 +397,8 @@ pre.code .r{color:#c43a14}
         <table class="tab">
           <tr><th style="width:60%">flowers, 102 species</th><th style="text-align:right">trains</th><th style="text-align:right">accuracy</th></tr>
           <tr><td>guess</td><td style="text-align:right">nothing</td><td style="text-align:right">1.0%</td></tr>
-          <tr><td>nearest neighbour on the cached vectors</td><td style="text-align:right">nothing</td><td style="text-align:right; color:#c43a14">99.1%</td></tr>
-          <tr><td>a small trained head on the same vectors</td><td style="text-align:right">a head</td><td style="text-align:right">99.3%</td></tr>
+          <tr><td>cosine similarity (1-nearest-neighbour) on the vectors</td><td style="text-align:right">nothing</td><td style="text-align:right; color:#c43a14">99.1%</td></tr>
+          <tr><td>a two-layer neural network trained on the vectors</td><td style="text-align:right">a network</td><td style="text-align:right">99.3%</td></tr>
         </table>
       </div>
       <div class="col">
@@ -393,10 +420,10 @@ pre.code .r{color:#c43a14}
     <div class="fill">
       <div class="callout"><p style="font-size:30px; line-height:1.4">DINOv2 was trained to give two views of the same photo similar vectors. Nobody told it about flowers, fields or fabrics. The order in its space is a <span class="v">by-product</span>, and you can use it for a purpose it was never trained for.</p></div>
       <table class="tab">
-        <tr><th style="width:32%">dataset · dinov2-small</th><th style="width:16%; text-align:right">classes</th><th style="width:26%; text-align:right">nearest neighbour</th><th style="text-align:right">trained head</th></tr>
-        <tr><td>Oxford Flowers</td><td style="text-align:right">102</td><td style="text-align:right">99.1%</td><td style="text-align:right">99.3%</td></tr>
-        <tr><td>EuroSAT, satellite tiles</td><td style="text-align:right">10</td><td style="text-align:right">—</td><td style="text-align:right">95.0%</td></tr>
-        <tr><td>DTD, textures</td><td style="text-align:right">47</td><td style="text-align:right">77.0%</td><td style="text-align:right">80.3%</td></tr>
+        <tr><th style="width:26%">dataset · dinov2-small</th><th style="width:24%">two samples</th><th style="width:10%; text-align:right">classes</th><th style="width:20%; text-align:right">cosine similarity (1-nearest-neighbour)</th><th style="text-align:right">two-layer neural network</th></tr>
+        <tr><td style="vertical-align:middle">Oxford Flowers</td><td><img src="img/lesson1/samples_flowers.png" alt="Two photos of flowers" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">102</td><td style="text-align:right; vertical-align:middle">99.1%</td><td style="text-align:right; vertical-align:middle">99.3%</td></tr>
+        <tr><td style="vertical-align:middle">EuroSAT, satellite tiles</td><td><img src="img/lesson1/samples_eurosat.png" alt="Two satellite tiles: farmland and houses" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">10</td><td style="text-align:right; vertical-align:middle">89.7%</td><td style="text-align:right; vertical-align:middle">95.0%</td></tr>
+        <tr><td style="vertical-align:middle">DTD, textures</td><td><img src="img/lesson1/samples_dtd.png" alt="Two textures: braided and cracked" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">47</td><td style="text-align:right; vertical-align:middle">77.0%</td><td style="text-align:right; vertical-align:middle">80.3%</td></tr>
       </table>
       <p class="s">Flowers is solved. EuroSAT is good, not solved. Textures leave <span class="v">twenty points</span> of headroom: that is where the search in question eight runs.</p>
     </div>
@@ -410,11 +437,10 @@ pre.code .r{color:#c43a14}
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 02 — why use a model somebody else trained?</p></div>
     <div class="again">
-      <p class="big">Somebody else paid to <span class="v">order the space</span>. You read your labels off it.</p>
+      <p class="big">Use the <span class="v">intelligence</span> of pretrained encoders.</p>
       <div style="display:flex; flex-direction:column; gap:28px">
-        <p class="m">A frozen encoder turns a photo into a vector. Similar photos get nearby vectors, also for classes it never saw.</p>
-        <p class="m">Nearest neighbour on flowers: 99.1% with nothing trained. The trained head: 99.3%.</p>
-        <p class="m"><span style="color:#111111">Compute the no-training baseline first</span>: it tells you how much is left for a head to do.</p>
+        <p class="m">Cosine similarity on flowers: 99.1% with nothing trained. A two-layer neural network: 99.3%.</p>
+        <p class="m"><span style="color:#111111">Compute a baseline first</span>; this tells you how much room for improvement there is.</p>
       </div>
     </div>
   </div>
@@ -468,14 +494,13 @@ pre.code .r{color:#c43a14}
     <h2 class="t">A search multiplies the <span class="v">head</span>, never the encoder</h2>
     <div class="fill" style="gap:44px">
       <div style="display:flex; flex-direction:row; gap:48px; align-items:center; justify-content:center">
-        <p style="font-size:64px; font-weight:500; color:#c43a14">E</p><p style="font-size:64px; color:#5a544d">+</p><p style="font-size:64px; font-weight:500; color:#111111">N</p><p style="font-size:64px; color:#5a544d">×</p><p style="font-size:64px; font-weight:500; color:#1d5a73">H</p>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px"><p style="font-size:64px; font-weight:500; color:#c43a14">E</p><p class="mono" style="font-size:24px; color:#c43a14">cached</p></div><p style="font-size:64px; color:#5a544d">+</p><p style="font-size:64px; color:#5a544d">(</p><p style="font-size:64px; font-weight:500; color:#111111">N</p><p style="font-size:64px; color:#5a544d">×</p><p style="font-size:64px; font-weight:500; color:#1d5a73">H</p><p style="font-size:64px; color:#5a544d">)</p>
       </div>
       <div class="g3">
         <div class="top first"><p class="ck2" style="color:#c43a14">E · encode, once</p><p class="s">One photo through DINOv2-small: 22 million weights × 257 patches ≈ <span class="v">5.7 billion</span> multiplications.</p></div>
         <div class="top"><p class="ck2">N · experiments</p><p class="s">Seeds, learning rates, widths, encoders to compare: a search of 24 trials is N = 24, five seeds each is 120.</p></div>
         <div class="top"><p class="ck2">H · one head</p><p class="s">One photo through a Linear head for EuroSAT: 384 × 10 = <span class="pe">3,840</span> multiplications. A million times less.</p></div>
       </div>
-      <div class="callout"><p style="font-size:28px; line-height:1.4">This holds while the encoder is <span class="v">frozen</span>. Finetune it, and every epoch runs the encoder forward and backward: then E is inside the loop and you need the GPU after all.</p></div>
     </div>
   </div>
   <div class="foot"><p>3 / what does embedding once save?</p><p class="n"></p></div>
@@ -489,7 +514,7 @@ pre.code .r{color:#c43a14}
     <div class="again">
       <p class="big">Embed once, train <span class="v">many heads</span>.</p>
       <div style="display:flex; flex-direction:column; gap:28px">
-        <p class="m">Cost is E + N × H. The encoder is a million times the head; the cache pays it once.</p>
+        <p class="m">Cost is E + (N × H). The encoder is a million times the head; the cache pays it once.</p>
         <p class="m">100 trials: 165 minutes with the encoder in the loop, under two with the cache.</p>
         <p class="m"><span style="color:#111111">The condition</span>: the encoder stays frozen. Finetuning puts it back in the loop.</p>
       </div>
@@ -1160,9 +1185,9 @@ search_alg = HyperOptSearch()                    <span class="c"># TPE</span></p
   <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div style="width:280px; height:2px; background:#f2643c"></div>
   <div style="display:flex; flex-direction:column; gap:24px; padding:36px 0">
-    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Where does deep learning <span class="v">fit</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">The fifth wound. It learns from answers, from structure, or from a score in a loop.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Where does deep learning <span class="v">fit</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">There are several ways for machines to learn: from answers, from structure, or from a score in a loop.</p></div>
     <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Why use a model <span class="v">somebody else</span> trained?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Its space is ordered: nearest neighbour gets 99.1% on flowers.</p></div>
-    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">What does embedding <span class="v">once</span> save?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">E + N × H: a search multiplies the head, not the encoder.</p></div>
+    <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">What does embedding <span class="v">once</span> save?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">E + (N × H): a search multiplies the head, not the encoder.</p></div>
     <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Which <span class="v">encoder</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Measure it on your task. 2.4 points apart on satellites, 14.4 on textures.</p></div>
     <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">What is a <span class="v">tensor</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">A rank and a shape. The meaning of the axes is yours to track.</p></div>
     <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:32px; font-weight:500; line-height:1.2; color:#86b9c9">Why a <span class="v">nonlinearity</span>?</p><p style="font-size:32px; line-height:1.2; color:#f4f1ec">Without it five layers are one matrix. With it, any curve.</p></div>

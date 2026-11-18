@@ -21,6 +21,7 @@ Data:
 - the published vector caches on the hub (pttrn-io/oxford-flowers-*, eurosat-*, dtd-*);
 - Chelsea the cat from scikit-image (CC0, photo by Stefan van der Walt);
 - six EuroSAT tiles from tanganke/eurosat (MIT), streamed;
+- two photos of each of oxford-flowers (nkirschi/oxford-flowers), EuroSAT and DTD (tanganke/dtd), streamed;
 - all-MiniLM-L6-v2 for the sentence vectors;
 - the DTD head search of notebook 04, exported to data/dtd_search_trials.csv;
 - the seed-spread table in planning/evidence.md section 3, typed in below.
@@ -223,6 +224,49 @@ def eurosat_tiles():
         if len(found) == len(want):
             break
     return [(n.split(" or ")[0].replace(" buildings", ""), found[n]) for n in want]
+
+
+def fig_samples():
+    """Two photos of each dataset of the comparison table, as one strip per dataset."""
+    from datasets import load_dataset
+    from PIL import Image
+
+    side, gap = 300, 16
+
+    def first_two(repo: str, want: list[str] | None):
+        ds = load_dataset(repo, split="test", streaming=True)
+        assert ds.features is not None
+        names = ds.features["label"].names
+        found: dict[str, Image.Image] = {}
+        for row in ds:
+            name = names[row["label"]]
+            if (want is None or name in want) and name not in found:
+                found[name] = row["image"].convert("RGB")
+            if len(found) == 2:
+                break
+        return list(found.items())
+
+    sets = {
+        "samples_flowers": first_two("nkirschi/oxford-flowers", None),
+        "samples_eurosat": first_two(
+            "tanganke/eurosat",
+            ["annual crop land", "residential buildings or homes or apartments"],
+        ),
+        "samples_dtd": first_two("tanganke/dtd", ["braided", "cracked"]),
+    }
+    for stem, pair in sets.items():
+        strip = Image.new("RGB", (2 * side + gap, side), BG)
+        for k, (_, im) in enumerate(pair):
+            w, h = im.size
+            s = min(w, h)
+            im = im.crop(
+                ((w - s) // 2, (h - s) // 2, (w - s) // 2 + s, (h - s) // 2 + s)
+            )
+            strip.paste(
+                im.resize((side, side), Image.Resampling.BICUBIC), (k * (side + gap), 0)
+            )
+        strip.save(OUT / f"{stem}.png")
+        print(f"wrote {stem}.png: {[n for n, _ in pair]}")
 
 
 def fig_batch_images():
@@ -1204,6 +1248,7 @@ def fig_fusion():
 FIGURES = [
     fig_cover,
     fig_cat_channels,
+    fig_samples,
     fig_batch_images,
     fig_sentences,
     fig_ladder,
