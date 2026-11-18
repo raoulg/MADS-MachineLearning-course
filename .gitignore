@@ -43,3 +43,4 @@ legacy/
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/your-study/
+*/**/.claude/
