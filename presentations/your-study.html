@@ -46,7 +46,7 @@ svg marker.g path{fill:var(--course-green)}
 .steps{display:grid;gap:18px;grid-template-columns:1fr;list-style:none;padding:0;margin:0}
 @media(min-width:760px){.steps{grid-template-columns:1fr 1fr}}
 @media(min-width:1160px){.steps{grid-template-columns:1fr 1fr 1fr 1fr}}
-.step{border:1px solid var(--course-rule);border-top:5px solid;padding:14px 16px 14px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:calc(var(--course-bar-height) + 12px)}
+.step{border:1px solid var(--course-rule);border-top:5px solid;padding:14px 16px 14px;display:flex;flex-direction:column;gap:8px;scroll-margin-top:0}
 .step:target{outline:2px solid var(--course-orange)}
 .step.p1{border-top-color:var(--course-blue)}
 .step.p2{border-top-color:var(--course-orange)}
@@ -66,7 +66,7 @@ svg marker.g path{fill:var(--course-green)}
 .step p.decide strong{font-weight:500}
 .lessons{display:grid;gap:18px;grid-template-columns:1fr}
 @media(min-width:1000px){.lessons{grid-template-columns:1fr 1fr}}
-.lesson{border:1px solid var(--course-rule);border-left:5px solid var(--course-blue);padding:14px 16px;scroll-margin-top:calc(var(--course-bar-height) + 12px);min-width:0}
+.lesson{border:1px solid var(--course-rule);border-left:5px solid var(--course-blue);padding:14px 16px;scroll-margin-top:0;min-width:0}
 .lesson:target{outline:2px solid var(--course-orange)}
 .lesson h3{font-size:21px;font-weight:500;line-height:1.2;margin:0 0 12px}
 .lesson h3 span{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--course-muted);margin-right:8px}

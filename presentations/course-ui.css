@@ -31,7 +31,7 @@ h1 span,.goal p.note{color:var(--course-orange)}
 h2,.goal,.goal .dav-ref{border-color:var(--course-rule)}
 h2{border-top-color:var(--course-green)}
 .goal:target{border-color:var(--course-orange)}
-.goal{scroll-margin-top:calc(var(--course-bar-height) + 12px)}
+.goal{scroll-margin-top:0}
 .goal p.note{border-color:var(--course-orange)}
 .goal .dav-ref a{color:var(--course-green)}
 .goal svg text{fill:var(--course-ink)}
