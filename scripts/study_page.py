@@ -1058,12 +1058,13 @@ def fig_curves(
     for c in won.curve:
         body.append(f"<path d='{path(c)}' class='wincurve'/>")
     if won.empty:
-        note.append("the winner logged no curve")
+        note.append("the winning trial logged no curve")
     return (
         head
         + f"<p class='ylab'>{html.escape(study.objective)} per epoch</p>"
         + svg(width, height, "".join(body), f"learning curves of {study.label}")
-        + "<p class='foot'>bold: the winning trial · faint: the other trials · "
+        + "<p class='foot'>bold: the winning trial of the search, not its rerun · "
+        "faint: the other trials · "
         "dotted: the baseline" + (" · " + " · ".join(note) if note else "") + "</p>"
     )
 
@@ -1398,6 +1399,9 @@ def course_tokens() -> str:
 
 
 CSS = """
+:root{--slot-ink:#a8310f}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--slot-ink:var(--course-orange)}}
+:root[data-theme="dark"]{--slot-ink:var(--course-orange)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--course-paper);color:var(--course-ink);
   font-family:Outfit,Arial,sans-serif;font-size:16px;line-height:1.45}
@@ -1423,15 +1427,15 @@ section{background:var(--course-surface);border-radius:10px;padding:16px 18px;ma
   border:1px solid var(--course-rule);border-radius:6px;padding:4px 10px;cursor:pointer}
 .slot{border-radius:8px;padding:10px 14px;margin:8px 0}
 .slot.filled{background:var(--course-paper);border-left:4px solid var(--course-green);font-size:17px}
-.slot.open{border:2px dashed var(--course-orange);color:var(--course-orange)}
+.slot.open{border:2px dashed var(--slot-ink);color:var(--slot-ink)}
 .slot.open p{font-style:italic}
 .slot.absent{border:2px dotted var(--course-rule);color:var(--course-muted)}
 .slot .tag{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--course-muted)}
 .slot.picture{text-align:center}
 .slot.picture svg,.slot.picture img{max-width:100%;max-height:360px;height:auto}
-.warn{color:var(--course-orange);font-size:13px}
+.warn{color:var(--slot-ink);font-size:13px}
 .missing{color:var(--course-muted);font-size:13.5px;background:var(--course-paper);border-radius:6px;
-  padding:8px 12px;margin:6px 0}
+  padding:8px 12px;margin:6px 0;overflow-wrap:anywhere}
 .ideas{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:22px}
 .ideas li{position:relative;flex:1 1 240px;min-width:0;max-width:380px}
 .ideas li+li::before{content:'→';position:absolute;left:-19px;top:40%;color:var(--course-muted);font-size:16px}
@@ -1443,7 +1447,7 @@ section{background:var(--course-surface);border-radius:10px;padding:16px 18px;ma
 .idea .words{font-size:16px}
 .expects{font-size:13.5px}
 .expects b,.slot b{font-weight:500;color:var(--course-muted)}
-.expects.open{color:var(--course-orange);font-style:italic}
+.expects.open{color:var(--slot-ink);font-style:italic}
 .builds{font-size:12.5px;color:var(--course-muted);overflow-wrap:anywhere}
 .gain{font-size:14px;font-weight:500;color:var(--course-muted)}
 .gain.better{color:var(--course-green)}
@@ -1471,7 +1475,7 @@ svg .seg.on{fill:var(--course-blue);stroke:var(--course-blue)}
 svg .fixed{fill:var(--course-paper);stroke:var(--course-rule);stroke-dasharray:3 3}
 svg .band{fill:var(--course-orange-wash);opacity:.7}
 svg .baseline{stroke:var(--course-orange);stroke-width:1.5;stroke-dasharray:2 3}
-svg .faint{fill:none;stroke:var(--course-blue-wash);stroke-width:1.2}
+svg .faint{fill:none;stroke:var(--course-blue);stroke-width:1.1;stroke-opacity:.7}
 svg .wincurve{fill:none;stroke:var(--course-blue);stroke-width:2.6}
 svg .basecurve{fill:none;stroke:var(--course-orange);stroke-width:2;stroke-dasharray:2 3}
 .stages{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}
@@ -1538,12 +1542,23 @@ SCRIPT = """
     tabs.forEach(function (t) {
       const on = t.dataset.tab === id;
       t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
       document.getElementById('tab-' + t.dataset.tab).hidden = !on;
     });
     if (id === 'design') atlas();
     try { history.replaceState(null, '', '#' + id); } catch (e) {}
   }
-  tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.tab); }); });
+  tabs.forEach(function (t, i) {
+    t.addEventListener('click', function () { show(t.dataset.tab); });
+    t.addEventListener('keydown', function (e) {
+      const to = {ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1}[e.key];
+      if (to === undefined) return;
+      e.preventDefault();
+      const next = tabs[(to + tabs.length) % tabs.length];
+      show(next.dataset.tab);
+      next.focus();
+    });
+  });
   show(decodeURIComponent(location.hash.slice(1)) || 'overview');
 
   const boxes = Array.from(document.querySelectorAll('.idea'));
@@ -1581,15 +1596,16 @@ def build_page(
         (s.slug, s.label) for s in studies
     ]
     nav = "".join(
-        f"<button type='button' role='tab' data-tab='{t}' aria-controls='tab-{t}'>"
+        f"<button type='button' role='tab' id='tabbtn-{t}' data-tab='{t}' "
+        f"aria-controls='tab-{t}' tabindex='-1'>"
         f"{html.escape(name)}</button>"
         for t, name in tabs
     )
     body = (
-        f"<div role='tabpanel' id='tab-overview'>{overview(studies, own, folder)}</div>"
-        f"<div role='tabpanel' id='tab-design' hidden>{design}</div>"
+        f"<div role='tabpanel' id='tab-overview' aria-labelledby='tabbtn-overview'>{overview(studies, own, folder)}</div>"
+        f"<div role='tabpanel' id='tab-design' aria-labelledby='tabbtn-design' hidden>{design}</div>"
         + "".join(
-            f"<div role='tabpanel' id='tab-{s.slug}' hidden>{study_tab(s)}</div>"
+            f"<div role='tabpanel' id='tab-{s.slug}' aria-labelledby='tabbtn-{s.slug}' hidden>{study_tab(s)}</div>"
             for s in studies
         )
     )
