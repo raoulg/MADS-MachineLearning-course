@@ -120,12 +120,8 @@ def folder(tmp_path) -> Path:
     return out
 
 
-def page(store: Store, folder: Path) -> str:
-    subs, login, source = study_page.read_store(store, 1)
-    own = study_page.read_own(folder, 1)
-    design = study_page.design_tab(folder, which=lambda _: None)
-    studies = study_page.studies_of(subs)
-    return study_page.build_page(studies, 1, login, source, own, folder, design)
+def page(store: Store, folder: Path, **kw) -> str:
+    return study_page.page_of(1, folder, store=store, which=lambda _: None, **kw)[0]
 
 
 def test_both_ideas_and_their_expectations_are_on_the_page(store, folder):
@@ -259,3 +255,69 @@ def test_a_search_over_two_datasets_is_drawn_per_dataset(tmp_path, folder):
     assert "dtd, the winner&#x27;s dataset (the search also drew eurosat)" in results
     space_panel = study_page.fig_space(two)
     assert "class='s on' text-anchor='middle'>dtd</text>" in space_panel
+
+
+def test_no_runs_stop_the_script_before_page_toml_is_made(tmp_path, folder):
+    empty = Store(tmp_path / "nothing")
+    with pytest.raises(SystemExit, match="no runs of lesson 1"):
+        page(empty, folder)
+    assert not (folder / "page.toml").exists()
+
+
+def test_submitted_runs_read_no_local_page_toml(store, folder, monkeypatch):
+    subs, _, _ = study_page.read_store(store, 1)
+    monkeypatch.setattr(
+        study_page,
+        "read_submitted",
+        lambda *a: (subs, "alice", "the runs alice submitted"),
+    )
+    text = page(store, folder, submitted="alice")
+    assert not (folder / "page.toml").exists()
+    assert text.count(study_page.NOT_SUBMITTED) == len(study_page.OWN)
+    assert "Say in three sentences what you did." not in text
+
+    named = folder / "elsewhere.toml"
+    named.write_text('message = "Mine, named."\n')
+    text = page(store, folder, submitted="alice", page=named)
+    assert "Mine, named." in text and study_page.NOT_SUBMITTED not in text
+    assert not (folder / "page.toml").exists()
+
+
+def test_page_names_a_page_toml_for_the_store_too(store, folder):
+    named = folder / "draft.toml"
+    named.write_text('surprised = "The lr did not matter."\n')
+    assert "The lr did not matter." in page(store, folder, page=named)
+    assert not (folder / "page.toml").exists()
+    with pytest.raises(SystemExit, match="no page.toml at"):
+        page(store, folder, page=folder / "missing.toml")
+
+
+def test_a_store_that_names_no_one_asks_no_one_and_writes_nothing(
+    tmp_path, folder, monkeypatch
+):
+    def refuse(self):
+        raise AssertionError("gh was asked")
+
+    monkeypatch.setattr(Store, "login", refuse)
+    store = Store(tmp_path / "optuna")
+    handed = Idea.handed_out(1)
+    search = StudyLog.search("lesson1-notebook", SPACE, handed, store=store)
+
+    def objective(trial: optuna.Trial) -> float:
+        search.record(
+            trial, RunRecord(role="trial", dataset="dtd", config=SPACE.draw(trial))
+        )
+        return 0.5
+
+    search.optimize(objective, 2)
+    text = page(store, folder)
+    assert "<h1>Lesson 1: your study</h1>" in text
+    assert not (store.root / "login").exists()
+
+
+def test_paths_inside_the_repository_are_named_from_its_root(tmp_path):
+    inside = study_page.COURSE_ROOT / "artefacts" / "optuna" / "studies.db"
+    assert study_page.shown(inside) == "artefacts/optuna/studies.db"
+    assert study_page.shown(tmp_path / "studies.db") == str(
+        (tmp_path / "studies.db").resolve()
+    )

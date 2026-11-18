@@ -22,13 +22,16 @@ prints its path. The page has three kinds of tab:
 - **one per study**: its idea and expectation, every searched axis against the objective
   and against `train_seconds`, the learning curves, and the winner's other metrics.
 
-What is the student's own comes from `notebooks/<lesson>/exercises/page.toml`: the
-message, the picture, what surprised and what next. A key left empty shows as an open
-slot that asks its question. The script creates that file with empty keys when it is
-missing, and never writes it otherwise.
+What is the student's own comes from `notebooks/<lesson>/exercises/page.toml`, or the
+file `--page` names: the message, the picture, what surprised and what next. A key left
+empty shows as an open slot that asks its question. Once runs of the lesson are found,
+the script creates the default file with empty keys when it is missing, and never writes
+it otherwise. The file is not tracked: a student commits theirs on a branch of their own.
+A page of submitted runs reads no page.toml unless `--page` names one; its own slots say
+they are not part of the submitted runs.
 
-Every score is read on its own study's objective, and scores of two studies are never
-put on one axis.
+Every score is read on its own study's objective and its own dataset: scores of two
+studies, or of two datasets, are never put on one axis.
 """
 
 from __future__ import annotations
@@ -129,13 +132,24 @@ def exercises_folder(lesson: int, root: Path = COURSE_ROOT) -> Path:
     return found[0]
 
 
-def read_own(folder: Path, lesson: int) -> dict[str, str]:
-    """The keys of `folder/page.toml` as text, every key of `OWN` present (empty when
-    the file leaves it out). A missing file is created with empty keys first."""
-    path = folder / "page.toml"
+def shown(path: Path) -> str:
+    """`path` relative to the root of the course repository when it lies inside it,
+    absolute otherwise."""
+    path = path.resolve()
+    return str(
+        path.relative_to(COURSE_ROOT) if path.is_relative_to(COURSE_ROOT) else path
+    )
+
+
+def read_own(path: Path, lesson: int, create: bool = False) -> dict[str, str]:
+    """The keys of the page.toml at `path` as text, every key of `OWN` present (empty
+    when the file leaves it out). With `create`, a missing file is made with empty keys
+    and a comment per key first; without, a missing file stops the script."""
     if not path.exists():
+        if not create:
+            sys.exit(f"no page.toml at {path}")
         path.write_text(PAGE_TOML.format(lesson=lesson))
-        print(f"wrote {path}: fill it in, and build the page again")
+        print(f"wrote {shown(path)}: fill it in, and build the page again")
     try:
         held = tomllib.loads(path.read_text())
     except tomllib.TOMLDecodeError as e:
@@ -168,13 +182,28 @@ def filled(key: str, text: str) -> str:
     return f"<div class='slot filled' data-key='{key}'>{body}{note}</div>"
 
 
-def own_text(own: Mapping[str, str], key: str) -> str:
+NOT_SUBMITTED = "Not part of the submitted runs."
+
+
+def absent(key: str) -> str:
+    """The place of a key on a page built from submitted runs, which carry no page.toml."""
+    return (
+        f"<div class='slot absent'><span class='tag'>page.toml · {key}</span>"
+        f"<p>{NOT_SUBMITTED}</p></div>"
+    )
+
+
+def own_text(own: Mapping[str, str] | None, key: str) -> str:
+    if own is None:
+        return absent(key)
     return filled(key, own[key]) if own.get(key) else open_slot(key)
 
 
-def picture(own: Mapping[str, str], folder: Path) -> str:
+def picture(own: Mapping[str, str] | None, folder: Path) -> str:
     """The student's picture inside the page: an svg or an html fragment as it is, a png
     as data; an open slot without one, and a line saying so when the file is not there."""
+    if own is None:
+        return absent("picture")
     name = own.get("picture", "")
     if not name:
         return open_slot("picture")
@@ -203,33 +232,41 @@ def picture(own: Mapping[str, str], folder: Path) -> str:
 # ---- the runs: the student's store, or what a login submitted --------------------------
 
 
-def store_login(store: Store, subs_attrs: Iterable[Mapping[str, object]]) -> str:
+def store_login(store: Store, attrs: Iterable[Mapping[str, object]]) -> str:
     """The student whose store it is: the login the store keeps, else the author of an
-    idea of their own, else what `gh` says."""
+    idea of their own; empty when neither says. It asks no one and writes nothing."""
     kept = store.root / "login"
-    if kept.exists() and LOGIN.fullmatch(kept.read_text().strip()):
-        return kept.read_text().strip()
-    for attrs in subs_attrs:
-        author = attrs.get("idea_author")
+    try:
+        held = kept.read_text().strip() if kept.is_file() else ""
+    except OSError:
+        held = ""
+    if LOGIN.fullmatch(held):
+        return held
+    for a in attrs:
+        author = a.get("idea_author")
         if isinstance(author, str) and author != COURSE and LOGIN.fullmatch(author):
             return author
-    return store.login()
+    return ""
+
+
+# The student of a submission made of a store that names no login: only the course's
+# handed-out ideas are in it, and they pass with any submitter.
+NO_LOGIN = "student"
 
 
 def read_store(store: Store, lesson: int) -> tuple[list[Submission], str, str]:
     """The runs of `lesson` in `store`, as the submissions `make share` would make of
-    them, the login they are of, and where they came from."""
+    them, the login they are of (empty when the store does not say), and where they came
+    from."""
     import optuna
     from optuna.artifacts import FileSystemArtifactStore
     from submit_runs import Store as Db
     from submit_runs import default_experiments, own_runs, select_runs, to_submission
 
     where = store.db
-    shown = (
-        where.relative_to(COURSE_ROOT) if where.is_relative_to(COURSE_ROOT) else where
-    )
+    source = f"your store {shown(where)}"
     if not where.exists():
-        return [], "", f"your store {shown}"
+        return [], "", source
     optuna.logging.set_verbosity(optuna.logging.WARNING)
     db = Db(where)
     db.artifacts = FileSystemArtifactStore(str(store.artifacts))
@@ -237,7 +274,7 @@ def read_store(store: Store, lesson: int) -> tuple[list[Submission], str, str]:
 
     patterns = default_experiments(lesson)
     if not any(fnmatch.fnmatchcase(n, p) for n in db.study_names() for p in patterns):
-        return [], "", f"your store {shown}"
+        return [], "", source
     found = own_runs(select_runs(db, lesson, None, None))
     login = store_login(store, [f.study_attrs for f in found])
     code = {"commit": None, "dirty": None, "remote": None}
@@ -245,10 +282,10 @@ def read_store(store: Store, lesson: int) -> tuple[list[Submission], str, str]:
     subs = []
     for f in found:
         try:
-            subs.append(to_submission(db, f, lesson, login, code, now))
+            subs.append(to_submission(db, f, lesson, login or NO_LOGIN, code, now))
         except ValueError as e:
             print(f"left out {f.study} #{f.trial.number}: " + "; ".join(explain(e)))
-    return subs, login, f"your store {shown}"
+    return subs, login, source
 
 
 def read_submitted(
@@ -1150,7 +1187,9 @@ def panels(study: Study, shown: bool) -> str:
     )
 
 
-def overview(studies: Sequence[Study], own: Mapping[str, str], folder: Path) -> str:
+def overview(
+    studies: Sequence[Study], own: Mapping[str, str] | None, folder: Path
+) -> str:
     known = {s.idea_name: s for s in studies if s.idea_name}
     if studies:
         line = (
@@ -1368,6 +1407,7 @@ section{background:var(--course-surface);border-radius:10px;padding:16px 18px;ma
 .slot.filled{background:var(--course-paper);border-left:4px solid var(--course-green);font-size:17px}
 .slot.open{border:2px dashed var(--course-orange);color:var(--course-orange)}
 .slot.open p{font-style:italic}
+.slot.absent{border:2px dotted var(--course-rule);color:var(--course-muted)}
 .slot .tag{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--course-muted)}
 .slot.picture{text-align:center}
 .slot.picture svg,.slot.picture img{max-width:100%;max-height:360px;height:auto}
@@ -1511,11 +1551,14 @@ def build_page(
     lesson: int,
     login: str,
     source: str,
-    own: Mapping[str, str],
-    folder: Path,
+    own: Mapping[str, str] | None,
+    page: Path | None,
     design: str,
 ) -> str:
-    """The page of `login`'s `studies` of `lesson`, with what they wrote in `own`."""
+    """The page of `login`'s `studies` of `lesson`, with what they wrote in `own`, read
+    from the page.toml at `page`; `own` None for a page of submitted runs without one.
+    A picture is looked for in the folder of `page`."""
+    folder = page.parent if page is not None else COURSE_ROOT
     tabs = [("overview", "Overview"), ("design", "Design")] + [
         (s.slug, s.label) for s in studies
     ]
@@ -1532,7 +1575,16 @@ def build_page(
             for s in studies
         )
     )
-    title = f"Lesson {lesson}: what {login or 'I'} studied"
+    title = (
+        f"Lesson {lesson}: what {login} studied"
+        if login
+        else f"Lesson {lesson}: your study"
+    )
+    yours = (
+        f"What is yours on the page comes from {html.escape(shown(page))}."
+        if own is not None and page is not None
+        else "What is the student's own on the page is not part of the submitted runs."
+    )
     runs = sum(len(s.df) for s in studies)
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
@@ -1541,12 +1593,48 @@ def build_page(
         f"<style>{font_faces()}{course_tokens()}{CSS}</style></head><body><main>"
         f"<header><div><h1>{html.escape(title)}</h1>"
         f"<p class='sub'>{studies_text(len(studies))}, {plural(runs, 'run')}, read from "
-        f"{html.escape(source)}. What is yours on the page comes from "
-        f"{html.escape(str(folder.relative_to(COURSE_ROOT) if folder.is_relative_to(COURSE_ROOT) else folder))}"
-        "/page.toml.</p></div>"
+        f"{html.escape(source)}. {yours}</p></div>"
         "<button type='button' class='theme' id='theme'>dark theme</button></header>"
         f"<nav class='tabs' role='tablist'>{nav}</nav>{body}"
         f"</main><script>{SCRIPT}</script></body></html>"
+    )
+
+
+def page_of(
+    lesson: int,
+    folder: Path,
+    *,
+    store: Store | None = None,
+    submitted: str | None = None,
+    runs_repo: Path | None = None,
+    fetch: bool = True,
+    page: Path | None = None,
+    which: Callable[[str], str | None] | None = None,
+) -> tuple[str, list[Study], str]:
+    """The page of `lesson`, its studies and its login: from `store` (the default
+    store), or from the runs `submitted` names in `runs_repo`. `folder` is the lesson's
+    `exercises/` folder: atlas draws it, and it holds the default page.toml. A page of
+    submitted runs reads a page.toml only when `page` names one; otherwise the default
+    one is read, and made once runs are found. No runs stop the script."""
+    if submitted:
+        repo = (runs_repo or COURSE_ROOT.parent / "mads-runs").resolve()
+        subs, login, source = read_submitted(repo, lesson, submitted, fetch)
+    else:
+        subs, login, source = read_store(store or Store.default(), lesson)
+    if not subs:
+        sys.exit(
+            f"no runs of lesson {lesson} in {source}"
+            + ("" if submitted else f": run `make study LESSON={lesson}` first")
+        )
+    toml = page or (None if submitted else folder / "page.toml")
+    own = None if toml is None else read_own(toml, lesson, create=page is None)
+    studies = studies_of(subs)
+    return (
+        build_page(
+            studies, lesson, login, source, own, toml, design_tab(folder, which)
+        ),
+        studies,
+        login,
     )
 
 
@@ -1577,31 +1665,23 @@ def main() -> None:
         help="the page (default: artefacts/study-page/lesson<N>/index.html)",
     )
     parser.add_argument(
+        "--page",
+        type=Path,
+        help="the page.toml to read (default: notebooks/<N>_*/exercises/page.toml, made "
+        "when missing; none with --submitted)",
+    )
+    parser.add_argument(
         "--open", action="store_true", help="open the page in the browser"
     )
     args = parser.parse_args()
 
-    folder = exercises_folder(args.lesson)
-    own = read_own(folder, args.lesson)
-    if args.submitted:
-        subs, login, source = read_submitted(
-            args.runs_repo.resolve(),
-            args.lesson,
-            args.submitted,
-            fetch=not args.no_pull,
-        )
-    else:
-        subs, login, source = read_store(Store.default(), args.lesson)
-    if not subs:
-        sys.exit(
-            f"no runs of lesson {args.lesson} in {source}: run `make study "
-            f"LESSON={args.lesson}` first"
-            if not args.submitted
-            else f"no runs of lesson {args.lesson} in {source}"
-        )
-    studies = studies_of(subs)
-    page = build_page(
-        studies, args.lesson, login, source, own, folder, design_tab(folder)
+    html_, studies, login = page_of(
+        args.lesson,
+        exercises_folder(args.lesson),
+        submitted=args.submitted,
+        runs_repo=args.runs_repo,
+        fetch=not args.no_pull,
+        page=args.page,
     )
     out = (
         args.out
@@ -1612,8 +1692,10 @@ def main() -> None:
         / "index.html"
     )
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(page)
-    print(f"{studies_text(len(studies))}, {plural(len(subs), 'run')} of {login}")
+    out.write_text(html_)
+    print(
+        f"{studies_text(len(studies))}, {plural(sum(len(x.df) for x in studies), 'run')} of {login or 'this store'}"
+    )
     print(f"page: {out}")
     if args.open:
         webbrowser.open(out.resolve().as_uri())
