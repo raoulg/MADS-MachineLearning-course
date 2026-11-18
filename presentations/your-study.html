@@ -76,6 +76,17 @@ svg marker.g path{fill:var(--course-green)}
 .lesson dd{margin:0;color:var(--course-muted);overflow-wrap:anywhere}
 .lesson dd a{font-family:'JetBrains Mono',monospace;color:var(--course-green);text-underline-offset:2px;margin-right:6px}
 .lesson ol{margin:0;padding-left:20px}
+.counts{border-left:4px solid var(--course-green);padding:10px 16px;margin:0;max-width:860px;background:var(--course-surface)}
+.counts p{margin:0}
+.research{margin:0 0 18px;padding:0 0 16px;border-bottom:1px solid var(--course-rule)}
+.research h4{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:var(--course-orange);margin:0 0 8px}
+.research>p{margin:0 0 12px;font-size:15.5px}
+.prompt{border:1px solid var(--course-rule);margin:10px 0 0;min-width:0}
+.prompt-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 8px 6px 12px;background:var(--course-surface);border-bottom:1px solid var(--course-rule)}
+.prompt-head span{font-size:15.5px;font-weight:500}
+.prompt-head button{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--course-ink);background:var(--course-paper);border:1px solid var(--course-rule);padding:4px 10px;cursor:pointer;flex-shrink:0}
+.prompt-head button:hover{border-color:var(--course-blue)}
+.prompt pre{margin:0;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--course-ink)}
 </style>
 </head>
 <body>
@@ -213,10 +224,29 @@ svg marker.g path{fill:var(--course-green)}
   <dt>exercises/harness.py</dt><dd>What the lesson gives the study: its data, the trainer, the linear baseline and the params a run logs. It trains whatever <code>make_model(config, data)</code> builds.</dd>
 </dl>
 
+<h2 id="how-it-counts">How it counts</h2>
+<div class="counts"><p>Your research is assessed in the lesson, along five criteria that weigh the same: the overview at a glance, the architecture, the search space, the results, and the code. The rubric stands on <a href="https://learn.pttrn.io">learn.pttrn.io</a>. Your research gives a bonus of at most 0.5 on the grade of the final assignment, and the bonus only counts when that grade is above 5.5. Lesson 7 is the last lesson in which you can have your research assessed.</p></div>
+
 <h2 id="per-lesson">Per lesson</h2>
 <div class="lessons">
 <section class="lesson" id="lesson-1">
   <h3><span>1</span>Representation and head</h3>
+  <div class="research">
+    <h4>Your research</h4>
+    <p>To lesson 2 you bring your page, built in step <a href="#step-7">7 Explain</a>: Raoul walks past and has three minutes per person. You start with Part 1 of the exercise notebook, <a href="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/notebooks/1_representation_and_head/05_exercises.ipynb"><code>05_exercises.ipynb</code></a>. Publishing your runs in step <a href="#step-8">8 Share</a> is not graded, but it gets you feedback: lesson 2 opens on the class's runs. How your research counts stands under <a href="#how-it-counts">How it counts</a>. Copy a prompt into your coding assistant:</p>
+    <div class="prompt">
+      <div class="prompt-head"><span>Start my study</span><button type="button">Copy</button></div>
+      <pre>I am starting my study of lesson 1 of the MADS Machine Learning course. Read docs/your-study.md in the course repository (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/your-study.md) and walk the loop with me from the step I am at. I design the study and say what I expect: ask me first, and write nothing until I have said it in my own words.</pre>
+    </div>
+    <div class="prompt">
+      <div class="prompt-head"><span>Build my page and interview me</span><button type="button">Copy</button></div>
+      <pre>My study of lesson 1 has runs. Follow step 7, Explain, of docs/your-study.md (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/your-study.md): build my page with make page LESSON=1, then interview me about it, one question at a time. Write my answers into exercises/page.toml in my own words.</pre>
+    </div>
+    <div class="prompt">
+      <div class="prompt-head"><span>Submit my runs</span><button type="button">Copy</button></div>
+      <pre>I want to hand in my runs of lesson 1. Follow docs/submit-runs.md (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/submit-runs.md). Show me the list of runs first, and hand them in once I have said it is the list I mean.</pre>
+    </div>
+  </div>
   <dl>
     <dt>folder</dt><dd><code>notebooks/1_representation_and_head/exercises/</code></dd>
     <dt>notebook</dt><dd>Part 1 of <code>05_exercises.ipynb</code></dd>
@@ -241,6 +271,22 @@ svg marker.g path{fill:var(--course-green)}
 </section>
 <section class="lesson" id="lesson-2">
   <h3><span>2</span>Kernels, state and gates</h3>
+  <div class="research">
+    <h4>Your research</h4>
+    <p>To lesson 3 you bring your page, built in step <a href="#step-7">7 Explain</a>: Raoul walks past and has three minutes per person. You start with Part 1 of the exercise notebook, <a href="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/notebooks/2_kernels_state_and_gates/04_exercise.ipynb"><code>04_exercise.ipynb</code></a>. Publishing your runs in step <a href="#step-8">8 Share</a> is not graded, but it gets you feedback: lesson 3 opens on the class's runs. How your research counts stands under <a href="#how-it-counts">How it counts</a>. Copy a prompt into your coding assistant:</p>
+    <div class="prompt">
+      <div class="prompt-head"><span>Start my study</span><button type="button">Copy</button></div>
+      <pre>I am starting my study of lesson 2 of the MADS Machine Learning course. Read docs/your-study.md in the course repository (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/your-study.md) and walk the loop with me from the step I am at. I design the study and say what I expect: ask me first, and write nothing until I have said it in my own words.</pre>
+    </div>
+    <div class="prompt">
+      <div class="prompt-head"><span>Build my page and interview me</span><button type="button">Copy</button></div>
+      <pre>My study of lesson 2 has runs. Follow step 7, Explain, of docs/your-study.md (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/your-study.md): build my page with make page LESSON=2, then interview me about it, one question at a time. Write my answers into exercises/page.toml in my own words.</pre>
+    </div>
+    <div class="prompt">
+      <div class="prompt-head"><span>Submit my runs</span><button type="button">Copy</button></div>
+      <pre>I want to hand in my runs of lesson 2. Follow docs/submit-runs.md (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/submit-runs.md). Show me the list of runs first, and hand them in once I have said it is the list I mean.</pre>
+    </div>
+  </div>
   <dl>
     <dt>folder</dt><dd><code>notebooks/2_kernels_state_and_gates/exercises/</code></dd>
     <dt>notebook</dt><dd>Part 1 of <code>04_exercise.ipynb</code></dd>
@@ -265,5 +311,29 @@ svg marker.g path{fill:var(--course-green)}
 </section>
 </div>
 </main>
+<script>
+document.querySelectorAll('.prompt button').forEach(function (button) {
+  var pre = button.closest('.prompt').querySelector('pre');
+  function say(text) {
+    document.querySelectorAll('.prompt button').forEach(function (b) { b.textContent = 'Copy'; });
+    button.textContent = text;
+  }
+  function select() {
+    var range = document.createRange();
+    range.selectNodeContents(pre);
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    say('Selected: press Ctrl+C or Cmd+C');
+  }
+  button.addEventListener('click', function () {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(pre.textContent).then(function () { say('Copied'); }, select);
+    } else {
+      select();
+    }
+  });
+});
+</script>
 </body>
 </html>
