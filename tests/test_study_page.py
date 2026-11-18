@@ -61,8 +61,18 @@ def repeats(right: list[int]) -> Repeats:
     )
 
 
-def study(store: Store, name: str, idea: Idea, expects: str, values, design: Path):
-    """A search of `values`, one trial each, and its baseline and winner."""
+def study(
+    store: Store,
+    name: str,
+    idea: Idea,
+    expects: str,
+    values,
+    design: Path,
+    baseline: list[int],
+    final: list[int],
+):
+    """A search of `values`, one trial each, and its baseline and winner, whose repeats
+    get `baseline` and `final` rows right."""
     search = StudyLog.search(
         f"lesson1-study-{name}",
         SPACE,
@@ -92,8 +102,8 @@ def study(store: Store, name: str, idea: Idea, expects: str, values, design: Pat
     search.optimize(objective, len(values))
     runs = StudyLog.runs(f"lesson1-study-{name}-runs", idea, store=store)
     script = DesignScript.read(design)
-    runs.log("baseline", "baseline", repeats([6, 7, 6]), dataset="dtd", design=script)
-    runs.log("winner", "final", repeats([8, 9, 8]), dataset="dtd", design=script)
+    runs.log("baseline", "baseline", repeats(baseline), dataset="dtd", design=script)
+    runs.log("winner", "final", repeats(final), dataset="dtd", design=script)
 
 
 @pytest.fixture
@@ -108,8 +118,11 @@ def store(tmp_path) -> Store:
     handed = Idea.handed_out(1).name
     first = Idea.of(FIRST[0], builds_on=handed, author="alice")
     second = Idea.of(SECOND[0], builds_on=first.name, author="alice")
-    study(store, "alice-lr-range", second, SECOND[1], [0.7, 0.8, 0.75], design)
-    study(store, "alice-skip", first, FIRST[1], [0.6, 0.65], design)
+    lr = [0.7, 0.8, 0.75]
+    study(store, "alice-lr-range", second, SECOND[1], lr, design, [5, 6, 7], [6, 7, 7])
+    study(
+        store, "alice-skip", first, FIRST[1], [0.6, 0.65], design, [6, 7, 6], [8, 9, 8]
+    )
     return store
 
 
@@ -146,13 +159,23 @@ def test_the_line_of_ideas_follows_builds_on(store, folder):
     ]
 
 
-def test_a_study_box_gives_its_gain_in_points_and_sigmas(store, folder):
+def test_each_study_box_gives_its_own_gain_in_points_and_sigmas(store, folder):
+    """By hand, with s the standard deviation over the repeats (ddof=0) and the standard
+    error sqrt(s_b²/(n_b−1) + s_f²/(n_f−1)):
+    alice-skip: 0.633 against 0.833, s² = 1/450 on both sides, se = 0.0471, 4.2σ;
+    alice-lr-range: 0.600 against 0.667, s² = 1/150 and 1/450, se = 0.0667, 1.0σ."""
     subs, _, _ = study_page.read_store(store, 1)
-    first = study_page.studies_of(subs)[0]
-    points, sigma, word = first.gain()
+    skip, lr = study_page.studies_of(subs)
+    points, sigma, word = skip.gain()
     assert points == pytest.approx(100 * (25 / 30 - 19 / 30))
-    assert sigma > 2 and word == "better"
-    assert "more than two sigma above its baseline" in page(store, folder)
+    assert f"{sigma:.1f}" == "4.2" and word == "better"
+    points, sigma, word = lr.gain()
+    # the store keeps scores to four decimals
+    assert points == pytest.approx(100 * (20 / 30 - 18 / 30), abs=0.01)
+    assert f"{sigma:.1f}" == "1.0" and word == "inside"
+    text = page(store, folder)
+    assert "+20.0 pt · 4.2σ · more than two sigma above its baseline" in text
+    assert "+6.7 pt · 1.0σ · inside two sigma" in text
 
 
 def test_an_empty_page_toml_gives_open_slots_and_a_filled_one_its_text(store, folder):
@@ -169,12 +192,20 @@ def test_an_empty_page_toml_gives_open_slots_and_a_filled_one_its_text(store, fo
             'message = ""', 'message = "A skip helps on dtd. Lr does not."'
         ).replace('next = ""', 'next = "Try a gate."')
     )
+    before = (
+        (folder / "page.toml").read_bytes(),
+        (folder / "page.toml").stat().st_mtime_ns,
+    )
     text = page(store, folder)
+    after = (
+        (folder / "page.toml").read_bytes(),
+        (folder / "page.toml").stat().st_mtime_ns,
+    )
+    assert after == before  # a page.toml that exists is never written
     assert "A skip helps on dtd. Lr does not." in text
     assert "Try a gate." in text
     assert "Say in three sentences what you did." not in text
     assert "What surprised you, against what you expected?" in text
-    assert (folder / "page.toml").read_text().count("A skip helps") == 1
 
 
 def test_a_missing_atlas_does_not_fail_and_says_where_to_get_it(folder):
