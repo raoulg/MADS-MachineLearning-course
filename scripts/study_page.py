@@ -1313,27 +1313,11 @@ def study_tab(study: Study) -> str:
     )
 
 
-def atlas_command(which: Callable[[str], str | None] | None = None) -> str | None:
-    find = which or shutil.which
-    return next((c for c in ATLAS_COMMANDS if find(c)), None)
+ATLAS_SECONDS = 60
 
 
-def design_tab(folder: Path, which: Callable[[str], str | None] | None = None) -> str:
-    """The page atlas draws of `folder`, inside the tab; one line when atlas is not on
-    this machine or fails."""
-    command = atlas_command(which)
-    shown = (
-        folder.relative_to(COURSE_ROOT)
-        if folder.is_relative_to(COURSE_ROOT)
-        else folder
-    )
-    if command is None:
-        return (
-            "<section><h2>Design</h2>"
-            f"<p class='missing'>Atlas is not on this machine, so the design of "
-            f"{html.escape(str(shown))} is not drawn here: install it as "
-            f"{html.escape(ATLAS_SETUP)} says.</p></section>"
-        )
+def atlas_page(command: str, folder: Path) -> tuple[bytes | None, str]:
+    """The page `command view` writes of `folder`, or None and why it gave none."""
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "atlas.html"
         try:
@@ -1341,24 +1325,51 @@ def design_tab(folder: Path, which: Callable[[str], str | None] | None = None) -
                 [command, "view", str(folder), "--out", str(out), "--no-open"],
                 capture_output=True,
                 text=True,
-                timeout=600,
+                timeout=ATLAS_SECONDS,
                 check=False,
             )
-        except (OSError, subprocess.TimeoutExpired) as e:
-            return (
-                f"<section><h2>Design</h2>{missing(f'{command} failed: {e}')}</section>"
-            )
+        except subprocess.TimeoutExpired:
+            return None, f"{command} took more than {ATLAS_SECONDS} seconds"
+        except OSError as e:
+            return None, f"{command} did not start: {e}"
         if ran.returncode != 0 or not out.exists():
             why = (ran.stderr or ran.stdout).strip().splitlines()[-1:] or ["no output"]
-            return f"<section><h2>Design</h2>{missing(f'{command} failed: {why[0]}')}</section>"
-        data = base64.b64encode(out.read_bytes()).decode()
-    return (
-        "<section class='design'><h2>Design</h2><p class='cap'>"
-        f"{html.escape(command)} view {html.escape(str(shown))}: the stages of the design, "
-        "the shape on every arrow, and where an option leaves a stage out.</p>"
-        "<iframe id='atlas' title='the design in atlas'></iframe>"
-        f"<script type='application/octet-stream' id='atlas-page'>{data}</script></section>"
-    )
+            return None, f"{command} failed: {why[0]}"
+        return out.read_bytes(), ""
+
+
+def design_tab(
+    folder: Path,
+    which: Callable[[str], str | None] | None = None,
+    run: Callable[[str, Path], tuple[bytes | None, str]] = atlas_page,
+) -> str:
+    """The page atlas draws of `folder`, inside the tab: `atlas-code-nightly`, and
+    `atlas-code` when that is missing, fails or takes longer than `ATLAS_SECONDS`. One
+    line when neither gives a page."""
+    find = which or shutil.which
+    commands = [c for c in ATLAS_COMMANDS if find(c)]
+    if not commands:
+        return (
+            "<section><h2>Design</h2>"
+            f"<p class='missing'>Atlas is not on this machine, so the design of "
+            f"{html.escape(shown(folder))} is not drawn here: install it as "
+            f"{html.escape(ATLAS_SETUP)} says.</p></section>"
+        )
+    reasons = []
+    for command in commands:
+        page, why = run(command, folder)
+        if page is not None:
+            data = base64.b64encode(page).decode()
+            return (
+                "<section class='design'><h2>Design</h2><p class='cap'>"
+                f"{html.escape(command)} view {html.escape(shown(folder))}: the stages of "
+                "the design, the shape on every arrow, and where an option leaves a stage "
+                "out.</p><iframe id='atlas' title='the design in atlas'></iframe>"
+                f"<script type='application/octet-stream' id='atlas-page'>{data}</script>"
+                "</section>"
+            )
+        reasons.append(why)
+    return f"<section><h2>Design</h2>{missing('; '.join(reasons))}</section>"
 
 
 def font_faces() -> str:
@@ -1483,7 +1494,7 @@ table.per-class tbody tr:nth-child(odd){background:var(--course-paper)}
 details{margin-top:10px}
 summary{cursor:pointer;color:var(--course-muted);font-size:13.5px}
 .design iframe{width:100%;height:78vh;border:1px solid var(--course-rule);border-radius:8px;
-  background:white}
+  background:var(--course-surface)}
 [role=tabpanel][hidden]{display:none}
 @media (max-width:860px){
   .three,.two{grid-template-columns:minmax(0,1fr)}

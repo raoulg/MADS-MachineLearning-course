@@ -338,3 +338,23 @@ def test_a_picture_inside_the_folder_is_inlined_as_it_is(folder):
     (folder / "pics" / "idea.svg").write_text("<svg><text>my idea</text></svg>")
     text = study_page.picture({"picture": "pics/idea.svg"}, folder)
     assert "<svg><text>my idea</text></svg>" in text
+
+
+def test_atlas_code_is_tried_when_the_nightly_fails(folder):
+    tried = []
+
+    def run(command, _folder):
+        tried.append(command)
+        if command == "atlas-code-nightly":
+            return None, "atlas-code-nightly took more than 60 seconds"
+        return b"<html>the design</html>", ""
+
+    text = study_page.design_tab(folder, which=lambda c: c, run=run)
+    assert tried == ["atlas-code-nightly", "atlas-code"]
+    assert "atlas-code view" in text and "id='atlas-page'" in text
+
+    def fail(command, _folder):
+        return None, f"{command} failed"
+
+    text = study_page.design_tab(folder, which=lambda c: c, run=fail)
+    assert "atlas-code-nightly failed; atlas-code failed" in text
