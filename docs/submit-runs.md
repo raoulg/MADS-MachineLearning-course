@@ -82,6 +82,9 @@ Skip this step if `../mads-runs` already exists with both remotes
 
 ## 3. Show the student what will be submitted
 
+Before handing in, the student has built their page and explained it to you
+([step 7 of `docs/your-study.md`](your-study.md#7-explain)).
+
 ```bash
 uv run scripts/submit_runs.py --lesson <N> --student <login> --list
 ```

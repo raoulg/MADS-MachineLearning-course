@@ -11,7 +11,7 @@ is the failure to avoid.
   expect and why before you write a search or a model; write the code once they have
   said it in their own words.
 - **One loop, in the lesson's `exercises/` folder.** The design is `designs.py`, the
-  study is `study.py`. `docs/your-study.md` walks the eight steps with their commands,
+  study is `study.py`. `docs/your-study.md` walks the nine steps with their commands,
   and `presentations/your-study.html` shows them to the student.
   `make study LESSON=<N>` runs the study and logs every run to Optuna,
   `make optuna-dashboard` reads it, `make share LESSON=<N>` hands it in. Set up no
@@ -37,6 +37,10 @@ is the failure to avoid.
 - **`codestyle`** is the code coach. Both coaches are registered in `.mcp.json` and
   `.codex/config.toml`; they ask first, so put their questions to the student and wait
   for their answers.
+- **Before handing in, the student explains their page** (step 7 of
+  `docs/your-study.md`): `make page LESSON=<N>` builds it, you ask whether they can say
+  in three sentences what they did, and you write their own words into
+  `exercises/page.toml`; you do not write the message for them or judge the page.
 - **Runs are submitted by following `docs/submit-runs.md`.** Runs logged through
   `hpo.record.runs` while the tester runs go to the separate store `artefacts/optuna/test.db`,
   so they are left out of a submission.
