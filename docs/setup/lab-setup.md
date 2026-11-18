@@ -120,8 +120,7 @@ time. Confusing local and remote is the single most common way this setup goes w
 ### The course runs on a laptop
 
 The course is built to run on a laptop CPU: every graded notebook runs on the weakest
-hardware a student is likely to have (see <https://github.com/raoulg/MADS-MachineLearning-course/blob/master/planning/principles.md>, the hardware
-section). A VM is **optional**, and most students are better off on their own machine,
+hardware a student is likely to have. A VM is **optional**, and most students are better off on their own machine,
 which is usually faster than the VM. A VM is worth requesting when the laptop cannot run
 the course: it is managed by the student's organisation and does not allow installing the
 tools, it is an Intel Mac or a Windows on ARM machine, or it is old or short on memory. It
