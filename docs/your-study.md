@@ -133,11 +133,17 @@ make page LESSON=<N>
 
 It writes `artefacts/study-page/lesson<N>/index.html` and opens it; the student reads it
 in the browser. The template fills what the store holds: the line of their ideas, the
-architecture, the search space, the winner next to its baseline, and a tab per study.
-What is the student's own stands in `exercises/page.toml` of the lesson folder: `message`,
-`picture`, `surprised` and `next`. The script creates that file with empty keys once the
-lesson has runs, and never writes it afterwards; an empty key shows as an open slot on the
-page.
+architecture, the search space, the winner next to its baseline, a Design tab, and a tab
+per study. What is the student's own stands in `exercises/page.toml` of the lesson
+folder: `message`, `picture`, `surprised` and `next`. The script creates that file with
+empty keys once the lesson has runs, and never writes it afterwards; an empty key shows
+as an open slot on the page. With no runs of the lesson in the store, `make page` stops
+and says to run the study first: that is step 5.
+
+This step is about a study of the student's own. When the page shows only the handed-out
+study (one box "handed out" in the line of ideas, no expectation, no design script), the
+student has no study of their own yet: say so, and go with them to step 1. Do not
+interview them about the handed-out study.
 
 **Ask, one question at a time, and wait for each answer before you ask the next:**
 
@@ -147,23 +153,35 @@ page.
 4. What do you want to look into next, and which idea of the class does it build on?
 5. Is there one picture that would carry your message, and what would be on it?
 
-Write the student's own words into `exercises/page.toml`: their three sentences into
-`message`, what surprised them into `surprised`, what they look into next into `next`.
-Rebuild the page with the same command and ask the student to read it back. Correct
-spelling and nothing else: do not write the message for them, do not improve their
-sentences, and do not judge the page.
-
 When the student cannot explain a part of the page, name that part and send them back to
-the step it belongs to: the blocks of the architecture to step 1, the shapes to step 2,
-the spread of the baseline to step 3, the axes and ranges to step 4, a refusal or a
-missing trial to step 5, the winner in sigmas to step 6. The interview goes on once they
-can say it.
+the step it belongs to: the blocks of the architecture and the Design tab to step 1, the
+shapes to step 2, the spread of the baseline to step 3, the axes and ranges and a study's
+idea and expectation in the line of ideas to step 4, a refusal or a missing trial to
+step 5, the winner in sigmas to step 6, and what a study builds on to step 9. The
+interview goes on once they can say it.
 
-For the picture, the student says what it shows, and you draw it with the beelddenker
-skill (https://github.com/raoulg/beelddenker) as an `.svg` or an `.html` fragment in the
-lesson's `exercises/` folder. Name it under `picture` in `page.toml`, as a path relative
-to that folder; a file outside the folder is refused. Rebuild the page. The student
-decides whether the picture stays; one they do not want is taken out of `page.toml`.
+Write `exercises/page.toml` once, after the last question, in the student's own words:
+
+- `message`: what they did, the answer to question 2;
+- `surprised`: what they expected against what happened, the answer to question 3;
+- `next`: the next idea and the idea of the class it builds on, the answer to question 4;
+- `picture`: the file of the picture, below.
+
+Correct spelling and nothing else: do not write the message for them, do not improve or
+shorten their sentences, and do not judge the page. Rebuild the page with the same
+command and ask the student to read it back. A message of more than three sentences shows
+on the page as "N sentences: say it in 3"; ask the student to say it shorter, and write
+down what they say.
+
+For the picture, the student says what it shows, and the picture is drawn as a file in
+the lesson's `exercises/` folder, never as an answer in the chat. The beelddenker skill
+draws it when you have it: it is in your list of skills or it is not. When it is not, say
+that the student can install it from https://github.com/raoulg/beelddenker, and meanwhile
+draw an `.svg` yourself from what the student said the picture shows. Name the file under
+`picture` in `page.toml`, as a path relative to `exercises/`: an `.svg`, a `.png` or an
+`.html` fragment. A file outside that folder, or one that does not exist, shows on the
+page as a line saying so in the picture's slot. The student decides whether the picture
+stays; one they do not want is taken out of `page.toml`.
 
 ## 8. Share
 
