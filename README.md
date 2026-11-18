@@ -56,9 +56,10 @@ Handy to have open:
   a reference card for tensor shapes, composition, diagrams, gradients and the GRU.
 - [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-tensors.html).
 - [Kernels, state and gates, the slides of lesson 2](https://raoulg.github.io/MADS-MachineLearning-course/lesson2-kernels_states_gates.html).
-- Your study, step by step: the loop from idea to published runs, for
-  [lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-your-study.html) and
-  [lesson 2](https://raoulg.github.io/MADS-MachineLearning-course/lesson2-your-study.html).
+- [Your study, step by step](https://raoulg.github.io/MADS-MachineLearning-course/your-study.html):
+  the loop from idea to published runs, the same in every lesson. Hand
+  [`docs/your-study.md`](docs/your-study.md) to your assistant: the same steps with their
+  commands.
 - [Submitting your runs](docs/submit-runs.md) to the class repository.
 
 ## How the repository is built
