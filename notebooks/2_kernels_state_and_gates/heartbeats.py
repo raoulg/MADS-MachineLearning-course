@@ -188,13 +188,27 @@ def receptive_field(layers: list[nn.Module]) -> int:
     return field
 
 
-def influence(features: nn.Module, beat: Tensor, position: float = 0.5) -> np.ndarray:
-    """How strongly each input step moves one output position of `features` for this
-    beat: the absolute gradient of the output position at `position` (a fraction of its
-    length) with respect to the input `(187, 1)`."""
+def reach(
+    features: nn.Module, centre: int, samples: int = 32, seed: int = 0
+) -> np.ndarray:
+    """How strongly each input step can move one output position of `features`.
+
+    The output position is the one whose field is centred nearest input step `centre`.
+    The measure is the absolute gradient of that position with respect to each of the
+    187 input steps, averaged over `samples` random inputs: one input alone shows only
+    the paths a max pool happened to keep. A step outside the receptive field gets zero.
+    """
     features = features.cpu().eval()
-    x = beat.detach().clone().unsqueeze(0).requires_grad_(True)
-    out = features(x)  # (1, S', D')
-    out[0, int(position * (out.shape[1] - 1))].sum().backward()
-    assert x.grad is not None
-    return x.grad[0, :, 0].abs().numpy()
+    x = torch.randn(
+        samples, STEPS, 1, generator=torch.Generator().manual_seed(seed)
+    ).requires_grad_(True)
+    out = features(x)  # (samples, S', D')
+    steps = np.arange(STEPS)
+    best, best_gap = np.zeros(STEPS), np.inf
+    for position in range(out.shape[1]):
+        (grad,) = torch.autograd.grad(out[:, position].sum(), x, retain_graph=True)
+        found = grad[..., 0].abs().mean(0).numpy()
+        gap = abs((found * steps).sum() / max(found.sum(), 1e-12) - centre)
+        if gap < best_gap:
+            best, best_gap = found, gap
+    return best

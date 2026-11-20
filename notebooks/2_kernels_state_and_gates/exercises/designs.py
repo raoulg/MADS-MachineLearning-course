@@ -8,7 +8,7 @@ its stage names the axis of the search space that decides it. The config a trial
 picks the subgraph that is built. `option` and `Design` are in `vectormesh.design`, the
 same for every lesson.
 
-The choices of this design, each a bet about the data (slide 16):
+The choices of this design, each a bet about the data (slide 18):
 
 - `kernel_size`, `width`, `depth`: how far one position sees, through depth;
 - `downsample`: a pool of 2 or a kernel with stride 2 after every block;
