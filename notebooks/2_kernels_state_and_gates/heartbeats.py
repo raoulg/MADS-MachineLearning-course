@@ -1,7 +1,7 @@
 """The heartbeats of lesson 2's notebooks: loading, training, scoring, and the spread.
 
 The data is MIT-BIH, split by patient (`pttrn-io/heartbeats-mitbih-raw`). The notebooks
-compare designs on a validation split carved from train by record, so that it holds
+compare designs on a validation split carved from the dataset's train split by record, so that it holds
 patients the model never trained on, as test does; test is left for the class problem.
 
 Three classes: N, S and V. The notebooks read the macro recall, the mean of the three
@@ -63,19 +63,20 @@ def _split(cache: VectorCache, keep: np.ndarray | None = None) -> Split:
 
 
 def load(max_rows: int | None = None) -> tuple[Split, Split]:
-    """The fit and validation splits: train without and with `VAL_RECORDS`.
+    """The train and validation splits: the dataset's train split without and with
+    `VAL_RECORDS`.
 
-    `max_rows` keeps that many fit rows, drawn at random with a fixed seed, so a run
+    `max_rows` keeps that many train rows, drawn at random with a fixed seed, so a run
     under notebooktester stays cheap; validation is always whole.
     """
     disable_progress_bars()
-    train = VectorCache.from_hub(REPO, split="train", revision=REVISION)
-    records = np.asarray(train.dataset.with_format(None)["record"])
+    hub = VectorCache.from_hub(REPO, split="train", revision=REVISION)
+    records = np.asarray(hub.dataset.with_format(None)["record"])
     val_rows = np.isin(records, VAL_RECORDS)
-    fit_idx = np.flatnonzero(~val_rows)
-    if max_rows is not None and max_rows < len(fit_idx):
-        fit_idx = np.sort(np.random.default_rng(0).choice(fit_idx, max_rows, False))
-    return _split(train, fit_idx), _split(train, np.flatnonzero(val_rows))
+    train_idx = np.flatnonzero(~val_rows)
+    if max_rows is not None and max_rows < len(train_idx):
+        train_idx = np.sort(np.random.default_rng(0).choice(train_idx, max_rows, False))
+    return _split(hub, train_idx), _split(hub, np.flatnonzero(val_rows))
 
 
 def scores(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
@@ -112,62 +113,175 @@ def predict(model: nn.Module, split: Split, batch_size: int = 512) -> np.ndarray
     return torch.cat(out).numpy()
 
 
+@dataclass
+class Run:
+    """One training run: its scores on `valid`, its seconds, and a curve per epoch.
+
+    `score` is the mean validation macro recall over the last `LAST` epochs: the score
+    of one epoch alone swings by a few hundredths from one epoch to the next.
+    """
+
+    scores: dict
+    seconds: float
+    train_loss: list[float]
+    val_loss: list[float]
+    val_recall: list[float]
+
+    @property
+    def score(self) -> float:
+        return float(np.mean(self.val_recall[-LAST:]))
+
+
+LAST = 3
+
+
+@torch.no_grad()
+def _val_loss(model: nn.Module, split: Split, loss_fn: nn.Module) -> float:
+    model.eval()
+    on = next(model.parameters()).device
+    total, n = 0.0, 0
+    for x, y in split.loader(batch_size=512):
+        total += loss_fn(model(x.to(on)), y.to(on)).item() * len(y)
+        n += len(y)
+    return total / n
+
+
 def train(
     model: nn.Module,
-    fit: Split,
-    val: Split,
+    train: Split,
+    valid: Split,
     epochs: int,
     lr: float = 1e-3,
     loss_fn: nn.Module | None = None,
     batch_size: int = 128,
-) -> tuple[dict, float]:
-    """Train `model` on `fit` with Adam and cross-entropy, and score it on `val`.
-
-    Returns the scores of the last epoch and the seconds spent training.
-    """
+    seed: int = 0,
+) -> Run:
+    """Train `model` on `train` with Adam and cross-entropy, and score it on `valid` after
+    every epoch. `seed` fixes the order of the batches; the weights were drawn when the
+    model was made."""
     on = device()
     model = model.to(on)
     loss_fn = (loss_fn or nn.CrossEntropyLoss()).to(on)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    start = time.perf_counter()
+    torch.manual_seed(seed)
+    train_loss, val_loss, val_recall = [], [], []
+    seconds, scored = 0.0, {}
     for _ in range(epochs):
+        start = time.perf_counter()
         model.train()
-        for x, y in fit.loader(batch_size=batch_size, shuffle=True):
+        total, n = 0.0, 0
+        for x, y in train.loader(batch_size=batch_size, shuffle=True):
             optimizer.zero_grad()
             loss = loss_fn(model(x.to(on)), y.to(on))
             loss.backward()
             optimizer.step()
-    seconds = time.perf_counter() - start
-    return scores(val.labels.numpy(), predict(model, val)), seconds
+            total += loss.item() * len(y)
+            n += len(y)
+        seconds += time.perf_counter() - start
+        train_loss.append(total / n)
+        val_loss.append(_val_loss(model, valid, loss_fn))
+        scored = scores(valid.labels.numpy(), predict(model, valid))
+        val_recall.append(scored["macro_recall"])
+    return Run(scored, seconds, train_loss, val_loss, val_recall)
+
+
+_train = train  # `spread` names its own split argument `train`
+
+
+@dataclass
+class Spread:
+    """Repeated runs of one design, each from other random weights."""
+
+    runs: list[Run]
+
+    @property
+    def values(self) -> np.ndarray:
+        """The score of every run."""
+        return np.asarray([r.score for r in self.runs])
+
+    @property
+    def mean(self) -> float:
+        return float(self.values.mean())
+
+    @property
+    def std(self) -> float:
+        """The spread between runs (`ddof=1`); 0 for a single run."""
+        return float(self.values.std(ddof=1)) if len(self.runs) > 1 else 0.0
+
+    @property
+    def seconds(self) -> float:
+        """The mean seconds of training of one run."""
+        return float(np.mean([r.seconds for r in self.runs]))
+
+    def recall(self) -> dict[str, float]:
+        """The recall per class of the last epoch, averaged over the runs."""
+        return {
+            c: float(np.mean([r.scores["recall"][c] for r in self.runs]))
+            for c in self.runs[0].scores["recall"]
+        }
 
 
 def spread(
     make: Callable[[], nn.Module],
-    fit: Split,
-    val: Split,
+    train: Split,
+    valid: Split,
     epochs: int,
     repeats: int,
     **kwargs,
-) -> tuple[np.ndarray, float]:
-    """The macro recall of `repeats` runs, each from other random weights, and the mean
-    seconds of one run."""
-    found, seconds = [], []
-    for _ in range(repeats):
-        result, spent = train(make(), fit, val, epochs, **kwargs)
-        found.append(result["macro_recall"])
-        seconds.append(spent)
-    return np.asarray(found), float(np.mean(seconds))
+) -> Spread:
+    """`repeats` runs of the model `make` builds; run `i` draws its weights and its
+    batches with seed `i`."""
+    runs = []
+    for i in range(repeats):
+        torch.manual_seed(i)
+        runs.append(_train(make(), train, valid, epochs, seed=i, **kwargs))
+    return Spread(runs)
 
 
-def line(name: str, values: np.ndarray, seconds: float, versus=None) -> str:
-    """One result as `mean ± std`, and its distance to `versus` in sigmas of the larger
-    spread of the two."""
-    text = f"{name:34s} macro recall {values.mean():.3f} ± {values.std():.3f}"
-    text += f"   {seconds:5.1f}s"
+def standard_errors(a: Spread, b: Spread) -> float:
+    """The difference of the two means in standard errors of that difference, as in
+    lesson 1: `(mean_a - mean_b) / sqrt(var_a / n_a + var_b / n_b)`."""
+    se = np.sqrt(a.std**2 / len(a.runs) + b.std**2 / len(b.runs))
+    return float((a.mean - b.mean) / max(se, 1e-3))
+
+
+def line(name: str, result: Spread, versus: Spread | None = None) -> str:
+    """One result as `mean ± std` of the runs, the seconds of one run, and its distance
+    to `versus` in standard errors of the difference."""
+    text = f"{name:36s} macro recall {result.mean:.3f} ± {result.std:.3f}"
+    text += f"   {result.seconds:5.1f}s"
     if versus is not None:
-        sd = max(values.std(), versus.std(), 1e-3)
-        text += f"   {(values.mean() - versus.mean()) / sd:+.1f} sigma"
+        text += f"   {standard_errors(result, versus):+.1f} se"
     return text
+
+
+def curves(results: dict[str, Spread], title: str, floor: float | None = None):
+    """Train loss and validation macro recall per epoch: the mean over the runs, with
+    the range of the runs shaded. `floor` draws a dashed line on the recall panel."""
+    import matplotlib.pyplot as plt
+
+    fig, (left, right) = plt.subplots(1, 2, figsize=(12, 4))
+    for i, (name, result) in enumerate(results.items()):
+        colour = f"C{i}"
+        for ax, key in ((left, "train_loss"), (right, "val_recall")):
+            rows = np.asarray(
+                [getattr(r, key) for r in result.runs], dtype=float
+            ).reshape(len(result.runs), -1)
+            epochs = np.arange(1, rows.shape[1] + 1)
+            ax.plot(epochs, rows.mean(0), color=colour, label=name)
+            ax.fill_between(epochs, rows.min(0), rows.max(0), color=colour, alpha=0.15)
+    if floor is not None:
+        right.axhline(floor, color="0.5", ls="--", lw=1)
+    left.set_title("train loss: has it stopped falling?")
+    left.set_xlabel("epoch")
+    left.set_ylabel("cross-entropy on train")
+    right.set_title("macro recall on unseen patients")
+    right.set_xlabel("epoch")
+    right.set_ylabel("macro recall (valid)")
+    left.legend()
+    fig.suptitle(title)
+    plt.tight_layout()
+    plt.show()
 
 
 def n_params(model: nn.Module) -> int:
@@ -212,3 +326,35 @@ def reach(
         if gap < best_gap:
             best, best_gap = found, gap
     return best
+
+
+def stack(
+    depth: int, width: int = 32, kernel_size: int = 5, pool: bool = True
+) -> list[nn.Module]:
+    """`depth` blocks of a kernel and a GELU, each followed by a max pool of 2 when
+    `pool`: notebook 2.1.4. The padding keeps the length through every kernel."""
+    layers, channels = [], 1
+    for _ in range(depth):
+        layers += [
+            Conv1D(channels, width, kernel_size, padding=kernel_size // 2),
+            nn.GELU(),
+        ]
+        if pool:
+            layers.append(Pool1D(2))
+        channels = width
+    return layers
+
+
+class Kernels(nn.Module):
+    """Notebook 2.1.5's design: a stack of kernels, flattened into a linear head,
+    `(B, 187, 1) -> (B, S', width) -> (B, S' * width) -> (B, 3)`."""
+
+    def __init__(self, depth: int, width: int = 32, kernel_size: int = 5):
+        super().__init__()
+        self.features = nn.Sequential(*stack(depth, width, kernel_size))
+        with torch.no_grad():
+            flat = self.features(torch.zeros(1, STEPS, 1)).flatten(1).shape[1]
+        self.head = nn.Linear(flat, len(CLASSES))
+
+    def forward(self, x: Tensor) -> Tensor:
+        return self.head(self.features(x).flatten(1))

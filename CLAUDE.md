@@ -50,6 +50,16 @@ The sections below are for work on the course material itself. A student's assis
 follows the section above and the `param` rule below, and never edits a lesson notebook
 in place.
 
+## Course material is designed from learning goals and read as a student
+
+A notebook is written against a goal map and is done only when a fresh agent, reading it
+as a student who knows the earlier lessons and nothing else, can learn its goals from
+it. The loop, the design rules and the reader's brief are in the `lesson-design` skill
+(`.claude/skills/lesson-design/`); the entry profiles and goal maps are in
+`docs/lesson-design/`. A model or a term the student has not met is introduced before
+use, with a reason and a diagram; an experiment states its question, gets a fair setup
+with loss curves, and concludes only what its output shows.
+
 ## Notebooks must be cheap to test
 
 Every notebook is tested by running it end to end. A notebook that takes 15 minutes
