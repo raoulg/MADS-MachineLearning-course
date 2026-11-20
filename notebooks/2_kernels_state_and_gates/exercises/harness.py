@@ -31,8 +31,8 @@ from hpo.search import Config, Param
 
 EPOCHS = param(8, test=1)
 REPEATS = param(3, test=2)
-# fit beats under notebooktester; the patients scored on are always all six
-FIT_ROWS = param(None, test=2000)
+# train beats under notebooktester; the patients scored on are always all six
+TRAIN_ROWS = param(None, test=2000)
 
 REPO = "pttrn-io/heartbeats-mitbih-raw"
 REVISION = "b03962404ac3081ec1e3679171ea3a108d5e3601"
@@ -89,22 +89,26 @@ class Split:
 
 @cache
 def splits(max_rows: int | None) -> tuple[Split, Split]:
-    """The fit split (train without `VAL_RECORDS`) and the validation split (those six
-    patients). `max_rows` keeps that many fit beats, drawn with a fixed seed."""
-    train = VectorCache.from_hub(REPO, split="train", revision=REVISION)
-    columns = train.dataset.with_format("numpy")[:]
+    """The train split and the validation split, both from the hub's split "train":
+    train without `VAL_RECORDS`, and those six patients. The hub's split "test" is left
+    for the class problem. `max_rows` keeps that many train beats, drawn with a fixed
+    seed."""
+    source = VectorCache.from_hub(REPO, split="train", revision=REVISION)
+    columns = source.dataset.with_format("numpy")[:]
     beats, labels, records = columns["beat"], columns["label"], columns["record"]
-    val = np.isin(records, VAL_RECORDS)
-    fit_rows = np.flatnonzero(~val)
-    if max_rows is not None and max_rows < len(fit_rows):
-        fit_rows = np.sort(np.random.default_rng(0).choice(fit_rows, max_rows, False))
+    in_valid = np.isin(records, VAL_RECORDS)
+    train_rows = np.flatnonzero(~in_valid)
+    if max_rows is not None and max_rows < len(train_rows):
+        train_rows = np.sort(
+            np.random.default_rng(0).choice(train_rows, max_rows, False)
+        )
 
     def split(rows: np.ndarray) -> Split:
         return Split(
             torch.from_numpy(beats[rows]), torch.from_numpy(labels[rows]).long()
         )
 
-    return split(fit_rows), split(np.flatnonzero(val))
+    return split(train_rows), split(np.flatnonzero(in_valid))
 
 
 def weights(counts: np.ndarray, power: float) -> Tensor:
@@ -132,11 +136,11 @@ class Lesson2:
             raise KeyError(
                 f"lesson 2 has one dataset, 'mitbih', not {config['dataset']!r}"
             )
-        n_train = config.get("n_train", FIT_ROWS)
-        fit, val = splits(int(n_train) if n_train is not None else None)
+        n_train = config.get("n_train", TRAIN_ROWS)
+        train, valid = splits(int(n_train) if n_train is not None else None)
         return Data(
-            train=fit.loader(shuffle=True),
-            test=val.loader(shuffle=False),
+            train=train.loader(shuffle=True),
+            test=valid.loader(shuffle=False),
             classes=CLASSES,
             example=torch.zeros(2, STEPS, 1),
             dims={"steps": STEPS, "channels": 1},
