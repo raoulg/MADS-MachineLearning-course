@@ -105,15 +105,16 @@ holds patients the model has not seen, as test does; leave test alone until the 
 ```python
 import numpy as np
 
-trainset = labelled(train)
+labelled_train = labelled(train)
 records = np.asarray(train.dataset.with_format(None)["record"])
-val_records = [118, 124, 201, 207, 215, 223]  # six patients with N, S and V among them
-fit_idx = np.flatnonzero(~np.isin(records, val_records)).tolist()
-val_idx = np.flatnonzero(np.isin(records, val_records)).tolist()
-fit, val = trainset.select(fit_idx), trainset.select(val_idx)
+valid_records = [118, 124, 201, 207, 215, 223]  # six patients with N, S and V among them
+train_idx = np.flatnonzero(~np.isin(records, valid_records)).tolist()
+valid_idx = np.flatnonzero(np.isin(records, valid_records)).tolist()
+trainset = labelled_train.select(train_idx)
+validset = labelled_train.select(valid_idx)
 
-fitloader = DataLoader(fit, batch_size=64, shuffle=True, collate_fn=collate)
-valloader = DataLoader(val, batch_size=64, shuffle=False, collate_fn=collate)
+trainloader = DataLoader(trainset, batch_size=64, shuffle=True, collate_fn=collate)
+validloader = DataLoader(validset, batch_size=64, shuffle=False, collate_fn=collate)
 testloader = DataLoader(
     labelled(test), batch_size=64, shuffle=False, collate_fn=collate
 )

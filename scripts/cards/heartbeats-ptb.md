@@ -93,15 +93,16 @@ There is **no validation split**. Carve one from train, and leave test alone unt
 ```python
 from sklearn.model_selection import train_test_split
 
-trainset = labelled(train)
+labelled_train = labelled(train)
 labels = train.dataset.with_format(None)["label"]
-fit_idx, val_idx = train_test_split(
+train_idx, valid_idx = train_test_split(
     list(range(len(labels))), test_size=0.2, stratify=labels, random_state=42
 )
-fit, val = trainset.select(fit_idx), trainset.select(val_idx)
+trainset = labelled_train.select(train_idx)
+validset = labelled_train.select(valid_idx)
 
-fitloader = DataLoader(fit, batch_size=64, shuffle=True, collate_fn=collate)
-valloader = DataLoader(val, batch_size=64, shuffle=False, collate_fn=collate)
+trainloader = DataLoader(trainset, batch_size=64, shuffle=True, collate_fn=collate)
+validloader = DataLoader(validset, batch_size=64, shuffle=False, collate_fn=collate)
 testloader = DataLoader(
     labelled(test), batch_size=64, shuffle=False, collate_fn=collate
 )
