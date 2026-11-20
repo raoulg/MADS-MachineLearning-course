@@ -680,23 +680,43 @@ g += t(296, 84, "je search", "l v", "middle") + t(296, 146, "pas daarna", "m", "
 g += t(200, 205, "zonder vergelijkingspunt zegt een score niets", "c", "middle")
 PICTURES["1.13"] = ("Eerst de baseline", g)
 
-# 1.14 read a search per axis
+# 1.14 draw the search space: every axis with its options, one trial picks one of each
 g = ""
-for gx, lab, sub, ys, col in (
-    (30, "as A", "doet ertoe", (128, 112, 92, 70, 52), V),
-    (220, "as B", "vlak", (92, 98, 90, 96, 93), P),
+for k, (lab, opts, pick) in enumerate(
+    (
+        ("encoder", ("resnet", "dino-s", "dino-b"), 1),
+        ("lagen", ("0", "1", "2"), 1),
+        ("breedte", ("128", "512"), 1),
+    )
 ):
-    g += line(f"M {gx} 40 L {gx} 140 L {gx + 150} 140", MUT, 1) + t(
-        gx + 75, 30, lab, "l", "middle"
+    y = 40 + k * 34
+    g += t(20, y + 15, lab, "l")
+    for i, o in enumerate(opts):
+        x = 120 + i * 78
+        on = i == pick
+        g += (
+            f'<rect x="{x}" y="{y}" width="70" height="22" fill="{VT if on else BG}" '
+            f'stroke="{V if on else RULE}" stroke-width="{2 if on else 1}"/>'
+        )
+        g += t(x + 35, y + 15, o, "c v" if on else "c", "middle")
+for k, (lab, lo, hi, at) in enumerate(
+    (("noise σ", "0", "0.4", 0.3), ("lr", "1e-4", "3e-3", 0.65))
+):
+    y = 142 + k * 34
+    g += t(20, y + 15, lab, "l")
+    g += f'<rect x="120" y="{y}" width="226" height="22" fill="{BG}" stroke="{RULE}"/>'
+    g += t(126, y + 15, lo, "c") + t(340, y + 15, hi, "c", "end")
+    g += (
+        f'<rect x="{120 + 226 * at - 2}" y="{y - 3}" width="4" height="28" fill="{V}"/>'
     )
-    g += "".join(
-        dot(gx + 20 + i * 28, y, 5, VT if col == V else PT, col)
-        for i, y in enumerate(ys)
-    )
-    g += t(gx + 75, 160, sub, "l v" if col == V else "l p", "middle")
-g += t(200, 190, "verwachting eerst opschrijven, dan per as lezen", "c", "middle")
-g += t(200, 208, "een vlakke as is ook een uitkomst", "c", "middle")
-PICTURES["1.14"] = ("Een search per as lezen", g)
+g += t(
+    200,
+    222,
+    "teken de assen vóór de search; een trial kiest er één van elk",
+    "c",
+    "middle",
+)
+PICTURES["1.14"] = ("De zoekruimte tekenen", g)
 
 PICTURES["1.15"] = ("Publiceren en voortbouwen", PICTURES["2.12"][1])
 

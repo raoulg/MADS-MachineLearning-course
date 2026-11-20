@@ -1245,7 +1245,928 @@ def fig_fusion():
     save(fig, "fusion_seeds")
 
 
+# ---------------------------------------------------------------- context
+
+
+def fig_doublings():
+    """How many doublings are left before each candidate limit bends the curve.
+
+    The colours are the pond's: petrol is logistic growth that stops at the limit, the dashed
+    vermilion line is the exponential that keeps doubling.
+    """
+    limits = [
+        ("intelligence: nerve → light", 3e6, ACCENT_LIGHT),
+        ("material: silicon → sand", 1e12, ACCENT),
+        ("energy: our power → the sun", 1e13, "#0d2c38"),
+    ]
+    x = np.linspace(0, 62, 700)
+    fig, ax = plt.subplots(figsize=(13, 5.6))
+    places = [(-1.0, 0.72, "right"), (-1.0, 0.45, "right"), (1.6, 0.30, "left")]
+    for (name, ratio, c), (dx, yy, ha) in zip(limits, places):
+        n = np.log2(ratio)  # doublings until today's amount reaches the limit
+        share = 1 / (1 + (2.0**n - 1) * 2.0 ** (-x))  # logistic: today at 1 / ratio
+        ax.plot(x, share, color=c, lw=3)
+        ax.text(
+            n + dx,
+            yy,
+            f"{name}\n{n:.0f} doublings",
+            color=c,
+            fontsize=14,
+            va="center",
+            ha=ha,
+        )
+    n0 = np.log2(limits[0][1])
+    expo = 2.0 ** (x - n0)
+    keep = expo < 1.1
+    ax.plot(x[keep], expo[keep], color=SECOND, lw=2.6, ls="--")
+    ax.text(
+        n0 - 3.2,
+        1.0,
+        "exponential:\ndoubling forever",
+        color=SECOND,
+        fontsize=14,
+        ha="right",
+        va="center",
+    )
+    ax.scatter([0], [0], s=90, color=TEXT, zorder=5)
+    ax.annotate(
+        "today",
+        xy=(0, 0.0),
+        xytext=(1.2, 0.2),
+        fontsize=15,
+        arrowprops={"arrowstyle": "-|>", "color": TEXT},
+    )
+    ax.set_xlim(0, 62)
+    ax.set_ylim(-0.03, 1.12)
+    ax.set_yticks([0, 0.5, 1], ["0", "half", "the limit"])
+    ax.set_xlabel("doublings from today")
+    ax.set_ylabel("share of the limit")
+    save(fig, "doublings")
+
+
+# ---------------------------------------------------------------- the cache, again
+
+FLOWER_NAMES = {  # Oxford 102 category numbers (the cache's label names) to species
+    "90": "canna lily",
+    "63": "black-eyed susan",
+    "39": "siam tulip",
+    "72": "azalea",
+    "24": "red ginger",
+    "66": "osteospermum",
+    "73": "water lily",
+    "100": "blanket flower",
+}
+
+
+def flower_photo(label_name: str, side: int = 200):
+    from datasets import load_dataset
+    from PIL import Image
+
+    ds = load_dataset("nkirschi/oxford-flowers", split="test")
+    names = ds.features["label"].names
+    target = names.index(label_name)
+    i = ds["label"].index(target)
+    im = ds[i]["image"].convert("RGB")
+    w, h = im.size
+    s = min(w, h)
+    im = im.crop(((w - s) // 2, (h - s) // 2, (w - s) // 2 + s, (h - s) // 2 + s))
+    return np.asarray(im.resize((side, side), Image.Resampling.BICUBIC))
+
+
+def fig_flowers_pca_thumbs():
+    """The eight species on two PCA axes, with one photo of each next to its group."""
+    from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+
+    te = cache("oxford-flowers-dinov2-small", "test")
+    Xte, yte = xy(te)
+    names = te.features["label"].names
+    rng = torch.Generator().manual_seed(0)
+    classes = torch.randperm(len(names), generator=rng)[:8].tolist()
+    mask = torch.isin(yte, torch.tensor(classes))
+    X = Xte[mask] - Xte[mask].mean(0)
+    U, S, _ = torch.linalg.svd(
+        X, full_matrices=False
+    )  # exact, so the picture is stable
+    coords = (U[:, :2] * S[:2]).numpy()
+    lab = yte[mask].numpy()
+    fig, ax = plt.subplots(figsize=(13, 7.6))
+    cents = {}
+    for i, c in enumerate(classes):
+        p = coords[lab == c]
+        ax.scatter(p[:, 0], p[:, 1], s=46, color=CATEGORIES[i], alpha=0.9, ec="none")
+        cents[c] = (p.mean(0), CATEGORIES[i])
+    # one photo per species, placed by hand around the three groups the plot shows
+    place = {
+        "66": (0.07, 0.86),
+        "63": (0.07, 0.52),
+        "100": (0.07, 0.18),
+        "39": (0.56, 0.90),
+        "24": (0.73, 0.90),
+        "73": (0.90, 0.90),
+        "90": (0.50, 0.17),
+        "72": (0.68, 0.17),
+    }
+    for c, (m, col) in cents.items():
+        pos = place[names[c]]
+        img = OffsetImage(flower_photo(names[c], 160), zoom=0.40)
+        ab = AnnotationBbox(
+            img,
+            m,
+            xybox=pos,
+            xycoords="data",
+            boxcoords="axes fraction",
+            frameon=True,
+            pad=0.15,
+            bboxprops={"edgecolor": col, "lw": 3},
+            arrowprops={"arrowstyle": "-", "color": col, "lw": 1.5},
+        )
+        ax.add_artist(ab)
+        ax.text(
+            pos[0],
+            pos[1] - 0.105,
+            FLOWER_NAMES[names[c]],
+            transform=ax.transAxes,
+            ha="center",
+            va="top",
+            fontsize=13,
+            color=col,
+        )
+        print(f"flowers pca: {FLOWER_NAMES[names[c]]:<16} centre {m.round(1)}")
+    span = coords.max(0) - coords.min(0)
+    ax.set_xlim(
+        coords[:, 0].min() - 0.45 * span[0], coords[:, 0].max() + 0.15 * span[0]
+    )
+    ax.set_ylim(
+        coords[:, 1].min() - 0.55 * span[1], coords[:, 1].max() + 0.55 * span[1]
+    )
+    ax.set_xlabel("first PCA direction")
+    ax.set_ylabel("second PCA direction")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    save(fig, "flowers_pca")
+
+
+def fig_encoders_thumbs():
+    """The encoder comparison with one sample image of each dataset under its column."""
+    from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+    from PIL import Image
+
+    table = {
+        "dinov2-small": {"eurosat": 0.9502, "dtd": 0.8033, "flowers": 0.9932},
+        "resnet-18": {"eurosat": 0.9380, "dtd": 0.6589, "flowers": 0.9025},
+        "mobilenet_v2": {"eurosat": 0.9258, "flowers": 0.9082},
+    }
+    datasets_ = [
+        ("eurosat", "satellite tiles\n10 classes", "samples_eurosat"),
+        ("flowers", "flowers\n102 species", "samples_flowers"),
+        ("dtd", "textures\n47 kinds", "samples_dtd"),
+    ]
+    marks = {
+        "dinov2-small": ("o", ACCENT),
+        "resnet-18": ("s", SECOND),
+        "mobilenet_v2": ("D", THIRD),
+    }
+    fig, ax = plt.subplots(figsize=(11, 7.2))
+    for j, (key, lab, stem) in enumerate(datasets_):
+        vals = [table[e][key] for e in table if key in table[e]]
+        ax.plot(
+            [j, j],
+            [min(vals), max(vals)],
+            color=GREY_FAINT,
+            lw=6,
+            solid_capstyle="round",
+            zorder=1,
+        )
+        ax.text(
+            j + 0.13,
+            (min(vals) + max(vals)) / 2,
+            f"{100 * (max(vals) - min(vals)):.1f} points",
+            color=GREY_DIM,
+            va="center",
+            fontsize=15,
+        )
+        for e, (m, c) in marks.items():
+            if key in table[e]:
+                ax.scatter(
+                    j,
+                    table[e][key],
+                    marker=m,
+                    s=160,
+                    color=c,
+                    zorder=3,
+                    label=e if j == 0 else None,
+                )
+        if key == "eurosat":  # a tile whose landscape you recognise: a highway
+            one = np.asarray(
+                Image.fromarray(dict(eurosat_tiles())["highway"]).resize(
+                    (300, 300), Image.Resampling.LANCZOS
+                )
+            )
+        else:
+            strip = np.asarray(Image.open(OUT / f"{stem}.png"))
+            one = strip[:, : strip.shape[0]]  # the first of the two samples
+        ab = AnnotationBbox(
+            OffsetImage(one, zoom=0.36),
+            (j, 0),
+            xybox=(0, -62),
+            xycoords=("data", "axes fraction"),
+            boxcoords="offset points",
+            frameon=False,
+        )
+        ax.add_artist(ab)
+        ax.text(
+            j,
+            -0.50,
+            lab,
+            transform=ax.get_xaxis_transform(),
+            ha="center",
+            va="top",
+            fontsize=15,
+        )
+    ax.set_xticks([])
+    ax.set_xlim(-0.5, 2.8)
+    ax.set_ylabel("accuracy, same head")
+    ax.legend(loc="lower left")
+    fig.subplots_adjust(bottom=0.40)
+    save(fig, "encoders")
+
+
+# ---------------------------------------------------------------- tensors
+
+
+def fig_audio_image():
+    """A sound as a spectrogram (F, T), and the same numbers as a one-channel image (1, F, T)."""
+    sr = 8000
+    t = np.arange(int(1.2 * sr)) / sr
+    wave = np.sin(2 * np.pi * (300 + 900 * t) * t) * np.exp(-1.5 * t) + 0.5 * np.sin(
+        2 * np.pi * 1800 * t
+    ) * (t > 0.6)
+    n, hop = 256, 64
+    frames = np.stack(
+        [wave[i : i + n] * np.hanning(n) for i in range(0, len(wave) - n, hop)], axis=1
+    )
+    spec = np.log1p(np.abs(np.fft.rfft(frames, axis=0)))[:96]
+    fig = plt.figure(figsize=(16, 4.2))
+    a0 = fig.add_axes((0.0, 0.18, 0.27, 0.62))
+    a0.plot(t, wave, color=GREY_DIM, lw=0.6)
+    a0.set_title("a sound: (L,) samples", color=GREY, loc="left")
+    a0.set_xticks([])
+    a0.set_yticks([])
+    a1 = fig.add_axes((0.33, 0.10, 0.25, 0.70))
+    a1.imshow(spec, origin="lower", aspect="auto", cmap="cividis")
+    a1.set_title("its spectrogram: (F, T)", color=GREY, loc="left")
+    a1.set_xlabel("time  T")
+    a1.set_ylabel("frequency  F")
+    a1.set_xticks([])
+    a1.set_yticks([])
+    fig.text(0.605, 0.45, "unsqueeze(0)  →", fontsize=19, color=SECOND, va="center")
+    a2 = fig.add_axes((0.75, 0.10, 0.22, 0.62))
+    a2.imshow(spec, origin="lower", aspect="auto", cmap="cividis")
+    a2.set_xticks([])
+    a2.set_yticks([])
+    a2.set_title("one channel: (1, F, T)", color=SECOND, loc="left")
+    for s in a2.spines.values():
+        s.set_color(SECOND)
+        s.set_linewidth(3)
+    save(fig, "audio_image")
+
+
+# ---------------------------------------------------------------- nonlinearity, from the line up
+
+SINE_X = torch.linspace(-3, 3, 200).unsqueeze(1)
+
+
+def sine_data():
+    true = torch.sin(3 * SINE_X)
+    torch.manual_seed(1)
+    return true, true + 0.15 * torch.randn_like(true)
+
+
+def fit_sine(model, steps=2000, lr=1e-2):
+    _, ys = sine_data()
+    opt = torch.optim.Adam(model.parameters(), lr=lr)
+    for _ in range(steps):
+        opt.zero_grad()
+        loss = ((model(SINE_X) - ys) ** 2).mean()
+        loss.backward()
+        opt.step()
+    return model, float(loss.detach())
+
+
+def fig_line():
+    x = np.linspace(-1, 4, 50)
+    w, b = 0.8, 1.0
+    fig, ax = plt.subplots(figsize=(8.4, 6))
+    ax.axhline(0, color=GREY_FAINT, lw=1)
+    ax.axvline(0, color=GREY_FAINT, lw=1)
+    ax.plot(x, w * x + b, color=ACCENT, lw=3.5)
+    ax.plot([1, 2, 2], [w + b, w + b, 2 * w + b], color=SECOND, lw=2.2)
+    ax.text(
+        2.08,
+        1.5 * w + b,
+        f"w = {w}\n(slope: up {w}\nfor every step right)",
+        color=SECOND,
+        va="center",
+        fontsize=15,
+    )
+    ax.scatter([0], [b], s=90, color=THIRD, zorder=5)
+    ax.text(
+        -0.15,
+        b + 0.25,
+        f"b = {b:.0f}\n(height at x = 0)",
+        color=THIRD,
+        ha="right",
+        fontsize=15,
+    )
+    ax.text(
+        3.0, w * 3 + b + 0.55, "y = 0.8 x + 1", color=ACCENT, fontsize=20, ha="center"
+    )
+    ax.set_xlim(-2.2, 4.4)
+    ax.set_ylim(-0.6, 4.8)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    save(fig, "line")
+
+
+def fig_compose():
+    x = np.linspace(-2, 3, 50)
+    f1 = 2 * x + 1
+    f2 = -0.5 * f1 + 3
+    fig, ax = plt.subplots(figsize=(9.6, 6))
+    ax.axhline(0, color=GREY_FAINT, lw=1)
+    ax.axvline(0, color=GREY_FAINT, lw=1)
+    ax.plot(x, f1, color=ACCENT_LIGHT, lw=3, label="f₁(x) = 2x + 1")
+    ax.plot(x, -0.5 * x + 3, color=THIRD, lw=3, ls="--", label="f₂(u) = −0.5u + 3")
+    ax.plot(x, f2, color=SECOND, lw=4, label="f₂(f₁(x)) = −x + 2.5")
+    ax.legend(loc="upper left", fontsize=16)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    save(fig, "compose")
+
+
+def fig_sine_two():
+    """The sine test of notebook 02 §2.4: the linear stack draws one line, GELU draws the curve."""
+    true, ys = sine_data()
+    torch.manual_seed(0)
+    lin, lin_loss = fit_sine(
+        nn.Sequential(nn.Linear(1, 64), nn.Linear(64, 64), nn.Linear(64, 1))
+    )
+    torch.manual_seed(0)
+    gel, gel_loss = fit_sine(
+        nn.Sequential(
+            nn.Linear(1, 64), nn.GELU(), nn.Linear(64, 64), nn.GELU(), nn.Linear(64, 1)
+        )
+    )
+    l1, l2, l3 = lin
+    with torch.no_grad():
+        w = (l3.weight @ l2.weight @ l1.weight).item()
+        b = (l3.weight @ (l2.weight @ l1.bias + l2.bias) + l3.bias).item()
+    print(
+        f"sine: linear stack MSE {lin_loss:.3f} = one line y = {w:.3f}x {b:+.3f}; with GELU {gel_loss:.3f}"
+    )
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.2), sharey=True)
+    panels = [
+        (
+            axes[0],
+            lin,
+            f"Linear → Linear → Linear\n= one line: y = {w:.2f} x + {abs(b):.2f}",
+            lin_loss,
+            GREY_DIM,
+        ),
+        (axes[1], gel, "Linear → GELU → Linear → GELU → Linear", gel_loss, SECOND),
+    ]
+    with torch.no_grad():
+        for ax, m, title, loss, c in panels:
+            ax.scatter(SINE_X, ys, s=12, color=GREY_FAINT)
+            ax.plot(SINE_X, true, color=GREY, lw=1.5, ls=":")
+            ax.plot(SINE_X, m(SINE_X), color=c, lw=3.2)
+            ax.set_title(f"{title}\nerror {loss:.3f}", color=c, fontsize=17)
+            ax.set_xlabel("x")
+    axes[0].set_ylim(-1.9, 1.7)
+    save(fig, "sine_fit")
+
+
+def fig_relu_units():
+    """Notebook 02 §2.5: 5, 10 and 20 ReLU units, each a hinge; their sum follows the sine."""
+    true, _ = sine_data()
+    xs = SINE_X
+
+    def relu_through(kx, ky):
+        slopes = (ky[1:] - ky[:-1]) / (kx[1:] - kx[:-1])
+        n = len(slopes)
+        hinges, mix = nn.Linear(1, n), nn.Linear(n, 1)
+        with torch.no_grad():
+            hinges.weight.fill_(1.0)
+            hinges.bias.copy_(-kx[:-1])
+            mix.weight.copy_(torch.diff(slopes, prepend=torch.zeros(1)).unsqueeze(0))
+            mix.bias.fill_(ky[0])
+        return nn.Sequential(hinges, nn.ReLU(), mix)
+
+    fig, axes = plt.subplots(
+        2, 3, figsize=(16, 7.4), sharex=True, gridspec_kw={"hspace": 0.32}
+    )
+    for j, n in enumerate((5, 10, 20)):
+        k = torch.linspace(-3, 3, n + 1)
+        net = relu_through(k, torch.sin(3 * k))
+        with torch.no_grad():
+            parts = torch.relu(net[0](xs)) * net[2].weight
+            total = net(xs)
+        for u in range(n):
+            axes[0, j].plot(
+                xs,
+                parts[:, u],
+                color=CATEGORIES[u % len(CATEGORIES)],
+                lw=1.4,
+                alpha=0.85,
+            )
+        axes[0, j].set_title(f"{n} units: {n} hinges", color=GREY)
+        axes[0, j].set_ylim(-14, 14)
+        axes[1, j].plot(xs, true, color=GREY, lw=1.5, ls=":")
+        axes[1, j].plot(xs, total, color=SECOND, lw=3)
+        mse = float(((total - true) ** 2).mean())
+        axes[1, j].set_title(f"their sum, error {mse:.4f}", color=SECOND)
+        axes[1, j].set_ylim(-1.4, 1.4)
+        axes[1, j].set_xlabel("x")
+    axes[0, 0].set_ylabel("each unit")
+    axes[1, 0].set_ylabel("the output")
+    save(fig, "relu_units")
+
+
+def fig_activations_grid():
+    """Notebook 02 §2.6 per activation: the function and its slope, and the sine fit with it."""
+    _, ys = sine_data()
+    acts = {
+        "ReLU": nn.ReLU(),
+        "LeakyReLU": nn.LeakyReLU(0.1),
+        "ELU": nn.ELU(),
+        "GELU": nn.GELU(),
+    }
+    z = torch.linspace(-4, 4, 400, requires_grad=True)
+    fig, axes = plt.subplots(
+        2, 4, figsize=(15, 6.6), gridspec_kw={"hspace": 0.45, "wspace": 0.18}
+    )
+    for j, (name, act) in enumerate(acts.items()):
+        c = SECOND if name == "GELU" else ACCENT
+        y = act(z)
+        (g,) = torch.autograd.grad(y.sum(), z)
+        a = axes[0, j]
+        a.axhline(0, color=GREY_FAINT, lw=1)
+        a.axvline(0, color=GREY_FAINT, lw=1)
+        a.plot(z.detach(), y.detach(), color=c, lw=3)
+        a.plot(z.detach(), g, color=c, lw=1.8, ls="--")
+        a.set_ylim(-1.5, 3)
+        a.set_title(name, color=c, fontsize=19, fontweight="medium")
+        a.set_xticks([])
+        torch.manual_seed(0)
+        model, loss = fit_sine(
+            nn.Sequential(
+                nn.Linear(1, 64), act, nn.Linear(64, 64), act, nn.Linear(64, 1)
+            )
+        )
+        b = axes[1, j]
+        with torch.no_grad():
+            b.scatter(SINE_X, ys, s=6, color=GREY_FAINT)
+            b.plot(SINE_X, model(SINE_X), color=c, lw=2.6)
+        b.set_title(f"sine fit, error {loss:.3f}", color=c, fontsize=14)
+        b.set_xticks([])
+        b.set_ylim(-1.8, 1.8)
+        if j:
+            a.set_yticks([])
+            b.set_yticks([])
+        print(f"activation {name:<10} sine MSE {loss:.3f}")
+    fig.text(
+        0.125,
+        0.94,
+        "solid: the function   dashed: its slope",
+        fontsize=15,
+        color=GREY_DIM,
+    )
+    save(fig, "activations")
+
+
+# ---------------------------------------------------------------- the loss, from a guess
+
+
+LOSS_X = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+LOSS_Y = np.array([2.1, 2.9, 4.2, 4.8, 6.1, 6.8])
+GUESSES = [((0.3, 4.0), GREY_DIM, "guess 1"), ((0.9, 1.4), SECOND, "guess 2")]
+
+
+def mse(w, b):
+    return np.mean((w * LOSS_X + b - LOSS_Y) ** 2)
+
+
+def fig_loss_guess():
+    fig, axes = plt.subplots(1, 2, figsize=(15, 5.6), sharey=True)
+    for ax, ((w, b), c, name) in zip(axes, GUESSES):
+        pred = w * LOSS_X + b
+        x = np.linspace(0.5, 6.5, 20)
+        ax.plot(x, w * x + b, color=c, lw=3)
+        for xi, yi, pi in zip(LOSS_X, LOSS_Y, pred):
+            ax.plot([xi, xi], [yi, pi], color=c, lw=1.6, ls="--")
+            ax.text(
+                xi + 0.08,
+                (yi + pi) / 2,
+                f"{pi - yi:+.1f}",
+                color=c,
+                fontsize=13,
+                va="center",
+            )
+        ax.scatter(LOSS_X, LOSS_Y, s=80, color=ACCENT, zorder=5)
+        ax.set_title(
+            f"{name}: ŷ = {w}x + {b}\nmean of the squared errors: {mse(w, b):.2f}",
+            color=c,
+            fontsize=18,
+        )
+        ax.set_xlabel("x")
+    axes[0].set_ylabel("y")
+    print(
+        f"loss guess: guess 1 MSE {mse(*GUESSES[0][0]):.2f}, guess 2 MSE {mse(*GUESSES[1][0]):.2f}"
+    )
+    save(fig, "loss_guess")
+
+
+def fig_loss_landscape():
+    gw, gb = np.meshgrid(np.linspace(-0.4, 2.0, 300), np.linspace(-1.5, 5.5, 300))
+    Z = np.mean((gw[..., None] * LOSS_X + gb[..., None] - LOSS_Y) ** 2, axis=-1)
+    A = np.stack([LOSS_X, np.ones_like(LOSS_X)], 1)
+    w_best, b_best = np.linalg.lstsq(A, LOSS_Y, rcond=None)[0]
+    fig, ax = plt.subplots(figsize=(10.5, 6.6))
+    cs = ax.contourf(
+        gw, gb, Z, levels=np.geomspace(0.02, 60, 18), cmap="Blues_r", alpha=0.9
+    )
+    ax.contour(gw, gb, Z, levels=np.geomspace(0.02, 60, 18), colors=BG, linewidths=0.6)
+    for (w, b), c, name in GUESSES:
+        ax.scatter([w], [b], s=140, color=c, ec=BG, lw=2, zorder=5)
+        ax.text(
+            w + 0.07,
+            b + 0.25,
+            f"{name}: {mse(w, b):.2f}",
+            color=c,
+            fontsize=16,
+            bbox={"facecolor": BG, "edgecolor": "none", "pad": 3},
+        )
+    ax.scatter([w_best], [b_best], marker="*", s=420, color=TEXT, zorder=6)
+    ax.text(
+        w_best + 0.08,
+        b_best - 0.6,
+        f"lowest: {mse(w_best, b_best):.2f}",
+        fontsize=16,
+        bbox={"facecolor": BG, "edgecolor": "none", "pad": 3},
+    )
+    cb = fig.colorbar(cs, ax=ax, shrink=0.8, ticks=[0.1, 1, 10, 50])
+    cb.set_label("loss (mean squared error)")
+    cb.ax.set_yticklabels(["0.1", "1", "10", "50"])
+    ax.set_xlabel("w (slope)")
+    ax.set_ylabel("b (height)")
+    print(
+        f"loss landscape: lowest at w {w_best:.2f}, b {b_best:.2f}, MSE {mse(w_best, b_best):.3f}"
+    )
+    save(fig, "loss_landscape")
+
+
+def fig_optimizer_valley():
+    """Notebook 03 §3.3, left panel: one valley, three optimizers, 40 steps each."""
+
+    def valley(w):
+        return 0.1 * w[0] ** 2 + 2 * w[1] ** 2
+
+    def descend(make, steps=40):
+        w = torch.tensor([-4.0, 2.0], requires_grad=True)
+        opt = make([w])
+        path = [w.detach().clone()]
+        for _ in range(steps):
+            opt.zero_grad()
+            valley(w).backward()
+            opt.step()
+            path.append(w.detach().clone())
+        return torch.stack(path).numpy()
+
+    runs = [
+        ("SGD", descend(lambda p: torch.optim.SGD(p, lr=0.2)), GREY_DIM),
+        (
+            "SGD + momentum",
+            descend(lambda p: torch.optim.SGD(p, lr=0.2, momentum=0.7)),
+            THIRD,
+        ),
+        ("Adam", descend(lambda p: torch.optim.Adam(p, lr=0.3)), SECOND),
+    ]
+    gx, gy = np.meshgrid(np.linspace(-4.6, 1.2, 300), np.linspace(-2.4, 2.4, 300))
+    Z = 0.1 * gx**2 + 2 * gy**2
+    fig, ax = plt.subplots(figsize=(11, 6.2))
+    ax.contourf(
+        gx, gy, Z, levels=np.geomspace(0.01, 14, 16), cmap="Blues_r", alpha=0.85
+    )
+    for name, p, c in runs:
+        ax.plot(p[:, 0], p[:, 1], "-o", color=c, ms=4, lw=2, label=name)
+    ax.scatter([-4], [2], s=120, color=TEXT, zorder=6)
+    ax.text(-4, 2.15, "start", ha="center", fontsize=15)
+    ax.scatter([0], [0], marker="X", s=160, color=TEXT, zorder=6)
+    ax.text(
+        0,
+        0.6,
+        "lowest loss",
+        ha="center",
+        va="bottom",
+        fontsize=15,
+        bbox={"boxstyle": "round,pad=0.25", "fc": BG, "ec": "none", "alpha": 0.9},
+    )
+    ax.set_axis_off()
+    ax.legend(
+        loc="lower right", fontsize=15, facecolor=BG, frameon=True, edgecolor=GREY_FAINT
+    )
+    save(fig, "optimizer")
+
+
+# ---------------------------------------------------------------- learning curves and noise
+
+CURVES = DATA / "dtd_curves.json"
+
+
+class ResBlock(nn.Module):
+    """x + Linear(act(Linear(norm(x)))): a block the signal can also skip."""
+
+    def __init__(self, h: int, act: type[nn.Module]):
+        super().__init__()
+        self.f = nn.Sequential(nn.LayerNorm(h), nn.Linear(h, h), act(), nn.Linear(h, h))
+
+    def forward(self, x):
+        return x + self.f(x)
+
+
+def dtd_head(n: int, h: int, act: str, res: bool = False) -> nn.Module:
+    acts = {"relu": nn.ReLU, "gelu": nn.GELU}
+    if res:
+        return nn.Sequential(
+            nn.Linear(384, h),
+            *[ResBlock(h, acts[act]) for _ in range(n)],
+            nn.Linear(h, 47),
+        )
+    layers, w = [], 384
+    for _ in range(n):
+        layers += [nn.Linear(w, h), acts[act]()]
+        w = h
+    return nn.Sequential(*layers, nn.Linear(w, 47))
+
+
+def dtd_curves(configs, epochs=100):
+    """Train small heads on the DTD dinov2-small cache and keep every epoch's losses."""
+    import time as _t
+
+    Xtr, ytr = xy(cache("dtd-dinov2-small", "train"))
+    Xva, yva = xy(cache("dtd-dinov2-small", "test"))
+    out = {}
+    for n, h, act, lr, *res in configs:
+        torch.manual_seed(0)
+        model = dtd_head(n, h, act, bool(res))
+        opt = torch.optim.Adam(model.parameters(), lr=lr)
+        lf = nn.CrossEntropyLoss()
+        rec = {"train": [], "valid": [], "acc": [], "sec": 0.0}
+        t0 = _t.time()
+        for _ in range(epochs):
+            model.train()
+            perm, tot = torch.randperm(len(Xtr)), 0.0
+            for i in range(0, len(Xtr), 32):
+                idx = perm[i : i + 32]
+                opt.zero_grad()
+                loss = lf(model(Xtr[idx]), ytr[idx])
+                loss.backward()
+                opt.step()
+                tot += loss.item() * len(idx)
+            model.eval()
+            with torch.no_grad():
+                o = model(Xva)
+            rec["train"].append(tot / len(Xtr))
+            rec["valid"].append(lf(o, yva).item())
+            rec["acc"].append((o.argmax(1) == yva).float().mean().item())
+        rec["sec"] = _t.time() - t0
+        out["|".join([str(n), str(h), act, str(lr)] + (["res"] if res else []))] = rec
+    return out
+
+
+CURVE_CONFIGS = [
+    (0, 0, "gelu", 1e-3),
+    (0, 0, "gelu", 1e-4),
+    (1, 512, "gelu", 1e-3),
+    (1, 512, "gelu", 1e-4),
+    (3, 512, "gelu", 3e-4),
+    (3, 148, "relu", 3e-4),
+    (3, 49, "gelu", 2e-4),
+    (2, 512, "relu", 3e-5),
+    (8, 128, "relu", 3e-5, "res"),
+    (8, 256, "gelu", 1e-4, "res"),
+]
+
+
+def load_curves():
+    if not CURVES.exists():
+        CURVES.write_text(json.dumps(dtd_curves(CURVE_CONFIGS)))
+    return json.loads(CURVES.read_text())
+
+
+def describe(key: str) -> str:
+    n, h, act, lr, *res = key.split("|")
+    if res:
+        body = f"{n} residual blocks × {h}, {act}"
+    else:
+        body = "one Linear" if n == "0" else f"{n} hidden × {h}, {act}"
+    return f"{body}, lr {float(lr):.0e}"
+
+
+def fig_curve_kinds():
+    """Three learning curves that end differently: still learning, finished, overfitting."""
+    res = load_curves()
+    picks = [
+        ("8|128|relu|3e-05|res", "still learning: both curves still falling", False),
+        ("1|512|gelu|0.0001", "valid stops improving: stop early", True),
+        ("0|0|gelu|0.001", "overfitting: valid turns up", True),
+    ]
+    fig, axes = plt.subplots(1, 3, figsize=(17, 5), gridspec_kw={"wspace": 0.22})
+    for ax, (key, title, stop) in zip(axes, picks):
+        r = res[key]
+        e = np.arange(1, 31)
+        ax.plot(e, r["train"][:30], color=ACCENT, lw=2.6, label="train")
+        ax.plot(e, r["valid"][:30], color=SECOND, lw=2.6, label="valid")
+        if stop:
+            k = int(np.argmin(r["valid"][:30]))
+            ax.scatter(
+                [k + 1],
+                [r["valid"][k]],
+                s=170,
+                color=SECOND,
+                edgecolor=TEXT,
+                linewidth=2,
+                zorder=5,
+            )
+            ax.annotate(
+                "early stopping",
+                (k + 1, r["valid"][k]),
+                xytext=(k + 5, r["valid"][k] * 1.6),
+                fontsize=14,
+                color=TEXT,
+                arrowprops={"arrowstyle": "-", "color": TEXT, "lw": 1.2},
+            )
+        ax.set_title(title, color=GREY, fontsize=15)
+        ax.set_xlabel("epoch")
+        ax.set_ylim(0, None)
+    axes[0].set_ylabel("loss")
+    axes[0].legend(loc="upper right")
+    save(fig, "curve_kinds")
+
+
+def fig_search_curves():
+    """Eight heads of the kind the handed-out search draws, 15 epochs each: the curves of E3."""
+    res = load_curves()
+    keys = sorted(res, key=lambda k: -res[k]["acc"][14])
+    fig, axes = plt.subplots(
+        2, 4, figsize=(18, 7.4), gridspec_kw={"hspace": 0.55, "wspace": 0.25}
+    )
+    for ax, key in zip(axes.flat, keys[:4] + keys[-4:]):
+        r = res[key]
+        e = np.arange(1, 16)
+        ax.plot(e, r["train"][:15], color=ACCENT, lw=2.4, label="train")
+        ax.plot(e, r["valid"][:15], color=SECOND, lw=2.4, label="valid")
+        ax.set_title(
+            f"accuracy {r['acc'][14]:.3f}\n{describe(key)}", color=GREY, fontsize=13
+        )
+        ax.set_xlabel("epoch")
+    axes[0, 0].set_ylabel("loss")
+    axes[1, 0].set_ylabel("loss")
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="center right", fontsize=15, frameon=False)
+    fig.subplots_adjust(right=0.9)
+    save(fig, "search_curves")
+
+
+def fig_longer():
+    """The same heads trained for 100 epochs: the ranking at epoch 15 is not the ranking at 100."""
+    res = load_curves()
+    shown = {
+        "1|512|gelu|0.001": SECOND,
+        "2|512|relu|3e-05": ACCENT,
+        "8|128|relu|3e-05|res": THIRD,
+    }
+    fig, ax = plt.subplots(figsize=(13, 6.4))
+    e = np.arange(1, 101)
+    for key, r in res.items():
+        print(
+            f"longer: {describe(key):<40} acc@15 {r['acc'][14]:.3f} acc@100 {r['acc'][-1]:.3f} best {max(r['acc']):.3f}  {r['sec']:.0f}s"
+        )
+        if key not in shown:
+            ax.plot(e, r["acc"], color=GREY_FAINT, lw=1.4, zorder=1)
+    ys = {
+        "1|512|gelu|0.001": 0.797,
+        "2|512|relu|3e-05": 0.824,
+        "8|128|relu|3e-05|res": 0.770,
+    }
+    for key, c in shown.items():
+        r = res[key]
+        ax.plot(e, r["acc"], color=c, lw=3, zorder=3)
+        ax.scatter([15], [r["acc"][14]], color=c, s=70, zorder=4)
+        ax.text(
+            102,
+            ys[key],
+            f"{describe(key)}\n{r['acc'][14]:.3f} at 15 → {r['acc'][-1]:.3f} at 100",
+            color=c,
+            va="center",
+            fontsize=13,
+        )
+    ax.axvline(15, color=GREY, ls="--", lw=1.4)
+    ax.text(16, 0.665, "the search stopped here", color=GREY, fontsize=14)
+    ax.set_xlim(0, 140)
+    ax.set_ylim(0.65, 0.835)
+    ax.set_xlabel("epoch")
+    ax.set_ylabel("valid accuracy")
+    save(fig, "longer")
+
+
+def fig_noise():
+    """Why noise on the input helps: the same head on a few points, without and with jitter."""
+    torch.manual_seed(3)
+    n = 14
+    X = torch.randn(2 * n, 2) * 0.9
+    y = (X[:, 0] + 0.4 * torch.randn(2 * n) > 0).long()
+
+    def train(sigma):
+        torch.manual_seed(0)
+        m = nn.Sequential(
+            nn.Linear(2, 128),
+            nn.GELU(),
+            nn.Linear(128, 128),
+            nn.GELU(),
+            nn.Linear(128, 2),
+        )
+        opt = torch.optim.Adam(m.parameters(), lr=1e-2)
+        for _ in range(1500):
+            opt.zero_grad()
+            nn.functional.cross_entropy(
+                m(X + sigma * torch.randn_like(X)), y
+            ).backward()
+            opt.step()
+        return m
+
+    gx, gy = np.meshgrid(np.linspace(-2.6, 2.6, 300), np.linspace(-2.6, 2.6, 300))
+    grid = torch.tensor(np.stack([gx.ravel(), gy.ravel()], 1), dtype=torch.float32)
+    fig, axes = plt.subplots(1, 2, figsize=(14, 6.6))
+    for ax, sigma in zip(axes, (0.0, 0.5)):
+        m = train(sigma)
+        with torch.no_grad():
+            p = m(grid).softmax(1)[:, 1].reshape(gx.shape).numpy()
+        ax.contourf(
+            gx, gy, p, levels=[0, 0.5, 1], colors=["#d9e0e2", "#f3d6cc"], alpha=0.9
+        )
+        ax.contour(gx, gy, p, levels=[0.5], colors=GREY, linewidths=2)
+        if sigma:
+            torch.manual_seed(1)
+            for _ in range(6):
+                J = X + sigma * torch.randn_like(X)
+                ax.scatter(
+                    J[:, 0],
+                    J[:, 1],
+                    s=14,
+                    c=[ACCENT if v == 0 else SECOND for v in y],
+                    alpha=0.25,
+                    ec="none",
+                )
+        ax.scatter(
+            X[:, 0],
+            X[:, 1],
+            s=90,
+            c=[ACCENT if v == 0 else SECOND for v in y],
+            ec=BG,
+            lw=1.5,
+            zorder=5,
+        )
+        ax.set_title(
+            "no noise: the border curls around single points"
+            if not sigma
+            else f"noise σ = {sigma}: a moved copy every step, a smoother border",
+            color=GREY,
+            fontsize=16,
+        )
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_aspect("equal")
+    save(fig, "noise")
+
+
 FIGURES = [
+    fig_doublings,
+    fig_flowers_pca_thumbs,
+    fig_encoders_thumbs,
+    fig_audio_image,
+    fig_line,
+    fig_compose,
+    fig_sine_two,
+    fig_relu_units,
+    fig_activations_grid,
+    fig_loss_guess,
+    fig_loss_landscape,
+    fig_optimizer_valley,
+    fig_curve_kinds,
+    fig_search_curves,
+    fig_longer,
+    fig_noise,
     fig_cover,
     fig_cat_channels,
     fig_samples,
