@@ -104,6 +104,9 @@ pre.code .r{color:#c43a14}
 .deck table.tab th{white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:400;color:#1d5a73}
 .deck table.tab td.mono{font-family:'JetBrains Mono',monospace;font-size:24px}
 .deck p.credit{font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1.3;color:#5a544d}
+.xf{display:flex;flex-direction:row;gap:28px;align-items:center;justify-content:center}
+.deck p.xr{font-family:'JetBrains Mono',monospace;font-size:28px;line-height:1.2;letter-spacing:2px;color:#c43a14;margin-right:12px}
+.deck p.xm{font-family:Outfit,Arial,sans-serif;font-size:36px;line-height:1.2;color:#111111;margin-left:24px}
 .shape{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73;padding:14px 18px;border:2px solid #1d5a73;white-space:nowrap}
 .op{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#111111;padding:14px 18px;border:1px solid #cfc7bb;white-space:nowrap}
 .op.on{border:2px solid #c43a14;color:#c43a14}
@@ -310,17 +313,17 @@ pre.code .r{color:#c43a14}
       </div>
       <div class="col" style="gap:20px">
         <p class="ck2">reinforcement · a reward</p>
-        <svg aria-label="The classic reinforcement learning loop: the agent sends an action to the environment; the environment sends back a new state and a reward" width="520" height="426" viewBox="0 0 520 426">
+        <svg aria-label="The classic reinforcement learning loop: the agent sends an action to the environment; the environment sends back a new state and a reward" width="540" height="426" viewBox="0 0 540 426">
           <defs><marker id="ak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a544d"/></marker></defs>
-          <rect x="160" y="40" width="200" height="80" fill="#f4f1ec" stroke="#c43a14" stroke-width="3"/>
-          <text x="260" y="90" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">agent</text>
-          <rect x="130" y="300" width="260" height="80" fill="#f4f1ec" stroke="#1d5a73" stroke-width="3"/>
-          <text x="260" y="350" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#1d5a73">environment</text>
-          <path d="M360,80 C470,80 470,340 394,340" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#ak)"/>
-          <text x="470" y="215" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#111111">action</text>
-          <path d="M130,340 C40,340 40,80 156,80" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#ak)"/>
-          <text x="58" y="200" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#111111">state</text>
-          <text x="58" y="234" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#1d5a73">reward</text>
+          <rect x="165" y="40" width="230" height="80" fill="#f4f1ec" stroke="#c43a14" stroke-width="3"/>
+          <text x="280" y="90" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">agent</text>
+          <rect x="165" y="300" width="230" height="80" fill="#f4f1ec" stroke="#1d5a73" stroke-width="3"/>
+          <text x="280" y="350" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#1d5a73">environment</text>
+          <path d="M395,80 H440 V340 H399" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#ak)"/>
+          <text x="452" y="215" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#111111">action</text>
+          <path d="M165,340 H120 V80 H161" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#ak)"/>
+          <text x="108" y="200" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#111111">state</text>
+          <text x="108" y="234" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#1d5a73">reward</text>
         </svg>
         <p class="s">No answers: the agent acts, and the environment returns a new state and a reward.</p>
       </div>
@@ -336,37 +339,37 @@ pre.code .r{color:#c43a14}
   <div class="body" style="gap:20px">
     <h2 class="t">An agent's loop has the parts of <span class="v">reinforcement learning</span></h2>
     <div class="center" style="flex:1; align-items:center">
-      <svg aria-label="Two loops side by side, drawn the same way. Left, reinforcement learning: agent, action, environment, and a return of state, reward and whether the episode is done. Right, an agent's loop in Claude Code: the agent acts on the work, a verification checks it, answering how good it is and whether to stop, and the loop repeats until the stop condition is met; it is started by a trigger: a prompt, a goal, a clock or an event. The matching parts have the same colour." width="1579" height="520" viewBox="0 0 1700 560">
+      <svg aria-label="Two loops side by side, drawn the same way. Left, reinforcement learning: agent, action, environment, and a return of state, reward and whether the episode is done. Right, an agent's loop in Claude Code: the agent acts on the work, a verification checks it, answering how good it is and whether to stop, and the loop repeats until the stop condition is met; it is started by a trigger: a prompt, a goal, a clock or an event. The matching parts have the same colour." width="1579" height="539" viewBox="0 0 1700 580">
         <defs><marker id="al" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a544d"/></marker></defs>
-        <text x="380" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="26" letter-spacing="3" fill="#5a544d">REINFORCEMENT LEARNING</text>
-        <rect x="270" y="90" width="220" height="80" fill="#f4f1ec" stroke="#c43a14" stroke-width="3"/>
-        <text x="380" y="141" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">agent</text>
-        <rect x="240" y="350" width="280" height="80" fill="#f4f1ec" stroke="#1d5a73" stroke-width="3"/>
-        <text x="380" y="401" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#1d5a73">environment</text>
-        <path d="M490,130 C610,130 610,390 524,390" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
-        <text x="618" y="266" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#111111">action</text>
-        <path d="M240,390 C140,390 140,130 266,130" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
-        <text x="130" y="232" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#111111">state</text>
-        <text x="130" y="268" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#8a6d3b">reward</text>
-        <text x="130" y="304" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#c43a14">done?</text>
-        <text x="380" y="490" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#5a544d">done: the episode ends</text>
-        <line x1="850" y1="60" x2="850" y2="520" stroke="#e2dcd3" stroke-width="2"/>
-        <text x="1320" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="26" letter-spacing="3" fill="#5a544d">A LOOP IN CLAUDE CODE</text>
-        <rect x="920" y="90" width="270" height="80" fill="#f4f1ec" stroke="#5a544d" stroke-width="1.5"/>
-        <text x="1055" y="128" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="26" fill="#5a544d">trigger</text>
-        <text x="1055" y="158" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="20" fill="#5a544d">prompt · goal · clock · event</text>
-        <path d="M1190,130 L1246,130" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
-        <rect x="1250" y="90" width="220" height="80" fill="#f4f1ec" stroke="#c43a14" stroke-width="3"/>
-        <text x="1360" y="141" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">agent</text>
-        <rect x="1220" y="350" width="280" height="80" fill="#f4f1ec" stroke="#1d5a73" stroke-width="3"/>
-        <text x="1360" y="401" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#1d5a73">the work</text>
-        <path d="M1470,130 C1590,130 1590,390 1504,390" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
-        <text x="1598" y="266" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#111111">act</text>
-        <path d="M1220,390 C1120,390 1120,200 1290,174" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
-        <text x="1112" y="250" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#8a6d3b">verification</text>
-        <text x="1112" y="286" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#8a6d3b">how good?</text>
-        <text x="1112" y="322" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#c43a14">stop?</text>
-        <text x="1360" y="490" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#5a544d">stop: the <tspan font-weight="500" fill="#c43a14">stop condition</tspan> is met</text>
+        <text x="380" y="34" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="26" letter-spacing="3" fill="#5a544d">REINFORCEMENT LEARNING</text>
+        <rect x="240" y="180" width="280" height="80" fill="#f4f1ec" stroke="#c43a14" stroke-width="3"/>
+        <text x="380" y="231" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">agent</text>
+        <rect x="240" y="370" width="280" height="80" fill="#f4f1ec" stroke="#1d5a73" stroke-width="3"/>
+        <text x="380" y="421" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#1d5a73">environment</text>
+        <path d="M520,220 H620 V410 H524" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
+        <text x="634" y="322" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#111111">action</text>
+        <path d="M240,410 H140 V220 H236" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
+        <text x="126" y="270" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#111111">state</text>
+        <text x="126" y="306" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#8a6d3b">reward</text>
+        <text x="126" y="342" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#c43a14">done?</text>
+        <text x="380" y="510" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#5a544d">done: the episode ends</text>
+        <line x1="850" y1="40" x2="850" y2="540" stroke="#e2dcd3" stroke-width="2"/>
+        <text x="1360" y="34" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="26" letter-spacing="3" fill="#5a544d">A LOOP IN CLAUDE CODE</text>
+        <rect x="1180" y="64" width="360" height="64" fill="#f4f1ec" stroke="#5a544d" stroke-width="1.5"/>
+        <text x="1360" y="90" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#5a544d">trigger</text>
+        <text x="1360" y="117" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="20" fill="#5a544d">prompt · goal · clock · event</text>
+        <path d="M1360,128 V176" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
+        <rect x="1220" y="180" width="280" height="80" fill="#f4f1ec" stroke="#c43a14" stroke-width="3"/>
+        <text x="1360" y="231" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">agent</text>
+        <rect x="1220" y="370" width="280" height="80" fill="#f4f1ec" stroke="#1d5a73" stroke-width="3"/>
+        <text x="1360" y="421" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="28" fill="#1d5a73">the work</text>
+        <path d="M1500,220 H1600 V410 H1504" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
+        <text x="1614" y="322" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#111111">act</text>
+        <path d="M1220,410 H1120 V220 H1216" fill="none" stroke="#5a544d" stroke-width="3" marker-end="url(#al)"/>
+        <text x="1106" y="270" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#8a6d3b">verification</text>
+        <text x="1106" y="306" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#8a6d3b">how good?</text>
+        <text x="1106" y="342" text-anchor="end" font-family="Outfit, Arial, sans-serif" font-size="28" font-weight="500" fill="#c43a14">stop?</text>
+        <text x="1360" y="510" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="28" fill="#5a544d">stop: the <tspan font-weight="500" fill="#c43a14">stop condition</tspan> is met</text>
       </svg>
     </div>
     <p class="m" style="color:#111111">The check answers two questions: how good, and whether to stop. In a loop that runs without anyone watching, the stop condition is what matters most.</p>
@@ -548,17 +551,17 @@ pre.code .r{color:#c43a14}
     <h2 class="t">A search repeats the <span class="v">head</span>, never the encoder</h2>
     <div class="fill" style="gap:44px">
       <div style="display:flex; flex-direction:row; gap:48px; align-items:center; justify-content:center">
-        <div style="display:flex; flex-direction:column; align-items:center; gap:6px"><p style="font-size:64px; font-weight:500; color:#c43a14">E</p><p class="mono" style="font-size:24px; color:#c43a14">encode once</p></div><p style="font-size:64px; color:#5a544d">+</p><p style="font-size:64px; color:#5a544d">(</p><div style="display:flex; flex-direction:column; align-items:center; gap:6px"><p style="font-size:64px; font-weight:500; color:#111111">N</p><p class="mono" style="font-size:24px; color:#5a544d">experiments</p></div><p style="font-size:64px; color:#5a544d">×</p><div style="display:flex; flex-direction:column; align-items:center; gap:6px"><p style="font-size:64px; font-weight:500; color:#1d5a73">H</p><p class="mono" style="font-size:24px; color:#1d5a73">one head</p></div><p style="font-size:64px; color:#5a544d">)</p>
+        <div style="display:flex; flex-direction:column; align-items:center; gap:6px"><p style="font-size:64px; font-weight:500; color:#c43a14">E</p><p class="mono" style="font-size:24px; color:#c43a14">encode once</p></div><p style="font-size:64px; color:#5a544d">+</p><p style="font-size:64px; color:#5a544d">(</p><div style="display:flex; flex-direction:column; align-items:center; gap:6px"><p style="font-size:64px; font-weight:500; color:#111111">N</p><p class="mono" style="font-size:24px; color:#5a544d">experiments</p></div><p style="font-size:64px; color:#5a544d">×</p><div style="display:flex; flex-direction:column; align-items:center; gap:6px"><p style="font-size:64px; font-weight:500; color:#1d5a73">H</p><p class="mono" style="font-size:24px; color:#1d5a73">one linear layer</p></div><p style="font-size:64px; color:#5a544d">)</p>
       </div>
       <div class="g2">
         <div class="top first"><p class="ck2" style="color:#c43a14">E · one photo through the encoder</p><p style="font-size:44px; font-weight:500; color:#c43a14">≈ 5,700,000,000 multiplications</p></div>
-        <div class="top"><p class="ck2">H · one photo through a head</p><p style="font-size:44px; font-weight:500; color:#1d5a73">384 × 10 = 3,840 multiplications</p></div>
+        <div class="top"><p class="ck2">H · the head: one photo through <span class="mono" style="text-transform:none; letter-spacing:0">nn.Linear(384, 10)</span></p><p style="font-size:44px; font-weight:500; color:#1d5a73">384 × 10 = 3,840 multiplications</p><p class="s" style="color:#5a544d">A linear layer: linear regression on the 384 numbers. We build it in section 4.</p></div>
       </div>
       <p class="m" style="color:#111111">The encoder costs a million times the head, and a search multiplies only N × H.</p>
     </div>
   </div>
   <div class="foot"><p>2 / why use a model somebody else trained?</p><p class="n"></p></div>
-  <aside>Total cost is E plus N times H: the encoder once, plus N experiments that each train a head. DINOv2-small cuts a 224-pixel photo into 257 patches, each through 22 million weights: about 5.7 billion multiplications per photo. A Linear head for ten classes: 3,840. A search multiplies N; with the encoder in the loop it multiplies E as well. The condition: the encoder is frozen. Finetuning it puts it back in the loop; lessons 3 and 5.</aside>
+  <aside>Total cost is E plus N times H: the encoder once, plus N experiments that each train a head. DINOv2-small cuts a 224-pixel photo into 257 patches, each through 22 million weights: about 5.7 billion multiplications per photo. A head that is a single linear layer, nn.Linear(384, 10), for ten classes: 3,840. Section 4 builds a linear layer. A search multiplies N; with the encoder in the loop it multiplies E as well. The condition: the encoder is frozen. Finetuning it puts it back in the loop; lessons 3 and 5.</aside>
 </section>
 
 <section id="encoders" class="paper std">
@@ -682,20 +685,20 @@ pre.code .r{color:#c43a14}
 <rect x="469" y="356" width="28" height="28" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
 <rect x="497" y="356" width="28" height="28" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
 <rect x="525" y="356" width="28" height="28" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="735,240 785,190 905,190 855,240" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="855,240 905,190 905,310 855,360" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="735" y="240" width="120" height="120" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1142,302 1178,266 1268,266 1232,302" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1232,302 1268,266 1268,356 1232,392" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1142" y="302" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1108,288 1144,252 1234,252 1198,288" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1198,288 1234,252 1234,342 1198,378" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1108" y="288" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1074,274 1110,238 1200,238 1164,274" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1164,274 1200,238 1200,328 1164,364" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1074" y="274" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1040,260 1076,224 1166,224 1130,260" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1130,260 1166,224 1166,314 1130,350" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1040" y="260" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1456,188 1478,166 1534,166 1512,188" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1512,188 1534,166 1534,222 1512,244" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1456" y="188" width="56" height="56" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1428,179 1450,157 1506,157 1484,179" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1484,179 1506,157 1506,213 1484,235" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1428" y="179" width="56" height="56" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1400,170 1422,148 1478,148 1456,170" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1456,170 1478,148 1478,204 1456,226" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1400" y="170" width="56" height="56" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1474,262 1496,240 1552,240 1530,262" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1530,262 1552,240 1552,296 1530,318" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1474" y="262" width="56" height="56" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1446,253 1468,231 1524,231 1502,253" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1502,253 1524,231 1524,287 1502,309" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1446" y="253" width="56" height="56" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1418,244 1440,222 1496,222 1474,244" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1474,244 1496,222 1496,278 1474,300" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1418" y="244" width="56" height="56" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1492,336 1514,314 1570,314 1548,336" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1548,336 1570,314 1570,370 1548,392" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1492" y="336" width="56" height="56" fill="#b9d0d9" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1464,327 1486,305 1542,305 1520,327" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1520,327 1542,305 1542,361 1520,383" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1464" y="327" width="56" height="56" fill="#b9d0d9" stroke="#1d5a73" stroke-width="1.5"/>
-<polygon points="1436,318 1458,296 1514,296 1492,318" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1492,318 1514,296 1514,352 1492,374" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1436" y="318" width="56" height="56" fill="#b9d0d9" stroke="#1d5a73" stroke-width="1.5"/>
+<polygon points="735,240 785,190 905,190 855,240" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="855,240 905,190 905,310 855,360" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="735" y="240" width="120" height="120" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M759.0,240 V360 M735,264.0 H855 M759.0,240 l50,-50 M745.0,230.0 h120 M865.0,230.0 v120 M855,264.0 l50,-50 M783.0,240 V360 M735,288.0 H855 M783.0,240 l50,-50 M755.0,220.0 h120 M875.0,220.0 v120 M855,288.0 l50,-50 M807.0,240 V360 M735,312.0 H855 M807.0,240 l50,-50 M765.0,210.0 h120 M885.0,210.0 v120 M855,312.0 l50,-50 M831.0,240 V360 M735,336.0 H855 M831.0,240 l50,-50 M775.0,200.0 h120 M895.0,200.0 v120 M855,336.0 l50,-50" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1142,302 1178,266 1268,266 1232,302" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1232,302 1268,266 1268,356 1232,392" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1142" y="302" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M1164.5,302 V392 M1142,324.5 H1232 M1164.5,302 l36,-36 M1151.0,293.0 h90 M1241.0,293.0 v90 M1232,324.5 l36,-36 M1187.0,302 V392 M1142,347.0 H1232 M1187.0,302 l36,-36 M1160.0,284.0 h90 M1250.0,284.0 v90 M1232,347.0 l36,-36 M1209.5,302 V392 M1142,369.5 H1232 M1209.5,302 l36,-36 M1169.0,275.0 h90 M1259.0,275.0 v90 M1232,369.5 l36,-36" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1108,288 1144,252 1234,252 1198,288" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1198,288 1234,252 1234,342 1198,378" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1108" y="288" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M1130.5,288 V378 M1108,310.5 H1198 M1130.5,288 l36,-36 M1117.0,279.0 h90 M1207.0,279.0 v90 M1198,310.5 l36,-36 M1153.0,288 V378 M1108,333.0 H1198 M1153.0,288 l36,-36 M1126.0,270.0 h90 M1216.0,270.0 v90 M1198,333.0 l36,-36 M1175.5,288 V378 M1108,355.5 H1198 M1175.5,288 l36,-36 M1135.0,261.0 h90 M1225.0,261.0 v90 M1198,355.5 l36,-36" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1074,274 1110,238 1200,238 1164,274" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1164,274 1200,238 1200,328 1164,364" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1074" y="274" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M1096.5,274 V364 M1074,296.5 H1164 M1096.5,274 l36,-36 M1083.0,265.0 h90 M1173.0,265.0 v90 M1164,296.5 l36,-36 M1119.0,274 V364 M1074,319.0 H1164 M1119.0,274 l36,-36 M1092.0,256.0 h90 M1182.0,256.0 v90 M1164,319.0 l36,-36 M1141.5,274 V364 M1074,341.5 H1164 M1141.5,274 l36,-36 M1101.0,247.0 h90 M1191.0,247.0 v90 M1164,341.5 l36,-36" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1040,260 1076,224 1166,224 1130,260" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1130,260 1166,224 1166,314 1130,350" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1040" y="260" width="90" height="90" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M1062.5,260 V350 M1040,282.5 H1130 M1062.5,260 l36,-36 M1049.0,251.0 h90 M1139.0,251.0 v90 M1130,282.5 l36,-36 M1085.0,260 V350 M1040,305.0 H1130 M1085.0,260 l36,-36 M1058.0,242.0 h90 M1148.0,242.0 v90 M1130,305.0 l36,-36 M1107.5,260 V350 M1040,327.5 H1130 M1107.5,260 l36,-36 M1067.0,233.0 h90 M1157.0,233.0 v90 M1130,327.5 l36,-36" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1456,188 1478,166 1534,166 1512,188" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1512,188 1534,166 1534,222 1512,244" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1456" y="188" width="56" height="56" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M1474.7,188 V244 M1456,206.7 H1512 M1474.7,188 l22,-22 M1463.3,180.7 h56 M1519.3,180.7 v56 M1512,206.7 l22,-22 M1493.3,188 V244 M1456,225.3 H1512 M1493.3,188 l22,-22 M1470.7,173.3 h56 M1526.7,173.3 v56 M1512,225.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1428,179 1450,157 1506,157 1484,179" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1484,179 1506,157 1506,213 1484,235" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1428" y="179" width="56" height="56" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M1446.7,179 V235 M1428,197.7 H1484 M1446.7,179 l22,-22 M1435.3,171.7 h56 M1491.3,171.7 v56 M1484,197.7 l22,-22 M1465.3,179 V235 M1428,216.3 H1484 M1465.3,179 l22,-22 M1442.7,164.3 h56 M1498.7,164.3 v56 M1484,216.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1400,170 1422,148 1478,148 1456,170" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1456,170 1478,148 1478,204 1456,226" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1400" y="170" width="56" height="56" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><path d="M1418.7,170 V226 M1400,188.7 H1456 M1418.7,170 l22,-22 M1407.3,162.7 h56 M1463.3,162.7 v56 M1456,188.7 l22,-22 M1437.3,170 V226 M1400,207.3 H1456 M1437.3,170 l22,-22 M1414.7,155.3 h56 M1470.7,155.3 v56 M1456,207.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1474,262 1496,240 1552,240 1530,262" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1530,262 1552,240 1552,296 1530,318" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1474" y="262" width="56" height="56" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><path d="M1492.7,262 V318 M1474,280.7 H1530 M1492.7,262 l22,-22 M1481.3,254.7 h56 M1537.3,254.7 v56 M1530,280.7 l22,-22 M1511.3,262 V318 M1474,299.3 H1530 M1511.3,262 l22,-22 M1488.7,247.3 h56 M1544.7,247.3 v56 M1530,299.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1446,253 1468,231 1524,231 1502,253" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1502,253 1524,231 1524,287 1502,309" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1446" y="253" width="56" height="56" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><path d="M1464.7,253 V309 M1446,271.7 H1502 M1464.7,253 l22,-22 M1453.3,245.7 h56 M1509.3,245.7 v56 M1502,271.7 l22,-22 M1483.3,253 V309 M1446,290.3 H1502 M1483.3,253 l22,-22 M1460.7,238.3 h56 M1516.7,238.3 v56 M1502,290.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1418,244 1440,222 1496,222 1474,244" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1474,244 1496,222 1496,278 1474,300" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1418" y="244" width="56" height="56" fill="#c9dde4" stroke="#1d5a73" stroke-width="1.5"/><path d="M1436.7,244 V300 M1418,262.7 H1474 M1436.7,244 l22,-22 M1425.3,236.7 h56 M1481.3,236.7 v56 M1474,262.7 l22,-22 M1455.3,244 V300 M1418,281.3 H1474 M1455.3,244 l22,-22 M1432.7,229.3 h56 M1488.7,229.3 v56 M1474,281.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1492,336 1514,314 1570,314 1548,336" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1548,336 1570,314 1570,370 1548,392" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1492" y="336" width="56" height="56" fill="#b9d0d9" stroke="#1d5a73" stroke-width="1.5"/><path d="M1510.7,336 V392 M1492,354.7 H1548 M1510.7,336 l22,-22 M1499.3,328.7 h56 M1555.3,328.7 v56 M1548,354.7 l22,-22 M1529.3,336 V392 M1492,373.3 H1548 M1529.3,336 l22,-22 M1506.7,321.3 h56 M1562.7,321.3 v56 M1548,373.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1464,327 1486,305 1542,305 1520,327" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1520,327 1542,305 1542,361 1520,383" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1464" y="327" width="56" height="56" fill="#b9d0d9" stroke="#1d5a73" stroke-width="1.5"/><path d="M1482.7,327 V383 M1464,345.7 H1520 M1482.7,327 l22,-22 M1471.3,319.7 h56 M1527.3,319.7 v56 M1520,345.7 l22,-22 M1501.3,327 V383 M1464,364.3 H1520 M1501.3,327 l22,-22 M1478.7,312.3 h56 M1534.7,312.3 v56 M1520,364.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
+<polygon points="1436,318 1458,296 1514,296 1492,318" fill="#eef2f3" stroke="#1d5a73" stroke-width="1.5"/><polygon points="1492,318 1514,296 1514,352 1492,374" fill="#b9cbd2" stroke="#1d5a73" stroke-width="1.5"/><rect x="1436" y="318" width="56" height="56" fill="#b9d0d9" stroke="#1d5a73" stroke-width="1.5"/><path d="M1454.7,318 V374 M1436,336.7 H1492 M1454.7,318 l22,-22 M1443.3,310.7 h56 M1499.3,310.7 v56 M1492,336.7 l22,-22 M1473.3,318 V374 M1436,355.3 H1492 M1473.3,318 l22,-22 M1450.7,303.3 h56 M1506.7,303.3 v56 M1492,355.3 l22,-22" fill="none" stroke="#1d5a73" stroke-width="1" opacity="0.55"/>
 <text x="1600" y="220" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">t=1</text><text x="1618" y="294" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">t=2</text><text x="1636" y="368" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">t=3</text>
 <text x="150" y="40" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" letter-spacing="3" fill="#1d5a73">RANK 1</text>
 <text x="150" y="440" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="32" font-weight="500" fill="#111111">a line</text>
@@ -740,8 +743,7 @@ pre.code .r{color:#c43a14}
 <rect x="430" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="456" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="482" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="508" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="534" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="560" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="586" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="612" y="95" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/>
 <text x="640" y="116" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">(D)</text><text x="640" y="146" font-family="Outfit, Arial, sans-serif" font-size="20" fill="#5a544d">rank 1</text>
 <text x="900" y="40" font-family="JetBrains Mono, monospace" font-size="22" letter-spacing="3" fill="#1d5a73">ONE DOCUMENT, FOUR CHUNKS</text>
-<rect x="900" y="70" width="240" height="250" fill="#ffffff" stroke="#5a544d" stroke-width="1.5"/><rect x="904" y="80.0" width="232" height="73.6" fill="#1d5a73" opacity="0.28" stroke="#1d5a73" stroke-width="2"/><rect x="909" y="135.2" width="222" height="73.6" fill="#3f7a91" opacity="0.28" stroke="#3f7a91" stroke-width="2"/><rect x="914" y="190.4" width="212" height="73.6" fill="#6a9db0" opacity="0.28" stroke="#6a9db0" stroke-width="2"/><rect x="919" y="245.6" width="202" height="64.4" fill="#9cc0cd" opacity="0.28" stroke="#9cc0cd" stroke-width="2"/><line x1="914" y1="88.0" x2="1126" y2="88.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="111.0" x2="1114" y2="111.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="134.0" x2="1102" y2="134.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="157.0" x2="1126" y2="157.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="180.0" x2="1114" y2="180.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="203.0" x2="1102" y2="203.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="226.0" x2="1126" y2="226.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="249.0" x2="1114" y2="249.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="272.0" x2="1102" y2="272.0" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="295.0" x2="1126" y2="295.0" stroke="#cfc7bb" stroke-width="5"/>
-<line x1="1150" y1="195" x2="1250" y2="195" stroke="#5a544d" stroke-width="3" marker-end="url(#lad)"/><text x="1200.0" y="183.0" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="24" fill="#5a544d">encode</text>
+<rect x="900" y="70" width="240" height="280" fill="#ffffff" stroke="#5a544d" stroke-width="1.5"/><line x1="914" y1="88" x2="1126" y2="88" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="116" x2="1114" y2="116" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="144" x2="1102" y2="144" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="172" x2="1126" y2="172" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="200" x2="1114" y2="200" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="228" x2="1102" y2="228" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="256" x2="1126" y2="256" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="284" x2="1114" y2="284" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="312" x2="1102" y2="312" stroke="#cfc7bb" stroke-width="5"/><line x1="914" y1="340" x2="1126" y2="340" stroke="#cfc7bb" stroke-width="5"/><rect x="916" y="140" width="190" height="14" fill="#c43a14" opacity="0.45"/><rect x="916" y="140" width="200" height="14" fill="none"/><rect x="926" y="202" width="190" height="14" fill="#c43a14" opacity="0.45"/><rect x="926" y="202" width="200" height="14" fill="none"/><rect x="936" y="264" width="190" height="14" fill="#c43a14" opacity="0.45"/><rect x="936" y="264" width="200" height="14" fill="none"/><rect x="906" y="78" width="200" height="76" fill="#1d5a73" fill-opacity="0.10" stroke="#1d5a73" stroke-width="4"/><text x="884" y="125.0" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#1d5a73">1</text><rect x="916" y="140" width="200" height="76" fill="#3f7a91" fill-opacity="0.10" stroke="#3f7a91" stroke-width="4"/><text x="884" y="187.0" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#3f7a91">2</text><rect x="926" y="202" width="200" height="76" fill="#6a9db0" fill-opacity="0.10" stroke="#6a9db0" stroke-width="4"/><text x="884" y="249.0" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#6a9db0">3</text><rect x="936" y="264" width="200" height="76" fill="#9cc0cd" fill-opacity="0.10" stroke="#9cc0cd" stroke-width="4"/><text x="884" y="311.0" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#9cc0cd">4</text><line x1="1150" y1="195" x2="1250" y2="195" stroke="#5a544d" stroke-width="3" marker-end="url(#lad)"/><text x="1200.0" y="183.0" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="24" fill="#5a544d">encode</text>
 <rect x="1260" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1286" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1312" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1338" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1364" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1390" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1416" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1442" y="143" width="26" height="26" fill="#1d5a73" stroke="#f4f1ec" stroke-width="2"/><rect x="1260" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1286" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1312" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1338" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1364" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1390" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1416" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1442" y="169" width="26" height="26" fill="#3f7a91" stroke="#f4f1ec" stroke-width="2"/><rect x="1260" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1286" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1312" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1338" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1364" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1390" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1416" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1442" y="195" width="26" height="26" fill="#6a9db0" stroke="#f4f1ec" stroke-width="2"/><rect x="1260" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/><rect x="1286" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/><rect x="1312" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/><rect x="1338" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/><rect x="1364" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/><rect x="1390" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/><rect x="1416" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/><rect x="1442" y="221" width="26" height="26" fill="#9cc0cd" stroke="#f4f1ec" stroke-width="2"/>
 <text x="1480" y="205" font-family="JetBrains Mono, monospace" font-size="28" fill="#c43a14">(C, D)</text><text x="1480" y="235" font-family="Outfit, Arial, sans-serif" font-size="20" fill="#5a544d">rank 2</text>
 <text x="20" y="410" font-family="JetBrains Mono, monospace" font-size="22" letter-spacing="3" fill="#1d5a73">FOUR SENTENCES</text>
@@ -781,6 +783,7 @@ pre.code .r{color:#c43a14}
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>aggregate</p></div>
   <div class="body">
     <h2 class="t">From chunks back to one vector: take the <span class="v">mean</span></h2>
+    <div class="xf"><p class="xr">2D → 1D</p><span class="shape">(C, D)</span><span class="to">→</span><span class="shape">(D)</span><p class="xm">\( f:\ \mathbb{R}^{C\times D} \to \mathbb{R}^{D} \)</p></div>
     <div class="center" style="flex:1; align-items:center">
 <svg aria-label="A grid of four rows of eight numbers, the four chunks of one document, (C, D) = (4, 8). The mean over the four rows gives one row of eight numbers, (D) = (8)." width="1500" height="420" viewBox="0 0 1500 420">
 <defs><marker id="lad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c43a14"/></marker></defs>
@@ -884,6 +887,7 @@ pre.code .r{color:#c43a14}
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>chelsea the cat, 300 × 451 pixels</p></div>
   <div class="body">
     <h2 class="t">A photo is three planes: <span class="v">(C, H, W)</span></h2>
+    <div class="xf"><p class="xr">3D</p><span class="shape">(3, H, W)</span><p class="xm">\( \mathbb{R}^{3\times H\times W} \)</p></div>
     <div class="fill" style="gap:44px">
       <div class="center"><img src="img/lesson1/cat_channels.png" alt="The photo of a tabby cat, then three copies: one with only the red values, in red; one with only the green values, in green; one with only the blue values, in blue. The fur is bright in red and dark in blue" style="width:1720px; height:425px; object-fit:contain"></div>
       <p class="m" style="color:#111111; text-align:center">A photo file loads as (H, W, 3); torch wants the channels first, (3, H, W). Each channel is a grid of 300 × 451 numbers, light where the photo has much of that colour.</p>
@@ -898,8 +902,9 @@ pre.code .r{color:#c43a14}
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>six eurosat tiles</p></div>
   <div class="body">
     <h2 class="t">A batch of photos is <span class="v">4D</span>: (B, C, H, W)</h2>
+    <div class="xf"><p class="xr">4D</p><span class="shape">(B, C, H, W)</span><p class="xm">\( \mathbb{R}^{B\times C\times H\times W} \)</p></div>
     <div class="fill" style="gap:44px">
-      <div class="center"><img src="img/lesson1/batch_images.png" alt="Six satellite tiles of 64 by 64 pixels in a row: forest, river, highway, residential, lake and annual crop land; on the right the same six drawn as a stack of cards" style="width:1720px; height:494px; object-fit:contain"></div>
+      <div class="center"><img src="img/lesson1/batch_images.png" alt="Six satellite tiles of 64 by 64 pixels in a row: forest, river, highway, residential, lake and annual crop land; on the right the same six drawn as a stack of cards" style="width:1560px; height:448px; object-fit:contain"></div>
       <p class="m" style="color:#111111; text-align:center">One tile is (3, 64, 64); six stacked are (6, 3, 64, 64). The encoder takes such a batch and returns (B, 384): that step is the cache, seen from the shapes.</p>
     </div>
   </div>
@@ -925,7 +930,7 @@ pre.code .r{color:#c43a14}
   <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>a layer that wants a shape</p></div>
   <div class="body">
-    <h2 class="t">A layer for images wants (B, C, H, W): give a sound <span class="v">one more axis</span></h2>
+    <h2 class="t">How to turn sound into a <span class="v">4D tensor</span></h2>
     <div class="fill" style="gap:20px">
       <div class="center"><img src="img/lesson1/audio_image.png" alt="Left, a sound as a wave of samples, shape (L,). Middle, its spectrogram, frequency against time, shape (F, T). An arrow labelled unsqueeze(0). Right, the same spectrogram with a vermilion frame: one channel, shape (1, F, T)" style="width:1720px; height:286px; object-fit:contain"></div>
       <div class="center"><svg aria-label="The same three steps as rank glyphs. A sound is a line of cells, (L), rank 1; a batch of sounds is (B, L), rank 2. A spectrogram is a plane, (F, T), rank 2; a batch is (B, F, T), rank 3. With an axis of length 1 it is a thin cube, (1, F, T), rank 3; a batch is (B, 1, F, T), rank 4, the shape an image layer wants." width="1720" height="250" viewBox="0 0 1720 250">
@@ -953,7 +958,7 @@ pre.code .r{color:#c43a14}
 <line x1="530" y1="20" x2="530" y2="240" stroke="#e2dcd3" stroke-width="2"/><line x1="1080" y1="20" x2="1080" y2="240" stroke="#e2dcd3" stroke-width="2"/>
 </svg>
 </div>
-      <p class="m" style="color:#111111; text-align:center">A layer for images always wants rank 4. A batch of sounds is rank 2 and a batch of spectrograms rank 3; one axis of length 1 makes it rank 4.</p>
+      <p class="m" style="color:#111111; text-align:center">A layer that is designed to receive images will need tensors of rank 4 as input. A batch of sounds is rank 2 and a batch of spectrograms rank 3; one axis of length 1 makes it rank 4.</p>
     </div>
   </div>
   <div class="foot"><p>3 / what is a tensor?</p><p class="n"></p></div>
@@ -1037,7 +1042,7 @@ pre.code .r{color:#c43a14}
     <div class="row" style="gap:64px; align-items:center">
       <img src="img/lesson1/udl_fig3_3.png" alt="Figure 3.3 from Understanding Deep Learning: three straight lines in panels a to c; each clipped at zero by a ReLU in panels d to f; each weighted in panels g to i; and their sum in panel j, a line with three bends" style="width:620px; height:686px; object-fit:contain; background:#ffffff">
       <div class="col" style="gap:28px">
-        <p class="s" style="font-size:30px"><span class="pe">a–c</span> three lines, w x + b. <span class="pe">d–f</span> ReLU, max(0, z), clips each at zero. <span class="pe">g–i</span> each times a weight. <span class="pe">j</span> the sum.</p>
+        <p class="s" style="font-size:30px; line-height:1.6"><span class="pe">a–c</span> three lines, w x + b.<br><span class="pe">d–f</span> ReLU, max(0, z), clips each at zero.<br><span class="pe">g–i</span> each times a weight.<br><span class="pe">j</span> the sum.</p>
         <p class="s" style="font-size:30px">Every hidden unit adds <span class="v">one bend</span>.</p>
         <p class="credit">Figure 3.3 (p. 28) from Prince, Understanding Deep Learning, MIT Press, CC BY-NC-ND. udlbook.github.io/udlbook</p>
       </div>
@@ -1078,7 +1083,7 @@ pre.code .r{color:#c43a14}
     <div class="again">
       <p class="big">Linear and nonlinear functions in turn make a <span class="v">universal function approximator</span>.</p>
       <div style="display:flex; flex-direction:column; gap:28px">
-        <p class="m">A layer is wx + b followed by a nonlinearity.</p>
+        <p class="m">In deep learning, a layer is a linear function \(l(x) = wx + b\) followed by a nonlinear function \(\sigma\).</p>
         <p class="m">Every unit adds a bend; enough bends approximate any continuous function.</p>
       </div>
     </div>
@@ -1109,7 +1114,7 @@ pre.code .r{color:#c43a14}
   <div class="body">
     <h2 class="t">Supervised learning: from a photo to its <span class="v">label</span></h2>
     <div class="center" style="flex:1; align-items:center">
-      <svg aria-label="A commuting diagram. A photo in R to the c times w times h goes by phi to a transformed photo of the same shape, by g to a vector in R to the d, and by h down to the label y. A long diagonal arrow, id y, goes straight from the photo to the label. Below: id y equals f equals h after g after phi." width="1600" height="640" viewBox="0 0 1600 640">
+      <svg aria-label="A commuting diagram. A photo in R to the c times w times h goes by phi, a preprocessing or augmentation step such as a flip or a rotation, to a transformed photo of the same shape, by g to a vector in R to the d, and by h down to the label y. A long diagonal arrow, id y, goes straight from the photo to the label. Below: id y equals f equals h after g after phi." width="1600" height="640" viewBox="0 0 1600 640">
         <defs><marker id="sv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a544d"/></marker>
         <marker id="svr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c43a14"/></marker></defs>
         <text x="40" y="150" font-family="Outfit, Arial, sans-serif" font-size="40" font-style="italic" fill="#111111">(X, y)</text>
@@ -1127,12 +1132,16 @@ pre.code .r{color:#c43a14}
         <text x="1230" y="590" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="24" fill="#5a544d">the label</text>
         <line x1="400" y1="145" x2="640" y2="145" stroke="#5a544d" stroke-width="3" marker-end="url(#sv)"/>
         <text x="520" y="120" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="40" font-style="italic" fill="#111111">φ</text>
+        <text x="520" y="185" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">preprocessing or</text>
+        <text x="520" y="211" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">augmentation</text>
+        <text x="520" y="237" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">(flip, rotate, …)</text>
         <line x1="860" y1="145" x2="1120" y2="145" stroke="#5a544d" stroke-width="3" marker-end="url(#sv)"/>
         <text x="990" y="120" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="40" font-style="italic" fill="#111111">g</text>
         <text x="990" y="185" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">encoder</text>
         <line x1="1230" y1="290" x2="1230" y2="385" stroke="#5a544d" stroke-width="3" marker-end="url(#sv)"/>
         <text x="1260" y="350" font-family="Outfit, Arial, sans-serif" font-size="40" font-style="italic" fill="#111111">h</text>
         <text x="1300" y="350" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">head</text>
+        <text x="1260" y="384" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">(e.g. a linear function)</text>
         <line x1="380" y1="230" x2="1120" y2="470" stroke="#c43a14" stroke-width="3" marker-end="url(#svr)"/>
         <text x="700" y="390" font-family="Outfit, Arial, sans-serif" font-size="36" font-style="italic" fill="#c43a14">id<tspan font-size="22" dy="8">y</tspan></text>
         <text x="760" y="620" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="40" font-style="italic" fill="#111111"><tspan fill="#c43a14">id<tspan font-size="24" dy="8">y</tspan></tspan><tspan dy="-8"> = f = h ∘ g ∘ φ</tspan></text>
@@ -1152,15 +1161,15 @@ pre.code .r{color:#c43a14}
       <div style="display:grid; grid-template-columns:260px 1fr 760px; gap:26px 48px; align-items:center; font-size:32px">
         <p class="ck2">data</p><p>photos as vectors, each with its label</p><p>\(X = \{x_1, \dots, x_n\},\; y = \{y_1, \dots, y_n\}\)</p>
         <p class="ck2" data-build-in="fade">parameters</p><p data-build-in="fade">the numbers training changes</p><p data-build-in="fade">\(W,\ b\)</p>
-        <p class="ck2" data-build-in="fade">a layer</p><p data-build-in="fade">a line, then a bend</p><p data-build-in="fade">\(l(x) = Wx + b,\quad \mathrm{ReLU}(x) = \max(0, x)\)</p>
-        <p class="ck2" data-build-in="fade">predict</p><p data-build-in="fade">layers in a row</p><p data-build-in="fade">\(\hat y = l_n \circ \mathrm{ReLU} \circ \cdots \circ \mathrm{ReLU} \circ l_1(x)\)</p>
-        <p class="ck2 v" data-build-in="fade" style="color:#c43a14">loss</p><p data-build-in="fade">how wrong, in one number</p><p data-build-in="fade">\(\mathcal{L}(y, \hat y)\)</p>
-        <p class="ck2 v" data-build-in="fade" style="color:#c43a14">optimize</p><p data-build-in="fade">a small step that makes the loss lower</p><p data-build-in="fade">\(w \leftarrow w - \eta\, \dfrac{\partial \mathcal{L}}{\partial w}\)</p>
+        <p class="ck2" data-build-in="fade">a layer</p><p data-build-in="fade">a linear function \(l\), then a nonlinear function \(\sigma\), e.g. ReLU</p><p data-build-in="fade">\(l(x) = Wx + b,\quad \sigma(x) = \max(0, x)\)</p>
+        <p class="ck2" data-build-in="fade">predict</p><p data-build-in="fade">layers in a row</p><p data-build-in="fade">\(\hat y = l_n \circ \sigma \circ \cdots \circ \sigma \circ l_1(x)\)</p>
+        <p class="ck2 v" data-build-in="fade" style="color:#c43a14">loss</p><p data-build-in="fade">how wrong, in one number</p><p data-build-in="fade">\(\mathcal{L}(y, \hat y),\ \text{e.g. } \mathrm{MSE}(y, \hat y) = (y - \hat y)^2\)</p>
+        <p class="ck2 v" data-build-in="fade" style="color:#c43a14">optimize</p><p data-build-in="fade">a small step that makes the loss lower; \(\partial\) means: take the derivative</p><p data-build-in="fade">\(w \leftarrow w - \eta\, \dfrac{\partial \mathcal{L}}{\partial w}\)</p>
       </div>
     </div>
   </div>
   <div class="foot"><p>5 / how does a network learn?</p><p class="n"></p></div>
-  <aside>The whole of deep learning in six lines; build them up one by one. Data and labels you know. The parameters are the w and b of question four, thousands of them. A layer is a line followed by a bend. A prediction is layers in a row. The last two are new, and the next slides are about them: the loss, one number that says how wrong the predictions are, and the step that makes it lower.</aside>
+  <aside>The whole of deep learning in six lines; build them up one by one. Data and labels you know. The parameters are the w and b of question four, thousands of them. A layer is a linear function followed by a nonlinear one, sigma; ReLU is one example. A prediction is layers in a row. The last two are new, and the next slides are about them: the loss, one number that says how wrong the predictions are, and the step that makes it lower.</aside>
 </section>
 
 
@@ -1224,13 +1233,13 @@ pre.code .r{color:#c43a14}
 </svg>
       <div class="col" style="gap:30px">
         <p class="s" style="font-size:30px">The <span class="v">loss</span> steers the learning: it has to be smooth, so the optimizer can follow its slope.</p>
-        <p class="s" style="font-size:30px">The <span class="pe">metric</span> is for you: a number you can read, such as accuracy, or MAPE, the mean error in percent.</p>
-        <p class="s" style="font-size:30px">Sometimes one measure plays both roles, such as MSE.</p>
+        <p class="s" style="font-size:30px">The <span class="pe">metric</span> is a distance, human readable: e.g. the distance you walk on a map, or MAPE: the average error is 4%.</p>
+        <p class="s" style="font-size:30px">A loss is not always a metric: MSE squares the error, which breaks the triangle inequality, so it is not a distance.</p>
       </div>
     </div>
   </div>
   <div class="foot"><p>5 / how does a network learn?</p><p class="n"></p></div>
-  <aside>Two numbers that look alike and do different jobs. The loss exists for the optimizer: it must have a slope everywhere. The metric exists for you: it must be interpretable and needs no slope. For classification the loss is cross-entropy, minus the log of the probability given to the right class: it keeps falling as the model grows more confident in the right answer. Accuracy only changes when a prediction flips from wrong to right. For regression MSE can be both loss and metric; MAE or MAPE are easier to explain. A metric can mislead too: 95 percent accuracy on data that is 95 percent one class means nothing.</aside>
+  <aside>Two numbers that look alike and do different jobs. The loss exists for the optimizer: it must have a slope everywhere. The metric exists for you: it must be interpretable and needs no slope. For classification the loss is cross-entropy, minus the log of the probability given to the right class: it keeps falling as the model grows more confident in the right answer. Accuracy only changes when a prediction flips from wrong to right. For regression MSE is a good loss but not a metric: squaring breaks the triangle inequality, so it is no distance; MAE or MAPE are distances you can explain. A metric can mislead too: 95 percent accuracy on data that is 95 percent one class means nothing.</aside>
 </section>
 
 <section id="cycle" class="paper std">
@@ -1239,41 +1248,24 @@ pre.code .r{color:#c43a14}
   <div class="body">
     <h2 class="t">The cycle: predict, measure, <span class="v">step</span>, repeat</h2>
     <div class="center" style="flex:1; align-items:center">
-      <svg aria-label="The training cycle. X goes through the layers, each a line followed by a bend, to a prediction y hat, which goes with y into the loss, drawn as the distance between a true and a predicted point on a map. From the loss an arrow runs back into the layers: every weight takes a step downhill, w becomes w minus eta times the derivative of the loss, drawn as a path down a valley." width="1600" height="600" viewBox="0 0 1600 600">
+      <svg aria-label="The training cycle. X goes through the layers, each a linear function followed by a nonlinear one, to a prediction y hat, which goes with y into the loss, drawn as the distance between a true and a predicted point on a map. From the loss an arrow runs back into the layers: every weight takes a step downhill, w becomes w minus eta times the derivative of the loss, drawn as a path down a valley." width="1500" height="615" viewBox="0 0 1600 656">
         <defs><marker id="cy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#5a544d"/></marker>
-        <marker id="cyr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c43a14"/></marker></defs>
+        <marker id="cyr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c43a14"/></marker></defs><g transform="translate(0,56)">
         <foreignObject x="40" y="100" width="100" height="100"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:56px">\(X\)</div></foreignObject>
         <line x1="130" y1="150" x2="250" y2="150" stroke="#5a544d" stroke-width="3" marker-end="url(#cy)"/>
         <rect x="270" y="80" width="560" height="130" fill="#d9e0e2" stroke="#1d5a73" stroke-width="2.5"/>
-        <foreignObject x="270" y="105" width="560" height="90"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:48px">\(l_n \circ \mathrm{ReLU} \circ \cdots \circ l_1\)</div></foreignObject>
-        <line x1="300" y1="250" x2="356" y2="300" stroke="#1d5a73" stroke-width="3"/><text x="328" y="335" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">a line</text><text x="372" y="285" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#5a544d">+</text><polyline points="390.0,300.1 392.0,300.1 394.0,300.2 396.0,300.2 398.0,300.3 400.0,300.4 402.0,300.5 404.0,300.6 406.0,300.7 408.0,300.9 410.0,301.1 412.0,301.3 414.0,301.6 416.0,301.8 418.0,302.1 420.0,302.4 422.0,302.7 424.0,303.0 426.0,303.3 428.0,303.6 430.0,303.8 432.0,304.0 434.0,304.1 436.0,304.1 438.0,303.9 440.0,303.7 442.0,303.3 444.0,302.8 446.0,302.0 448.0,301.1 450.0,300.0 452.0,298.7 454.0,297.2 456.0,295.6 458.0,293.7 460.0,291.7 462.0,289.5 464.0,287.3 466.0,284.9 468.0,282.4 470.0,279.8 472.0,277.2 474.0,274.5 476.0,271.8 478.0,269.1 480.0,266.4 482.0,263.7 484.0,261.0 486.0,258.4 488.0,255.7 490.0,253.1 492.0,250.5 494.0,247.9 496.0,245.4 498.0,242.9 500.0,240.4 502.0,237.9 504.0,235.4 506.0,233.0 508.0,230.5 510.0,228.1" fill="none" stroke="#c43a14" stroke-width="3"/><text x="450" y="335" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">a bend</text>
+        <foreignObject x="270" y="105" width="560" height="90"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:48px">\(l_n \circ \sigma \circ \cdots \circ \sigma \circ l_1\)</div></foreignObject>
+        <g transform="translate(145,0)"><line x1="300" y1="10" x2="356" y2="60" stroke="#1d5a73" stroke-width="3"/><text x="328" y="-14" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">linear</text><text x="372" y="40" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#5a544d">+</text><polyline points="390.0,60.1 392.0,60.1 394.0,60.2 396.0,60.2 398.0,60.3 400.0,60.4 402.0,60.5 404.0,60.6 406.0,60.7 408.0,60.9 410.0,61.1 412.0,61.3 414.0,61.6 416.0,61.8 418.0,62.1 420.0,62.4 422.0,62.7 424.0,63.0 426.0,63.3 428.0,63.6 430.0,63.8 432.0,64.0 434.0,64.1 436.0,64.1 438.0,63.9 440.0,63.7 442.0,63.3 444.0,62.8 446.0,62.0 448.0,61.1 450.0,60.0 452.0,58.7 454.0,57.2 456.0,55.6 458.0,53.7 460.0,51.7 462.0,49.5 464.0,47.3 466.0,44.9 468.0,42.4 470.0,39.8 472.0,37.2 474.0,34.5 476.0,31.8 478.0,29.1 480.0,26.4 482.0,23.7 484.0,21.0 486.0,18.4 488.0,15.7 490.0,13.1 492.0,10.5 494.0,7.9 496.0,5.4 498.0,2.9 500.0,0.4 502.0,-2.1 504.0,-4.6 506.0,-7.0 508.0,-9.5 510.0,-11.9" fill="none" stroke="#c43a14" stroke-width="3"/><text x="450" y="-14" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">nonlinear</text></g>
         <line x1="850" y1="150" x2="960" y2="150" stroke="#5a544d" stroke-width="3" marker-end="url(#cy)"/>
         <foreignObject x="865" y="80" width="80" height="60"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:38px">\(\hat y\)</div></foreignObject>
         <rect x="980" y="80" width="420" height="130" fill="#f4f1ec" stroke="#c43a14" stroke-width="2.5"/>
         <foreignObject x="980" y="105" width="420" height="90"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:48px">\(\mathcal{L}(y, \hat y)\)</div></foreignObject>
-        <svg x="1010" y="228" width="250" height="146" viewBox="151 112 135 79"><rect x="151" y="112" width="135" height="76"/></clipPath></defs>
-  <rect x="151" y="112" width="135" height="76" fill="#edf0ea" stroke="#cfc7bb"/>
-  <g>
-    <g transform="translate(146 91) scale(.36 .48)" fill="none" stroke="#aabbb5" stroke-width="2.2">
-            <path d="M 13 108 C 24 66 75 40 122 50 C 163 57 176 84 201 83 C 225 82 235 53 286 48 C 337 42 375 66 389 105 C 405 149 367 187 324 194 C 272 202 242 179 200 178 C 157 177 136 201 88 192 C 39 183 0 151 13 108 Z"/>
-            <path d="M 39 110 C 48 79 84 63 121 69 C 155 75 168 105 198 105 C 228 104 240 70 285 68 C 323 64 352 82 363 108 C 375 140 345 169 313 174 C 271 181 243 155 201 156 C 157 157 139 180 97 173 C 59 167 29 144 39 110 Z"/>
-            <path d="M 64 111 C 73 87 101 79 127 86 C 153 93 168 118 156 142 C 145 166 113 168 89 154 C 69 144 56 130 64 111 Z"/>
-            <path d="M 86 112 C 94 97 111 94 127 99 C 143 105 149 122 140 138 C 132 151 111 153 97 143 C 83 134 80 125 86 112 Z"/>
-            <path d="M 253 103 C 263 82 289 79 313 85 C 341 92 350 112 339 137 C 329 159 297 164 273 152 C 249 140 242 122 253 103 Z"/>
-            <path d="M 274 105 C 283 92 301 92 316 98 C 333 105 337 119 327 135 C 318 149 298 150 284 141 C 269 132 266 117 274 105 Z"/>
-          </g>
-  </g>
-  <path d="M 182 167 L 252 135" fill="none" stroke="#edf0ea" stroke-width="5"/>
-  <path d="M 182 167 L 252 135" fill="none" stroke="#1d5a73" stroke-width="2" stroke-dasharray="4 3"/>
-  <circle cx="182" cy="167" r="4.5" fill="#1d5a73" stroke="#edf0ea" stroke-width="1.5"/>
-  <circle cx="252" cy="135" r="4.5" fill="#edf0ea" stroke="#1d5a73" stroke-width="2"/>
-  </svg>
-        <text x="1290" y="310" font-family="Outfit, Arial, sans-serif" font-size="24" fill="#c43a14">how wrong</text>
+        <path d="M 160 44 C 190 100, 220 20, 250 70" transform="translate(923.5 -48) scale(1.3)" fill="none" stroke="#c43a14" stroke-width="2.2"/><text x="1190" y="-14" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#c43a14">how wrong</text>
         <path d="M1400,145 L1500,145 L1500,450 L720,450 L720,220" fill="none" stroke="#c43a14" stroke-width="3" marker-end="url(#cyr)"/>
-        <image href="img/lesson1/optimizer.png" x="280" y="380" width="380" height="218" preserveAspectRatio="xMidYMid meet"/>
+        <image href="img/lesson1/optimizer.png" x="340" y="412" width="310" height="178" preserveAspectRatio="xMidYMid meet"/>
         <foreignObject x="720" y="462" width="560" height="130"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:44px">\(w \leftarrow w - \eta\, \dfrac{\partial \mathcal{L}}{\partial w}\)</div></foreignObject>
         <text x="1290" y="520" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#c43a14">step every weight</text><text x="1290" y="552" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#c43a14">downhill</text>
-      </svg>
+      </g></svg>
     </div>
     <p class="m" style="color:#111111">One pass over all training data is an <span class="v">epoch</span>; training repeats the cycle for many epochs.</p>
   </div>
