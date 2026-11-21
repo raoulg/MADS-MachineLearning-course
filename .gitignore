@@ -45,3 +45,6 @@ legacy/
 !.claude/skills/your-study/
 !.claude/skills/lesson-design/
 */**/.claude/
+
+# Working notes of the lesson-design loop, not course material
+docs/lesson-design/reviews/
