@@ -560,6 +560,15 @@ git clone https://github.com/raoulg/MADS-MachineLearning-course
 cd MADS-MachineLearning-course
 ```
 
+**No spaces in any folder name on the path to the repository** (`~/code/mads`, not
+`~/My Documents/machine learning course`). Spaces in a path are bad practice: they break
+shell commands, tools and hooks in ways that differ per machine, and they bite as soon as
+the work moves to another machine, such as a VM or a teammate's laptop. Make the student
+unlearn the habit now: a folder without spaces, and `_` or `-` between words. If the
+repository is already in a folder with spaces, move it (`mv`, then reopen the editor in
+the new folder) rather than work around it. Only when it truly cannot be moved, use the
+local override under hook 6 of M6.
+
 Read it out: copy the teacher's repository, with its full history, into a folder named
 `MADS-MachineLearning-course`. The student has no push rights here and does not need
 them; their own work goes to their own branch, and their runs go to their own fork (M9).
@@ -826,6 +835,24 @@ ignores (it is in `.git/info/exclude` since M5):
 ```bash
 printf 'pre-commit:\n  commands:\n    lychee:\n      skip: true\n' > .lefthook-local.yml
 ```
+
+**A path with spaces, when moving the repository is impossible.** Lefthook on Windows
+splits the quoted `--remap` argument of the hook at the spaces, so lychee fails. Override
+the command in `.lefthook-local.yml`, which changes this machine only: the remap goes in
+single quotes, the root is a Windows path from `pwd -W`, and its spaces are encoded as
+`%20`:
+
+```yaml
+pre-commit:
+  commands:
+    lychee:
+      run: >-
+        R=$(pwd -W); R=${R// /%20};
+        lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --max-cache-age 7d
+        --remap '^https://raoulg\.github\.io/MADS-MachineLearning-course/([^#]*)(#.*)?$ file:///'"$R"'/presentations/\$1'
+```
+
+Keep it in step with the `lychee` command in `.lefthook.yml`; the override replaces it.
 
 Show them the file: `.lefthook-local.yml` merges over the teacher's `.lefthook.yml` and
 lives only on this machine. Deleting it turns the hook back on.
