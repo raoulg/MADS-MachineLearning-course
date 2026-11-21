@@ -7,35 +7,20 @@ CC-BY-4.0. Verified, not assumed: every series is exactly 365 days at 144 steps/
 of readings are exactly `0.0` (overnight), and the daily FFT peak at 144 steps (24h) is the
 single largest peak in the spectrum, well above any weekly or longer component.
 
-**Why this replaced `pedestrian_counts` as the primary demo in `03`.** The original choice
-(main_principles.md §3.9) found N-BEATS losing to a flat linear map on pedestrian, at any
-window/harmonic/hidden-width configuration tried — a real result, but one that left the
-lesson's own N-BEATS-family architecture without a single case in the graded sequence where
-it actually won. Direct user feedback, 2026-08-05: a notebook whose entire premise is
-"decomposition inside the architecture" should show that premise paying off somewhere, not
-just show a linear layer winning twice. Several Monash series were measured looking for a
-genuine win (not a data-scarcity artifact — main_principles.md D20/§3.10 for the full
-search and the ones that did not work: `nn5_daily`, `traffic_hourly`, `london_smart_meters`,
-`tourism_monthly`). Solar is the one that worked, and the reason is physical rather than
-statistical: overnight-to-day solar irradiance is close to a deterministic function of the
-sun's position, not a noisy human behavioural pattern the way footfall or electricity demand
-are. A period-144 Fourier basis is closer to the *actual generating process* here than an
-unconstrained `W x H` linear map, and with enough pooled series (20 of 137, ~103,700
-training windows — comfortably more than the linear model's own 41,616 parameters, so this
-is not the earlier scarcity story repeating) N-BEATS wins outright: generic N-BEATS beats
-both linear and the seasonal-naive baseline, confirmed at 8, 12 and 20 epochs across 5 seeds
-each (D19's discipline — a single-config check is not a result).
+**Why this series.** Solar power has a period that is close to a deterministic function
+of the sun's position: production follows the daily arc and sits at zero every night. A
+period-144 Fourier basis is close to that generating process, so this is a series on which a
+seasonal basis has something real to find. What it buys, measured against linear, generic
+N-BEATS and the seasonal-naive baseline, is in the notebook; this module makes no claim
+about which model wins.
 
 **Two smaller things worth knowing before windowing it:**
 
-1. **Amplitude, not just period, is deterministic.** Night values are not "usually low" —
-   they are `0.0` past floating-point noise. A model that learns "near-zero for ~12 of every
-   144 steps" gets a large, easy chunk of the loss for free; the harder part is the
-   day-to-day variation in the daytime hump's height (cloud cover), which is where trend and
-   the residual after the seasonal stack actually earn their keep.
-2. **137 series are 137 different sites, not 137 repeats of one series.** Like
-   `pedestrian_counts`'s 8 pooled locations, this is real cross-series heterogeneity (site
-   latitude, local weather) `06_search`'s MoE routing question can plausibly exploit.
+1. **Night is exactly zero.** Night values are `0.0`, not "usually low". A model that
+   learns "zero for roughly half of every 144 steps" gets a large, easy part of the loss
+   for free; the harder part is the day-to-day height of the daytime hump (cloud cover).
+2. **137 series are 137 different sites, not 137 repeats of one series**: real
+   cross-series differences in site and local weather.
 """
 
 from __future__ import annotations
@@ -49,7 +34,7 @@ REVISION = "refs/convert/parquet"
 CONFIG = "solar_10_minutes"
 
 TARGET_NAME = "solar power"
-PERIOD = 144  # steps/day at 10-minute resolution -- verified above, not assumed
+PERIOD = 144  # steps/day at 10-minute resolution, checked above
 STEPS_PER_YEAR = 52560
 
 
@@ -59,9 +44,8 @@ def load_solar(
     """The first `n_series` (of 137) whose length is at least `min_len_factor * (w + h)`.
 
     Every series in this config is the same length (one year), so in practice this just
-    takes the first `n_series` by `item_id` order -- the `min_len_factor` filter exists for
-    parity with `pedestrian_counts`'s loader (some of its 66 series were too short) and as a
-    guard if a future revision of the dataset ever mixes lengths.
+    takes the first `n_series` by `item_id` order; the `min_len_factor` filter guards against
+    a revision of the dataset that mixes lengths.
     """
     ds = load_dataset(
         REPO, revision=REVISION, data_files={"test": f"{CONFIG}/test/0000.parquet"}
