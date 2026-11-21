@@ -615,6 +615,22 @@ project needs" means.
 Do not `uv add` anything to this repository (it is the teacher's file), and do not
 `pip install` into it (M3).
 
+### GNU make
+
+The course runs its commands through `make` (`make study LESSON=<N>`,
+`make optuna-dashboard`, `make page LESSON=<N>`, `make share LESSON=<N>`). Check it:
+
+```bash
+make --version
+```
+
+- **Mac**: it comes with the Xcode command line tools that git brought in (M2).
+- **Linux**: `sudo apt install make`, or the distribution's equivalent.
+- **Windows**: Git Bash does not ship `make`. Ask first, as with any package manager
+  (M6 hook 6), then `winget install ezwinports.make`. Open a new Git Bash window
+  afterwards, because the current one does not know the new PATH, and run
+  `make --version` again.
+
 ### Open the right folder
 
 In VS Code: File → Open Folder → **the `MADS-MachineLearning-course` folder itself, not
@@ -630,6 +646,7 @@ Then open `notebooks/1_representation_and_head/01_the_cache.ipynb`, top right �
 ```bash
 git branch --show-current
 uv run python -c "import vectormesh, ray, optuna, notebooktester; print('env OK')"
+make --version
 ```
 
 The branch printed must not be `master`. Then have the student run the first cell of
@@ -1216,6 +1233,7 @@ the browser, or `docs/setup/01_git crash course.pdf` (Dutch, the teacher's own).
 | Imports fail in the notebook but work in the terminal | Wrong kernel, or a second Python (conda) got in the way; select `.venv` |
 | `Please tell me who you are` on first commit | M2 identity not set |
 | Commit refused, mentions `ruff` or `ty` | Read the message; it says file, line and rule. Fix, `git add`, commit again |
+| `make: command not found` (Windows) | `winget install ezwinports.make`, then a new Git Bash window; M5 |
 | Commit refused, `lychee: command not found` | Install lychee, or skip it in `.lefthook-local.yml`; M6 hook 6 |
 | Commit of a notebook times out | notebooktester runs it with full settings: a constant is missing its `param()` |
 | `git pull` on `master` says "would be overwritten" | They edited or committed on `master`. Commit on their branch, never again |
