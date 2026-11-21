@@ -67,7 +67,7 @@ het werk van anderen bekijken en daarop voortbouwen met bronvermelding.
 | 3.2, 3.10 | scaling curves over parameters, data en rekentijd | `02_scaling_curves` |
 | 3.5, 3.9 | wat een algoritme weet, het getal dat je rapporteert | `03_what_does_the_algorithm_know` |
 | 3.6, 3.8, 3.11 | budget, scheduler, Pareto, de search | `04_search` |
-| 3.7 | learning-rate scheduler | presentatie les 3 |
+| 3.7 | learning-rate scheduler | `04_search` 4.2 |
 | 3.12 | de klasopdracht | `05_exercise` |
 
 Optioneel: `8_extras/swarms` laat zoeken met een zwerm zien, voor problemen zonder
