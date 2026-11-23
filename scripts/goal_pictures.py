@@ -14,6 +14,7 @@ vermilion is the operation acting on it. PICTURES holds the drawing of each goal
 
 import argparse
 import html
+import itertools
 import re
 from pathlib import Path
 
@@ -721,83 +722,102 @@ PICTURES["1.14"] = ("De zoekruimte tekenen", g)
 PICTURES["1.15"] = ("Publiceren en voortbouwen", PICTURES["2.12"][1])
 
 
-# 3.1 a gate model beside a smaller baseline, then beside a control of equal size
-def l3_model(x: float, y: float, n: int, gate: set[int], s: float = 16) -> str:
-    return "".join(
-        cell(x + i * s, y, s, VT, V) if i in gate else cell(x + i * s, y, s, PT, P)
-        for i in range(n)
+# 3.1 a model with a gate beside a smaller baseline, then beside a control with as many weights
+def l3_bar(y: float, k: int, gate: bool, lab: str) -> str:
+    w = k * 1.25
+    out = t(20, y + 15, lab, "m")
+    out += f'<rect x="100" y="{y}" width="{w}" height="20" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
+    if gate:
+        out += f'<rect x="{100 + w - 30}" y="{y}" width="30" height="20" fill="{VT}" stroke="{V}" stroke-width="1.5"/>'
+        out += t(100 + w - 15, y + 14, "gate", "n v", "middle")
+    return out + t(100 + w + 8, y + 15, f"{k}k gewichten", "n")
+
+
+g = t(20, 30, "zonder control", "l")
+g += l3_bar(40, 120, True, "met gate") + l3_bar(66, 75, False, "baseline")
+g += t(380, 100, "gate, of 45k gewichten meer?", "c v", "end")
+g += line("M 20 112 L 380 112", RULE, 1)
+g += t(20, 134, "met control", "l p")
+g += l3_bar(144, 120, True, "met gate") + l3_bar(170, 120, False, "control")
+g += t(380, 204, "verschil: alleen de gate", "c v", "end")
+PICTURES["3.1"] = ("Testen bij gelijke gewichten", g)
+
+
+# 3.2 three scaling laws: straight lines on log-log axes, the slope read as "10x more gives"
+def l3_law(px: float, lab: str, unit: str, gain: str, curves: bool) -> str:
+    out = line(f"M {px} 34 L {px} 140 L {px + 108} 140", MUT, 1)
+    if curves:
+        for k in range(5):
+            x0 = px + 4 + k * 16
+            y0 = 50 + k * 14
+            out += line(
+                f"M {x0} 44 C {x0 + 6} {y0 + 4}, {x0 + 20} {y0 + 12}, {x0 + 60} {y0 + 18}",
+                RULE,
+                1,
+            )
+    out += line(f"M {px + 6} 56 L {px + 92} 120", V, 2.5)
+    out += line(f"M {px + 92} 120 L {px + 106} 130", V, 1.5, "3 3")
+    out += t(px + 54, 156, lab, "l", "middle") + t(px + 54, 172, unit, "n", "middle")
+    return out + t(px + 54, 192, gain, "c v", "middle")
+
+
+g = t(18, 28, "test loss (log)", "n")
+g += l3_law(30, "compute", "PF-days", "10× → loss ×0.89", True)
+g += l3_law(160, "dataset size", "tokens", "10× → loss ×0.80", False)
+g += l3_law(290, "parameters", "non-embedding", "10× → loss ×0.84", False)
+PICTURES["3.2"] = ("Scaling laws", g)
+
+# 3.3 data needed against weights on log axes: 8x the weights asks about 5x the data
+g = line("M 60 26 L 60 170 L 370 170", MUT, 1)
+g += t(66, 34, "data (log)", "n") + t(370, 188, "gewichten (log)", "n", "end")
+g += path("M 70 165 L 250 32 L 360 32 L 360 170 L 70 170 Z", "g", 0, False, PT)
+g += line("M 70 165 L 250 32", P, 2.5) + t(140, 70, "genoeg data", "c p", "end")
+g += t(355, 162, "te weinig data: overfitting", "c", "end")
+g += dot(110, 135, 6, BG, P) + dot(210, 61, 6, VT, V)
+g += arrow(116, 135, 204, 135, "v", 2) + t(172, 152, "8× gewichten", "n v", "middle")
+g += arrow(210, 135, 210, 69, "v", 2) + t(218, 104, "~5× data", "n v")
+g += t(200, 212, "groter model: meer data, maar minder dan evenredig", "c", "middle")
+PICTURES["3.3"] = ("Gewichten en data groeien samen", g)
+
+
+# 3.4 a highway and a mixture of experts: the gate weighs routes that are added again
+def l3_mul(x: float, y: float, lab: str, r: float = 15) -> str:
+    return (
+        f'<circle cx="{x}" cy="{y}" r="{r}" fill="{BG}" stroke="{V}" stroke-width="2"/>'
+        + t(x, y + 4, lab, "n v", "middle")
     )
 
 
-g = t(20, 36, "zonder control", "l")
-g += t(20, 58, "gate", "m") + l3_model(84, 46, 8, {3, 4}) + t(220, 58, "120k", "m")
-g += t(20, 80, "basis", "m") + l3_model(84, 68, 5, set()) + t(220, 80, "75k", "m")
-g += t(262, 70, "gate of grootte?", "l v")
-g += line("M 20 100 L 380 100", RULE, 1)
-g += t(20, 126, "capacity-matched control", "l p")
-g += t(20, 148, "gate", "m") + l3_model(84, 136, 8, {3, 4}) + t(220, 148, "120k", "m")
-g += t(20, 170, "control", "m") + l3_model(84, 158, 8, set()) + t(220, 170, "120k", "m")
-g += t(262, 160, "verschil = gate", "l v")
-g += t(200, 205, "zelfde parameters, één verschil", "c", "middle")
-PICTURES["3.1"] = ("Vergelijk bij gelijke capaciteit", g)
-
-
-# 3.2 three measured scaling curves that flatten, the steepest on the data axis
-def l3_curve(px: float, h: float, k: float, col: str, fill: str) -> str:
-    pts = [(px + 8 + i * 17, 140 - h * (1 - 0.5 ** (k * i))) for i in range(6)]
-    d = "M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y in pts)
-    return line(d, col, 1.5) + "".join(dot(x, y, 3.5, fill, col) for x, y in pts)
-
-
-g = t(20, 32, "score", "c")
-for px, lab, h, k, col, fill in (
-    (30, "parameters", 45, 1.0, P, PT),
-    (155, "data", 80, 0.8, V, VT),
-    (280, "rekentijd", 30, 1.5, P, PT),
-):
-    g += line(f"M {px} 40 L {px} 150 L {px + 100} 150", MUT, 1)
-    g += l3_curve(px, h, k, col, fill)
-    g += t(px + 50, 168, lab, "c v" if col == V else "c", "middle")
-g += t(205, 34, "hier het meest", "c v", "middle")
-g += t(200, 205, "gemeten, niet afgeleid: per probleem een andere as", "c", "middle")
-PICTURES["3.2"] = ("Scaling curves vlakken af", g)
-
-# 3.3 gate, highway and mixture of experts as three rows with (B, D) in and out
-g = ""
-for y, lab in ((50, "gate"), (105, "highway"), (165, "MoE")):
-    g += t(20, y + 5, lab, "l v") + t(84, y + 4, "(B, D)", "n")
-    g += arrow({50: 236, 105: 298, 165: 288}[y], y, 326, y) + t(
-        330, y + 4, "(B, D)", "n"
+def l3_plus(x: float, y: float) -> str:
+    return (
+        f'<circle cx="{x}" cy="{y}" r="11" fill="{BG}" stroke="{P}" stroke-width="2"/>'
+        + t(x, y + 6, "+", "l p", "middle")
     )
-g += arrow(124, 50, 206, 50)
-g += f'<circle cx="222" cy="50" r="13" fill="{BG}" stroke="{V}" stroke-width="2"/>'
-g += t(222, 56, "×", "big v", "middle")
-g += arrow(222, 22, 222, 35, "v") + t(230, 30, "g", "n v")
-g += (
-    arrow(124, 105, 166, 105)
-    + box(170, 93, 70, 24, "blok", "p")
-    + arrow(242, 105, 268, 105)
-)
-g += f'<circle cx="284" cy="105" r="13" fill="{BG}" stroke="{V}" stroke-width="2"/>'
-g += t(284, 109, "mix", "n v", "middle")
-g += path("M 146 105 C 146 78, 284 78, 284 90", "v", 2) + t(
-    215, 76, "skip", "n v", "middle"
-)
-g += arrow(124, 165, 138, 165) + box(140, 153, 54, 24, "router", "v", VT, "n")
-for i, ey in enumerate((141, 159, 177)):
-    chosen = i == 0
-    g += f'<rect x="216" y="{ey}" width="48" height="14" fill="{PT if chosen else BG}" stroke="{P if chosen else RULE}" stroke-width="1.5"/>'
-    g += line(
-        f"M 196 165 L 214 {ey + 7}",
-        V if chosen else RULE,
-        2 if chosen else 1,
-        "" if chosen else "3 3",
-    )
-    g += line(f"M 264 {ey + 7} L 288 165", P if chosen else RULE, 1.5 if chosen else 1)
-g += t(200, 214, "steeds fijner: weeg, meng, kies", "c", "middle")
-PICTURES["3.3"] = ("Drie resoluties van één idee", g)
 
-# 3.4 four trained experts with one used per input, and the load per expert
+
+g = t(20, 26, "highway", "l v") + t(20, 68, "(B, D)", "n")
+g += path("M 68 64 L 84 64 L 84 44 L 116 44") + path("M 84 64 L 84 90 L 196 90")
+g += box(120, 32, 56, 24, "blok", "p") + arrow(178, 44, 196, 44)
+g += l3_mul(212, 44, "×g") + l3_mul(212, 90, "×1−g") + t(140, 84, "skip", "n")
+g += path("M 227 44 L 262 44 L 262 52") + path("M 227 90 L 262 90 L 262 76")
+g += l3_plus(262, 64) + arrow(273, 64, 318, 64) + t(322, 68, "(B, D)", "n")
+g += line("M 20 108 L 380 108", RULE, 1)
+g += t(20, 126, "MoE", "l v") + t(20, 158, "(B, D)", "n")
+g += line("M 68 154 L 84 154", MUT, 1.5)
+for y, k in ((126, "1"), (154, "2"), (182, "3")):
+    g += path(f"M 84 154 L 84 {y} L 116 {y}") if y != 154 else arrow(84, 154, 116, 154)
+    g += box(120, y - 10, 56, 20, f"expert {k}", "p", BG, "n") + arrow(178, y, 194, y)
+    g += l3_mul(208, y, f"×g{k}", 12)
+g += f'<rect x="192" y="110" width="32" height="88" rx="6" fill="none" stroke="{V}" stroke-width="1.5" stroke-dasharray="3 3"/>'
+g += path("M 220 126 L 262 126 L 262 141") + arrow(220, 154, 249, 154)
+g += path("M 220 182 L 262 182 L 262 167")
+g += path("M 84 182 L 84 212 L 116 212") + box(120, 203, 56, 18, "router", "v", VT, "n")
+g += path("M 178 212 L 208 212 L 208 200", "v", 1.5) + t(214, 214, "(B, 3)", "n v")
+g += t(276, 214, "g1 + g2 + g3 = 1", "n v")
+g += l3_plus(262, 154) + arrow(273, 154, 318, 154) + t(322, 158, "(B, D)", "n")
+PICTURES["3.4"] = ("Een gate in highway en MoE", g)
+
+# 3.5 four experts with weights, one used per input, and the load per expert
 g = t(37, 80, "input", "m", "middle") + cell(26, 89, 22, VT, V)
 for i in range(4):
     ey = 40 + i * 32
@@ -810,19 +830,20 @@ for i in range(4):
 g += t(100, 182, "getraind: 4 experts", "l p", "middle")
 g += t(100, 200, "gebruikt: 1 per input", "l v", "middle")
 g += line("M 196 30 L 196 200", RULE, 1)
-g += t(298, 36, "load per expert", "c", "middle")
+g += t(298, 36, "inputs per expert", "c", "middle")
 for x0, hs, lab, cls in (
-    (214, (96, 6, 4, 4), "collapse", "c v"),
-    (306, (26, 24, 27, 25), "met balancing", "c"),
+    (214, (96, 6, 4, 4), "router collapse", "c v"),
+    (306, (26, 24, 27, 25), "load balancing", "c"),
 ):
     g += line(f"M {x0 - 4} 150 L {x0 + 70} 150", MUT, 1)
     for i, h in enumerate(hs):
         hot = cls == "c v" and i == 0
         g += f'<rect x="{x0 + i * 18}" y="{150 - h}" width="12" height="{h}" fill="{VT if hot else PT}" stroke="{V if hot else P}" stroke-width="1.5"/>'
-    g += t(x0 + 33, 168, lab, cls, "middle")
-PICTURES["3.4"] = ("Getraind is niet gebruikt", g)
+    for k, word in enumerate(lab.split()):
+        g += t(x0 + 33, 168 + k * 16, word, cls, "middle")
+PICTURES["3.5"] = ("MoE gebruikt maar een deel van de gewichten", g)
 
-# 3.5 where grid, random, TPE and a population put their trials
+# 3.6 where grid, random, TPE and a population put their trials
 L3_RANDOM = [
     (14, 62),
     (30, 20),
@@ -874,10 +895,10 @@ for k, (name, sub) in enumerate(
     )
 g += arrow(30, 182, 370, 182)
 g += t(200, 205, "elke stap onthoudt meer van eerdere trials", "c", "middle")
-PICTURES["3.5"] = ("Wat het algoritme weet", g)
+PICTURES["3.6"] = ("Verschillende zoekalgoritmes", g)
 
-# 3.6 ASHA stopping trials at rungs, and combinations per axis against a fixed budget
-g = t(110, 32, "ASHA", "l v", "middle")
+# 3.7 a race over epochs: trials stop at rungs, and combinations per axis against a budget
+g = t(110, 32, "afvalrace", "l v", "middle")
 for x in (80, 120, 160):
     g += line(f"M {x} 37 L {x} 146", V, 1, "3 3")
 for i, end in enumerate((196, 120, 160, 80, 80, 120, 80, 80)):
@@ -886,7 +907,7 @@ for i, end in enumerate((196, 120, 160, 80, 80, 120, 80, 80)):
     if end < 196:
         g += line(f"M {end} {y - 5} L {end} {y + 5}", V, 2.5)
 g += t(116, 160, "epochs", "c", "middle")
-g += t(110, 178, "slechte trials stoppen vroeg", "c", "middle")
+g += t(110, 178, "de zwakste trials vallen af", "c", "middle")
 g += t(290, 32, "combinaties", "c", "middle")
 g += line("M 232 146 L 380 146", MUT, 1)
 for x, n, lab in ((240, 5, "1 as"), (290, 25, "2 assen"), (340, 125, "3 assen")):
@@ -895,106 +916,98 @@ for x, n, lab in ((240, 5, "1 as"), (290, 25, "2 assen"), (340, 125, "3 assen"))
     g += f'<rect x="{x}" y="{146 - h:.1f}" width="30" height="{h:.1f}" fill="{VT if big else PT}" stroke="{V if big else P}" stroke-width="1.5"/>'
     g += t(x + 15, 162, str(n), "n", "middle") + t(x + 15, 178, lab, "c", "middle")
 g += line("M 232 111 L 382 111", MUT, 1.5, "5 4") + t(232, 105, "budget", "c")
-g += t(200, 205, "veel korte trials, alleen de besten lang", "c", "middle")
-PICTURES["3.6"] = ("Veel kort, weinig lang", g)
+g += t(200, 205, "veel trials kort, alleen de besten lang", "c", "middle")
+PICTURES["3.7"] = ("Gebruik competitie om je budget beter te benutten", g)
 
 
-# 3.7 a learning-rate curve from coarse to fine above ASHA's narrowing trials
+# 3.8 the learning rate per epoch within one training, and the steps it makes in a valley
 def l3_smooth(u: float) -> float:
     return 3 * u * u - 2 * u * u * u
 
 
-g = t(20, 44, "lr", "m") + t(20, 150, "trials", "m")
-pts = [(70 + 300 * i / 30, 40 + 58 * l3_smooth(i / 30)) for i in range(31)]
+g = line("M 50 26 L 50 100 L 220 100", MUT, 1) + t(42, 66, "lr", "c", "end")
+g += t(135, 118, "epochs", "c", "middle")
+g += line("M 52 40 L 218 40", MUT, 1.5, "5 4") + t(218, 34, "constant", "n", "end")
+pts = [(52 + 166 * i / 30, 40 + 56 * l3_smooth(i / 30)) for i in range(31)]
 g += line("M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y in pts), V, 2.5)
-g += t(90, 92, "kettingzaag", "l v") + t(330, 76, "guts", "l v")
-for x in (170, 270):
-    g += line(f"M {x} 114 L {x} 186", MUT, 1, "3 3")
-for i in range(8):
-    end = 370 if i == 0 else 270 if i < 4 else 170
-    g += f'<rect x="70" y="{120 + i * 8}" width="{end - 70}" height="5" fill="{PT}" stroke="{P}" stroke-width="1"/>'
-g += t(200, 212, "breed en goedkoop eerst, smal en precies daarna", "c", "middle")
-PICTURES["3.7"] = ("Eerst grof, dan fijn", g)
+g += t(96, 82, "cosine", "n v")
 
-# 3.8 trials by latency and score, dot size for parameters, the Pareto front in vermilion
-g = line("M 50 30 L 50 170 L 370 170", MUT, 1) + t(56, 36, "score", "c")
+
+def l3_valley(u: float) -> tuple[float, float]:
+    a, b = 1 - u, u
+    return (
+        a**3 * 240 + 3 * a * a * b * 270 + 3 * a * b * b * 350 + b**3 * 380,
+        a**3 * 40 + 3 * a * a * b * 150 + 3 * a * b * b * 150 + b**3 * 40,
+    )
+
+
+g += line("M 240 40 C 270 150, 350 150, 380 40", MUT, 1.5)
+g += t(310, 144, "loss", "c", "middle")
+hops = [l3_valley(u) for u in (0.06, 0.92, 0.2, 0.76, 0.34, 0.62, 0.47)]
+for (x1, y1), (x2, y2) in itertools.pairwise(hops):
+    lift = 0.45 * abs(x2 - x1)
+    g += path(
+        f"M {x1:.1f} {y1:.1f} Q {(x1 + x2) / 2:.1f} {min(y1, y2) - lift:.1f} {x2:.1f} {y2:.1f}",
+        "v",
+        1.5,
+    )
+g += t(200, 205, "binnen één training; een afvalrace stopt hele trials", "c", "middle")
+PICTURES["3.8"] = ("Learning rate schedulers", g)
+
+# 3.9 trials by latency and score, the Pareto front, and one trial that another beats on both
+g = line("M 50 30 L 50 170 L 370 170", MUT, 1) + t(46, 22, "score", "c")
 for x, y, r in (
-    (110, 150, 5),
-    (150, 128, 7),
-    (200, 108, 6),
-    (230, 88, 8),
-    (290, 80, 8),
-    (320, 120, 5),
-    (270, 140, 4),
-    (180, 150, 3),
-    (360, 100, 7),
+    (310, 150, 5),
+    (270, 128, 7),
+    (190, 88, 8),
+    (130, 80, 8),
+    (100, 120, 5),
+    (150, 140, 4),
+    (240, 150, 3),
+    (70, 100, 7),
 ):
     g += dot(x, y, r)
-front = ((80, 140, 3), (120, 96, 4), (170, 70, 5), (250, 52, 7), (340, 44, 9))
+front = ((80, 44, 9), (170, 52, 7), (250, 70, 5), (300, 96, 4), (340, 140, 3))
 g += line("M " + " L ".join(f"{x} {y}" for x, y, _ in front), V, 2)
 g += "".join(dot(x, y, r, VT, V) for x, y, r in front)
-g += t(58, 70, "Pareto-front", "l v") + t(330, 33, "hoogste score", "c", "end")
-g += t(210, 188, "latency", "c", "middle") + t(
-    380, 188, "grootte = parameters", "c", "end"
+g += f'<rect x="210" y="70" width="40" height="38" fill="none" stroke="{MUT}" stroke-width="1" stroke-dasharray="3 3"/>'
+g += dot(210, 108, 6) + t(186, 126, "trager én slechter", "n")
+g += t(316, 82, "Pareto front", "l v") + t(64, 68, "hoogste score", "c")
+g += t(210, 188, "snelheid", "c", "middle") + t(
+    380, 188, "grootte = gewichten", "c", "end"
 )
-g += t(200, 210, "elk punt op het front is een keuze", "c", "middle")
-PICTURES["3.8"] = ("De beste trial bestaat niet", g)
+g += t(200, 210, "elk punt op het front is een afweging", "c", "middle")
+PICTURES["3.9"] = ("Tradeoffs afwegen", g)
 
-# 3.9 the search touches train and valid many times, one run touches test
-g = box(100, 30, 120, 30, "search", "g") + t(94, 49, "50 trials", "n", "end")
-g += "".join(arrow(112 + i * 20, 62, 44 + i * 46, 106, "g", 1.2) for i in range(6))
-g += box(290, 30, 80, 30, "één run", "v", VT) + arrow(330, 62, 330, 106, "v", 2.5)
-g += (
-    f'<rect x="30" y="110" width="180" height="28" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
-    + f'<rect x="210" y="110" width="80" height="28" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
-    + f'<rect x="290" y="110" width="80" height="28" fill="{BG}" stroke="{V}" stroke-width="2.5"/>'
+# 3.10 loss against weights with run-to-run spread: the smaller model is nearly as good
+g = line("M 50 30 L 50 160 L 370 160", MUT, 1) + t(56, 38, "loss", "c")
+g += t(370, 178, "gewichten (log)", "c", "end")
+pts310 = ((90, 70), (150, 96), (210, 112), (270, 118), (330, 120))
+g += line("M " + " L ".join(f"{x} {y}" for x, y in pts310), P, 1, "4 3")
+g += f'<rect x="210" y="111" width="120" height="10" fill="{VT}" fill-opacity="0.6"/>'
+g += line("M 210 121 L 336 121", V, 1, "3 3") + line("M 204 111 L 330 111", V, 1, "3 3")
+for i, (x, y) in enumerate(pts310):
+    col, fill = (V, VT) if i == 2 else (P, PT)
+    g += interval(x, y, 9, col, fill)
+g += t(210, 146, "4× sneller", "n v", "middle") + t(
+    330, 146, "laagste loss", "n", "middle"
 )
-g += (
-    t(120, 129, "train", "l p", "middle")
-    + t(250, 129, "valid", "l p", "middle")
-    + t(330, 129, "test", "l p", "middle")
-)
-g += t(160, 158, "de search keek hier", "c", "middle") + t(
-    330, 158, "rapporteer dit", "c v", "middle"
-)
-PICTURES["3.9"] = ("Het getal dat je rapporteert", g)
+g += t(200, 200, "binnen de spreiding even goed: kies het kleine model", "c", "middle")
+PICTURES["3.10"] = ("Meer dan de hoogste score", g)
 
-# 3.10 two capacity curves with run-to-run intervals, one gain, one flat
-g = ""
-for px, lab, head, cls, col, fill, pts, half in (
-    (30, "parameters", "winst > spreiding", "l v", V, VT, (132, 104, 84, 72), 9),
-    (220, "data", "binnen de spreiding", "l p", P, PT, (98, 94, 100, 95), 14),
-):
-    g += line(f"M {px} 44 L {px} 150 L {px + 150} 150", MUT, 1)
-    xs = [px + 20 + i * 35 for i in range(4)]
-    g += line("M " + " L ".join(f"{x} {y}" for x, y in zip(xs, pts)), col, 1, "4 3")
-    g += "".join(interval(x, y, half, col, fill) for x, y in zip(xs, pts))
-    g += t(px + 75, 34, head, cls, "middle") + t(px + 75, 168, lab, "c", "middle")
-g += t(200, 205, "verticale balk: spreiding tussen runs", "c", "middle")
-PICTURES["3.10"] = ("Twee curves, met spreiding", g)
-
-# 3.11 a search plan: axes, algorithm, scheduler, and trials filling one budget
-g = t(20, 48, "assen", "l") + t(20, 86, "algoritme", "l")
-g += t(20, 124, "scheduler", "l") + t(20, 172, "budget", "l")
-g += "".join(
-    cell(110 + i * 24, 32, 24, VT if i < 2 else BG, V if i < 2 else P) for i in range(6)
-)
-g += t(262, 49, "2 van 6 eerst", "c")
-g += box(110, 70, 60, 24, "grid", "g", BG, "c") + box(
-    174, 70, 60, 24, "random", "g", BG, "c"
-)
-g += box(238, 70, 60, 24, "TPE", "v", VT, "c")
-g += box(110, 108, 60, 24, "geen", "g", BG, "c") + box(
-    174, 108, 60, 24, "ASHA", "v", VT, "c"
-)
-g += f'<rect x="110" y="146" width="144" height="46" fill="none" stroke="{MUT}" stroke-width="1.5" stroke-dasharray="5 4"/>'
-for i, end in enumerate((250, 224, 184, 184, 144, 144, 144, 144)):
-    g += (
-        f'<rect x="114" y="{150 + i * 5}" width="{end - 114}" height="3.5" fill="{P}"/>'
+# 3.11 loss against weights for an architecture and its control: two effects apart
+g = line("M 50 30 L 50 160 L 370 160", MUT, 1) + t(56, 38, "loss", "c")
+g += t(370, 178, "gewichten (log)", "c", "end")
+g += line("M 70 70 L 350 130", P, 2) + t(66, 62, "control", "c p")
+g += line("M 70 92 L 350 152", V, 2) + t(66, 126, "met gate", "c v")
+for x in (100, 170, 240, 310):
+    g += dot(x, 70 + (x - 70) * 60 / 280, 4, PT, P) + dot(
+        x, 92 + (x - 70) * 60 / 280, 4, VT, V
     )
-g += t(266, 164, "8 trials", "m") + t(266, 182, "max 9 epochs", "m")
-g += t(200, 214, "vooraf gekozen, binnen één budget", "c", "middle")
-PICTURES["3.11"] = ("Een search op budget", g)
+g += arrow(210, 102, 210, 118, "v", 2) + t(200, 142, "architectuur", "n v", "middle")
+g += arrow(240, 98, 310, 113, "p", 2) + t(250, 90, "schaal", "n p")
+g += t(200, 205, "zoek over gewichten, vergelijk bij gelijke gewichten", "c", "middle")
+PICTURES["3.11"] = ("Scaling in je zoekruimte", g)
 
 # 3.12 routing and its control published to the runs-repo, read and built on by the class
 g = t(20, 36, "hartslagen", "c")
@@ -1009,10 +1022,10 @@ g += f'<rect x="294" y="44" width="88" height="78" fill="{BG}" stroke="{P}" stro
 g += t(338, 62, "overzicht", "l p", "middle")
 for i, h in enumerate((22, 34, 16, 40, 28)):
     g += f'<rect x="{304 + i * 16}" y="{116 - h}" width="10" height="{h}" fill="{V if i == 3 else PT}" stroke="{P}"/>'
-g += path("M 338 124 C 338 180, 90 180, 70 124", "v", 2.5)
-g += t(204, 194, "bouw voort, noem je bron", "l v", "middle")
-g += t(200, 216, "wat leverde die capaciteit op?", "c", "middle")
-PICTURES["3.12"] = ("Routing, met control, als klas", g)
+g += path("M 338 124 L 338 160 L 70 160 L 70 124", "v", 2.5)
+g += t(204, 182, "bouw voort, noem je bron", "l v", "middle")
+g += t(200, 212, "wat leverde routing op, bij evenveel gewichten?", "c", "middle")
+PICTURES["3.12"] = ("Parallelle architecturen, als klas", g)
 
 # 4.1 attention: one output position as a weighted sum of all input positions
 s = 22
@@ -2000,8 +2013,6 @@ NOT_SHOWN: dict[str, str] = {
     "2.4": "wat downsampling met het receptive field doet, en kernels van verschillende grootte naast elkaar",
     "2.5": "wat stap voor stap rekenen kost",
     "2.11": "de metric die bij het probleem past",
-    "3.4": "hoe specialisten en een generalist samen in één netwerk zitten",
-    "3.9": "dat een vlak search-resultaat informatie is en geen mislukking",
     "4.5": "waarom hele woorden als tokens tekortschieten: een te grote vocabulary en onbekende woorden",
     "4.12": "dat er per klasse weinig voorbeelden zijn",
     "5.7": "de target encoder die het doel in de latente ruimte levert",
