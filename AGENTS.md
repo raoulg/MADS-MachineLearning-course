@@ -97,3 +97,9 @@ GitHub Pages publishes `presentations/` after a push to `master`. When a commit 
 to a new presentation URL, verify that its local file exists under `presentations/`.
 The pre-commit `lychee` check sees a 404 until the Pages deployment; use
 `LEFTHOOK_EXCLUDE=lychee` for that commit and check the published URL afterward.
+
+## uv cache in the workspace sandbox
+
+If `uv run` fails because the sandbox cannot access `~/.cache/uv`, set
+`UV_CACHE_DIR=/private/tmp/<task>-uv-cache` for that command. Keep running Python
+through uv.
