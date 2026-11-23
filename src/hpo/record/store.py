@@ -64,8 +64,8 @@ class Store:
         if self.testing:
             return "tester"
         kept = self.root / "login"
-        if kept.exists() and LOGIN.fullmatch(kept.read_text().strip()):
-            return kept.read_text().strip()
+        if kept.exists() and LOGIN.fullmatch(kept.read_text(encoding="utf-8").strip()):
+            return kept.read_text(encoding="utf-8").strip()
         try:
             found = subprocess.run(
                 ["gh", "api", "user", "--jq", ".login"],
@@ -73,6 +73,7 @@ class Store:
                 text=True,
                 timeout=30,
                 check=False,
+                encoding="utf-8",
             ).stdout.strip()
         except (OSError, subprocess.TimeoutExpired):
             found = ""
@@ -82,5 +83,5 @@ class Store:
                 "`gh auth login`); or pass your GitHub login: Idea.of(..., author='<login>')"
             )
         self.root.mkdir(parents=True, exist_ok=True)
-        kept.write_text(found.lower() + "\n")
+        kept.write_text(found.lower() + "\n", encoding="utf-8")
         return found.lower()

@@ -909,6 +909,6 @@ def test_the_command_line_links_the_start_page_only_with_course_link(
         argv = ["class_analysis.py", "--demo", "--plotly", "cdn", "--out", str(out)]
         monkeypatch.setattr("sys.argv", argv + extra)
         class_analysis.main()
-        pages[name] = out.read_text()
+        pages[name] = out.read_text(encoding="utf-8")
     assert pages["linked"].count(class_analysis.course_link(start)) == 1
     assert "course-link" not in pages["own"]

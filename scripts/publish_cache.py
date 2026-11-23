@@ -48,7 +48,7 @@ def read_metadata(folder: Path) -> tuple[dict, str, str]:
     meta_path = folder / "metadata.json"
     if not meta_path.exists():
         sys.exit(f"{folder} has no metadata.json — is it a VectorCache folder?")
-    meta = json.loads(meta_path.read_text())
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
 
     columns = [k for k, v in meta.items() if isinstance(v, dict) and "model_tag" in v]
     if not columns:
@@ -248,7 +248,7 @@ def main() -> None:
     repo = f"{args.org}/{args.dataset}-{model_tag.split('/')[-1]}"
     api = HfApi()
     if args.card is not None:
-        card = args.card.read_text()
+        card = args.card.read_text(encoding="utf-8")
     else:
         card = build_card(
             api, repo, args.dataset, args.source, column, model_tag, metas, args.config

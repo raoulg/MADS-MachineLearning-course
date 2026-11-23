@@ -2125,7 +2125,7 @@ requires-dist = [
     { name = "torchvision", specifier = ">=0.21.0" },
     { name = "tqdm", specifier = ">=4.70" },
     { name = "transformers", specifier = ">=5.22" },
-    { name = "vectormesh", specifier = ">=0.19.0" },
+    { name = "vectormesh", specifier = ">=0.19.1" },
 ]
 provides-extras = ["graphs"]
 
@@ -4757,7 +4757,7 @@ wheels = [
 
 [[package]]
 name = "vectormesh"
-version = "0.19.0"
+version = "0.19.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beartype" },
@@ -4778,9 +4778,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "transformers" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3a/73/5110437573d69c34f89ed41ef81935ecb2fc765b3442488e595265fcc587/vectormesh-0.19.0.tar.gz", hash = "sha256:71fae8fc875002025da9cbad8c179159b836df62bb83226575f56fb3f61eac10", size = 124717, upload-time = "2026-11-21T09:27:59.898Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/16/1c/2017d5e93fc05edcb6ffbc8bb58c893b3dbfb64bdb6ffd82e2e1a7c25492/vectormesh-0.19.1.tar.gz", hash = "sha256:4a5716715aa10a96ec21ae5af890ccbde846fb8cf32d14bc6ae1f872236863b8", size = 126196, upload-time = "2026-11-23T10:39:19.248Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/62/61/2d6961986b3e146dde85ed04ef7a909d350f2045574b4d590a1a46c6f19d/vectormesh-0.19.0-py3-none-any.whl", hash = "sha256:a87d5ceb0d5758721c05645ca8f23aa61093f58ecd8eaa9d024ce71024412919", size = 83719, upload-time = "2026-11-21T09:27:58.708Z" },
+    { url = "https://files.pythonhosted.org/packages/f0/8d/6d86ee55dececf7cb0cee95db59f4dbbcfca037240f2028740c4f11386bb/vectormesh-0.19.1-py3-none-any.whl", hash = "sha256:688c70a98bdd174d2f55c0a6359cc15a663738f4a9fcbad166eb146e2edf45a6", size = 83768, upload-time = "2026-11-23T10:39:18.272Z" },
 ]
 
 [[package]]

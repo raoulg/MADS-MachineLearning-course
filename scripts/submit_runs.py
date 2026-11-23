@@ -65,7 +65,11 @@ GITHUB_REMOTE = re.compile(r"github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/*$")
 
 def git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["git", "-C", str(repo), *args], capture_output=True, text=True, check=check
+        ["git", "-C", str(repo), *args],
+        capture_output=True,
+        text=True,
+        check=check,
+        encoding="utf-8",
     )
 
 
@@ -74,7 +78,12 @@ def gh(*args: str) -> subprocess.CompletedProcess | None:
     or does not answer."""
     try:
         return subprocess.run(
-            ["gh", *args], capture_output=True, text=True, timeout=60, check=False
+            ["gh", *args],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+            encoding="utf-8",
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -543,7 +552,7 @@ def submit(
     for sub in new:
         path = repo / sub.relpath()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(sub.dump())
+        path.write_text(sub.dump(), encoding="utf-8")
         load(path, repo)  # what was written must read back as valid, at its place
         written.append(sub.relpath())
     if written:

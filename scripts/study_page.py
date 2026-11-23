@@ -148,10 +148,10 @@ def read_own(path: Path, lesson: int, create: bool = False) -> dict[str, str]:
     if not path.exists():
         if not create:
             sys.exit(f"no page.toml at {path}")
-        path.write_text(PAGE_TOML.format(lesson=lesson))
+        path.write_text(PAGE_TOML.format(lesson=lesson), encoding="utf-8")
         print(f"wrote {shown(path)}: fill it in, and build the page again")
     try:
-        held = tomllib.loads(path.read_text())
+        held = tomllib.loads(path.read_text(encoding="utf-8"))
     except tomllib.TOMLDecodeError as e:
         sys.exit(f"{path} is not valid TOML: {e}")
     return {key: str(held.get(key) or "").strip() for key in OWN}
@@ -227,7 +227,7 @@ def picture(own: Mapping[str, str] | None, folder: Path) -> str:
             f"<img alt='the picture of this study' src='data:image/png;base64,{data}'>"
         )
     elif suffix in (".svg", ".html", ".htm"):
-        body = path.read_text()
+        body = path.read_text(encoding="utf-8")
     else:
         return (
             "<div class='slot open'><span class='tag'>page.toml · picture</span>"
@@ -244,7 +244,7 @@ def store_login(store: Store, attrs: Iterable[Mapping[str, object]]) -> str:
     idea of their own; empty when neither says. It asks no one and writes nothing."""
     kept = store.root / "login"
     try:
-        held = kept.read_text().strip() if kept.is_file() else ""
+        held = kept.read_text(encoding="utf-8").strip() if kept.is_file() else ""
     except OSError:
         held = ""
     if LOGIN.fullmatch(held):
@@ -1328,6 +1328,7 @@ def atlas_page(command: str, folder: Path) -> tuple[bytes | None, str]:
                 text=True,
                 timeout=ATLAS_SECONDS,
                 check=False,
+                encoding="utf-8",
             )
         except subprocess.TimeoutExpired:
             return None, f"{command} took more than {ATLAS_SECONDS} seconds"
@@ -1393,7 +1394,7 @@ def font_faces() -> str:
 
 def course_tokens() -> str:
     """The colour tokens of `presentations/course-ui.css`, light and dark."""
-    css = (PRESENTATIONS / "course-ui.css").read_text()
+    css = (PRESENTATIONS / "course-ui.css").read_text(encoding="utf-8")
     head, sep, _ = css.partition("\nhtml{")
     return head if sep else css
 
@@ -1726,7 +1727,7 @@ def main() -> None:
         / "index.html"
     )
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(html_)
+    out.write_text(html_, encoding="utf-8")
     print(
         f"{studies_text(len(studies))}, {plural(sum(len(x.df) for x in studies), 'run')} of {login or 'this store'}"
     )

@@ -25,13 +25,13 @@ def test_both_assistants_read_the_same_skill() -> None:
 
 
 def test_the_skill_names_itself_and_when_to_use_it() -> None:
-    keys, _ = frontmatter_and_body(SKILLS[0].read_text())
+    keys, _ = frontmatter_and_body(SKILLS[0].read_text(encoding="utf-8"))
     assert keys["name"] == "your-study"
     assert keys["description"].strip()
 
 
 def test_the_skill_points_at_the_steps_and_holds_none_of_its_own() -> None:
-    _, body = frontmatter_and_body(SKILLS[0].read_text())
+    _, body = frontmatter_and_body(SKILLS[0].read_text(encoding="utf-8"))
     named = re.findall(r"`(docs/[^`]+\.md)`", body)
     assert named == ["docs/your-study.md"]
     assert (ROOT / named[0]).is_file()
