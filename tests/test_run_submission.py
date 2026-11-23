@@ -22,7 +22,7 @@ def write(root: Path, sub: Submission, rel: str | None = None) -> str:
     rel = rel or sub.relpath()
     path = root / rel
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(sub.dump())
+    path.write_text(sub.dump(), encoding="utf-8")
     return rel
 
 
@@ -62,7 +62,7 @@ def test_file_naming_another_student(tmp_path, submission):
 
 def test_invalid_json(tmp_path, submission):
     rel = write(tmp_path, submission("alice"))
-    (tmp_path / rel).write_text('{"schema": "mads-run/2",')
+    (tmp_path / rel).write_text('{"schema": "mads-run/2",', encoding="utf-8")
     [problem] = check(tmp_path, [rel], "alice", set())
     assert problem.startswith(f"{rel}: not valid JSON (")
     assert problem.endswith("): submit again, do not edit by hand")
@@ -70,7 +70,7 @@ def test_invalid_json(tmp_path, submission):
 
 def test_path_outside_lessons(tmp_path, submission):
     rel = write(tmp_path, submission("alice"))
-    (tmp_path / "README.md").write_text("hi\n")
+    (tmp_path / "README.md").write_text("hi\n", encoding="utf-8")
     files = [rel, "README.md", ".github/workflows/validate.yml"]
     problems = check(tmp_path, files, "alice", set())
     rule = (
@@ -95,7 +95,7 @@ def test_deleting_own_file_passes(tmp_path, submission):
 
 def test_symlink_is_refused(tmp_path, submission):
     sub = submission("alice")
-    (tmp_path / "secret.txt").write_text("x")
+    (tmp_path / "secret.txt").write_text("x", encoding="utf-8")
     path = tmp_path / sub.relpath()
     path.parent.mkdir(parents=True)
     path.symlink_to(tmp_path / "secret.txt")
@@ -161,7 +161,7 @@ def invalid(tmp_path, sub, **run_fields) -> list[str]:
     data["run"].update(run_fields)
     path = tmp_path / sub.relpath()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     return check(tmp_path, [sub.relpath()], sub.student, set())
 
 
@@ -304,7 +304,7 @@ def study_attrs(tmp_path, sub, **attrs) -> list[str]:
             data["run"]["study"]["attrs"][key] = value
     path = tmp_path / sub.relpath()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     return check(tmp_path, [sub.relpath()], sub.student, set())
 
 
@@ -495,7 +495,7 @@ def test_an_int_param_follows_its_step(tmp_path, submission):
 def raw_problems(tmp_path, sub, text: str) -> list[str]:
     path = tmp_path / sub.relpath()
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
     return check(tmp_path, [sub.relpath()], sub.student, set())
 
 

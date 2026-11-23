@@ -126,7 +126,7 @@ def run(name, texts_tr, y_tr, texts_te, y_te, prompt_fn, parse_fn, n_predict):
     return {
         "n_eval": len(y_te),
         "n_train": len(y_tr),
-        "n_classes": int(len(set(y_te))),
+        "n_classes": len(set(y_te)),
         "majority": float(max(np.bincount(np.asarray(y_te)) / len(y_te))),
         "probe_acc": acc_probe,
         "embed_seconds": embed_s,
@@ -204,7 +204,7 @@ def main() -> None:
     results["scotus_chars"] = SCOTUS_CHARS
     results["imdb_chars"] = IMDB_CHARS
 
-    OUT.write_text(json.dumps(results, indent=1))
+    OUT.write_text(json.dumps(results, indent=1), encoding="utf-8")
     logger.info(f"wrote {OUT}")
 
 

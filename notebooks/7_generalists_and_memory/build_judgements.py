@@ -134,7 +134,8 @@ def main() -> None:
                 "pairwise": pairwise,
             },
             indent=1,
-        )
+        ),
+        encoding="utf-8",
     )
     logger.info(
         f"wrote {OUT} ({OUT.stat().st_size / 1024:.0f} KB) in {time.time() - t0:.0f}s"

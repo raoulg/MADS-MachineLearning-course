@@ -377,7 +377,7 @@ def check_rewrite(env: dict[str, str], sandbox: Path) -> None:
         raise Stop("guard: GIT_CONFIG_NOSYSTEM is not 1")
     listed = subprocess.run(
         ["git", "config", "--show-origin", "--get-regexp", r"^url\..*\.insteadof$"],
-        cwd=sandbox, env=env, capture_output=True, text=True, check=False,
+        cwd=sandbox, env=env, capture_output=True, text=True, check=False, encoding="utf-8",
     )  # fmt: skip
     for line in listed.stdout.splitlines():
         origin = line.split("\t", 1)[0].removeprefix("file:")
@@ -395,7 +395,7 @@ def refused(repo: Path, env: dict[str, str], where: str) -> None:
     for protocol in NETWORK:
         allow = subprocess.run(
             ["git", "config", "--get", f"protocol.{protocol}.allow"],
-            cwd=repo, env=env, capture_output=True, text=True, check=False,
+            cwd=repo, env=env, capture_output=True, text=True, check=False, encoding="utf-8",
         ).stdout.strip()  # fmt: skip
         if allow != "never":
             raise Stop(
@@ -424,7 +424,13 @@ def plain_env(env: dict[str, str]) -> dict[str, str]:
 
 def git_out(args: list[str], cwd: Path, env: dict[str, str]) -> str:
     return subprocess.run(
-        ["git", *args], cwd=cwd, env=env, capture_output=True, text=True, check=True
+        ["git", *args],
+        cwd=cwd,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+        encoding="utf-8",
     ).stdout.strip()
 
 
@@ -462,7 +468,10 @@ EXPRESSION = re.compile(r"\$\{\{\s*(.+?)\s*\}\}")
 
 def outputs_of(path: Path) -> dict[str, str]:
     """The outputs a step wrote to its `GITHUB_OUTPUT`: `key=value` or a heredoc."""
-    out, lines = {}, path.read_text().splitlines() if path.exists() else []
+    out, lines = (
+        {},
+        path.read_text(encoding="utf-8").splitlines() if path.exists() else [],
+    )
     i = 0
     while i < len(lines):
         line = lines[i]
@@ -485,7 +494,7 @@ def validator_drift() -> str | None:
     def show(ref: str) -> str | None:
         shown = subprocess.run(
             ["git", "-C", str(COURSE_ROOT), "show", f"{ref}:{VALIDATOR}"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, encoding="utf-8",
         )  # fmt: skip
         return shown.stdout if shown.returncode == 0 else None
 
@@ -611,7 +620,7 @@ class Rehearsal:
         print(f"\n$ {shlex.join(cmd)}\n  (in {where}, as {login})", flush=True)
         proc = subprocess.Popen(
             cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-            text=True,
+            text=True, encoding="utf-8",
         )  # fmt: skip
         assert proc.stdout is not None
         seen = []
@@ -632,9 +641,11 @@ class Rehearsal:
     def build(self) -> None:
         self.sandbox.mkdir(parents=True)
         self.bin.mkdir()
-        self.fake.write_text(FAKE_GH)
+        self.fake.write_text(FAKE_GH, encoding="utf-8")
         self.fake.chmod(0o755)
-        self.gitconfig.write_text(sandbox_gitconfig(self.sandbox, self.students))
+        self.gitconfig.write_text(
+            sandbox_gitconfig(self.sandbox, self.students), encoding="utf-8"
+        )
         base = self.env("rehearsal")
         check_gh(base["PATH"], self.fake)
         check_rewrite(base, self.sandbox)
@@ -790,7 +801,7 @@ class Rehearsal:
                     f"{study}; {key} is not in the class repository"
                 ) from None
             name = attrs.get("idea_name", "")
-            if name not in page.read_text():
+            if name not in page.read_text(encoding="utf-8"):
                 raise Stop(
                     f"{planned.key}: the idea {name!r} of {key} is not on the class page"
                 )
@@ -823,7 +834,9 @@ class Rehearsal:
             minutes=self.minutes,
         )
         path = course / STUDY_FILE
-        path.write_text(edit_study(path.read_text(), answers))
+        path.write_text(
+            edit_study(path.read_text(encoding="utf-8"), answers), encoding="utf-8"
+        )
         self.step(
             f"{who} answers the questions of exercises/study.py for {planned.key}:\n"
             + "".join("    " + answers.source(name).replace("\n", "\n    ").rstrip() + "\n"
@@ -860,7 +873,7 @@ class Rehearsal:
 
     def check_and_merge(self, url: str, key: str) -> None:
         assert self.world is not None
-        prs = json.loads((self.sandbox / "gh-prs.json").read_text())
+        prs = json.loads((self.sandbox / "gh-prs.json").read_text(encoding="utf-8"))
         pr = next(p for p in prs if p["url"] == url)
         number = int(url.rsplit("/", 1)[1])
         if pr["repo"] != CLASS_REPO or pr["base"] != "main":
@@ -900,7 +913,7 @@ class Rehearsal:
         own: an action as what it does, a `run` step as the bash GitHub runs."""
         import yaml
 
-        flow = yaml.safe_load((COURSE_ROOT / WORKFLOW).read_text())
+        flow = yaml.safe_load((COURSE_ROOT / WORKFLOW).read_text(encoding="utf-8"))
         job = flow["jobs"]["validate-pr"]
         ws = self.sandbox / "checks" / f"pr-{number}"
         ws.mkdir(parents=True)
@@ -941,13 +954,13 @@ class Rehearsal:
             output.touch()
             env["GITHUB_OUTPUT"] = str(output)
             script = ws / f"step-{i}.sh"
-            script.write_text(EXPRESSION.sub(value, step["run"]))
+            script.write_text(EXPRESSION.sub(value, step["run"]), encoding="utf-8")
             print(f"\n  step: {name}", flush=True)
             cwd = ws / step.get("working-directory", ".")
             # an unnamed shell is bash -e on GitHub's runners
             proc = subprocess.run(
                 ["bash", "-e", str(script)], cwd=cwd, env=env, capture_output=True,
-                text=True, check=False,
+                text=True, check=False, encoding="utf-8",
             )  # fmt: skip
             for line in (proc.stdout + proc.stderr).splitlines():
                 print("  | " + line, flush=True)
@@ -985,7 +998,8 @@ class Rehearsal:
             target = where / rel
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_text(
-                git_out(["show", f"{self.head}:{rel}"], COURSE_ROOT, env) + "\n"
+                git_out(["show", f"{self.head}:{rel}"], COURSE_ROOT, env) + "\n",
+                encoding="utf-8",
             )
 
     # -- the teacher
@@ -1108,7 +1122,7 @@ def main() -> None:
             rehearsal.step(warning)
         rehearsal.build()
         handed_out = handed_out_space(
-            (sandbox / "teacher" / "course" / STUDY_FILE).read_text()
+            (sandbox / "teacher" / "course" / STUDY_FILE).read_text(encoding="utf-8")
         )
         for rnd in sorted({p.round for p in PLAN}):
             planned = [p for p in PLAN if p.round == rnd]

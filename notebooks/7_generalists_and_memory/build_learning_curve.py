@@ -135,7 +135,7 @@ def main() -> None:
     y_te = [int(r["label"]) for r in te.select(range(N_EVAL))]
     results["scotus"] = curve("scotus", s_tr, y_tr, s_te, y_te, SCOTUS_SIZES)
 
-    OUT.write_text(json.dumps(results, indent=1))
+    OUT.write_text(json.dumps(results, indent=1), encoding="utf-8")
     logger.info(f"wrote {OUT}")
 
 

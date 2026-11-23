@@ -19,10 +19,10 @@ from pathlib import Path
 FAKE_GH = f"""#!{sys.executable}
 import json, os, re, sys
 args = sys.argv[1:]
-with open(os.environ["FAKE_GH_LOG"], "a") as f:
+with open(os.environ["FAKE_GH_LOG"], "a", encoding="utf-8") as f:
     f.write(json.dumps(args) + "\\n")
 path = os.environ["FAKE_GH_STATE"]
-prs = json.load(open(path)) if os.path.exists(path) else []
+prs = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else []
 
 def opt(name):
     return args[args.index(name) + 1] if name in args else None
@@ -52,7 +52,7 @@ elif args[:2] == ["pr", "create"]:
         "url": url, "repo": repo, "base": opt("--base"), "head_owner": owner,
         "head_branch": branch, "author": os.environ["FAKE_GH_LOGIN"], "state": "open",
     }})
-    json.dump(prs, open(path, "w"))
+    json.dump(prs, open(path, "w", encoding="utf-8"))
     print(url)
 else:
     sys.exit(f"fake gh does not know {{args}}")
@@ -61,7 +61,7 @@ else:
 
 def run(*args: str, cwd: Path | None = None) -> str:
     return subprocess.run(
-        args, cwd=cwd, check=True, capture_output=True, text=True
+        args, cwd=cwd, check=True, capture_output=True, text=True, encoding="utf-8"
     ).stdout.strip()
 
 
@@ -90,7 +90,7 @@ class World:
 
         seed = tmp / "seed"
         run("git", "init", "--quiet", "-b", "main", str(seed))
-        (seed / "README.md").write_text("class runs\n")
+        (seed / "README.md").write_text("class runs\n", encoding="utf-8")
         run("git", "add", "README.md", cwd=seed)
         run("git", "commit", "--quiet", "-m", "start", cwd=seed)
         run("git", "clone", "--quiet", "--bare", str(seed), str(self.upstream))
@@ -115,7 +115,10 @@ class World:
     def gh_calls(self, *prefix: str) -> list[list[str]]:
         if not self.log.exists():
             return []
-        calls = [json.loads(line) for line in self.log.read_text().splitlines()]
+        calls = [
+            json.loads(line)
+            for line in self.log.read_text(encoding="utf-8").splitlines()
+        ]
         return [c for c in calls if c[: len(prefix)] == list(prefix)]
 
     def creates(self) -> list[list[str]]:
@@ -149,7 +152,7 @@ class World:
         run("git", "clone", "--quiet", str(self.upstream), str(work))
         path = work / sub.relpath()
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(sub.dump())
+        path.write_text(sub.dump(), encoding="utf-8")
         run("git", "add", "-A", cwd=work)
         run("git", "commit", "--quiet", "-m", "teacher", cwd=work)
         run("git", "push", "--quiet", "origin", "main", cwd=work)
@@ -172,11 +175,11 @@ class World:
         run("git", "commit", "--quiet", "-m", message, cwd=work)
         run("git", "push", "--quiet", "origin", "main", cwd=work)
         shutil.rmtree(work)
-        prs = json.loads(self.state.read_text())
+        prs = json.loads(self.state.read_text(encoding="utf-8"))
         for pr in prs:
             if pr["head_branch"] == branch and pr["head_owner"] == student:
                 pr["state"] = "merged"
-        self.state.write_text(json.dumps(prs))
+        self.state.write_text(json.dumps(prs), encoding="utf-8")
 
 
 def gitconfig(tmp: Path, user: bool = True) -> str:
@@ -191,7 +194,7 @@ def make_world(tmp_path: Path, monkeypatch, upstream: str = "class/runs") -> Wor
     """The world in `tmp_path`, with git and `gh` pointed at it through `monkeypatch`;
     `upstream` names the class repository."""
     config = tmp_path / "gitconfig"
-    config.write_text(gitconfig(tmp_path))
+    config.write_text(gitconfig(tmp_path), encoding="utf-8")
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(config))
     monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     for name in ("GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME",
@@ -200,7 +203,7 @@ def make_world(tmp_path: Path, monkeypatch, upstream: str = "class/runs") -> Wor
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
     fake = bin_dir / "gh"
-    fake.write_text(FAKE_GH)
+    fake.write_text(FAKE_GH, encoding="utf-8")
     fake.chmod(fake.stat().st_mode | stat.S_IEXEC)
     monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
     w = World(tmp_path, upstream=upstream)

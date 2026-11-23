@@ -7,7 +7,7 @@ from pathlib import Path
 import collect_runs  # ty: ignore[import-not-found]
 import optuna
 import submit_runs  # ty: ignore[import-not-found]
-from gitworld import run
+from gitworld import run  # ty: ignore[import-not-found]  (conftest puts scripts/ on sys.path)
 from optuna.artifacts import FileSystemArtifactStore, get_all_artifact_meta
 from optuna.distributions import FloatDistribution
 
@@ -72,7 +72,7 @@ def test_a_students_clone_on_its_lesson_branch_reads_upstream_main(
     submit_runs.submit(world.clone, 1, "alice", [merged, pending])
     carol = submission("carol")
     world.teacher_push(carol)  # after the clone last fetched: collect must fetch it
-    (world.clone / "notes.txt").write_text("mine\n")
+    (world.clone / "notes.txt").write_text("mine\n", encoding="utf-8")
     before = state(world.clone)
     assert before[0] == "lesson1"
 

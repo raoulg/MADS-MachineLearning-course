@@ -43,7 +43,9 @@ class CachedLLM:
         self.live = live
         self.url = url
         self.store: dict[str, dict] = (
-            json.loads(self.cache_path.read_text()) if self.cache_path.exists() else {}
+            json.loads(self.cache_path.read_text(encoding="utf-8"))
+            if self.cache_path.exists()
+            else {}
         )
 
     def __len__(self) -> int:
@@ -124,4 +126,4 @@ class CachedLLM:
 
     def save(self) -> None:
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        self.cache_path.write_text(json.dumps(self.store, indent=0))
+        self.cache_path.write_text(json.dumps(self.store, indent=0), encoding="utf-8")

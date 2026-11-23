@@ -1122,7 +1122,12 @@ def export_trials() -> Path:
     rows = []
     for d in glob.glob(str(src / "trainable_*")):
         try:
-            r = json.loads(Path(d, "result.json").read_text().strip().splitlines()[-1])
+            r = json.loads(
+                Path(d, "result.json")
+                .read_text(encoding="utf-8")
+                .strip()
+                .splitlines()[-1]
+            )
         except (OSError, ValueError, IndexError):
             continue
         c = r["config"]
@@ -1145,7 +1150,7 @@ def export_trials() -> Path:
             )
     if rows:
         rows = sorted(rows, key=lambda r: r["date"])[-N_TRIALS:]
-        with target.open("w", newline="") as f:
+        with target.open("w", newline="", encoding="utf-8") as f:
             w = csv.DictWriter(f, fieldnames=list(rows[0]))
             w.writeheader()
             w.writerows(rows)
@@ -1159,7 +1164,7 @@ DTD_LINEAR = (0.789, 0.003)  # nn.Linear(384, 47), notebook 04's baseline
 
 def fig_search():
     path = export_trials()
-    with path.open() as f:
+    with path.open(encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     base, std = DTD_LINEAR
     acc = np.array([float(r["accuracy"]) for r in rows])
@@ -1960,8 +1965,8 @@ CURVE_CONFIGS = [
 
 def load_curves():
     if not CURVES.exists():
-        CURVES.write_text(json.dumps(dtd_curves(CURVE_CONFIGS)))
-    return json.loads(CURVES.read_text())
+        CURVES.write_text(json.dumps(dtd_curves(CURVE_CONFIGS)), encoding="utf-8")
+    return json.loads(CURVES.read_text(encoding="utf-8"))
 
 
 def describe(key: str) -> str:

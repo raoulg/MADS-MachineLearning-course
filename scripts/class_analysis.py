@@ -2580,7 +2580,8 @@ def main() -> None:
             len(subs),
             args.plotly,
             args.course_link,
-        )
+        ),
+        encoding="utf-8",
     )
     by_role = Counter(df.role)
     who = people(as_teacher(df, teacher).student)

@@ -112,9 +112,9 @@ def store(tmp_path) -> Store:
     `builds_on` can put the first in front."""
     store = Store(tmp_path / "optuna")
     store.root.mkdir()
-    (store.root / "login").write_text("alice\n")
+    (store.root / "login").write_text("alice\n", encoding="utf-8")
     design = tmp_path / "designs.py"
-    design.write_text(DESIGN)
+    design.write_text(DESIGN, encoding="utf-8")
     handed = Idea.handed_out(1).name
     first = Idea.of(FIRST[0], builds_on=handed, author="alice")
     second = Idea.of(SECOND[0], builds_on=first.name, author="alice")
@@ -180,7 +180,7 @@ def test_each_study_box_gives_its_own_gain_in_points_and_sigmas(store, folder):
 
 def test_an_empty_page_toml_gives_open_slots_and_a_filled_one_its_text(store, folder):
     text = page(store, folder)  # no page.toml yet: it is made, with empty keys
-    made = (folder / "page.toml").read_text()
+    made = (folder / "page.toml").read_text(encoding="utf-8")
     for key in study_page.OWN:
         assert f'{key} = ""' in made
         assert f"page.toml · {key}" in text
@@ -190,7 +190,8 @@ def test_an_empty_page_toml_gives_open_slots_and_a_filled_one_its_text(store, fo
     (folder / "page.toml").write_text(
         made.replace(
             'message = ""', 'message = "A skip helps on dtd. Lr does not."'
-        ).replace('next = ""', 'next = "Try a gate."')
+        ).replace('next = ""', 'next = "Try a gate."'),
+        encoding="utf-8",
     )
     before = (
         (folder / "page.toml").read_bytes(),
@@ -223,7 +224,7 @@ def test_the_architecture_comes_from_the_design_script(store, folder):
 def test_a_study_without_a_finished_trial_says_so(tmp_path, folder):
     store = Store(tmp_path / "optuna")
     store.root.mkdir()
-    (store.root / "login").write_text("alice\n")
+    (store.root / "login").write_text("alice\n", encoding="utf-8")
     idea = Idea.of(FIRST[0], builds_on=Idea.handed_out(1).name, author="alice")
     search = StudyLog.search("lesson1-study-alice-empty", SPACE, idea, store=store)
 
@@ -239,7 +240,7 @@ def test_a_study_without_a_finished_trial_says_so(tmp_path, folder):
 def test_a_search_over_two_datasets_is_drawn_per_dataset(tmp_path, folder):
     store = Store(tmp_path / "optuna")
     store.root.mkdir()
-    (store.root / "login").write_text("alice\n")
+    (store.root / "login").write_text("alice\n", encoding="utf-8")
     space = Space(
         {"dataset": Choice(["dtd", "eurosat"]), "lr": Float(1e-4, 1e-2, log=True)}
     )
@@ -308,7 +309,7 @@ def test_submitted_runs_read_no_local_page_toml(store, folder, monkeypatch):
     assert "Say in three sentences what you did." not in text
 
     named = folder / "elsewhere.toml"
-    named.write_text('message = "Mine, named."\n')
+    named.write_text('message = "Mine, named."\n', encoding="utf-8")
     text = page(store, folder, submitted="alice", page=named)
     assert "Mine, named." in text and study_page.NOT_SUBMITTED not in text
     assert not (folder / "page.toml").exists()
@@ -316,7 +317,7 @@ def test_submitted_runs_read_no_local_page_toml(store, folder, monkeypatch):
 
 def test_page_names_a_page_toml_for_the_store_too(store, folder):
     named = folder / "draft.toml"
-    named.write_text('surprised = "The lr did not matter."\n')
+    named.write_text('surprised = "The lr did not matter."\n', encoding="utf-8")
     assert "The lr did not matter." in page(store, folder, page=named)
     assert not (folder / "page.toml").exists()
     with pytest.raises(SystemExit, match="no page.toml at"):
@@ -358,7 +359,9 @@ def test_paths_inside_the_repository_are_named_from_its_root(tmp_path):
     "name", ["../secret.svg", "/etc/hosts", "sub/../../secret.svg"]
 )
 def test_a_picture_outside_the_folder_is_refused(tmp_path, folder, name):
-    (tmp_path / "secret.svg").write_text("<svg><text>secret</text></svg>")
+    (tmp_path / "secret.svg").write_text(
+        "<svg><text>secret</text></svg>", encoding="utf-8"
+    )
     text = study_page.picture({"picture": name}, folder)
     assert "lies outside the folder of page.toml" in text
     assert "secret</text>" not in text
@@ -366,7 +369,9 @@ def test_a_picture_outside_the_folder_is_refused(tmp_path, folder, name):
 
 def test_a_picture_inside_the_folder_is_inlined_as_it_is(folder):
     (folder / "pics").mkdir()
-    (folder / "pics" / "idea.svg").write_text("<svg><text>my idea</text></svg>")
+    (folder / "pics" / "idea.svg").write_text(
+        "<svg><text>my idea</text></svg>", encoding="utf-8"
+    )
     text = study_page.picture({"picture": "pics/idea.svg"}, folder)
     assert "<svg><text>my idea</text></svg>" in text
 

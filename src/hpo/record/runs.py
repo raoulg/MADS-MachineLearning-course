@@ -189,7 +189,7 @@ class DesignScript(BaseModel):
     def read(cls, path: str | Path) -> DesignScript:
         """The text of `path`; a `ValueError` when it is larger than a submission
         carries (`MAX_ARTIFACT_BYTES`, measured as JSON)."""
-        text = Path(path).read_text()
+        text = Path(path).read_text(encoding="utf-8")
         size = len(json.dumps(text))
         if size > MAX_ARTIFACT_BYTES:
             raise ValueError(
@@ -407,7 +407,7 @@ class StudyLog:
         with tempfile.TemporaryDirectory() as tmp:
             for name, text in artifacts.items():
                 path = Path(tmp) / name
-                path.write_text(text)
+                path.write_text(text, encoding="utf-8")
                 upload_artifact(
                     artifact_store=target, file_path=str(path), study_or_trial=trial
                 )
