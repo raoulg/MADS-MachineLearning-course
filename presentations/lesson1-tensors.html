@@ -104,6 +104,11 @@ pre.code .r{color:#c43a14}
 .deck table.tab th{white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:400;color:#1d5a73}
 .deck table.tab td.mono{font-family:'JetBrains Mono',monospace;font-size:24px}
 .deck p.credit{font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1.3;color:#5a544d}
+.kick a{color:inherit;text-decoration:none;border-bottom:2px solid currentColor}
+.kick a+a{margin-left:14px}
+.step{display:grid;grid-template-columns:56px 1fr;gap:18px;align-items:baseline}
+.step .nr{font:30px/1 'JetBrains Mono',monospace;color:#c43a14}
+code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;background:#ebe6de;padding:2px 8px}
 .xf{display:flex;flex-direction:row;gap:28px;align-items:center;justify-content:center}
 .deck p.xr{font-family:'JetBrains Mono',monospace;font-size:28px;line-height:1.2;letter-spacing:2px;color:#c43a14;margin-right:12px}
 .deck p.xm{font-family:Outfit,Arial,sans-serif;font-size:36px;line-height:1.2;color:#111111;margin-left:24px}
@@ -1449,6 +1454,25 @@ pre.code .r{color:#c43a14}
   <aside>The same ten heads, trained for 100 epochs instead of 15, one run each. The leader at epoch 15 stays where it was; the two-layer ReLU head with a learning rate of 0.00003 passes it, and the deep residual head, eight blocks with skip connections, keeps climbing. So "deeper is worse" read off a search with 15 epochs is partly "slower to train". Two honest options: give every trial enough epochs, with early stopping, or say that your result holds for this budget. And one run per setting cannot separate a point or two from seed noise: repeat the winner before you call it a win.</aside>
 </section>
 
+<section id="class" class="paper std" data-crumb="class">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 6 — how do you work as a class?</p><p>goal <a href="leerdoelen/les1.html#g1-15">1.15</a></p><p>notebook 05</p></div>
+  <div class="body" style="gap:26px">
+    <h2 class="t">Publish, look, and <span class="v">build on a run by naming it</span></h2>
+    <div class="row" style="gap:70px; align-items:flex-start">
+      <svg viewBox="0 0 900 610" style="width:900px; height:610px; flex-shrink:0; " role="img" aria-label="Runs as boxes; arrows from each run to the run it builds on; your run builds on chen's"><line x1="378.0" y1="150.0" x2="276.0" y2="290.0" stroke="#c43a14" stroke-width="3" marker-end="url(#av)"/><line x1="378.0" y1="430.0" x2="276.0" y2="290.0" stroke="#c43a14" stroke-width="3" marker-end="url(#av)"/><line x1="698.0" y1="90.0" x2="576.0" y2="150.0" stroke="#c43a14" stroke-width="3" marker-end="url(#av)"/><line x1="698.0" y1="330.0" x2="576.0" y2="430.0" stroke="#c43a14" stroke-width="3" marker-end="url(#av)"/><line x1="698.0" y1="530.0" x2="576.0" y2="430.0" stroke="#c43a14" stroke-width="3" marker-end="url(#av)"/><rect x="80" y="260" width="190" height="60" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/><text x="175.0" y="298.0" font-family="JetBrains Mono, monospace" font-size="20" fill="#111111" text-anchor="middle" font-weight="400">anna/a1</text><text x="175.0" y="348.0" font-family="JetBrains Mono, monospace" font-size="18" fill="#5a544d" text-anchor="middle" font-weight="400">baseline</text><rect x="380" y="120" width="190" height="60" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/><text x="475.0" y="158.0" font-family="JetBrains Mono, monospace" font-size="20" fill="#111111" text-anchor="middle" font-weight="400">bram/b7</text><rect x="380" y="400" width="190" height="60" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/><text x="475.0" y="438.0" font-family="JetBrains Mono, monospace" font-size="20" fill="#111111" text-anchor="middle" font-weight="400">chen/c2</text><rect x="700" y="60" width="190" height="60" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/><text x="795.0" y="98.0" font-family="JetBrains Mono, monospace" font-size="20" fill="#111111" text-anchor="middle" font-weight="400">dewi/d4</text><rect x="700" y="300" width="190" height="60" fill="#1d5a73" stroke="#1d5a73" stroke-width="2"/><text x="795.0" y="338.0" font-family="JetBrains Mono, monospace" font-size="20" fill="#f4f1ec" text-anchor="middle" font-weight="400">you/y9</text><text x="795.0" y="388.0" font-family="JetBrains Mono, monospace" font-size="18" fill="#5a544d" text-anchor="middle" font-weight="400">yours</text><rect x="700" y="500" width="190" height="60" fill="#c9dde4" stroke="#1d5a73" stroke-width="2"/><text x="795.0" y="538.0" font-family="JetBrains Mono, monospace" font-size="20" fill="#111111" text-anchor="middle" font-weight="400">eva/e3</text><text x="260.0" y="590.0" font-family="JetBrains Mono, monospace" font-size="20" fill="#c43a14" text-anchor="start" font-weight="400">→ builds_on, from the new run to the one it names</text></svg>
+      <div class="col" style="gap:26px">
+        <div class="step"><span class="nr">1</span><p class="s"><b style="font-weight:500">Search</b> with optuna: every trial is a run of yours.</p></div>
+        <div class="step"><span class="nr">2</span><p class="s"><b style="font-weight:500">Publish</b> your runs and design script to the class:<br><code class="c">make share LESSON=1</code> · <code class="c">docs/submit-runs.md</code></p></div>
+        <div class="step"><span class="nr">3</span><p class="s"><b style="font-weight:500">Look</b> at the class's runs:<br><code class="c">make dashboard LESSON=1</code></p></div>
+        <div class="step"><span class="nr">4</span><p class="s"><b style="font-weight:500">Build on</b> a run, a classmate's or your own, by naming it in the experiment:<br><code class="c">builds_on=["lesson1/&lt;login&gt;/&lt;run_id&gt;"]</code></p></div>
+      </div>
+    </div>
+  </div>
+  <p class="pn n"></p>
+  <aside>From this lesson on you work as a class. Four steps. Your search runs with optuna, and every trial is a run. Publish those runs and your design script to the class with make share, as docs/submit-runs.md describes; runs from the tester are left out. Look at what the others did with make dashboard, which gathers the class's runs and opens them. And build on a run, someone else's or your own earlier one, by naming it in the experiment with builds_on: the picture is what that gives, a graph of what was built on what, and your run is one of its boxes. A run can build on several others, so the graph is a tree that branches and joins, not a line. Those who push get feedback at the start of the next lesson.</aside>
+</section>
+
 <section id="again06" class="paper mid">
   <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div style="display:flex; flex-direction:column; gap:48px">
@@ -1481,6 +1505,7 @@ pre.code .r{color:#c43a14}
   <div class="foot" style="border-top-color:#2b2621"><p style="color:#b8b0a5">Lesson 1 · Tensors and the cache</p><p class="n" data-plain="1" style="color:#b8b0a5"></p></div>
   <aside>The six questions with their answers. For your own work from today on: read the metadata.json of a cache before you write model code, compute a baseline without training and one with, log every run, look at the learning curves, and say how large the noise is before you call something a win.</aside>
 </section>
+
 </div></div>
 <nav id="crumbs"></nav>
 <style>#start-link{position:fixed;right:10px;top:10px;z-index:6;font:12px/1.3 'JetBrains Mono',monospace;color:#b8b0a5;background:#141210;border:1px solid #2b2621;padding:5px 10px;text-decoration:none;letter-spacing:.04em}#start-link:hover{color:#f4f1ec}#start-link:focus-visible{outline:2px solid #f2643c;outline-offset:2px}@media print{#start-link{display:none}}:root:fullscreen #start-link{display:none}@media (display-mode:fullscreen){#start-link{display:none}}</style>
@@ -1509,7 +1534,7 @@ pre.code .r{color:#c43a14}
   var i=0;
   function fit(){stage.style.setProperty('--scale',Math.min(innerWidth/1920,innerHeight/1080));}
   function builds(s){return [].slice.call(s.querySelectorAll('[data-build-in]'));}
-  function next(){var left=builds(slides[i]).filter(function(b){return !b.classList.contains('built');});if(left.length){left[0].classList.add('built');}else{show(i+1);}}
+  function next(){var left=builds(slides[i]).filter(function(b){return !b.classList.contains('built');});if(left.length){left[0].classList.add('built');}else if(i<slides.length-1){show(i+1);}}
   function show(n,back){
     i=Math.max(0,Math.min(slides.length-1,n));
     builds(slides[i]).forEach(function(b){b.classList.toggle('built',!!back);});
