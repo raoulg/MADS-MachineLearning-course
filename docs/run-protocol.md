@@ -386,7 +386,9 @@ One view at a time, each behind a tab that names the learning goal it shows:
   a more complex head against a simpler one 1.10). Per goal one picture of the class's
   evidence beside the students whose ideas investigated it, each idea named with its
   tags and its final; the question and the expectation are in the drawer. A click on a
-  student's name lights up that student's trials in the picture and greys out the rest.
+  student's name lights up that student's trials and finals (a star) in the picture and
+  greys out the rest; a student with no run the picture can hold is left off its list,
+  and a final on two encoders fused stands in 1.5 as an encoder of its own.
   The pictures: accuracy per encoder (1.5); per encoder, accuracy against depth, width
   or FLOPs, coloured by what is not on the x axis (1.6); the median train and test loss
   after every epoch, per encoder, head size and dropout group (1.9); accuracy against

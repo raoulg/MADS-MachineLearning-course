@@ -1028,3 +1028,53 @@ def test_the_cost_figure_carries_each_trial_with_its_tags_and_head():
     ]
     assert points[1][5:] == ["handed-out search", "linear"]
     assert fig.layout.meta["near"] == class_analysis.NEAR
+
+
+def runs_with_a_fused_final(n=30):
+    """`n` trials of one student on dinov2-small, and another student's idea that is
+    only a final, on two encoders fused."""
+    trials = class_analysis.pd.DataFrame({
+        "role": ["trial"] * n, "student": ["alice"] * n, "idea_name": ["a-idea"] * n,
+        "p_encoder": ["dinov2-small"] * n, "p_n_hidden_layers": [1.0] * n,
+        "p_hidden_dim": [128.0] * n, "score": [0.78 + i / 1000 for i in range(n)],
+        "flops": [1e10] * n,
+    })  # fmt: skip
+    final = class_analysis.pd.DataFrame({
+        "role": ["final"], "student": ["pat"], "idea_name": ["fused-idea"],
+        "p_encoder": ["dinov2-large+resnet-18"], "p_n_hidden_layers": [0.0],
+        "p_hidden_dim": [128.0], "score": [0.85], "flops": [2e10],
+    })  # fmt: skip
+    return class_analysis.pd.concat([trials, final], ignore_index=True)
+
+
+def lit_traces(fig, student):
+    return [
+        t
+        for t in fig.data
+        if isinstance(t.meta, dict) and t.meta.get("student") == student
+    ]
+
+
+def test_a_final_on_two_encoders_fused_lights_up_in_the_encoder_picture_as_a_star():
+    noise = class_analysis.Noise(center=0.79, spread=0.004, n=10, dataset="dtd")
+    runs = runs_with_a_fused_final()
+    picks = {"pat": ["fused-idea"], "alice": ["a-idea"]}
+    fig = class_analysis.fig_encoder(runs, noise, 400, None, picks)
+    (star,) = lit_traces(fig, "pat")
+    assert list(star.marker.symbol) == ["star"]
+    assert star.x[0].startswith("dinov2-large+resnet-18")
+    # the class's boxes hold the trials; the final stands as an encoder of its own
+    boxes = [t for t in fig.data if t.type == "box"]
+    assert [b.name.split("<br>")[0] for b in boxes] == [
+        "dinov2-small",
+        "dinov2-large+resnet-18",
+    ]
+    assert set(lit_traces(fig, "alice")[0].marker.symbol) == {"circle"}
+
+
+def test_a_picture_without_a_place_for_a_fused_final_lights_nothing_of_it():
+    noise = class_analysis.Noise(center=0.79, spread=0.004, n=10, dataset="dtd")
+    fig = class_analysis.fig_capacity(
+        runs_with_a_fused_final(), noise, 400, {"pat": ["fused-idea"]}
+    )
+    assert lit_traces(fig, "pat") == []

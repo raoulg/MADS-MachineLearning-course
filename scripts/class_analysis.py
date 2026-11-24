@@ -1632,10 +1632,16 @@ def box(name: str, y: pd.Series, color: str = INK) -> go.Box:
 PICK_MARKER = {"size": 10, "color": ORANGE, "line": {"color": "#ffffff", "width": 1.2}}
 
 
+def class_trials(runs: pd.DataFrame) -> pd.DataFrame:
+    """The trials among `runs`, the class's evidence; the finals ride along only to be
+    lit up with their student."""
+    return runs[runs.role != "final"] if "role" in runs else runs
+
+
 def own_trials(
     trials: pd.DataFrame, student: str, names: Iterable[str]
 ) -> pd.DataFrame:
-    """The trials of `student`'s ideas `names` among `trials`."""
+    """The runs of `student`'s ideas `names` among `trials`: trials and finals."""
     if trials.empty or "idea_name" not in trials:
         return trials.iloc[:0]
     return trials[(trials.student == student) & trials.idea_name.isin(list(names))]
@@ -1649,10 +1655,16 @@ def listed(values: Iterable[object]) -> list[float | None]:
 def pick_trace(
     student: str, part: pd.DataFrame, x: Iterable[object], y: Iterable[object], **meta
 ) -> go.Scatter:
-    """`student`'s own trials as orange points, hidden until the page lights that
-    student up."""
+    """`student`'s own runs as orange points, a final as a star, hidden until the page
+    lights that student up."""
+    finals = (part.role == "final").tolist() if "role" in part else [False] * len(part)
+    marker = {
+        **PICK_MARKER,
+        "symbol": ["star" if f else "circle" for f in finals],
+        "size": [15 if f else PICK_MARKER["size"] for f in finals],
+    }
     return go.Scatter(
-        x=list(x), y=list(y), mode="markers", visible=False, showlegend=False, marker=PICK_MARKER,
+        x=list(x), y=list(y), mode="markers", visible=False, showlegend=False, marker=marker,
         meta={"student": student, **meta}, text=[plain(f"{student} · {n}") for n in part.idea_name],
         hovertemplate="%{text}<br>%{y:.3f}<extra></extra>",
     )  # fmt: skip
@@ -1685,7 +1697,15 @@ def fig_encoder(
     of a box is what the head choices did with that encoder; the distance between the
     boxes is what the encoder did."""
     fig = go.Figure()
-    both = pd.concat([trials, extra]) if extra is not None and len(extra) else trials
+    runs, trials = trials, class_trials(trials)
+    # a final on two encoders fused stands as its own encoder: no trial searched it
+    fused = runs[(runs.role == "final") & runs.p_encoder.astype(str).str.contains("+", regex=False)] if (
+        "role" in runs and "p_encoder" in runs) else runs.iloc[:0]  # fmt: skip
+    both = (
+        pd.concat([f for f in (trials, extra, fused) if f is not None and len(f)])
+        if len(trials)
+        else trials
+    )
     done = both[both.p_encoder.notna()] if "p_encoder" in both else both.iloc[:0]
     if done.empty:
         empty_note(fig, "no finished trial names its encoder")
@@ -1696,7 +1716,7 @@ def fig_encoder(
         names[e] = f"{e}<br><span style='font-size:11px'>{len(part)} runs</span>"
         fig.add_trace(box(names[e], part.score))
     for s, idea_names in (picks or {}).items():
-        part = own_trials(trials, s, idea_names)
+        part = own_trials(runs, s, idea_names)
         part = (
             part[part.p_encoder.isin(list(names))]
             if "p_encoder" in part
@@ -1744,6 +1764,7 @@ def facet_figure(
 ) -> go.Figure:
     """Boxes of the scores of `trials` per value of `group` (in `order`), one column per
     encoder with enough trials."""
+    runs, trials = trials, class_trials(trials)
     encoders = main_encoders(trials)
     fig = make_subplots(rows=1, cols=max(len(encoders), 1), shared_yaxes=True,
                         horizontal_spacing=0.04, subplot_titles=encoders or None)  # fmt: skip
@@ -1757,7 +1778,7 @@ def facet_figure(
             if len(y):
                 fig.add_trace(box(value, y), row=1, col=c)
         for s, idea_names in (picks or {}).items():
-            mine = own_trials(part, s, idea_names)
+            mine = own_trials(runs[runs.p_encoder == e], s, idea_names)
             mine = mine[mine[group].isin(order)]
             if len(mine):
                 fig.add_trace(
@@ -1847,11 +1868,14 @@ def fig_capacity(
     width, one column per encoder. The page switches what lies along x (depth, width,
     FLOPs) and what the colour says (width, depth, FLOPs, dropout) from the lists this
     figure carries."""
-    encoders = main_encoders(trials)
+    encoders = main_encoders(class_trials(trials))
     t = (
         head_trials(trials[trials.p_encoder.isin(encoders)])
         if encoders
         else trials.iloc[:0]
+    )
+    trial = (
+        (t.role != "final").to_numpy() if "role" in t else np.ones(len(t), dtype=bool)
     )
     fig = make_subplots(rows=1, cols=max(len(encoders), 1), horizontal_spacing=0.05,
                         subplot_titles=encoders or None)  # fmt: skip
@@ -1860,7 +1884,8 @@ def fig_capacity(
         return style(fig, 200)
     xs, x_axes, cs, colours = capacity_axes(t)
     for c, e in enumerate(encoders, start=1):
-        mask = (t.p_encoder == e).to_numpy()
+        cell = (t.p_encoder == e).to_numpy()
+        mask = cell & trial
         part = t[mask]
         fig.add_trace(go.Scatter(
             x=listed(xs["depth"][mask]), y=part.score, mode="markers", showlegend=False,
@@ -1873,12 +1898,12 @@ def fig_capacity(
             hovertemplate="%{text}<br>%{y:.3f}<extra></extra>",
         ), row=1, col=c)  # fmt: skip
         for s, idea_names in (picks or {}).items():
-            mine = own_trials(part, s, idea_names)
+            mine = own_trials(t[cell], s, idea_names)
             if mine.empty:
                 continue
-            sub = part.index.isin(mine.index)
-            fig.add_trace(pick_trace(s, mine, listed(xs["depth"][mask][sub]), mine.score,
-                                     xs={k: listed(v[mask][sub]) for k, v in xs.items()}), row=1, col=c)  # fmt: skip
+            sub = t.index.isin(mine.index)
+            fig.add_trace(pick_trace(s, mine, listed(xs["depth"][sub]), mine.score,
+                                     xs={k: listed(v[sub]) for k, v in xs.items()}), row=1, col=c)  # fmt: skip
         band_shape(fig, noise, 1, c, accuracy=True)
         fit_range(fig, [part.score], row=1, col=c)
     first = colours["width"]
@@ -1984,7 +2009,7 @@ def fig_overfitting(
         if "losses" in trials
         else trials.iloc[:0]
     )
-    encoders = main_encoders(has)
+    encoders = main_encoders(class_trials(has))
     if not encoders:
         fig = go.Figure()
         empty_note(fig, "no encoder has enough trials that logged their losses")
@@ -2004,7 +2029,9 @@ def fig_overfitting(
         for c, (lo, hi, _) in enumerate(HEAD_SIZES, start=1):
             cell = has[(has.p_encoder == e) & (sizes >= lo) & (sizes < hi)]
             for dlo, dhi, words, colour in DROPOUT_GROUPS:
-                part = cell[(drop[cell.index] >= dlo) & (drop[cell.index] < dhi)]
+                part = class_trials(
+                    cell[(drop[cell.index] >= dlo) & (drop[cell.index] < dhi)]
+                )
                 test = median_curve([list(v[1]) for v in part.losses])
                 train = median_curve([list(v[0]) for v in part.losses])
                 if not test:
@@ -2063,7 +2090,7 @@ def fig_simpler(
     """1.10: every finished trial's score against the FLOPs of training its head,
     coloured by the shape of the head, one column per encoder: what a more complex head
     costs, and whether the score pays for it."""
-    encoders = main_encoders(trials)
+    encoders = main_encoders(class_trials(trials))
     t = (
         trials[trials.p_encoder.isin(encoders) & trials.flops.notna()].copy()
         if encoders
@@ -2079,7 +2106,7 @@ def fig_simpler(
     for c, e in enumerate(encoders, start=1):
         part = t[t.p_encoder == e]
         for form, colour in HEAD_COLOURS.items():
-            p = part[part.form == form]
+            p = class_trials(part[part.form == form])
             if p.empty:
                 continue
             fig.add_scatter(
@@ -2151,7 +2178,7 @@ def tag_chips(tags: Iterable[str]) -> str:
 
 def theme_students(items: list[SimpleNamespace], tags: Mapping[str, list[str]]) -> str:
     """The students with an idea under a theme, in the order their first one ran: a
-    button that lights up their trials in the picture, and each idea as its name, its
+    button that lights up their runs in the picture, and each idea as its name, its
     tags and its final score, a link that opens it."""
     order: dict[str, list[SimpleNamespace]] = {}
     for r in items:
@@ -2164,10 +2191,9 @@ def theme_students(items: list[SimpleNamespace], tags: Mapping[str, list[str]]) 
             f"<span class='num'>{'' if math.isnan(number(r.final)) else f'{r.final:.3f}'}</span></a></li>"
             for r in mine
         )  # fmt: skip
-        out.append(
-            f"<div class='tstudent'><button type='button' class='pick' data-student='{esc(s)}' aria-pressed='false'>"
-            f"<b>{esc(s)}</b><span>{plural(len(mine), 'idea')}</span></button><ul>{ideas_}</ul></div>"
-        )
+        who = (f"<button type='button' class='pick' data-student='{esc(s)}' aria-pressed='false'>"
+               f"<b>{esc(s)}</b><span>{plural(len(mine), 'idea')}</span></button>")  # fmt: skip
+        out.append(f"<div class='tstudent'>{who}<ul>{ideas_}</ul></div>")
     return "".join(out)
 
 
@@ -2190,23 +2216,32 @@ def themes_view(
     if not shown:
         return missing("No idea of a student submitted yet." if ids[ids.author != COURSE].empty
                        else "Too few runs of the handed-out baseline to read the evidence against.")  # fmt: skip
-    done = finished(trials)
+    finals = finished(df[df.role == "final"]).copy()
+    finals["flops"] = train_flops(finals)
+    done = pd.concat([finished(trials), finals], ignore_index=True)
     rail, panels = [], []
     for i, t in enumerate(shown):
         mine = grouped[t.key]
+        picks: dict[str, list[str]] = {}
+        for r in mine:
+            picks.setdefault(lane_of(r), []).append(r.name)
+        fig_id = f"theme-fig-{t.key}"
+        picture, lit = "", None
+        if t.key != OTHER.key and noise is not None:
+            fig = theme_figure(t, done, noise, 600, df, picks, metric)
+            lit = {
+                tr.meta["student"]
+                for tr in fig.data
+                if isinstance(tr.meta, dict) and "student" in tr.meta
+            }
+            picture = (capacity_switch(fig_id) if t.key == "capacity" else "") + figure(fig, div_id=fig_id)  # fmt: skip
+            # a student the picture holds no run of is left off its list
+            mine = [r for r in mine if lane_of(r) in lit]
         rail.append(
             f"<button type='button' class='theme-tab' data-theme='{t.key}' aria-selected='{str(i == 0).lower()}'>"
             f"<span class='goal num'>{esc(t.goal)}</span><span class='ttl'>{esc(t.title)}</span>"
             f"<span class='cnt'>{plural(len(mine), 'idea')}</span></button>"
         )
-        picks: dict[str, list[str]] = {}
-        for r in mine:
-            picks.setdefault(lane_of(r), []).append(r.name)
-        fig_id = f"theme-fig-{t.key}"
-        picture = ""
-        if t.key != OTHER.key and noise is not None:
-            picture = (capacity_switch(fig_id) if t.key == "capacity" else "") + figure(
-                theme_figure(t, done, noise, 600, df, picks, metric), div_id=fig_id)  # fmt: skip
         people_ = theme_students(mine, tags) or missing(
             "No idea of a student investigated this."
         )
@@ -3292,8 +3327,8 @@ def build_page(
     tabs: list[tuple[str, str, str, str]] = []  # (id, label, goal, html)
     tabs.append((
         "investigated", "What they investigated", "",
-        panel("The class’s evidence per learning goal. Click a student to light up the trials of "
-              "their ideas on that goal; click an idea to open it. The dotted line is the handed-out "
+        panel("The class’s evidence per learning goal. Click a student to light up the runs of "
+              "their ideas on that goal, a final as a star; click an idea to open it. The dotted line is the handed-out "
               "baseline, its band where a rerun of it lands.",
               themes_view(df, ids, noise, pooled, lesson, tags, metric)),
     ))  # fmt: skip
