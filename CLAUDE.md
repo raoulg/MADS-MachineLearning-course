@@ -55,8 +55,8 @@ in place.
 A notebook is written against a goal map and is done only when a fresh agent, reading it
 as a student who knows the earlier lessons and nothing else, can learn its goals from
 it. The loop, the design rules and the reader's brief are in the `lesson-design` skill
-(`.claude/skills/lesson-design/`); the entry profiles and goal maps are in
-`docs/lesson-design/`. A model or a term the student has not met is introduced before
+(with `slides`, installed by `npx skills add raoulg/skills -g`); the entry profiles and goal maps are in
+`design/`. A model or a term the student has not met is introduced before
 use, with a reason and a diagram; an experiment states its question, gets a fair setup
 with loss curves, and concludes only what its output shows.
 

@@ -43,8 +43,8 @@ legacy/
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/your-study/
-!.claude/skills/lesson-design/
 */**/.claude/
 
-# Working notes of the lesson-design loop, not course material
-docs/lesson-design/reviews/
+# Working material of the lesson-design and slides loops (goal maps, entry profiles,
+# slide plans, review rounds): never committed
+design/
