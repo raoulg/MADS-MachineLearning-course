@@ -18,19 +18,35 @@ The choices of lesson 2's design, each a bet about the data:
 
 What lesson 3 adds (notebook 3.1):
 
-- `route`: a mixture of `n_experts` experts on every position of the shortened beat, and
-  a router that chooses between them per position. `routing="dense"` blends every
-  expert (`MoE`); `routing="sparse"` runs only the expert the router picks (`SparseMoE`,
-  top-1), so it trains all experts and uses one per position.
+- `route`: a mixture of `n_experts` experts on every position of the shortened beat
+  (`self.short`: 93, 46, 23 and 11 positions at `depth` 1 to 4, with a pool), each
+  expert a `width -> width` layer with a GELU, and a router that weighs them per
+  position. `routing="dense"` blends every expert with the router's softmax weights
+  (`MoE`); `routing="sparse"` runs only the expert with the largest weight and scales
+  its output by that weight (`SparseMoE`, top-1), so it trains all experts and uses one
+  per position.
 - `matched`: the control of `route`. With `route` on, `matched` puts a plain stage of the
   same parameter count in its place: two linear layers with a GELU between them, no
   router and no experts. The logged `n_params` of the two shows they are matched. Without
-  `route`, `matched` changes nothing.
+  `route`, `matched` changes nothing. `matched` matches the trained parameters, not the
+  ones used per position: with `routing="dense"` both use all of them at every position
+  (and about the same compute), but with `routing="sparse"` the route stage runs one
+  expert per position, so `matched` uses more parameters, and more compute, per
+  position than the route stage it stands in for.
+- `balance`: the weight of the load-balancing loss of notebook 3.1 (1.4), 0 by default.
+  The trainer adds `balance * load_balancing_loss(model)` to the loss of every training
+  step and never to the validation loss. The loss is 1 when the router spreads the
+  positions evenly over the experts and grows as it concentrates them on few, so a
+  weight above 0 pushes against router collapse. Only `SparseMoE` computes it: with
+  `routing="dense"` the weight changes nothing, and the trainer warns. Fedus et al.
+  (2021) use 0.01.
 
-A route stage and its control differ in two things: the router, and how the parameters
-are spent (several narrow experts against one wider path). That is what a capacity-matched
-control measures: whether choosing a path per position buys more than the same parameters
-spent on a plain layer.
+A route stage and its control differ in the router and in the form of the function, at
+the same parameter count: `n_experts` experts of `width -> width`, each ending in a GELU
+and weighed per position, against one path `width -> hidden -> width` (hidden about twice
+the width) whose last layer is linear and feeds the linear head. That is what a
+capacity-matched control measures: whether weighing experts per position buys more than
+the same parameters spent on a plain path.
 
 Read it in atlas before you train anything: the shape on every arrow, and where a choice
 leaves a stage out.
@@ -93,6 +109,7 @@ class Config:
     wide_kernel: int = 15  # the second kernel of `parallel`
     n_experts: int = 4  # the experts of `route`
     routing: Literal["dense", "sparse"] = "dense"
+    balance: float = 0.0  # the weight of the load-balancing loss in training
     parallel: bool = False
     fold: bool = False
     skip: bool = False
@@ -197,6 +214,12 @@ class Beats(nn.Module):
             )
         if config.state:
             self.recurrent = Recurrent(width, width, kind="gru")
+        if config.gate:
+            self.gating = Gate(width)
+        self.drop = nn.Dropout(config.dropout)
+        self.classifier = nn.Linear(self.short * width, n_classes)
+        # the route stage or its control is built last: from one seed, the two arms of a
+        # pair then start from the same weights in every other layer, the head included
         if config.route and config.matched:
             hidden = matched_hidden(width, config.n_experts)
             self.plain = nn.Sequential(
@@ -212,10 +235,6 @@ class Beats(nn.Module):
                 if config.routing == "dense"
                 else SparseMoE(experts, hidden_size=width, out_size=width, k=1)
             )
-        if config.gate:
-            self.gating = Gate(width)
-        self.drop = nn.Dropout(config.dropout)
-        self.classifier = nn.Linear(self.short * width, n_classes)
 
     @jaxtyped(typechecker=beartype)
     def perturb(
