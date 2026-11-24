@@ -731,11 +731,11 @@ def study_loop(page: str = "your-study.html") -> HTML:
     """The nine-step loop drawn on `page` in `presentations/`, as a figure in the notebook.
     A page that redirects (a meta refresh) is followed to the page it names. Every box links
     to its step on the published page."""
-    html = (PRESENTATIONS / page).read_text()
+    html = (PRESENTATIONS / page).read_text(encoding="utf-8")
     refresh = re.search(r'http-equiv="refresh" content="[^"]*url=([^"#]+)', html)
     if refresh is not None:
         page = refresh.group(1)
-        html = (PRESENTATIONS / page).read_text()
+        html = (PRESENTATIONS / page).read_text(encoding="utf-8")
     markers = re.search(r"<defs>.*?</defs>", html, flags=re.DOTALL)
     loop = re.search(r'<svg class="loop-wide".*?</svg>', html, flags=re.DOTALL)
     if markers is None or loop is None:

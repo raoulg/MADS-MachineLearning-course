@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 import optuna
 import pytest
 import submit_runs  # ty: ignore[import-not-found]
-from gitworld import gitconfig, run
+from gitworld import gitconfig, run  # ty: ignore[import-not-found]  (conftest puts scripts/ on sys.path)
 from optuna.artifacts import FileSystemArtifactStore, upload_artifact
 
 
@@ -86,7 +86,8 @@ def test_a_pull_request_from_someone_elses_branch_is_not_ours(world, submission)
                     "state": "open",
                 }
             ]
-        )
+        ),
+        encoding="utf-8",
     )
     submit_runs.submit(world.clone, 1, "alice", [submission("alice")])
     assert len(world.creates()) == 1
@@ -144,7 +145,7 @@ def test_without_prune_nothing_is_removed(world, submission):
 
 def test_commit_without_a_git_identity(world, submission, tmp_path, monkeypatch):
     bare = tmp_path / "gitconfig-no-user"
-    bare.write_text(gitconfig(tmp_path, user=False))
+    bare.write_text(gitconfig(tmp_path, user=False), encoding="utf-8")
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(bare))
     submit_runs.submit(world.clone, 1, "alice", [submission("alice")])
     author = run("git", "--git-dir", str(world.fork), "log", "-1", "--format=%an <%ae>",
@@ -153,12 +154,12 @@ def test_commit_without_a_git_identity(world, submission, tmp_path, monkeypatch)
 
 
 def test_untracked_files_outside_lessons_do_not_block(world, submission):
-    (world.clone / "notes.txt").write_text("mine\n")
+    (world.clone / "notes.txt").write_text("mine\n", encoding="utf-8")
     submit_runs.submit(world.clone, 1, "alice", [submission("alice")])
     assert len(world.creates()) == 1
 
     stray = world.clone / "lesson1/alice" / ("e" * 32 + ".json")
-    stray.write_text("{}")
+    stray.write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit) as e:
         submit_runs.submit(world.clone, 1, "alice", [submission("alice")])
     assert "uncommitted changes" in str(e.value)
@@ -260,7 +261,7 @@ def local_store(tmp_path, trials) -> tuple["submit_runs.Store", dict[str, str]]:
         for filename, text in files.items():
             folder = tmp_path / "upload" / uuid.uuid4().hex
             folder.mkdir(parents=True)
-            (folder / filename).write_text(text)
+            (folder / filename).write_text(text, encoding="utf-8")
             upload_artifact(
                 artifact_store=artifacts,
                 file_path=str(folder / filename),
@@ -299,7 +300,7 @@ def test_runs_imported_from_the_class_are_not_submitted(
     out = capsys.readouterr().out
     assert "not submitted: 2 run(s) imported from the class repository" in out
     assert written == [f"lesson1/alice/{ids['mine']}.json"]
-    data = json.loads((world.clone / written[0]).read_text())
+    data = json.loads((world.clone / written[0]).read_text(encoding="utf-8"))
     assert data["run"]["artifacts"] == {"design.py": "model = 1\n"}
     assert data["schema"] == "mads-run/2"
     assert data["run"]["experiment"] == "lesson1-notebook"
@@ -338,7 +339,7 @@ def test_a_pruned_trial_is_submitted_with_the_epochs_it_ran(
     trial.report(0.4, 1)
     study.tell(trial, state=optuna.trial.TrialState.PRUNED)
     [path] = submit_main(monkeypatch, world, store)
-    data = json.loads((world.clone / path).read_text())["run"]
+    data = json.loads((world.clone / path).read_text(encoding="utf-8"))["run"]
     assert data["status"] == "PRUNED"
     assert data["value"] == 0.4  # a pruned trial's value is its last reported one
     assert data["intermediate"] == [

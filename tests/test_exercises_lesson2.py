@@ -91,7 +91,7 @@ def check(space: dict) -> None:
 
 
 def test_the_handed_out_space_searches_every_option():
-    source = (FOLDER / "study.py").read_text()
+    source = (FOLDER / "study.py").read_text(encoding="utf-8")
     for axis in DESIGN.options():
         assert f'"{axis}":' in source
 

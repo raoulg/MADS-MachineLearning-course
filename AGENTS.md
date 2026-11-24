@@ -98,6 +98,11 @@ to a new presentation URL, verify that its local file exists under `presentation
 The pre-commit `lychee` check sees a 404 until the Pages deployment; use
 `LEFTHOOK_EXCLUDE=lychee` for that commit and check the published URL afterward.
 
+A mockup or a preview of slides is not a presentation: it goes in `mockups/` at the
+root of the repository, which git ignores, and links to `../presentations/img/` and
+`../presentations/fonts/`. A page moves into `presentations/` once Raoul has approved it
+as part of a lesson deck.
+
 ## uv cache in the workspace sandbox
 
 If `uv run` fails because the sandbox cannot access `~/.cache/uv`, set

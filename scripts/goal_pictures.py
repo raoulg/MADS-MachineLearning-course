@@ -2043,7 +2043,7 @@ def marker(c: str, col: str) -> str:
 
 
 def build(lesson: int) -> Path:
-    md = (ROOT / f"presentations/leerdoelen/les{lesson}.md").read_text()
+    md = (ROOT / f"presentations/leerdoelen/les{lesson}.md").read_text(encoding="utf-8")
     heading = re.match(r"# Les \d+ — (.*)", md)
     if heading is None:
         raise SystemExit(
@@ -2131,7 +2131,7 @@ svg .n.v{{fill:{V}}}
 </html>
 """
     out = ROOT / f"presentations/leerdoelen/les{lesson}.html"
-    out.write_text(page)
+    out.write_text(page, encoding="utf-8")
     return out
 
 

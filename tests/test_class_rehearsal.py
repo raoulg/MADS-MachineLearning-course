@@ -73,7 +73,7 @@ def test_a_plan_that_names_no_earlier_study_is_refused(key, change, says):
 
 
 def test_a_child_searches_what_its_parents_changed_and_its_own():
-    handed_out = rehearsal.handed_out_space(STUDY.read_text())
+    handed_out = rehearsal.handed_out_space(STUDY.read_text(encoding="utf-8"))
     c2 = rehearsal.space_of("c2", rehearsal.PLAN, handed_out)
     assert c2["n_hidden_layers"] == "Int(1, 3)"  # from a1, through b1
     assert c2["dropout"] == "Float(0.0, 0.7)"  # from c1
@@ -102,7 +102,7 @@ def load_study(path: Path, monkeypatch):
 def test_the_edit_of_study_py_imports_and_carries_the_answers(
     builds_on, tmp_path, monkeypatch
 ):
-    text = STUDY.read_text()
+    text = STUDY.read_text(encoding="utf-8")
     space = rehearsal.handed_out_space(text) | {
         "hidden_dim": "Int(256, 2048, log=True)",
         "dropout": "Float(0.0, 0.7)",
@@ -118,7 +118,7 @@ def test_the_edit_of_study_py_imports_and_carries_the_answers(
         minutes=1.5,
     )
     path = tmp_path / "study.py"
-    path.write_text(rehearsal.edit_study(text, answers))
+    path.write_text(rehearsal.edit_study(text, answers), encoding="utf-8")
     study = load_study(path, monkeypatch)
 
     assert study.STUDY == "c-skip-and-gate"
@@ -133,11 +133,13 @@ def test_the_edit_of_study_py_imports_and_carries_the_answers(
     assert study.SPACE["gate"] is True
     assert list(study.SPACE) == list(space)
     # the questions above the answers stay
-    assert "# What do you expect to happen, and why?" in path.read_text()
+    assert "# What do you expect to happen, and why?" in path.read_text(
+        encoding="utf-8"
+    )
 
 
 def test_an_edit_of_a_study_py_without_an_answer_is_refused():
-    text = STUDY.read_text().replace("MINUTES = ", "BUDGET = ")
+    text = STUDY.read_text(encoding="utf-8").replace("MINUTES = ", "BUDGET = ")
     answers = rehearsal.Answers("a-x", "words of an idea", (), "expects", {}, 1)
     with pytest.raises(rehearsal.Stop, match="MINUTES"):
         rehearsal.edit_study(text, answers)
@@ -145,7 +147,7 @@ def test_an_edit_of_a_study_py_without_an_answer_is_refused():
 
 def executable(path: Path, text: str) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
     path.chmod(0o755)
     return path
 
@@ -173,7 +175,7 @@ def test_the_guard_refuses_a_rewrite_outside_the_sandbox(tmp_path):
     sandbox = tmp_path / "sandbox"
     sandbox.mkdir()
     text = rehearsal.sandbox_gitconfig(sandbox, ["a", "b"])
-    (sandbox / "gitconfig").write_text(text)
+    (sandbox / "gitconfig").write_text(text, encoding="utf-8")
     rehearsal.check_rewrite(git_env(sandbox / "gitconfig"), sandbox)
 
     with_system = git_env(sandbox / "gitconfig")
@@ -181,15 +183,17 @@ def test_the_guard_refuses_a_rewrite_outside_the_sandbox(tmp_path):
     with pytest.raises(rehearsal.Stop, match="GIT_CONFIG_NOSYSTEM"):
         rehearsal.check_rewrite(with_system, sandbox)
 
-    (tmp_path / "gitconfig").write_text(text)
+    (tmp_path / "gitconfig").write_text(text, encoding="utf-8")
     with pytest.raises(rehearsal.Stop, match="not a file inside"):
         rehearsal.check_rewrite(git_env(tmp_path / "gitconfig"), sandbox)
 
-    (sandbox / "gitconfig").write_text(gitconfig(sandbox))  # rewrites, allows https
+    (sandbox / "gitconfig").write_text(
+        gitconfig(sandbox), encoding="utf-8"
+    )  # rewrites, allows https
     with pytest.raises(rehearsal.Stop, match="lets git use https"):
         rehearsal.check_rewrite(git_env(sandbox / "gitconfig"), sandbox)
 
-    (sandbox / "gitconfig").write_text("[user]\n  name = x\n")
+    (sandbox / "gitconfig").write_text("[user]\n  name = x\n", encoding="utf-8")
     with pytest.raises(rehearsal.Stop, match="does not rewrite"):
         rehearsal.check_rewrite(git_env(sandbox / "gitconfig"), sandbox)
 
@@ -199,7 +203,7 @@ def test_a_remote_on_github_passes_only_where_git_cannot_fetch_it(tmp_path):
     repo = sandbox / "students/a/course"
     repo.mkdir(parents=True)
     config = sandbox / "gitconfig"
-    config.write_text("[user]\n  name = x\n")
+    config.write_text("[user]\n  name = x\n", encoding="utf-8")
     env = git_env(config)
     subprocess.run(["git", "init", "--quiet", str(repo)], env=env, check=True)
     subprocess.run(
@@ -210,7 +214,7 @@ def test_a_remote_on_github_passes_only_where_git_cannot_fetch_it(tmp_path):
     with pytest.raises(rehearsal.Stop, match="lets git use https"):
         rehearsal.check_remotes([repo], env)
 
-    config.write_text(rehearsal.sandbox_gitconfig(sandbox, ["a"]))
+    config.write_text(rehearsal.sandbox_gitconfig(sandbox, ["a"]), encoding="utf-8")
     rehearsal.check_remotes([repo], env)
     # a normal shell reads none of the sandbox's config, until the clone holds it
     with pytest.raises(rehearsal.Stop, match="lets git use https"):
@@ -224,7 +228,7 @@ def test_a_pinned_fork_clone_reaches_the_sandbox_in_a_plain_shell(tmp_path):
     repo = sandbox / "students/a/mads-runs"
     repo.mkdir(parents=True)
     config = sandbox / "gitconfig"
-    config.write_text(rehearsal.sandbox_gitconfig(sandbox, ["a"]))
+    config.write_text(rehearsal.sandbox_gitconfig(sandbox, ["a"]), encoding="utf-8")
     env = git_env(config)
     subprocess.run(["git", "init", "--quiet", str(repo)], env=env, check=True)
     url = "https://github.com/a/mads-ml-runs-2026-11.git"
@@ -270,7 +274,7 @@ def rehearsed(tmp_path, monkeypatch):
 
 
 def pull_requests(r) -> list[dict]:
-    return json.loads((r.sandbox / "gh-prs.json").read_text())
+    return json.loads((r.sandbox / "gh-prs.json").read_text(encoding="utf-8"))
 
 
 def test_the_check_merges_a_valid_pull_request_and_stops_an_invalid_one(
@@ -301,7 +305,9 @@ def test_a_pull_request_off_main_of_the_class_repository_is_refused(
 ):
     submit_runs.submit(rehearsed.world.clone, 1, "alice", [submission("alice")])
     [pr] = pull_requests(rehearsed)
-    (rehearsed.sandbox / "gh-prs.json").write_text(json.dumps([{**pr, **change}]))
+    (rehearsed.sandbox / "gh-prs.json").write_text(
+        json.dumps([{**pr, **change}]), encoding="utf-8"
+    )
     with pytest.raises(rehearsal.Stop, match="not raoulg/mads-ml-runs-2026-11:main"):
         rehearsed.check_and_merge(pr["url"], "x")
     assert rehearsed.world.on_upstream() == []
@@ -351,7 +357,9 @@ def test_a_study_planned_over_the_check_s_file_limit_is_warned_about():
 
 def test_a_step_output_is_read_as_github_writes_it(tmp_path):
     output = tmp_path / "out"
-    output.write_text("problems<<EOF_1\nline one\nline=two\nEOF_1\nstatus=1\n")
+    output.write_text(
+        "problems<<EOF_1\nline one\nline=two\nEOF_1\nstatus=1\n", encoding="utf-8"
+    )
     assert rehearsal.outputs_of(output) == {
         "problems": "line one\nline=two",
         "status": "1",
@@ -371,5 +379,7 @@ def test_the_teachers_class_page_links_the_course_start_page(tmp_path):
 def test_the_published_rehearsal_page_holds_the_start_link_once():
     from class_analysis import course_link  # ty: ignore[import-not-found]
 
-    page = (ROOT / "presentations" / "lesson1-class-rehearsal.html").read_text()
+    page = (ROOT / "presentations" / "lesson1-class-rehearsal.html").read_text(
+        encoding="utf-8"
+    )
     assert page.count(course_link(rehearsal.COURSE_START)) == 1

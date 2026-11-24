@@ -41,7 +41,7 @@ def store(tmp_path) -> Store:
 
 def design_script(tmp_path: Path) -> Path:
     path = tmp_path / "my_design.py"
-    path.write_text("import torch\n\nmodel = torch.nn.Linear(4, 2)\n")
+    path.write_text("import torch\n\nmodel = torch.nn.Linear(4, 2)\n", encoding="utf-8")
     return path
 
 
@@ -115,7 +115,9 @@ def test_a_run_writes_builds_on_and_the_design_script(store, tmp_path):
     )
     trial = only_trial(log)
     assert trial.user_attrs["builds_on"] == f"{BOB},{CAROL}"
-    assert artifact(store, "design.py", trial) == design_script(tmp_path).read_text()
+    assert artifact(store, "design.py", trial) == design_script(tmp_path).read_text(
+        encoding="utf-8"
+    )
 
 
 def test_builds_on_that_is_not_a_submission_ref_raises_before_anything_is_written(
@@ -443,5 +445,5 @@ def test_a_study_on_macro_recall_passes_the_check(store, tmp_path):
     assert sub.spread("recall/F") == pytest.approx(0.1)
     out = tmp_path / "class"
     (out / sub.relpath()).parent.mkdir(parents=True)
-    (out / sub.relpath()).write_text(sub.dump())
+    (out / sub.relpath()).write_text(sub.dump(), encoding="utf-8")
     assert check(out, [sub.relpath()], "sam", set()) == []

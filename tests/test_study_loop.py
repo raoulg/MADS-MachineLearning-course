@@ -50,7 +50,7 @@ STEPS = [
 
 @pytest.mark.parametrize("layout", ["loop-wide", "loop-tall"])
 def test_both_layouts_of_the_figure_draw_the_nine_steps_in_order(layout: str) -> None:
-    html = PAGE.read_text()
+    html = PAGE.read_text(encoding="utf-8")
     svg = re.search(rf'<svg class="{layout}".*?</svg>', html, flags=re.DOTALL)
     assert svg is not None
     labels = re.findall(r'<text class="t"[^>]*>([^<]*)</text>', svg.group(0))
@@ -60,7 +60,7 @@ def test_both_layouts_of_the_figure_draw_the_nine_steps_in_order(layout: str) ->
 
 
 def test_every_step_has_one_card_and_the_figure_says_nine() -> None:
-    html = PAGE.read_text()
+    html = PAGE.read_text(encoding="utf-8")
     for n in range(1, 10):
         assert html.count(f'id="step-{n}"') == 1
     assert 'id="step-10"' not in html
@@ -97,7 +97,7 @@ def words(fragment: str) -> str:
 def test_each_lesson_block_opens_with_your_research_and_its_three_prompts(
     lesson: int,
 ) -> None:
-    block = lesson_block(PAGE.read_text(), lesson)
+    block = lesson_block(PAGE.read_text(encoding="utf-8"), lesson)
     research = block[block.index("</h3>") : block.index("<dl>")]
     assert words(research).startswith("Your research ")
     assert f"To lesson {lesson + 1} you bring your page" in words(research)
@@ -123,7 +123,7 @@ def test_each_lesson_block_opens_with_your_research_and_its_three_prompts(
 
 
 def test_the_page_says_how_it_counts_once_and_never_says_homework() -> None:
-    html = PAGE.read_text()
+    html = PAGE.read_text(encoding="utf-8")
     assert html.count('id="how-it-counts"') == 1
     counts = html[html.index('id="how-it-counts"') : html.index('id="per-lesson"')]
     text = words(counts)
@@ -135,14 +135,14 @@ def test_the_page_says_how_it_counts_once_and_never_says_homework() -> None:
 
 
 def test_explain_sends_the_student_to_dav_and_the_beelddenker_skill() -> None:
-    html = PAGE.read_text()
+    html = PAGE.read_text(encoding="utf-8")
     card = html[html.index('id="step-7"') : html.index('id="step-8"')]
     assert "the first impression should be the message" in words(card)
     assert 'href="https://github.com/raoulg/beelddenker"' in card
 
 
 def test_a_copy_button_copies_its_own_prompt_and_says_so() -> None:
-    html = PAGE.read_text()
+    html = PAGE.read_text(encoding="utf-8")
     assert html.count('<button type="button">Copy</button>') == 6
     assert html.count('role="status"') == 1
     script = html[html.rindex("<script>") :]
