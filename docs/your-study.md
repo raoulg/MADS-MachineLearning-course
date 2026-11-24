@@ -26,14 +26,16 @@ tells you which you have). The plain form is what the `Makefile` recipe runs.
 | build and open the student's page | any | `make page LESSON=<N>` | `uv run scripts/study_page.py --lesson <N> --open` |
 | hand in | 1 | `make share LESSON=1` | `uv run scripts/submit_runs.py --lesson 1` |
 | hand in | 2 | `make share LESSON=2` | `uv run scripts/submit_runs.py --lesson 2` |
-| the class's ideas and runs | 1 | `make dashboard LESSON=1` | `uv run scripts/class_analysis.py --lesson 1 --open`, then `uv run scripts/collect_runs.py --lesson 1 --no-pull --ui` |
-| the class's ideas and runs | 2 | `make dashboard LESSON=2` | `uv run scripts/class_analysis.py --lesson 2 --open`, then `uv run scripts/collect_runs.py --lesson 2 --no-pull --ui` |
+| the class's ideas and runs | 1 | `make dashboard LESSON=1` | `uv run scripts/class_analysis.py --lesson 1 --open --no-pull`, then `uv run scripts/collect_runs.py --lesson 1 --no-pull --ui` |
+| the class's ideas and runs | 2 | `make dashboard LESSON=2` | `uv run scripts/class_analysis.py --lesson 2 --open --no-pull`, then `uv run scripts/collect_runs.py --lesson 2 --no-pull --ui` |
 
 `make optuna-dashboard` serves on `http://127.0.0.1:8088` (`OPTUNA_PORT=<port>` for
 another port); its store exists once Part 1 of the lesson's exercise notebook has run.
 `make share` takes `ARGS=--list` to show what would be handed in, and `make dashboard`
 takes `METRIC=<name>` to read the class page on another logged metric (plain form:
-`--metric <name>` on `class_analysis.py`).
+`--metric <name>` on `class_analysis.py`). `make dashboard` reads the class's runs as
+they were last fetched; `PULL=1` fetches the newest first (the first run fetches on its
+own).
 
 The lesson folders are `notebooks/1_representation_and_head/exercises/` and
 `notebooks/2_kernels_state_and_gates/exercises/`. The exercise notebook is

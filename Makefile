@@ -50,8 +50,9 @@ check-hf-auth:
 share: check-lesson
 	uv run scripts/submit_runs.py --lesson $(LESSON) $(ARGS)
 
+# The class's runs as last fetched; PULL=1 fetches the class repository's main first.
 dashboard: check-lesson
-	uv run scripts/class_analysis.py --lesson $(LESSON) --open $(if $(METRIC),--metric $(METRIC))
+	uv run scripts/class_analysis.py --lesson $(LESSON) --open $(if $(PULL),,--no-pull) $(if $(METRIC),--metric $(METRIC))
 	uv run scripts/collect_runs.py --lesson $(LESSON) --no-pull --ui $(ARGS)
 
 # A rehearsal of the class on this machine: four students in clones of their own, six

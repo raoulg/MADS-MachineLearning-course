@@ -68,7 +68,8 @@ pull request). optuna-dashboard only ever reads a local sqlite file.
 
 `make share LESSON=<N>` is `submit_runs.py --lesson <N>` (`ARGS=--list` shows what would be
 submitted). `make dashboard LESSON=<N>` writes and opens the class page, then rebuilds
-`class.db` and opens optuna-dashboard on it. `make optuna-dashboard` opens optuna-dashboard
+`class.db` and opens optuna-dashboard on it, both from the class's runs as last fetched;
+`make dashboard LESSON=<N> PULL=1` fetches the class repository's `main` first. `make optuna-dashboard` opens optuna-dashboard
 on your own store.
 
 ## What a submission holds
@@ -313,8 +314,8 @@ section (lesson 1's exercise notebook is the example). A lesson's exercise scrip
 ### Ideas across lessons
 
 An idea builds on any published idea, of its own lesson or an earlier one: the check
-looks a parent up in the whole class repository. The class page of a lesson draws a
-parent of another lesson as a dashed box that names its lesson.
+looks a parent up in the whole class repository. The class page of a lesson names a
+parent of another lesson, with its lesson, on the card of the idea that builds on it.
 
 ## Setting up the runs repository (once per cohort)
 
@@ -369,38 +370,56 @@ Set a deadline before the lesson. Then:
 ```bash
 uv run scripts/collect_runs.py --lesson 1          # fetch main, rebuild class.db; prints runs per student
 uv run scripts/class_analysis.py --lesson 1 --open # write the class page, artefacts/class-analysis/lesson1/index.html, and open it
-make dashboard LESSON=1                            # both of the above, then optuna-dashboard on the class store
+make dashboard LESSON=1                            # the class page and optuna-dashboard, from main as last fetched
+make dashboard LESSON=1 PULL=1                     # the same, after fetching main
 ```
 
-The class page is one self-contained HTML file, read from top to bottom in the lesson. A
-row of tiles counts the students, the runs, the own studies, the trials of the handed-out
-search and the runs with a design script. Scores of different datasets are never compared
-with each other: every picture that compares scores does so per dataset. The pictures:
+The class page is one self-contained HTML file that fills one screen, for the teacher after
+the hand-in and on the projector in the lesson. Its header holds one sentence (students,
+ideas, the days they ran, how many ideas build on a classmate's, the trials) and the
+yardstick every comparison is read against: how far two scores must lie apart before they
+differ. Every picture reads one metric; scores of different datasets are never compared.
+One view at a time, each behind a tab that names the learning goal it shows:
 
-- **Who submitted what**: runs per student and role. A student with only baselines ran the
-  handed-out part and no study of their own.
-- **The handed-out baselines, side by side**: the same model on the same data, on every
-  student's machine. Each dot is one student's baseline, the bar the spread between their
-  own runs. How far the dots lie apart is how large a difference has to be to mean
-  anything.
-- **Baseline against final, per study**: each student's own study, the gain of the final
-  over the baseline against the spread. Grey: a gain inside two sigma. Green: a gain that
-  clears it.
-- **The handed-out search, pooled over the class**: every trial of the handed-out search
-  as one line in a parallel-coordinates plot, the class's trials together as one random
-  search many times the size.
-- **Axis by axis**: accuracy against each searched axis, every trial as a faint dot, the
-  median per bin or value as a line, and the class's median baseline dotted.
-- **Each student's own study**: the trials in the order they ran (crosses: stopped early by
-  the pruner), the baseline's band of two standard errors in grey, the final, rerun a few
-  times, as a star, and under it every study's search space on one line.
-- **The ideas of the class**: one box per idea, an arrow from every idea to the one that
-  builds on it.
-- **Who built on whom**: per `builds_on` link, the student's run against the classmate's run
-  it builds on, both scores and the difference; a link to a run not in the class store is
-  listed as such.
-- **What a larger head costs and buys**: every scored run of the most common dataset,
-  accuracy against parameters.
+- **What they investigated**: a rail of the lesson's learning goals (`THEMES` in the
+  script; for lesson 1 the encoder 1.5, the capacity of the head 1.6, overfitting 1.9 and
+  a more complex head against a simpler one 1.10). Per goal one picture of the class's
+  evidence beside the students whose ideas investigated it, each idea named with its
+  tags and its final; the question and the expectation are in the drawer. A click on a
+  student's name lights up that student's trials in the picture and greys out the rest.
+  The pictures: accuracy per encoder (1.5); per encoder, accuracy against depth, width
+  or FLOPs, coloured by what is not on the x axis (1.6); the median train and test loss
+  after every epoch, per encoder, head size and dropout group (1.9); accuracy against
+  the FLOPs of training the head, coloured by the form of the head (1.10).
+- **Tags**: what an idea is about (encoder, depth, width, dropout, skip, gate, ...),
+  from the words of its question (Dutch or English), kept only where its study searched
+  that axis (`TAGS`, `idea_tags`). An idea that names none is tagged by its axes, or as
+  *whole head* when it searched five or more.
+- **Built on** (1.15): one row per student, their ideas in the order they ran, each
+  card with its day, tags and final against its parent or the baseline; a grey link
+  builds on the student's own idea, an orange one on a classmate's. A parent that is not
+  submitted, or of another lesson, is named on the card.
+- **Run again** (1.10): every run of the handed-out baseline's config. Their spread is
+  the noise every comparison on the page is read against.
+- **Search space** (1.14): every finished trial above the handed-out baseline in parallel
+  coordinates. The trials within the noise of the best are kept at first and the rest
+  fade; teal lines are within the noise of the best trial, brown ones further down. A
+  switch colours them by encoder, and a click on an encoder draws only its trials, those
+  within the noise of its own best kept.
+- **Two choices**: per encoder, grids of hidden layers × width, width × dropout, layers
+  × dropout, the form of the head × FLOPs and dropout × FLOPs; a cell is the median of
+  its trials in points above the baseline.
+- **Cost** (1.4): every finished trial above the baseline, its accuracy against the
+  compute of training its head (about 6 × parameters × train rows × epochs), and the
+  cheapest way the class found to each score. A click on a point sets it beside the
+  trials of about the same compute (within a factor 1.6), grouped by encoder and by the
+  tags of their ideas: what sets the best of them apart.
+- **Effort**: ideas, finished trials, trials the pruner stopped, runs of the handed-out
+  notebook and minutes of training, per student; the teacher's row last, for reference.
+
+A click on an idea, anywhere, opens it in a drawer: its words, its trials in the order
+they ran, its trials above the baseline in parallel coordinates, the learning curves of
+its five best trials, its search space, winner's config, budget and design script.
 
 `class_analysis.py` reads the files from `main` exactly as `collect_runs.py` does, and
 `--demo` writes the page on made-up data of eight invented students. It shows what

@@ -102,6 +102,23 @@ def test_the_teachers_clone_with_only_origin(world, submission, tmp_path, monkey
     assert not (clone / later.relpath()).exists()
 
 
+def test_no_pull_fetches_main_once_when_the_clone_has_no_copy_of_it(
+    world, submission, tmp_path, monkeypatch
+):
+    first = submission("alice")
+    world.teacher_push(first)
+    clone = teacher_clone(world)
+    run("git", "update-ref", "-d", "refs/remotes/origin/main", cwd=clone)
+
+    uri = tmp_path / "class.db"
+    collect(monkeypatch, clone, uri, "--no-pull")
+    assert sorted(imported(uri)) == [ref(first)]
+    # with a copy in place, --no-pull reads it and leaves later runs on GitHub
+    world.teacher_push(submission("bob"))
+    collect(monkeypatch, clone, uri, "--no-pull")
+    assert sorted(imported(uri)) == [ref(first)]
+
+
 def test_the_design_script_lands_as_design_py(world, submission, tmp_path, monkeypatch):
     sub = submission("alice")
     design = "import torch\n\nmodel = torch.nn.Linear(4, 2)\n"

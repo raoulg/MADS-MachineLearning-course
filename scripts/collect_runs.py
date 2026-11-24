@@ -81,20 +81,20 @@ def has_remote(repo: Path, name: str) -> bool:
 
 def class_ref(repo: Path, fetch: bool) -> str:
     """`refs/remotes/<remote>/main`, the class repository's main: from `upstream` when
-    the clone has it, else from `origin`. With `fetch`, it is fetched first; nothing else
-    changes."""
+    the clone has it, else from `origin`. It is fetched first with `fetch`, or when the
+    clone has no copy of it yet; nothing else changes."""
     remote = next((r for r in ("upstream", "origin") if has_remote(repo, r)), None)
     if remote is None:
         sys.exit(f"{repo} has neither an `upstream` nor an `origin` remote")
     tracking = f"refs/remotes/{remote}/{BASE}"
-    if fetch:
+    if fetch or git(repo, "rev-parse", "--verify", "--quiet", tracking).returncode != 0:
         fetched = git(
             repo, "fetch", "--quiet", remote, f"+refs/heads/{BASE}:{tracking}"
         )
         if fetched.returncode != 0:
             sys.exit(f"git fetch {remote} in {repo} failed:\n{fetched.stderr.decode()}")
     if git(repo, "rev-parse", "--verify", "--quiet", tracking).returncode != 0:
-        sys.exit(f"{repo} has no {remote}/{BASE}; fetch it, or leave out --no-pull")
+        sys.exit(f"{repo} has no {remote}/{BASE} after fetching it")
     return tracking
 
 
@@ -284,7 +284,7 @@ def main() -> None:
     parser.add_argument(
         "--no-pull",
         action="store_true",
-        help="do not fetch; read <remote>/main as the clone has it",
+        help="do not fetch; read <remote>/main as the clone has it (fetched once if it has none)",
     )
     parser.add_argument(
         "--ui",
