@@ -247,23 +247,6 @@ def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame
     )
 
 
-# `sigma` and `verdict` are read by `study_page.py` alone; the class page uses neither.
-def sigma(diff_a: pd.Series, diff_b: pd.Series) -> float:
-    """`a` against `b` in pooled standard errors of their repeats (`standard_error`);
-    NaN when one of them has a single run or no spread."""
-    se = standard_error((diff_a["std"], diff_a["n"]), (diff_b["std"], diff_b["n"]))
-    return (diff_a["score"] - diff_b["score"]) / se
-
-
-def verdict(sig: float | None) -> str:
-    """`better`, `worse` or `inside` for `sig` beyond or within 2, `unmeasured` for NaN."""
-    if sig is None or math.isnan(sig):
-        return "unmeasured"
-    if sig >= 2:
-        return "better"
-    return "worse" if sig <= -2 else "inside"
-
-
 def comparisons(df: pd.DataFrame) -> pd.DataFrame:
     """Baseline against final, per student and study: both scores with their spread
     between runs, the gain in points, and how much of the best single trial
