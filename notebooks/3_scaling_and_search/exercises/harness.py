@@ -32,7 +32,7 @@ Imbalance is an axis as in lesson 2: `class_weight` weighs every class in the lo
 
 Load balancing is an axis of the design (`balance` in `designs.Config`): the trainer adds
 `balance * load_balancing_loss(model)` to the loss of every training step, never to the
-validation loss, as `balanced_step` does in notebook 3.1. `load_balancing_loss` sums the
+validation loss. `load_balancing_loss` sums the
 auxiliary loss of every `SparseMoE`, so it acts with `routing="sparse"` only; with a
 dense `MoE` the trainer warns that the weight changes nothing.
 
@@ -924,10 +924,6 @@ def control(exercise: Exercise, outcome: Outcome) -> Comparison:
     print()
     print(Comparison.of(f"{ctrl_name} ({ctrl_n:,} params)", ctrl))
     print(against)
-    sigmas = against.sigmas or 0.0
-    print(
-        f"the route stage against its control: {sigmas:+.1f} sigma ({verdict(sigmas)})"
-    )
     print(
         "(the winner was chosen on these six patients, so this comparison leans towards "
         "the winner's arm; the spread is that of the seeds, on the same patients)"

@@ -1,6 +1,5 @@
 """One Australian state's half-hourly electricity demand, loaded once and imported by
-`6_uncertainty/00_forecasting_baselines`, `6_uncertainty/01_probabilistic` and
-`3_scaling_and_search/01_gates_highways_moe`.
+`6_uncertainty/00_forecasting_baselines` and `6_uncertainty/01_probabilistic`.
 
 `Monash-University/monash_tsf`, config `australian_electricity_demand` — five states'
 worth of half-hourly demand (MW), 2002 onward, CC-BY-4.0. Three things worth knowing:

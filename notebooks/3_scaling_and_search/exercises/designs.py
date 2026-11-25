@@ -33,7 +33,7 @@ What lesson 3 adds (notebook 3.1):
   (and about the same compute), but with `routing="sparse"` the route stage runs one
   expert per position, so `matched` uses more parameters, and more compute, per
   position than the route stage it stands in for.
-- `balance`: the weight of the load-balancing loss of notebook 3.1 (1.4), 0 by default.
+- `balance`: the weight of the load-balancing loss (lesson 3 slides), 0 by default.
   The trainer adds `balance * load_balancing_loss(model)` to the loss of every training
   step and never to the validation loss. The loss is 1 when the router spreads the
   positions evenly over the experts and grows as it concentrates them on few, so a

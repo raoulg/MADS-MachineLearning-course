@@ -83,7 +83,7 @@ bronvermelding.
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 3.1, 3.4, 3.5 | gate, highway, mixture of experts, de control | `01_gates_highways_moe` |
+| 3.1, 3.5 | mixture of experts, de control, opgeslagen en gebruikte parameters (3.4 op de slides) | `01_mixture_of_experts` |
 | 3.2, 3.3, 3.10 | scaling laws, gewichten en data samen, eigen curves | `02_scaling_curves` |
 | 3.6 | zoekalgoritmes | `03_what_does_the_algorithm_know` |
 | 3.7, 3.8, 3.9 | afvalrace, learning rate scheduler, Pareto front | `04_search` |
