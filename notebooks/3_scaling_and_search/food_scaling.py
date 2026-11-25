@@ -203,4 +203,4 @@ if __name__ == "__main__":
     out = RESULTS / "test" if test else RESULTS
     out.mkdir(parents=True, exist_ok=True)
     rows = sweep([10, 30], [0, 8], max_steps=200) if test else sweep(PER_CLASS, WIDTHS)
-    (out / "food_scaling.json").write_text(json.dumps(rows))
+    (out / "food_scaling.json").write_text(json.dumps(rows), encoding="utf-8")

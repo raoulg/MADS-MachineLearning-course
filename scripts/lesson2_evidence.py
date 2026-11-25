@@ -58,7 +58,7 @@ def rect(x, y, w, h, fill="none", stroke=R):
 
 def save(name, body, label):
     svg = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1720 600" role="img" aria-label="{html.escape(label)}"><style>@font-face{{font-family:Outfit;src:url(data:font/woff2;base64,{font})}}text{{font-family:Outfit,Arial,sans-serif}}</style><rect width="1720" height="600" fill="{BG}"/>{body}</svg>'
-    (DEST / f"{name}.svg").write_text(svg)
+    (DEST / f"{name}.svg").write_text(svg, encoding="utf-8")
 
 
 SUP = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
@@ -299,7 +299,7 @@ def question(data):
 
 
 def main():
-    d = json.loads(DATA.read_text())
+    d = json.loads(DATA.read_text(encoding="utf-8"))
     diagnostics(d, "spread", "depth-spread", "spread across the 256 beats, log scale")
     diagnostics(
         d,
@@ -341,7 +341,7 @@ def measure_evidence():
     notebook = json.loads(
         (
             ROOT / "notebooks/2_kernels_state_and_gates/02_state_and_gates.ipynb"
-        ).read_text()
+        ).read_text(encoding="utf-8")
     )
     scope: dict[str, Any] = {
         "hb": hb,
@@ -501,7 +501,8 @@ def measure_evidence():
                 "ecg": ecg,
             },
             indent=2,
-        )
+        ),
+        encoding="utf-8",
     )
     print(out, flush=True)
 
