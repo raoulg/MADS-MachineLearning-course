@@ -147,9 +147,11 @@ def test_both_ideas_and_their_expectations_are_on_the_page(store, folder):
     for words, expects in (FIRST, SECOND):
         assert words in text and expects in text
     assert "Lesson 1: what alice studied" in text
-    for tab in ("Overview", "Studies", "Design"):
-        assert f">{tab}</button>" in text
-    assert ">Starred <span class='count'></span></button>" in text
+    for tab in ("Overview", "Studies", "Explore", "Scaling", "Design"):
+        assert f"<span class='lbl'>{tab}</span></button>" in text
+    assert (
+        "<span class='lbl'>Starred <span class='count'></span></span></button>" in text
+    )
     for slug, short in (
         ("study-alice-skip", "skip"),
         ("study-alice-lr-range", "lr range"),
@@ -192,9 +194,12 @@ def test_each_study_box_gives_its_own_gain_in_points_and_sigmas(store, folder):
     assert f"{sigma:.1f}" == "1.0" and word == "inside"
     text = page(store, folder)
     # the standard errors of the differences: 4.71 and 6.67 points
-    assert "+20.0 ± 4.7 pt · clearly above its baseline: more than two" in text
-    assert "+6.7 ± 6.7 pt · not measurably different from its baseline: within" in text
+    assert "+20.0 ± 4.7 pt against its baseline" in text
+    assert "+6.7 ± 6.7 pt against its baseline" in text
     assert "σ" not in text
+    # an idea is not judged: no verdict words, and no circle coloured by its outcome
+    for judged in ("clearly above", "measurably", "two standard errors", "dot better"):
+        assert judged not in text
 
 
 def test_an_empty_page_toml_gives_open_slots_and_a_filled_one_its_text(store, folder):
@@ -298,7 +303,7 @@ def test_a_search_over_two_datasets_is_drawn_per_dataset(tmp_path, folder):
     assert tab.count("<p class='ds'>on dtd</p>") == tab.count(
         "<p class='ds'>on eurosat</p>"
     )
-    assert tab.count("<p class='ds'>on eurosat</p>") >= 2  # the lr card and the curves
+    assert tab.count("<p class='ds'>on eurosat</p>") >= 1  # the curves
     for d in ("dtd", "eurosat"):
         best = two.trials_on(d)
         assert set(best[best.winner].dataset) == {d}
@@ -468,17 +473,24 @@ def test_the_design_tab_opens_on_the_forward_of_the_design(folder):
     assert study_page.design_route(folder) is None
 
 
-def test_every_study_tab_has_an_explorer_of_its_finished_trials(store, folder):
+def test_the_explore_tab_holds_every_study_s_finished_trials(store, folder):
     text = page(store, folder)
     blobs = re.findall(r"class='explore-data'>(.*?)</script>", text)
-    assert len(blobs) == 2  # one per study, both on dtd
-    for blob in blobs:
-        data = json.loads(blob)
-        names = [f["name"] for f in data["fields"]]
-        assert names[0] == "accuracy" and "lr" in names
-        assert data["defaults"]["y"] == "accuracy"
-        assert all(len(row) == len(names) for row in data["rows"])
+    assert len(blobs) == 1  # both studies are on dtd, scored by accuracy
+    data = json.loads(blobs[0])
+    names = [f["name"] for f in data["fields"]]
+    assert names[0] == "accuracy" and "lr" in names and "study" in names
+    assert data["defaults"] == {"x": "FLOPs", "y": "accuracy", "c": "study"} or (
+        data["defaults"]["y"] == "accuracy" and data["defaults"]["c"] == "study"
+    )
+    assert all(len(row) == len(names) for row in data["rows"])
+    assert len(data["keys"]) == len(data["rows"])
+    assert set(data["keys"]) == {
+        "lesson1-study-alice-skip",
+        "lesson1-study-alice-lr-range",
+    }
     assert "<h2>Explore the trials</h2>" in text
+    assert "class='to-explore' data-study='lesson1-study-alice-skip'" in text
 
 
 def test_a_view_starred_in_stars_json_is_on_the_page(store, folder):
@@ -493,10 +505,26 @@ def test_a_view_starred_in_stars_json_is_on_the_page(store, folder):
 def test_stars_that_are_not_views_are_refused():
     with pytest.raises(TypeError):
         study_page.clean_stars({"x": "lr"})
-    with pytest.raises(ValueError, match="names its study"):
-        study_page.clean_stars([{"study": "", "x": "lr", "y": "accuracy"}])
+    with pytest.raises(ValueError, match="names its x and y"):
+        study_page.clean_stars([{"study": "s", "x": "lr", "y": ""}])
+    with pytest.raises(ValueError, match="not filters"):
+        study_page.clean_stars([{"x": "lr", "y": "accuracy", "f": [["lr", "~", "1"]]}])
+    filtered = {"study": "", "dataset": "dtd", "x": "lr", "y": "accuracy", "c": "",
+                "f": [["params", ">=", "300k"], ["recall", "has", ""]]}  # fmt: skip
+    assert study_page.clean_stars([filtered]) == [filtered]
     view = {"study": "s", "dataset": "dtd", "x": "lr", "y": "accuracy", "c": "skip"}
     assert study_page.clean_stars([view, dict(view)]) == [view]
+    picture = {"figure": "scaling-flops-dtd-accuracy"}
+    assert study_page.clean_stars([picture, view, dict(picture)]) == [picture, view]
+    with pytest.raises(ValueError, match="names its figure"):
+        study_page.clean_stars([{"figure": ""}])
+
+
+def test_the_scaling_and_overfitting_pictures_can_be_starred(store, folder):
+    text = page(store, folder)
+    for fid in ("scaling-params-", "scaling-flops-", "overfitting-"):
+        assert f"class='card pinnable' data-figure='{fid}" in text
+    assert "id='starred-overview'" in text and "id='stars-here'" in text
 
 
 def test_the_page_server_keeps_the_stars_in_their_file(tmp_path):

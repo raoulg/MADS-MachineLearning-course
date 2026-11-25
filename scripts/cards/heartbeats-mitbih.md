@@ -107,7 +107,14 @@ import numpy as np
 
 labelled_train = labelled(train)
 records = np.asarray(train.dataset.with_format(None)["record"])
-valid_records = [118, 124, 201, 207, 215, 223]  # six patients with N, S and V among them
+valid_records = [
+    118,
+    124,
+    201,
+    207,
+    215,
+    223,
+]  # six patients with N, S and V among them
 train_idx = np.flatnonzero(~np.isin(records, valid_records)).tolist()
 valid_idx = np.flatnonzero(np.isin(records, valid_records)).tolist()
 trainset = labelled_train.select(train_idx)
