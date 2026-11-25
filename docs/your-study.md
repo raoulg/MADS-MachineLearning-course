@@ -130,15 +130,15 @@ another space. Put a refusal to the student; do not quietly widen the space.
 
 ## 6. Read
 
-**Ask:** what did each axis do to the objective and to `train_seconds`? How many sigmas
-is the winner from the baseline? What does that say about what they wrote in `EXPECTS`?
+**Ask:** what did each axis do to the objective and to `train_seconds`? How far is the
+winner from the baseline, in points, beside the spread between the repeats of each? What
+does that say about what they wrote in `EXPECTS`?
 
 ```bash
 make optuna-dashboard
 ```
 
-Inside about two sigmas, the difference is not a result, whatever its sign. Every run logs
-more than the objective, for a question asked later.
+Every run logs more than the objective, for a question asked later.
 
 ## 7. Explain
 

@@ -109,7 +109,7 @@ svg marker.g path{fill:var(--course-green)}
   <g class="p2"><a href="#step-3"><rect x="410" y="30" width="180" height="96"/><text class="t" x="426" y="66">3 Baseline</text><text class="w" x="426" y="96">study.py</text></a></g>
   <g class="p2"><a href="#step-4"><rect x="610" y="30" width="180" height="96"/><text class="t" x="626" y="66">4 Budget, space</text><text class="w" x="626" y="96">MINUTES · SPACE</text></a></g>
   <g class="p2"><a href="#step-5"><rect x="810" y="30" width="180" height="96"/><text class="t" x="826" y="66">5 Search</text><text class="w" x="826" y="96">study.py · Optuna</text></a></g>
-  <g class="p2"><a href="#step-6"><rect x="810" y="230" width="180" height="96"/><text class="t" x="826" y="266">6 Read</text><text class="w" x="826" y="296">OBJECTIVE · sigmas</text></a></g>
+  <g class="p2"><a href="#step-6"><rect x="810" y="230" width="180" height="96"/><text class="t" x="826" y="266">6 Read</text><text class="w" x="826" y="296">OBJECTIVE · points</text></a></g>
   <g class="p2"><a href="#step-7"><rect x="610" y="230" width="180" height="96"/><text class="t" x="626" y="266">7 Explain</text><text class="w" x="626" y="296">make page · message</text></a></g>
   <g class="p3"><a href="#step-8"><rect x="410" y="230" width="180" height="96"/><text class="t" x="426" y="266">8 Share</text><text class="w" x="426" y="296">runs · designs.py</text></a></g>
   <g class="p3"><a href="#step-9"><rect x="210" y="230" width="180" height="96"/><text class="t" x="226" y="266">9 Build on</text><text class="w" x="226" y="296">builds_on · STUDY</text></a></g>
@@ -132,7 +132,7 @@ svg marker.g path{fill:var(--course-green)}
   <g class="p2"><a href="#step-3"><rect x="14" y="214" width="270" height="78"/><text class="t" x="30" y="246">3 Baseline</text><text class="w" x="30" y="274">study.py</text></a></g>
   <g class="p2"><a href="#step-4"><rect x="14" y="314" width="270" height="78"/><text class="t" x="30" y="346">4 Budget, space</text><text class="w" x="30" y="374">MINUTES · SPACE</text></a></g>
   <g class="p2"><a href="#step-5"><rect x="14" y="414" width="270" height="78"/><text class="t" x="30" y="446">5 Search</text><text class="w" x="30" y="474">study.py · Optuna</text></a></g>
-  <g class="p2"><a href="#step-6"><rect x="14" y="514" width="270" height="78"/><text class="t" x="30" y="546">6 Read</text><text class="w" x="30" y="574">OBJECTIVE · sigmas</text></a></g>
+  <g class="p2"><a href="#step-6"><rect x="14" y="514" width="270" height="78"/><text class="t" x="30" y="546">6 Read</text><text class="w" x="30" y="574">OBJECTIVE · points</text></a></g>
   <g class="p2"><a href="#step-7"><rect x="14" y="614" width="270" height="78"/><text class="t" x="30" y="646">7 Explain</text><text class="w" x="30" y="674">make page · message</text></a></g>
   <g class="p3"><a href="#step-8"><rect x="14" y="714" width="270" height="78"/><text class="t" x="30" y="746">8 Share</text><text class="w" x="30" y="774">runs · designs.py</text></a></g>
   <g class="p3"><a href="#step-9"><rect x="14" y="814" width="270" height="78"/><text class="t" x="30" y="846">9 Build on</text><text class="w" x="30" y="874">builds_on · STUDY</text></a></g>
@@ -190,7 +190,7 @@ svg marker.g path{fill:var(--course-green)}
 </li>
 <li class="step p2" id="step-6">
   <h3><span>6</span>Read</h3>
-  <p>Per axis: what each did to your objective and to <code>train_seconds</code>. Every run logs more than the objective, for a question you ask later. The winner in sigmas against the baseline: inside about two, the difference is not a result, whatever its sign.</p>
+  <p>Per axis: what each did to your objective and to <code>train_seconds</code>. Every run logs more than the objective, for a question you ask later. The winner against the baseline in points, each beside the spread between its repeats.</p>
   <p class="decide"><strong>You decide</strong> what the study says about your idea, set against what you wrote in <code>EXPECTS</code>.</p>
   <div class="where">OBJECTIVE · train_seconds · the Optuna dashboard</div>
   <div class="goals">goal <a href="leerdoelen/les1.html#g1-10">1.10</a></div>
@@ -222,7 +222,7 @@ svg marker.g path{fill:var(--course-green)}
 <h2>The files</h2>
 <dl class="files">
   <dt>exercises/designs.py</dt><dd>Your design: <code>Config</code>, the choices, and the supergraph with one typed stage per operation. Its comments say how to add a stage of your own.</dd>
-  <dt>exercises/study.py</dt><dd>Your study: the six settings at the top, then one <code>hpo.exercise.Exercise</code> that runs it: baseline, budget, search, winner and the difference in sigmas, the same in every lesson.</dd>
+  <dt>exercises/study.py</dt><dd>Your study: the six settings at the top, then one <code>hpo.exercise.Exercise</code> that runs it: baseline, budget, search, winner and its difference with the baseline in points, the same in every lesson.</dd>
   <dt>exercises/harness.py</dt><dd>What the lesson gives the study: its data, the trainer, the linear baseline and the params a run logs. It trains whatever <code>make_model(config, data)</code> builds.</dd>
 </dl>
 

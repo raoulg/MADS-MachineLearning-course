@@ -298,8 +298,8 @@ study at a time. Its pages are in the bar on the left:
 
 Questions it answers at a glance: where more width or depth stops paying in accuracy and
 starts costing in time; what a switch (`norm`, `skip`, `gate`) buys at equal width; how far
-another encoder moves the result compared with everything in the head. Read a gap against
-`<objective>_std` before calling it a result. optuna-dashboard shows the value, the
+another encoder moves the result compared with everything in the head. A gap reads beside
+`<objective>_std`, the spread between the repeats of each side. optuna-dashboard shows the value, the
 study's objective; the class page reads any logged metric (`make dashboard LESSON=<N>
 METRIC=recall/F`), and names it on every figure.
 
