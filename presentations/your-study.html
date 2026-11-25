@@ -311,6 +311,46 @@ svg marker.g path{fill:var(--course-green)}
     </ol></dd>
   </dl>
 </section>
+<section class="lesson" id="lesson-3">
+  <h3><span>3</span>Scaling and search</h3>
+  <div class="research">
+    <h4>Your research</h4>
+    <p>To lesson 4 you bring your page, built in step <a href="#step-7">7 Explain</a>: Raoul walks past and has three minutes per person. You start with Part 1 of the exercise notebook, <a href="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/notebooks/3_scaling_and_search/05_exercise.ipynb"><code>05_exercise.ipynb</code></a>. Publishing your runs in step <a href="#step-8">8 Share</a> is not graded, but it gets you feedback: lesson 4 opens on the class's runs, and studies of one space read their pairs together. How your research counts stands under <a href="#how-it-counts">How it counts</a>. Copy a prompt into your coding assistant:</p>
+    <div class="prompt">
+      <div class="prompt-head"><span>Start my study</span><button type="button">Copy</button></div>
+      <pre>I am starting my study of lesson 3 of the MADS Machine Learning course. Read docs/your-study.md in the course repository (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/your-study.md) and walk the loop with me from the step I am at. I design the study and say what I expect: ask me first, and write nothing until I have said it in my own words.</pre>
+    </div>
+    <div class="prompt">
+      <div class="prompt-head"><span>Build my page and interview me</span><button type="button">Copy</button></div>
+      <pre>My study of lesson 3 has runs. Follow step 7, Explain, of docs/your-study.md (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/your-study.md): build my page with make page LESSON=3, then interview me about it, one question at a time. Write my answers into exercises/page.toml in my own words.</pre>
+    </div>
+    <div class="prompt">
+      <div class="prompt-head"><span>Submit my runs</span><button type="button">Copy</button></div>
+      <pre>I want to hand in my runs of lesson 3. Follow docs/submit-runs.md (outside the repository: https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/submit-runs.md). Show me the list of runs first, and hand them in once I have said it is the list I mean.</pre>
+    </div>
+  </div>
+  <dl>
+    <dt>folder</dt><dd><code>notebooks/3_scaling_and_search/exercises/</code></dd>
+    <dt>notebook</dt><dd>Part 1 of <code>05_exercise.ipynb</code></dd>
+    <dt>data</dt><dd>Lesson 2's heartbeats: MIT-BIH, split by patient, three classes, N, S and V. <code>train_fraction</code> takes a stratified share of the training beats, so data is an axis of the search.</dd>
+    <dt>design</dt><dd><code>Beats</code> in <code>designs.py</code>, with the route stage <code>@option("route")</code>, a mixture of experts on every position of the shortened beat, and its control of the same parameter count, <code>@option("matched")</code>.</dd>
+    <dt>baseline</dt><dd>A linear model on the 187 steps of a beat, repeated, so you know its spread between runs. <code>study.py</code> measures it before the search, on the six validation patients your search is scored on.</dd>
+    <dt>space</dt><dd>The capacity axes: parameters (<code>width</code>, <code>depth</code>), data (<code>train_fraction</code>, with <code>equal_steps</code> to hold the steps) and compute (<code>epochs</code>). With <code>"route": True</code> and <code>matched</code> searched, every draw trains the route stage and its control as a pair, on the same seed.</dd>
+    <dt>metrics</dt><dd>Every run logs its whole confusion matrix, and every run with a router the use of its experts (<code>expert_share</code>, <code>expert_weight</code>, <code>expert_peak</code>, <code>experts_in_use</code>), for a question you ask later.</dd>
+    <dt>harness</dt><dd>What lesson 3 gives the study: the heartbeats, <code>train_fraction</code>, the trainer, the linear baseline, the pairing and the readouts (the paired curves, the use of the experts, the control at the winner). <code>study.py</code> runs <code>RoutedExercise</code>, <code>hpo.exercise.Exercise</code> with paired trials.</dd>
+    <dt>goals</dt><dd><ol>
+      <li>Design <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Build <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Baseline <a href="leerdoelen/les1.html#g1-13">1.13</a></li>
+      <li>Budget and space <a href="leerdoelen/les3.html#g3-11">3.11</a></li>
+      <li>Search <a href="leerdoelen/les3.html#g3-11">3.11</a></li>
+      <li>Read <a href="leerdoelen/les3.html#g3-10">3.10</a><a href="leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Explain <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Share <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Build on <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
+    </ol></dd>
+  </dl>
+</section>
 </div>
 </main>
 <p class="prompt-said" role="status"></p>

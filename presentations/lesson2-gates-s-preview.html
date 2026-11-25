@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MADS-ML · Lesson 2 · Skips, gates and S beats</title>
+<style>
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:block;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:400;font-display:block;src:url(fonts/Outfit-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:500;font-display:block;src:url(fonts/Outfit-500.woff2) format('woff2')}
+:root{color-scheme:dark}
+html,body{margin:0;background:#141210}
+body{font-family:Outfit,Arial,sans-serif}
+.deck>section{position:relative;width:1920px;height:1080px;overflow:hidden}
+.deck section,.deck section *{box-sizing:border-box;margin:0}
+.deck h1{font-size:96px;font-weight:600;line-height:1.1}
+.deck h2{font-size:64px;font-weight:600;line-height:1.15}
+.deck p{font-size:32px;line-height:1.4}
+.deck img{display:block;flex-shrink:0}
+.deck aside{display:none}
+.deck table{border-collapse:collapse;width:100%}
+.deck th,.deck td{padding:.35em .6em;border-bottom:1px solid #cfc7bb;vertical-align:top;text-align:left}
+html.js,html.js body{height:100%;overflow:hidden}
+html.js #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(var(--scale,1))}
+html.js .deck>section{position:absolute;left:0;top:0;display:none!important}
+html.js .deck>section.active{display:flex!important}
+#notes,#hint{display:none}
+html.js #hint{display:block;position:fixed;right:16px;bottom:12px;font:13px/1.4 Outfit,Arial,sans-serif;color:#9397ab;background:rgba(14,15,24,.85);padding:6px 12px;border-radius:6px;transition:opacity .6s}
+html.js #hint.gone{opacity:0}
+html.js .deck [data-build-in]{opacity:0;transition:opacity .5s}
+html.js .deck [data-build-in].built{opacity:1}
+html.js body.show-notes #notes{display:block;position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;background:rgba(14,15,24,.94);color:#cfd3e5;border-top:1px solid #3f424d;padding:14px 24px 18px;font:17px/1.5 Outfit,Arial,sans-serif}
+#notes .count{font:13px/1.4 'JetBrains Mono',monospace;color:#9184d9;letter-spacing:.08em;margin-bottom:6px}
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html.js,html.js body{height:auto;overflow:visible}
+  html.js #stage{position:static;transform:none;width:auto;height:auto}
+  html.js .deck>section{position:relative;display:flex!important;break-after:page}
+  html.js #hint,html.js body.show-notes #notes{display:none}
+  html.js .deck [data-build-in]{opacity:1}
+}
+#crumbs{display:none}
+html.js #crumbs{display:flex;position:fixed;bottom:8px;left:50%;transform:translateX(-50%);gap:2px;z-index:5;font:12px/1.3 'JetBrains Mono',monospace;background:#141210;padding:3px;border:1px solid #2b2621}
+#crumbs a{color:#b8b0a5;padding:5px 10px;text-decoration:none;letter-spacing:.04em;white-space:nowrap}
+#crumbs a:hover{color:#f4f1ec}
+#crumbs a.here{color:#f2643c}
+@media print{html.js #crumbs{display:none}}
+
+/* the slide kinds of the MADS-DAV decks, as classes */
+.deck section.ink{background:#141210;color:#f4f1ec}
+.deck section.paper{background:#f4f1ec;color:#111111}
+.deck section.std{display:flex;flex-direction:column;padding:128px 100px 56px}
+.deck section.mid{display:flex;flex-direction:column;justify-content:center;padding:128px 100px 56px}
+.strip{position:absolute;left:0;top:0;width:1920px;height:105px;object-fit:contain}
+.mono{font-family:'JetBrains Mono',monospace}
+.kick{display:flex;flex-direction:row;gap:36px}
+.kick p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:3.8px;text-transform:uppercase}
+.paper .kick p:first-child{color:#1d5a73}
+.paper .kick p+p{color:#5a544d}
+.ink .kick p{color:#86b9c9}
+.body{display:flex;flex-direction:column;gap:36px;flex:1;padding:16px 0}
+.deck h2.t{font-family:Outfit,Arial,sans-serif;font-size:62px;font-weight:500;line-height:1.08;letter-spacing:-1.2px;color:#111111}
+.deck h2.claim{max-width:1560px;font-family:Outfit,Arial,sans-serif;font-size:84px;font-weight:500;line-height:1.05;letter-spacing:-2.1px;color:#f4f1ec}
+.v{color:#c43a14}
+.ink .v{color:#f2643c}
+.pe{color:#1d5a73}
+.ink .pe{color:#86b9c9}
+.deck p.s{font-family:Outfit,Arial,sans-serif;font-size:26px;line-height:1.4;color:#111111}
+.deck p.m{font-family:Outfit,Arial,sans-serif;font-size:30px;line-height:1.4;color:#5a544d}
+.row{display:flex;flex-direction:row;gap:64px;align-items:center;flex:1}
+.col{display:flex;flex-direction:column;gap:26px;flex:1}
+.center{display:flex;flex-direction:row;justify-content:center}
+.fill{display:flex;flex-direction:column;gap:28px;justify-content:center;flex:1}
+.g3{display:grid;gap:48px;grid-template-columns:1fr 1fr 1fr}
+.g2{display:grid;gap:64px;grid-template-columns:1fr 1fr}
+.foot{display:flex;flex-direction:row;justify-content:space-between;padding:22px 0 0;border-top:1px solid #e2dcd3}
+.foot p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
+.deck p.pn{position:absolute;right:100px;bottom:56px;width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
+.deck .ink p.pn{color:#b8b0a5}
+.cards{display:grid;gap:36px;grid-template-columns:1fr 1fr 1fr}
+.card{display:flex;flex-direction:column;gap:14px;padding:28px 32px;border:1px solid #5a5148}
+.card .ck{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#86b9c9}
+.deck .card p.s{color:#f4f1ec}
+.box{display:flex;flex-direction:column;gap:12px;padding:26px 28px;border:1px solid #cfc7bb}
+.box.on{border:2px solid #c43a14}
+.box.pet{border:2px solid #1d5a73}
+.deck p.ck2{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#1d5a73}
+.deck .box.on p.ck2{color:#c43a14}
+.top{display:flex;flex-direction:column;gap:14px;padding:22px 0 0;border-top:1px solid #cfc7bb}
+.top.first{border-top-color:#1d5a73}
+.chip{display:flex;flex-direction:row;gap:14px;align-items:center;padding:8px 16px;border:1px solid #cfc7bb;align-self:flex-start}
+.chip .lab{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d}
+.chip .code{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73}
+pre.code{font-family:'JetBrains Mono',monospace;font-size:25px;line-height:1.5;color:#111111;padding:24px 32px;border:1px solid #cfc7bb;background:#ebe6de;white-space:pre;margin:0}
+pre.code .c{color:#5a544d}
+pre.code .k{color:#1d5a73}
+pre.code .r{color:#c43a14}
+.callout{display:flex;flex-direction:column;gap:12px;padding:24px 32px;border-left:4px solid #c43a14;background:#ebe6de}
+.deck p.arrow{font-family:Outfit,Arial,sans-serif;font-size:48px;line-height:1;color:#5a544d}
+.again{display:grid;gap:80px;align-items:center;grid-template-columns:1fr 1fr}
+.deck .again p.big{font-family:Outfit,Arial,sans-serif;font-size:56px;font-weight:500;line-height:1.2;letter-spacing:-0.8px;color:#111111}
+.deck table.tab{font-family:Outfit,Arial,sans-serif;font-size:27px;color:#111111}
+.deck table.tab th{white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:400;color:#1d5a73}
+.deck table.tab td.mono{font-family:'JetBrains Mono',monospace;font-size:24px}
+.deck p.credit{font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1.3;color:#5a544d}
+.shape{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73;padding:14px 18px;border:2px solid #1d5a73;white-space:nowrap}
+.op{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#111111;padding:14px 18px;border:1px solid #cfc7bb;white-space:nowrap}
+.op.on{border:2px solid #c43a14;color:#c43a14}
+.to{font-family:Outfit,Arial,sans-serif;font-size:36px;line-height:1;color:#5a544d}
+.arch{display:flex;flex-direction:row;gap:18px;align-items:center}
+.deck p.archlab{font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d;width:250px}
+</style>
+<style>
+/* mockup-only additions */
+.mk{position:absolute;left:50%;transform:translateX(-50%);bottom:50px;font:20px/1.2 'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase;padding:6px 12px;border:1px dashed #5a544d;color:#5a544d}
+.mk.live{border-color:#c43a14;color:#c43a14}
+.ink .mk{border-color:#b8b0a5;color:#b8b0a5}
+.deck table.plan{font-size:24px;line-height:1.25}
+.deck table.plan td,.deck table.plan th{padding:11px 14px}
+.deck table.plan td.q{font-weight:500}
+.deck table.plan td.i{font-family:'JetBrains Mono',monospace;font-size:21px;color:#c43a14;white-space:nowrap}
+.deck table.plan td.o{font-family:'JetBrains Mono',monospace;font-size:21px;color:#5a544d;white-space:nowrap}
+.deck table.plan td.nr{font-family:'JetBrains Mono',monospace;font-size:21px;color:#1d5a73;white-space:nowrap}
+.sh{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;white-space:nowrap}
+.grid{display:grid;gap:0;border-top:1px solid #111;border-left:1px solid #111}
+.grid div{display:flex;align-items:center;justify-content:center;border-right:1px solid #111;border-bottom:1px solid #111;font:21px/1 'JetBrains Mono',monospace;color:#111;background:#f4f1ec}
+.grid div.pad{color:#b8b0a5;background:#ebe6de;border-style:dashed}
+.grid div.win{background:#f6c9b8}
+.grid div.cur{background:#c43a14;color:#f4f1ec}
+.grid div.done{background:#d5e4ea}
+.grid div.empty{color:transparent}
+.glab{font:22px/1.2 'JetBrains Mono',monospace;color:#5a544d;text-align:center;margin-top:14px;white-space:nowrap}
+.opr{font:48px/1 Outfit,Arial,sans-serif;color:#5a544d}
+.ctl{display:flex;flex-direction:row;gap:28px;align-items:center;flex-wrap:wrap}
+.ctl .lab{font:20px/1.2 'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase;color:#5a544d}
+.seg{display:flex;flex-direction:row}
+.seg button,.btn{font:22px/1 'JetBrains Mono',monospace;padding:12px 18px;border:1px solid #5a544d;background:#f4f1ec;color:#111;cursor:pointer;margin-left:-1px}
+.seg button.on{background:#111;color:#f4f1ec}
+.btn{margin-left:0;border-color:#c43a14;color:#c43a14}
+.read{font:24px/1.5 'JetBrains Mono',monospace;color:#111}
+.read b{font-weight:400;color:#c43a14}
+.read i{font-style:normal;color:#1d5a73}
+input[type=range]{width:420px;accent-color:#c43a14}
+.grid.px div{font-size:16px;border-color:#8b847a}
+.grid.px{border-top-color:#8b847a;border-left-color:#8b847a}
+.grid.px div.win{box-shadow:inset 0 0 0 4px #111}
+.grid.px div.cur{box-shadow:inset 0 0 0 5px #111}
+.grid.px div.empty{background:#f4f1ec}
+#k1x div,#k1k div{font-size:16px}
+.tp{display:flex;flex-direction:row}
+.tp button{width:64px;height:48px;padding:0;border:1px solid #c43a14;background:#f4f1ec;color:#c43a14;cursor:pointer;margin-left:-1px;display:flex;align-items:center;justify-content:center}
+.tp button:hover{background:#f3cdbf}
+.tp svg{width:24px;height:24px;fill:currentColor}
+.spb{display:flex;flex-direction:row;gap:40px;align-items:center;padding:6px 0;border-top:1px solid #cfc7bb}
+.spb>div:first-child{flex:0 0 330px}
+.spw{display:flex;flex-direction:column;flex:1}
+.spr{display:grid;grid-template-columns:190px 420px 110px 1fr;align-items:center;gap:16px}
+.deck p.spn{font:500 30px/1.2 Outfit,Arial,sans-serif;color:#111}
+.deck p.spc{font:28px/1.25 Outfit,Arial,sans-serif;color:#5a544d}
+.fl{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:baseline;padding:8px 14px;border-left:4px solid transparent;color:#8b847a}
+.fl b{font:400 22px/1.2 'JetBrains Mono',monospace;letter-spacing:2px;text-transform:uppercase}
+.fl span{font:28px/1.3 'JetBrains Mono',monospace}
+.fl small{font:22px/1.3 Outfit,Arial,sans-serif;margin-left:24px}
+#ga,#gb,#gg,#gy{margin:0}
+.fl.on{color:#c43a14;border-left-color:#c43a14;background:#f3cdbf}
+</style>
+<style>
+/* Goal links, the data/operation grammar of #35, the example stamp */
+.kick a{color:inherit;text-decoration:none;border-bottom:2px solid currentColor}
+.kick a+a{margin-left:14px}
+.grid{border-top-color:#1d5a73;border-left-color:#1d5a73}
+.grid div{background:#c9dde4;border-right-color:#1d5a73;border-bottom-color:#1d5a73}
+.grid div.win{background:#f3cdbf}
+.grid div.cur{background:#c43a14;color:#f4f1ec}
+.grid div.done{background:#c9dde4}
+.grid div.empty{background:#f4f1ec}
+.grid.op div{background:#f3cdbf;border-color:#c43a14}
+.stamp{position:absolute;font:28px/1 'JetBrains Mono',monospace;letter-spacing:6px;text-transform:uppercase;color:#c43a14;border:3px solid #c43a14;padding:12px 20px;transform:rotate(-4deg);background:rgba(244,241,236,.85)}
+.legend{display:flex;gap:36px;font:22px/1.2 'JetBrains Mono',monospace;color:#5a544d}
+.legend i{display:inline-block;width:22px;height:22px;margin-right:10px;vertical-align:-4px;border:2px solid}
+.deck table.plan td.g{font-family:'JetBrains Mono',monospace;font-size:21px;color:#1d5a73;white-space:nowrap}
+.deck table.plan td.g a{color:inherit}
+.deck table.plan td.g a+a{margin-left:12px}
+.ph{display:flex;flex-direction:column;gap:12px}
+.deck .ph img{width:100%;height:auto;border:1px solid #cfc7bb}
+.step{display:grid;grid-template-columns:56px 1fr;gap:18px;align-items:baseline}
+.step .nr{font:30px/1 'JetBrains Mono',monospace;color:#c43a14}
+code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;background:#ebe6de;padding:2px 8px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#5a544d"/></marker><marker id="av" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#c43a14"/></marker><marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1d5a73"/></marker></defs></svg>
+<div id="stage"><div class="deck">
+
+<section id="depth-spread" class="paper std" data-crumb="01 skip">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">What survives sixteen blocks?</h2>
+    <img src="img/lesson2/gates-s/depth-spread.svg" alt="What survives sixteen blocks?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">Without a skip, these beats reach the head almost alike.</p>
+    <p class="credit">Spread across 256 beats before training; logarithmic scale.</p>
+  </div>
+  <p class="pn n"></p>
+</section>
+
+<section id="depth-gradient" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">Can the first block learn?</h2>
+    <img src="img/lesson2/gates-s/depth-gradient.svg" alt="Can the first block learn?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">The skip keeps a gradient available to the earliest blocks.</p>
+    <p class="credit">Weight-gradient size before training; block 1 is closest to the input.</p>
+  </div>
+  <p class="pn n"></p>
+</section>
+
+<section id="depth-score" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">Does deeper also mean better?</h2>
+    <img src="img/lesson2/gates-s/depth-score.svg" alt="Does deeper also mean better?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">The skip lets this deep stack learn; more depth adds no clear validation gain here.</p>
+    <p class="credit">Validation macro recall · mean ± std across three runs.</p>
+  </div>
+  <p class="pn n"></p>
+</section>
+
+<section id="gate-observed" class="paper std" data-crumb="02 gate">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">Where does a trained gate open?</h2>
+    <img src="img/lesson2/gates-s/gate-observed.svg" alt="Where does a trained gate open?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">The multipliers change with the beat and its position.</p>
+    <p class="credit">N and V inputs · shared channel order and colour scale.</p>
+  </div>
+  <p class="pn n"></p>
+</section>
+
+<section id="gate-score" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">Does a visible gate improve the score?</h2>
+    <img src="img/lesson2/gates-s/gate-score.svg" alt="Does a visible gate improve the score?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">Here, the gate changes what passes without a clear gain in macro recall.</p>
+    <p class="credit">Validation macro recall · mean ± std across three runs.</p>
+  </div>
+  <p class="pn n"></p>
+</section>
+
+<section id="s-rhythm" class="paper std" data-crumb="03 S beats">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">What makes this beat premature?</h2>
+    <img src="img/lesson2/gates-s/s-rhythm.svg" alt="What makes this beat premature?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">This atrial premature beat starts above the ventricles; its spike resembles its neighbours.</p>
+    <p class="credit">Record 209 · MLII · 1510–1520 s · A → S · <a href="https://physionet.org/content/mitdb/1.0.0/" style="color:inherit;text-underline-offset:4px" onclick="event.stopPropagation()">MIT-BIH / PhysioNet · ODC-By</a></p>
+  </div>
+  <p class="pn n"></p>
+</section>
+
+<section id="s-crop" class="paper std">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">What does our model actually receive?</h2>
+    <img src="img/lesson2/gates-s/s-crop.svg" alt="What does our model actually receive?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">The row starts at the R-peak, leaving out the preceding interval and P wave.</p>
+    <p class="credit">Same target beat · actual dataset crops at 125 Hz.</p>
+  </div>
+  <p class="pn n"></p>
+</section>
+
+<section id="s-question" class="paper std" data-crumb="04 investigate">
+  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>Lesson 2</p><p>Skips, gates &amp; S beats</p></div>
+  <div class="body" style="gap:20px">
+    <h2 class="t">What would you change for S?</h2>
+    <img src="img/lesson2/gates-s/s-question.svg" alt="What would you change for S?" style="width:1720px;height:520px;object-fit:contain">
+    <p class="s">Choose one hypothesis: what improves for S, and what might it cost on N?</p>
+    <p class="credit">Predict first · compare on the same unseen patients · share the result.</p>
+  </div>
+  <p class="pn n"></p>
+</section>
+</div></div>
+<nav id="crumbs"></nav>
+<a id="start-link" href="index.html" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')event.stopPropagation()">← MADS-ML start</a>
+<div id="notes"><div class="count"></div><div class="text"></div></div>
+<div id="hint">← → or click to move · F full screen · N speaker notes</div>
+<script>(function(){
+  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
+  // slide numbers: "MADS-ML · N" in a footer, the bare number elsewhere
+  slides.forEach(function(s,k){
+    [].forEach.call(s.querySelectorAll('.n'),function(el){
+      el.textContent=(el.closest('.foot')&&!el.dataset.plain)?'MADS-ML · '+(k+1):String(k+1);
+    });
+  });
+  // breadcrumbs from the sections that start a part
+  var nav=document.getElementById('crumbs');
+  slides.forEach(function(s,k){
+    if(!s.dataset.crumb)return;
+    var a=document.createElement('a');a.href='#'+(k+1);a.textContent=s.dataset.crumb;a.dataset.from=k;nav.appendChild(a);
+  });
+})();</script>
+<script>(function(){
+  document.documentElement.classList.add('js');
+  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
+  var stage=document.getElementById('stage'), notes=document.getElementById('notes');
+  var i=0;
+  function fit(){stage.style.setProperty('--scale',Math.min(innerWidth/1920,innerHeight/1080));}
+  function builds(s){return [].slice.call(s.querySelectorAll('[data-build-in]'));}
+  function next(){var left=builds(slides[i]).filter(function(b){return !b.classList.contains('built');});if(left.length){left[0].classList.add('built');}else{show(i+1);}}
+  function show(n,back){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    builds(slides[i]).forEach(function(b){b.classList.toggle('built',!!back);});
+    slides.forEach(function(s,k){s.classList.toggle('active',k===i);});
+    history.replaceState(null,'','#'+(i+1));
+    var a=slides[i].querySelector('aside');
+    notes.querySelector('.count').textContent='SLIDE '+(i+1)+' / '+slides.length;
+    notes.querySelector('.text').textContent=a?a.textContent:'';
+  }
+  addEventListener('keydown',function(e){
+    if(e.metaKey||e.ctrlKey||e.altKey)return;
+    var k=e.key;
+    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].indexOf(k)>=0){e.preventDefault();next();}
+    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].indexOf(k)>=0){e.preventDefault();show(i-1,true);}
+    else if(k==='Home'){show(0);}
+    else if(k==='End'){show(slides.length-1);}
+    else if(k==='n'||k==='N'){document.body.classList.toggle('show-notes');}
+    else if(k==='f'||k==='F'){
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
+      else{document.exitFullscreen&&document.exitFullscreen();}
+    }
+  });
+  addEventListener('click',function(e){
+    if(e.target.closest('#notes,#crumbs'))return;
+    if(e.clientX<innerWidth/3){show(i-1,true);}else{next();}
+  });
+  var x0=null;
+  addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
+  addEventListener('touchend',function(e){
+    if(x0===null)return;
+    var dx=e.changedTouches[0].clientX-x0; x0=null;
+    if(Math.abs(dx)>50){if(dx<0){next();}else{show(i-1,true);}}
+  });
+  addEventListener('hashchange',function(){
+    var h=parseInt(location.hash.slice(1),10);
+    if(isFinite(h)&&h-1!==i)show(h-1);
+  });
+  addEventListener('resize',fit);
+  fit();
+  var h=parseInt(location.hash.slice(1),10);
+  show(isFinite(h)?h-1:0);
+  setTimeout(function(){document.getElementById('hint').classList.add('gone');},4000);
+})();</script>
+<script>(function(){
+  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
+  var links=[].slice.call(document.querySelectorAll('#crumbs a'));
+  var starts=links.map(function(a){return +a.dataset.from;});
+  function mark(){
+    var i=slides.findIndex(function(s){return s.classList.contains('active');});
+    var here=null;
+    links.forEach(function(a,k){var end=k+1<starts.length?starts[k+1]:slides.length;if(starts[k]<=i&&i<end)here=a;});
+    links.forEach(function(a){a.classList.toggle('here',a===here);});
+  }
+  new MutationObserver(mark).observe(document.querySelector('.deck'),{attributes:true,subtree:true,attributeFilter:['class']});
+  mark();
+})();</script>
+
+</body>
+</html>

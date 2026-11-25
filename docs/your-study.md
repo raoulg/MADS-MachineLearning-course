@@ -6,8 +6,8 @@ is the same in every lesson; it lives in the lesson's `exercises/` folder. The s
 reads the same steps, with what each is for, on
 [Your study, as a loop](https://raoulg.github.io/MADS-MachineLearning-course/your-study.html)
 (`presentations/your-study.html`); what a lesson brings to it (its data, its baseline, its
-exercise notebook, its harness) stands there under "Per lesson", `#lesson-1` and
-`#lesson-2`. Run every command from the root of the course repository (the directory with
+exercise notebook, its harness) stands there under "Per lesson", `#lesson-1`,
+`#lesson-2` and `#lesson-3`. Run every command from the root of the course repository (the directory with
 `pyproject.toml` and `Makefile`).
 
 The student designs and states the hypothesis; you ask first, and write code once they
@@ -22,12 +22,15 @@ tells you which you have). The plain form is what the `Makefile` recipe runs.
 | --- | --- | --- | --- |
 | run the study | 1 | `make study` or `make study LESSON=1` | `uv run notebooks/1_representation_and_head/exercises/study.py` |
 | run the study | 2 | `make study LESSON=2` | `uv run notebooks/2_kernels_state_and_gates/exercises/study.py` |
+| run the study | 3 | `make study LESSON=3` | `uv run notebooks/3_scaling_and_search/exercises/study.py` |
 | read the student's own runs | any | `make optuna-dashboard` | `uv run optuna-dashboard sqlite:///artefacts/optuna/studies.db --artifact-dir artefacts/optuna/artifacts --port 8088` |
 | build and open the student's page | any | `make page LESSON=<N>` | `uv run scripts/study_page.py --lesson <N> --open` |
 | hand in | 1 | `make share LESSON=1` | `uv run scripts/submit_runs.py --lesson 1` |
 | hand in | 2 | `make share LESSON=2` | `uv run scripts/submit_runs.py --lesson 2` |
+| hand in | 3 | `make share LESSON=3` | `uv run scripts/submit_runs.py --lesson 3` |
 | the class's ideas and runs | 1 | `make dashboard LESSON=1` | `uv run scripts/class_analysis.py --lesson 1 --open --no-pull`, then `uv run scripts/collect_runs.py --lesson 1 --no-pull --ui` |
 | the class's ideas and runs | 2 | `make dashboard LESSON=2` | `uv run scripts/class_analysis.py --lesson 2 --open --no-pull`, then `uv run scripts/collect_runs.py --lesson 2 --no-pull --ui` |
+| the class's ideas and runs | 3 | `make dashboard LESSON=3` | `uv run scripts/class_analysis.py --lesson 3 --open --no-pull`, then `uv run scripts/collect_runs.py --lesson 3 --no-pull --ui` |
 
 `make optuna-dashboard` serves on `http://127.0.0.1:8088` (`OPTUNA_PORT=<port>` for
 another port); its store exists once Part 1 of the lesson's exercise notebook has run.
@@ -37,9 +40,21 @@ takes `METRIC=<name>` to read the class page on another logged metric (plain for
 they were last fetched; `PULL=1` fetches the newest first (the first run fetches on its
 own).
 
-The lesson folders are `notebooks/1_representation_and_head/exercises/` and
-`notebooks/2_kernels_state_and_gates/exercises/`. The exercise notebook is
-`05_exercises.ipynb` in lesson 1 and `04_exercise.ipynb` in lesson 2.
+The lesson folders are `notebooks/1_representation_and_head/exercises/`,
+`notebooks/2_kernels_state_and_gates/exercises/` and
+`notebooks/3_scaling_and_search/exercises/`. The exercise notebook is
+`05_exercises.ipynb` in lesson 1, `04_exercise.ipynb` in lesson 2 and
+`05_exercise.ipynb` in lesson 3.
+
+Lesson 3 adds three things to the loop. Its design has a route stage (`route`) and a
+control of the same parameter count (`matched`); with `"route": True` and
+`"matched": Choice([False, True])` in `SPACE`, every draw of the route stage is followed
+by its twin with `matched` flipped, on the same seed, and the study reads the difference
+within the pairs. A study is either one for the best design, which fixes an axis that
+still climbs at its limit, or one of a curve, which searches that axis below its limit
+(Part 2 of `05_exercise.ipynb` says which is which). And every trial with a router logs
+the use of its experts as Optuna user attributes (`expert_share`, `expert_weight`,
+`expert_peak`, `experts_in_use`), which step 6 reads next to the score.
 
 ## Before the loop: Part 1 of the exercise notebook
 
@@ -61,6 +76,7 @@ these one stage at a time. The student reads the shapes in atlas before anything
 ```bash
 atlas-code-nightly view notebooks/1_representation_and_head/exercises   # lesson 1
 atlas-code-nightly view notebooks/2_kernels_state_and_gates/exercises   # lesson 2
+atlas-code-nightly view notebooks/3_scaling_and_search/exercises        # lesson 3
 ```
 
 ## 2. Build
@@ -76,6 +92,7 @@ shape after every stage:
 ```bash
 uv run notebooks/1_representation_and_head/exercises/designs.py   # lesson 1
 uv run notebooks/2_kernels_state_and_gates/exercises/designs.py    # lesson 2
+uv run notebooks/3_scaling_and_search/exercises/designs.py         # lesson 3
 ```
 
 ## 3. Baseline
