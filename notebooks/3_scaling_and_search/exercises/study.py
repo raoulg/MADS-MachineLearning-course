@@ -1,7 +1,7 @@
 """Your study of lesson 3, over the design in `designs.py`: a baseline, a search over the
 capacity axes in which every draw of the route stage is paired with its capacity-matched
 control, the winner rerun, the paired curves, the use of the experts in the route arm,
-and the winner's route stage against its control, in sigmas.
+and the winner's route stage against its control, in points.
 
 Run it from the root of the course repository, once Part 1 of `05_exercise.ipynb` has
 run on this machine (it measures what one trial costs here):
@@ -52,7 +52,7 @@ STUDY = "name-your-study"
 IDEA = Idea.of("say what your study investigates", builds_on=Idea.handed_out(3).name)
 
 # What do you expect to happen, and why? One line, written before you run: does `route`
-# beat `matched` by two sigma or more, where on your curves, and will its router
+# beat `matched`, by how many points, where on your curves, and will its router
 # spread the positions over the experts or collapse onto one? It is stored with the study
 # and never checked: it is there so the result can surprise you.
 EXPECTS = "say what you expect, and why"
@@ -66,8 +66,8 @@ OBJECTIVE = "macro_recall"
 # EXAMPLE: the space below is E4's example space of 05_exercise.ipynb, set before any
 # curve was measured. Replace its ranges with your own, from your curves:
 # - Size, data, compute: where did a step of your curve over parameters (E2), over data
-#   (E3) and over epochs (E4) pay, by two sigma or more? A stretch whose steps are no
-#   result is still open, not flat. An axis that still climbs at its limit (every beat,
+#   (E3) and over epochs (E4) pay, and by how many points beside the spread of its runs?
+#   A stretch whose steps are the size of their spread is still open, not flat. An axis that still climbs at its limit (every beat,
 #   the most epochs you can afford) is a finding about the budget.
 # - The kind of study: one for the best design fixes an axis at its limit and searches
 #   the axes that still move; one whose question is a curve ("does routing pay with less
@@ -110,8 +110,8 @@ SPACE = Space(
 )
 
 # How many minutes do you give this study, on this machine? The trials come in pairs, so
-# the pairs are half the trials; the budget cell of 05_exercise.ipynb says how many pairs
-# a group needs to see the difference your question asks about four times in five.
+# the pairs are half the trials; the budget cell of 05_exercise.ipynb shows how many
+# trials your minutes buy.
 MINUTES = 15
 
 logger.remove()
