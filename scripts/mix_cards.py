@@ -1,12 +1,10 @@
-"""The dataset cards of the seven-domain image mix of lesson 3, one per domain and encoder.
+"""The dataset card of the seven-domain image mix of lesson 3, one per encoder.
 
-`build_mix_cache.py build` writes them next to the caches, with the row counts of the
-build; `publish_cache.py --card` uploads one.
+`build_mix_cache.py build` writes it next to the caches, with the row counts of the
+build; `publish_cache.py --card` uploads it.
 """
 
 from dataclasses import dataclass
-
-import numpy as np
 
 
 @dataclass(frozen=True)
@@ -154,23 +152,27 @@ def dots(n: int) -> str:
 
 
 def write_card(
-    domain: str,
-    encoder: str,
-    dim: int,
-    names: list[str],
-    counts: dict[str, tuple[int, np.ndarray]],
+    encoder: str, dim: int, counts: dict[str, dict[str, tuple[int, int]]]
 ) -> str:
-    s = SOURCES[domain]
+    """The card; `counts[domain][split]` is (rows, classes)."""
     slug = encoder.split("/")[-1]
-    repo = f"pttrn-io/{domain}-cls-mean-{slug}"
-    n_train, per_train = counts["train"]
-    n_test, _ = counts["test"]
-    cite = "\n".join(f"- {c}" for c in s.cite)
-    classes = ", ".join(f"`{n}`" for n in names[:6]) + (
-        ", ..." if len(names) > 6 else ""
+    repo = f"pttrn-io/mix7-{slug}"
+    total = {k: sum(c[k][0] for c in counts.values()) for k in ("train", "test")}
+    n_classes = sum(c["train"][1] for c in counts.values())
+    table = "\n".join(
+        f"| `{d}` | {s.title} | {counts[d]['train'][1]} | {dots(counts[d]['train'][0])} "
+        f"| {dots(counts[d]['test'][0])} | {s.licence} |"
+        for d, s in SOURCES.items()
+    )
+    what = "\n".join(f"- **`{d}`**: {s.what}." for d, s in SOURCES.items())
+    splits = "\n".join(f"- **`{d}`**: {s.splits}" for d, s in SOURCES.items())
+    terms = "\n\n".join(
+        f"**{s.title}** (`{s.hub}`, from <{s.origin}>). {s.terms} Cite:\n\n"
+        + "\n".join(f"- {c}" for c in s.cite)
+        for s in SOURCES.values()
     )
     return f"""---
-license: {s.licence}
+license: other
 tags:
   - vectormesh
   - vector-cache
@@ -178,20 +180,30 @@ tags:
   - image-classification
 ---
 
-# {s.title}: `{slug}` CLS and patch mean
+# Seven-domain image mix: `{slug}` CLS and patch mean
 
-Every image of {s.title} as two `{slug}` vectors, so a head trains on a laptop
-without running the encoder. One of the seven domains of the image mix of lesson 3 of
-the [MADS MachineLearning course](https://github.com/raoulg/MADS-MachineLearning-course).
+Every image of seven image classification datasets as two `{slug}` vectors, so a head
+trains on a laptop without running the encoder: {n_classes} classes, {dots(total["train"])}
+train and {dots(total["test"])} test images. Built for lesson 3 of the
+[MADS MachineLearning course](https://github.com/raoulg/MADS-MachineLearning-course).
+
+## The domains
+
+| `domain` | dataset | classes | train | test | licence |
+|---|---|---|---|---|---|
+{table}
+| | all | {n_classes} | {dots(total["train"])} | {dots(total["test"])} | |
+
+{what}
 
 ## What a row is
-
-One image: {s.what}.
 
 | column | type | |
 |---|---|---|
 | `embed` | float16 `(2, {dim})`, a fixed-shape `Array2D` | row 0 the CLS token, row 1 the mean of the patch tokens |
-| `label` | int, a `ClassLabel` of {len(names)} classes | {classes} |
+| `label` | int, a `ClassLabel` of {n_classes} classes | one class of the whole mix, named `<domain>/<class>` |
+| `domain` | int, a `ClassLabel` of 7 | the dataset the image comes from |
+| `domain_label` | int | the class within its dataset |
 | `source_idx` | int | the image's position in its source split |
 | `source_split` | string | the source split the image comes from |
 
@@ -202,16 +214,8 @@ cache gives float32. A head trained on the float16 vectors scores as well as on 
 float32 vectors they were rounded from, within what another seed changes (DTD and
 EuroSAT, `dinov2-small`, three seeds).
 
-| | |
-|---|---|
-| encoder | `{encoder}` |
-| hidden_size | {dim} |
-| rows | {dots(n_train)} train / {dots(n_test)} test |
-| train rows per class | {int(per_train.min())} to {int(per_train.max())} |
-| source | `{s.hub}` on the hub, from <{s.origin}> |
-| licence | {s.licence} |
-
-Splits: {s.splits}
+The rows are in domain order, and within a domain in source order: shuffle before you
+batch.
 
 ## Load it
 
@@ -222,6 +226,9 @@ train = VectorCache.from_hub("{repo}", split="train")
 test = VectorCache.from_hub("{repo}", split="test")
 X = train.dataset.with_format("torch")["embed"]  # (rows, 2, {dim})
 cls, patch_mean = X[:, 0], X[:, 1]
+
+names = train.dataset.features["domain"].names
+eurosat = train.dataset.filter(lambda d: d == names.index("eurosat"), input_columns="domain")
 ```
 
 Pin `revision=` to a commit for anything graded. This is a `save_to_disk` layout, not
@@ -229,17 +236,23 @@ parquet: `load_dataset()` will not read it, `VectorCache.load()` and
 `VectorCache.from_hub()` will. There is no validation split: carve one from train and
 leave test alone until the end.
 
+## Splits
+
+Each source keeps its own train and test split.
+
+{splits}
+
 ## How it was built
 
 `scripts/build_mix_cache.py` in
-<https://github.com/raoulg/MADS-MachineLearning-course> reads the parquet files of
-`{s.hub}`, runs every image through `{encoder}` and stores the two vectors with the
-label and the source position.
+<https://github.com/raoulg/MADS-MachineLearning-course> reads the parquet files of each
+source from the hub, runs every image through `{encoder}` and stores the two vectors
+with the labels and the source position.
 
 ## Licence and attribution
 
-{s.terms} This repository holds vectors computed from the images, not the images. Use it
-under the terms of the source and cite:
+This repository holds vectors computed from the images, not the images. Each domain
+keeps the terms of its source; use it under those terms and cite its authors.
 
-{cite}
+{terms}
 """

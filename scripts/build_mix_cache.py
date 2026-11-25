@@ -1,4 +1,4 @@
-"""Build the VectorCaches of the seven-domain image mix of lesson 3, one per domain and encoder.
+"""Build the VectorCaches of the seven-domain image mix of lesson 3, one per encoder.
 
     uv run scripts/build_mix_cache.py embed --encoder facebook/dinov2-small
     uv run scripts/build_mix_cache.py build --encoder facebook/dinov2-small
@@ -9,12 +9,14 @@ split. `embed` reads the parquet files of each source from the hub, row group by
 group, and stores two vectors of every image from the encoder's layer-normed last layer,
 the CLS token and the mean of the patch tokens, in float32 chunks under
 `artefacts/sources/mix7/<encoder>/`; a chunk that exists is skipped, so an interrupted
-run resumes. `build` turns the chunks of every domain into a train and a test
-VectorCache with the vectors in float16, and writes the domain's dataset card next to
-them (`artefacts/cards/`), ready for `scripts/publish_cache.py --card`.
+run resumes. `build` joins the chunks of all seven domains into a train and a test
+VectorCache with the vectors in float16, and writes the dataset card
+(`artefacts/cards/mix7-<encoder>.md`), ready for `scripts/publish_cache.py --card`.
 
-Columns: `embed` (float16, `(2, dim)`: CLS, patch mean), `label` (the class within the
-domain), `source_idx` (the row's position in its source split) and `source_split`.
+Columns: `embed` (float16, `(2, dim)`: CLS, patch mean), `label` (one class of the whole
+mix, its name `<domain>/<class>`), `domain` (the dataset), `domain_label` (the class
+within its dataset), `source_idx` (the row's position in its source split) and
+`source_split`.
 
 Splits: each source's own train and test split. Food-101 calls its test split
 `validation`; BloodMNIST's validation split joins its train split. The GTSRB and EuroSAT
@@ -252,60 +254,73 @@ def read_chunks(folder: Path, domain: str, split: str) -> Rows:
 def build(encoder: str) -> None:
     slug = encoder.split("/")[-1]
     folder = CHUNKS / slug
+    names, offsets = [], {}
     for domain in SOURCES:
-        names = json.loads(
-            (folder / f"{domain}.classes.json").read_text(encoding="utf-8")
+        offsets[domain] = len(names)
+        classes = (folder / f"{domain}.classes.json").read_text(encoding="utf-8")
+        names += [f"{domain}/{c}" for c in json.loads(classes)]
+    counts: dict[str, dict[str, tuple[int, int]]] = {d: {} for d in SOURCES}
+    for split in ("train", "test"):
+        parts = {d: read_chunks(folder, d, split) for d in SOURCES}
+        X = np.concatenate([r.X for r in parts.values()])
+        label = np.concatenate([r.label + offsets[d] for d, r in parts.items()])
+        domain = np.concatenate(
+            [np.full(len(r.label), i) for i, r in enumerate(parts.values())]
         )
-        counts = {}
-        for split in ("train", "test"):
-            data = read_chunks(folder, domain, split)
-            dim = data.X.shape[-1]
-            features = {
-                "label": ClassLabel(names=names),
-                "source_idx": Value("int64"),
-                "source_split": Value("string"),
-            }
-            dataset = Dataset.from_dict(
-                {
-                    "vector": list(data.X),
-                    "label": data.label.tolist(),
-                    "source_idx": data.source_idx.tolist(),
-                    "source_split": data.source_split,
-                },
-                features=Features({"vector": Array2D((2, dim), "float32"), **features}),
-            )
-            name = f"{domain}-cls-mean_{split}_{slug}"
-            cache = VectorCache.create(
-                cache_dir=ARTEFACTS,
-                vectorizer=StoredVectorizer(model_name=slug, dim=dim),
-                dataset=dataset,
-                dataset_tag=name,
-                features=Features({**features, "embed": Array2D((2, dim), "float16")}),
-                remove_columns=["vector"],
-                map_batch=4096,
-            )
-            path = ARTEFACTS / cache.name
-            built = VectorCache.load(path).dataset
-            stored = built.data.schema.field("embed").type
-            assert stored.value_type == pa.float16(), stored  # reading upcasts it
-            built = built.with_format("numpy")
-            assert (np.asarray(built["label"]) == data.label).all()
-            error = np.abs(np.asarray(built["embed"]) - data.X).max()
-            size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
-            counts[split] = (
-                len(data.label),
-                np.bincount(data.label, minlength=len(names)),
-            )
-            print(
-                f"{cache.name}: {len(data.label)} rows, {size / 1e6:.1f} MB, "
-                f"largest fp16 rounding {error:.4f}",
-                flush=True,
-            )
-        card = ARTEFACTS / "cards" / f"{domain}-cls-mean-{slug}.md"
-        card.parent.mkdir(exist_ok=True)
-        card.write_text(
-            write_card(domain, encoder, dim, names, counts), encoding="utf-8"
+        for d, r in parts.items():
+            counts[d][split] = (len(r.label), len(np.unique(r.label)))
+        dim = X.shape[-1]
+        features = {
+            "label": ClassLabel(names=names),
+            "domain": ClassLabel(names=list(SOURCES)),
+            "domain_label": Value("int64"),
+            "source_idx": Value("int64"),
+            "source_split": Value("string"),
+        }
+        dataset = Dataset.from_dict(
+            {
+                "vector": list(X),
+                "label": label.tolist(),
+                "domain": domain.tolist(),
+                "domain_label": np.concatenate(
+                    [r.label for r in parts.values()]
+                ).tolist(),
+                "source_idx": np.concatenate(
+                    [r.source_idx for r in parts.values()]
+                ).tolist(),
+                "source_split": [s for r in parts.values() for s in r.source_split],
+            },
+            features=Features({"vector": Array2D((2, dim), "float32"), **features}),
         )
+        cache = VectorCache.create(
+            cache_dir=ARTEFACTS,
+            vectorizer=StoredVectorizer(model_name=slug, dim=dim),
+            dataset=dataset,
+            dataset_tag=f"mix7_{split}_{slug}",
+            features=Features({**features, "embed": Array2D((2, dim), "float16")}),
+            remove_columns=["vector"],
+            map_batch=4096,
+        )
+        path = ARTEFACTS / cache.name
+        built = VectorCache.load(path).dataset
+        stored = built.data.schema.field("embed").type
+        assert stored.value_type == pa.float16(), stored  # reading upcasts it
+        built = built.with_format("numpy")
+        assert (np.asarray(built["label"]) == label).all()
+        error = max(
+            np.abs(np.asarray(built[i : i + 50_000]["embed"]) - X[i : i + 50_000]).max()
+            for i in range(0, len(X), 50_000)
+        )
+        size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+        print(
+            f"{cache.name}: {len(label)} rows, {size / 1e6:.0f} MB, "
+            f"largest fp16 rounding {error:.4f}",
+            flush=True,
+        )
+    card = ARTEFACTS / "cards" / f"mix7-{slug}.md"
+    card.parent.mkdir(exist_ok=True)
+    card.write_text(write_card(encoder, dim, counts), encoding="utf-8")
+    print(f"card: {card}")
 
 
 def main() -> None:
