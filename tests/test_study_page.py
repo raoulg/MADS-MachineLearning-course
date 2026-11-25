@@ -523,10 +523,12 @@ def test_stars_that_are_not_views_are_refused():
         study_page.clean_stars([{"figure": ""}])
 
 
-def test_the_scaling_and_overfitting_pictures_can_be_starred(store, folder):
+def test_the_panels_and_the_scaling_pictures_can_be_starred(store, folder):
     text = page(store, folder)
     for fid in ("scaling-params-", "scaling-flops-", "overfitting-"):
         assert f"class='card pinnable' data-figure='{fid}" in text
+    for fid in ("architecture-", "space-", "results-"):
+        assert f"class='panel pinnable' data-figure='{fid}" in text
     assert "id='starred-overview'" in text and "id='stars-here'" in text
 
 

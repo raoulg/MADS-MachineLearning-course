@@ -1601,10 +1601,11 @@ def idea_tree(studies: Sequence[Study]) -> str:
 
 def panels(study: Study) -> str:
     """The three panels of one study: what it built, what it searched, what it found;
-    the last two pictures the student can star."""
+    each one the student can star."""
     return (
         "<div class='three'>"
-        f"<div class='panel'><h3>Architecture</h3>{architecture_panel(study)}</div>"
+        + pinnable(f"architecture-{study.slug}", f"{study.short} · architecture",
+                   architecture_panel(study), study.key, "panel", "Architecture")
         + pinnable(f"space-{study.slug}", f"{study.short} · search space",
                    fig_space(study), study.key, "panel", "Search space")
         + pinnable(f"results-{study.slug}", f"{study.short} · results",
@@ -2217,7 +2218,10 @@ main{min-width:0}
 .bar h1{flex:1 1 auto}
 h1{font-size:28px;font-weight:600;margin:0;line-height:1.15;letter-spacing:-.01em;text-wrap:balance}
 h2{font-size:19px;font-weight:600;margin:0 0 8px;color:var(--course-ink);text-wrap:balance}
-section>h2:first-child{margin:-2px -20px 14px;padding:0 20px 14px;border-bottom:1px solid var(--course-rule)}
+section>h2:first-child{margin:-2px -20px 14px;padding:0 20px 14px;
+  border-bottom:1px solid color-mix(in srgb,var(--course-violet) 35%,var(--course-rule))}
+section>h2:first-child::before{content:'';display:inline-block;width:10px;height:10px;margin-right:10px;
+  background:var(--course-violet);border-radius:1px;vertical-align:1px}
 .pill{display:inline-flex;align-items:center;gap:8px;flex:none;font-size:14px;color:var(--course-muted);
   border:1px solid var(--course-rule);background:var(--course-surface);border-radius:3px;padding:5px 11px}
 .ic{width:18px;height:18px;flex:none}
@@ -2234,6 +2238,7 @@ code,.name,.metrics td{font-family:'JetBrains Mono',monospace;font-size:14px;col
 .ds{margin:10px 0 0;font-size:15px;font-weight:500;color:var(--course-ink)}
 footer.sub{margin:28px 0 0;max-width:90ch}
 section{background:var(--course-surface);border:1px solid var(--course-rule);border-radius:8px;
+  border-top:3px solid var(--course-violet);
   padding:18px 20px;margin:18px 0;min-width:0}
 .rail{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;align-items:center;gap:6px;
   padding:16px 8px;border-right:1px solid var(--course-rule);background:var(--course-surface)}
@@ -2254,8 +2259,11 @@ section{background:var(--course-surface);border:1px solid var(--course-rule);bor
   border:1px solid var(--course-rule);border-radius:3px;padding:5px 11px;cursor:pointer}
 .theme:hover{color:var(--course-ink)}
 .glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px;
-  padding:0 0 16px;border-bottom:1px solid var(--course-rule)}
+  padding:0 0 16px;border-bottom:1px solid color-mix(in srgb,var(--course-violet) 35%,var(--course-rule))}
 .glance div{min-width:0}
+.glance div:nth-child(1) .ic{color:var(--course-violet)}
+.glance div:nth-child(2) .ic{color:var(--course-green)}
+.glance div:nth-child(3) .ic{color:var(--course-orange)}
 .glance dt{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--course-muted)}
 .glance dt i{width:7px;height:7px;border-radius:50%;flex:none}
 .glance dd{margin:2px 0 0;font-size:30px;font-weight:600;letter-spacing:-.02em;
@@ -2403,6 +2411,7 @@ figure.card{margin:0;background:var(--course-surface)}
 .pinnable{padding:12px}
 .pin-head{display:flex;gap:10px;align-items:baseline;justify-content:space-between}
 .pin-head h3{font-size:17px}
+.panel>h3,.pinnable h3{padding-left:9px;border-left:3px solid var(--course-violet)}
 .pin{flex:none}
 .cards.pictures{margin-bottom:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,560px),1fr))}
 label.here{display:flex;gap:8px;align-items:center;margin-top:14px;font-size:15px;color:var(--course-muted)}
@@ -2463,17 +2472,21 @@ summary{cursor:pointer;color:var(--course-muted);font-size:15px}
   .node{font-size:16px;gap:8px}
   .nums{font-size:12.5px}
 }
-/* dark by default: near black, red the accent, yellow the baseline, teal what rose */
+/* dark by default: near black, red the accent, yellow the baseline, teal what rose,
+   violet the structure (sections, headings, rules) */
 :root:not([data-theme="light"]){
   --course-paper:#0f0f0f;--course-surface:#181818;--course-ink:#f2f2f2;--course-muted:#a3a3a3;
   --course-rule:#3a2c2c;--course-blue:#ef4444;--course-blue-wash:#3a1414;--course-orange:#e9c46a;
-  --course-orange-wash:#3a3018;--course-green:#2fb3a3;--slot-ink:#e9c46a;color-scheme:dark;
+  --course-orange-wash:#3a3018;--course-green:#2fb3a3;--course-violet:#a78bfa;--slot-ink:#e9c46a;
+  color-scheme:dark;
 }
-/* light: warm paper, white cards, a red-orange accent */
+/* light: one warm family, sand under warm off-white, no pure white; red-orange the accent,
+   ochre the baseline, teal what rose, plum the structure */
 :root[data-theme="light"]{
-  --course-paper:#fcf7f4;--course-surface:#ffffff;--course-ink:#2a1a14;--course-muted:#7b6158;
-  --course-rule:#edd5cc;--course-blue:#c83600;--course-blue-wash:#fbe3d8;--course-orange:#a8790f;
-  --course-orange-wash:#f6ead0;--course-green:#1f7a70;--slot-ink:#a8790f;color-scheme:light;
+  --course-paper:#f4ebe5;--course-surface:#fbf6f2;--course-ink:#2a1a14;--course-muted:#7b6158;
+  --course-rule:#e6d3c9;--course-blue:#c83600;--course-blue-wash:#fbe3d8;--course-orange:#a8790f;
+  --course-orange-wash:#f6ead0;--course-green:#1f7a70;--course-violet:#6d3f8f;--slot-ink:#a8790f;
+  color-scheme:light;
 }
 """
 
@@ -2934,13 +2947,23 @@ EXPLORE = r"""
   // a starred picture, copied from where it was starred
   function figureCard(s) {
     const src = document.querySelector('.pinnable[data-figure="' + s.figure + '"]');
-    return '<figure class="card" data-figure="' + esc(s.figure) + '">' +
+    const panel = src && src.classList.contains('panel') ? ' panel-pic' : '';
+    return '<figure class="card' + panel + '" data-figure="' + esc(s.figure) + '">' +
       (src ? src.querySelector('.fig').innerHTML : '<p class="missing">This picture is not on this page.</p>') +
       '<figcaption>' + esc(src ? src.dataset.title : s.figure) +
       (src ? ' <button type="button" class="open">open</button>' : '') +
       '<button type="button" class="drop" aria-label="remove this star">×</button></figcaption></figure>';
   }
   function wireFigure(fig, s) {
+    // a picture of a panel keeps the size it has in its narrow panel, not the room of the card
+    if (fig.classList.contains('panel-pic')) {
+      let widest = 0;
+      fig.querySelectorAll('svg[viewBox]').forEach(function (g) {
+        g.style.maxWidth = g.viewBox.baseVal.width + 'px';
+        widest = Math.max(widest, g.viewBox.baseVal.width);
+      });
+      fig.style.maxWidth = widest ? (widest + 24) + 'px' : '420px';
+    }
     const open = fig.querySelector('.open');
     if (open) open.addEventListener('click', function () {
       const src = document.querySelector('.pinnable[data-figure="' + s.figure + '"]');
