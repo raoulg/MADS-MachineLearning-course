@@ -382,4 +382,6 @@ def test_the_published_rehearsal_page_holds_the_start_link_once():
     page = (ROOT / "presentations" / "lesson1-class-rehearsal.html").read_text(
         encoding="utf-8"
     )
-    assert page.count(course_link(rehearsal.COURSE_START)) == 1
+    # The link itself, not its style: the colours follow the class page's palette.
+    link = course_link(rehearsal.COURSE_START).split("</style>", 1)[1]
+    assert page.count(link) == 1

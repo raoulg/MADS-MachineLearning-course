@@ -143,7 +143,9 @@ def test_explain_sends_the_student_to_dav_and_the_beelddenker_skill() -> None:
 
 def test_a_copy_button_copies_its_own_prompt_and_says_so() -> None:
     html = PAGE.read_text(encoding="utf-8")
-    assert html.count('<button type="button">Copy</button>') == 6
+    lessons = html.count('<section class="lesson" id="lesson-')
+    assert lessons >= 2
+    assert html.count('<button type="button">Copy</button>') == 3 * lessons
     assert html.count('role="status"') == 1
     script = html[html.rindex("<script>") :]
     assert "navigator.clipboard.writeText(pre.textContent)" in script
