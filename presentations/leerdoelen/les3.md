@@ -62,9 +62,8 @@ onvolledige vraag is.
 
 ## De student kan
 
-3.10 De relatie meten tussen de loss en minstens twee van gewichten, data en compute, met
-herhaalde runs, en er een conclusie uit trekken die groter is dan de spreiding. Kan een
-conclusie trekken die verder gaat dan de hoogste score, bijvoorbeeld dat een kleiner model
+3.10 De relatie meten tussen de loss en minstens twee van gewichten, data en compute, en
+die curve lezen. Kan een conclusie trekken die verder gaat dan de hoogste score, bijvoorbeeld dat een kleiner model
 de voorkeur heeft omdat het bijna even goed scoort en sneller is of minder energie
 verbruikt.
 
