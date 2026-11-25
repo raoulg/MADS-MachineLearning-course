@@ -2,8 +2,9 @@
 the linear baseline, the params a run logs, the pairing of the route stage with its
 control, and the readouts of a capacity study (the paired curves, the use of the experts,
 and the control at the winner). The study itself (the budget, the search, the winner
-rerun, the comparison in sigmas) is `hpo.exercise.Exercise`, the same in every lesson;
-`RoutedExercise` pairs its trials and adds the use of the experts to every trial.
+rerun, the comparison with the baseline in points) is `hpo.exercise.Exercise`, the same
+in every lesson; `RoutedExercise` pairs its trials and adds the use of the experts to
+every trial.
 
 The data is lesson 2's: MIT-BIH, split by patient (`pttrn-io/heartbeats-mitbih-raw`),
 three classes, N, S and V. A study trains on train without the patients of
@@ -52,9 +53,9 @@ per position of the beat and per class, and an expert is idle only when it is be
 of every beat, or the beats of one class, is in use. A router with one expert in use is
 collapsed, one with idle experts and more than one in use is partly collapsed.
 
-Every difference in standard errors is read with lesson 2's words (`verdict`): within 2
-no result, 2 to 3 marginal, 3 or more a result. The spread is that of the seeds on the
-six validation patients, never that of other patients.
+Every difference is read in points of the objective, beside its spread: the standard
+deviation of the seeds, or the standard error of the differences within the pairs. That
+spread is over seeds on the six validation patients, never over other patients.
 """
 
 import math
@@ -512,34 +513,6 @@ class Lesson3:
 HARNESS = Lesson3()
 
 
-def verdict(sigma: float) -> str:
-    """Lesson 2's word for a difference in standard errors: `no result` within 2,
-    `marginal` from 2 to 3, `result` at 3 or more; `-` where there is no sigma."""
-    if not np.isfinite(sigma):
-        return "-"
-    size = abs(sigma)
-    return "no result" if size < 2 else "marginal" if size < 3 else "result"
-
-
-# z of 80% power: a true difference of (sigmas + POWER) standard errors passes `sigmas`
-# standard errors four times in five
-POWER = 0.84
-
-
-def pairs_needed(spread: float, effect: float, sigmas: float = 2.0) -> int:
-    """The pairs a group needs to see a true difference of `effect` pass `sigmas`
-    standard errors four times in five (80% power), when the differences within the
-    pairs have the standard deviation `spread`: the standard error is
-    `spread / sqrt(pairs)`, so `pairs = ((sigmas + POWER) * spread / effect) ** 2`."""
-    return math.ceil(((sigmas + POWER) * spread / effect) ** 2)
-
-
-def detectable(se: float, sigmas: float = 2.0) -> float:
-    """The smallest true difference that passes `sigmas` standard errors four times in
-    five, at standard error `se`: `(sigmas + POWER) * se`."""
-    return (sigmas + POWER) * se
-
-
 def mean_draw(axis: object, default: float) -> float:
     """The mean value a trial draws from one axis of a space: the middle of an `Int` or
     `Float`, `(high - low) / ln(high / low)` when it is drawn on a log scale, the mean of
@@ -785,15 +758,14 @@ def paired_curve(table: pd.DataFrame, axis: str, bins: int = 3) -> pd.DataFrame:
 
     - `pairs`, and the mean objective of each arm;
     - `route - matched`: the mean difference within the pairs;
-    - `se` and `sigma`: the paired standard error, the standard deviation (ddof=1) of the
-      differences within the pairs over the square root of the number of pairs, and the
-      mean difference in those standard errors, with its `verdict`;
-    - `se unpaired` and `sigma unpaired`: lesson 2's standard error of two independent
-      arms, `sqrt(std_route² / n + std_matched² / n)`, on the same trials. Its spread
-      holds every difference between the draws of a group (width, depth, share,
-      epochs), which the pairs cancel, so it is larger when the draws differ.
+    - `se`: the paired standard error, the standard deviation (ddof=1) of the
+      differences within the pairs over the square root of the number of pairs;
+    - `se unpaired`: lesson 2's standard error of two independent arms,
+      `sqrt(std_route² / n + std_matched² / n)`, on the same trials. Its spread holds
+      every difference between the draws of a group (width, depth, share, epochs), which
+      the pairs cancel, so it is larger when the draws differ.
 
-    No sigma for a group of fewer than two pairs, nor for one whose values do not vary."""
+    No standard error for a group of fewer than two pairs."""
     group = groups(table, axis, bins)
     rows = {}
     for label, members in table.groupby(group, observed=True):
@@ -808,21 +780,15 @@ def paired_curve(table: pd.DataFrame, axis: str, bins: int = 3) -> pd.DataFrame:
             if n > 1
             else nan
         )
-        sigma = diff.mean() / se if n > 1 and se > 0 else nan
         rows[label] = {
             "pairs": n,
             "route": members["route"].mean(),
             "matched": members["matched"].mean(),
             "route - matched": diff.mean(),
             "se": se,
-            "sigma": sigma,
-            "reading": verdict(sigma),
             "se unpaired": unpaired,
-            "sigma unpaired": diff.mean() / unpaired if unpaired > 0 else nan,
         }
-    frame = pd.DataFrame(rows).T
-    numbers = frame.columns.drop("reading")
-    frame[numbers] = frame[numbers].astype(float)
+    frame = pd.DataFrame(rows).T.astype(float)
     frame["pairs"] = frame["pairs"].astype(int)
     frame.index.name = axis
     return frame
@@ -949,11 +915,9 @@ def read(exercise: Exercise, outcome: Outcome) -> None:
     if len(both) > 1:
         spread = float(both["route - matched"].std(ddof=1))
         print(
-            f"\nthe differences within the pairs spread by {spread:.4f} (std); to see a "
-            "true difference pass two standard errors four times in five, a group "
-            f"needs {pairs_needed(spread, 0.01)} pairs for 0.01 and "
-            f"{pairs_needed(spread, 0.02)} for 0.02. Pairs of classmates who searched "
-            "the same space can be read together (harness.class_pairs)"
+            f"\nthe differences within the pairs spread by {spread:.4f} (std). Pairs of "
+            "classmates who searched the same space can be read together "
+            "(harness.class_pairs)"
         )
     if not table.empty and (table["arm"] == "route").any():
         print(

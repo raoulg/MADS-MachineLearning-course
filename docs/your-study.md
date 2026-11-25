@@ -198,8 +198,8 @@ When the student cannot explain a part of the page, name that part and send them
 the step it belongs to: the blocks of the architecture and the Design tab to step 1, the
 shapes to step 2, the spread of the baseline to step 3, the axes and ranges and a study's
 idea and expectation in the line of ideas to step 4, a refusal or a missing trial to
-step 5, the winner in sigmas to step 6, and what a study builds on to step 9. The
-interview goes on once they can say it. A starred view is the student's own question to
+step 5, the winner against the baseline in points to step 6, and what a study builds on
+to step 9. The interview goes on once they can say it. A starred view is the student's own question to
 the trials: ask what they see in it, and do not star views for them.
 
 Write `exercises/page.toml` once, after the last question, in the student's own words:
