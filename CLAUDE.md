@@ -50,6 +50,15 @@ The sections below are for work on the course material itself. A student's assis
 follows the section above and the `param` rule below, and never edits a lesson notebook
 in place.
 
+## Results: a spread, not a significance test
+
+Do machine learning as it is done everywhere. Where runs are repeated, a spread beside a
+number (± std or ± se) is fine. It is never a guiding principle: no threshold or verdict
+classes ("within 2 se", "marginal", "a result") that decide a choice, and never extra runs
+just to get a spread. Runs from other random weights converge: an expensive run (100k
+images) is run once, and a large spread first asks for longer training. Anything beyond
+this needs a reason Raoul has agreed to.
+
 ## Course material is designed from learning goals and read as a student
 
 A notebook is written against a goal map and is done only when a fresh agent, reading it
