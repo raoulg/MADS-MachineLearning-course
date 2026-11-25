@@ -7,7 +7,7 @@ writes on Optuna's studies and trials, in the shape the protocol asks:
 - a search is a study (`StudyLog.search`): every trial draws its params from the search
   space and reports its objective per epoch, so a pruner can stop it early; `record`
   writes what the trial was;
-- a run that is not a draw from a space (a baseline, an ablation, a winner rerun) is a
+- a run that is not a draw from a space (a baseline, a control, a winner rerun) is a
   trial in a second study (`StudyLog.runs` + `log`), with the params it was given and
   one value per repeat.
 
@@ -68,7 +68,7 @@ warnings.filterwarnings("ignore", category=optuna.exceptions.ExperimentalWarning
 
 # What a run is for. The class view compares baselines with finals per student and reads
 # trials as the search space everyone explored.
-Role = Literal["baseline", "trial", "final", "ablation", "hypothesis"]
+Role = Literal["baseline", "trial", "final", "control", "hypothesis"]
 
 # One timestamp per execution of a notebook (this module is imported once, at the top):
 # every trial carries it as the user attr `session`, so a notebook run twice can be told

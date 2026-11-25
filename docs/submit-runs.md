@@ -16,7 +16,7 @@ metric (accuracy, macro recall, and recall, precision and F1 per class). A study
 its objective, the metric that is its trials' value; accuracy by default. The lesson's exercise logs to
 studies whose names start with `lesson<N>-notebook` (the part of the exercise as handed
 out: `lesson1-notebook` for its search, `lesson1-notebook-runs` for the baseline, the
-winner and the ablation) and `lesson<N>-study` (the student's own study:
+winner and the control) and `lesson<N>-study` (the student's own study:
 `lesson1-study-<name>` for its search, `lesson1-study-<name>-runs` for its baseline,
 winner and arms). Those are what `scripts/submit_runs.py --lesson <N>` submits. The
 lesson's other notebooks log to studies of their own (`lesson1-search`,
@@ -90,7 +90,7 @@ uv run scripts/submit_runs.py --lesson <N> --student <login> --list
 ```
 
 This changes nothing. Show the student the list: one line per run, with its study, its
-role (baseline, trial, final, ablation, hypothesis), its name and its outcome; a run
+role (baseline, trial, final, control, hypothesis), its name and its outcome; a run
 repeated a few times shows as `accuracy=<mean> ± <spread between runs> (n=<repeats>)`, a
 trial of a search as `accuracy=<value>` (the metric named is the study's objective, for
 example `macro_recall=<value>`), a pruned trial as `pruned after <n> epochs`. By

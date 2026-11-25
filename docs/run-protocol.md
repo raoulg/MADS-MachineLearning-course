@@ -176,7 +176,7 @@ def objective(trial):
 
 - **study names**: `lesson<N>-notebook` (the trials of the handed-out search) and
   `lesson<N>-notebook-runs` (the handed-out runs that are given their params: baseline,
-  encoder comparison, winner rerun a few times, ablation) for the notebook as handed out;
+  encoder comparison, winner rerun a few times, control) for the notebook as handed out;
   `lesson<N>-study-<name>` and `lesson<N>-study-<name>-runs` for the student's own study,
   `<name>` being the first name, a dash, and what it studies (`sam-depth-on-eurosat`). The
   lesson's other notebooks log to studies of their own, in lesson 1
@@ -189,7 +189,8 @@ def objective(trial):
   logged: `lesson<N>-notebook` and `lesson<N>-notebook-runs` are `notebook`, the studies
   that start with `lesson<N>-study` are `study`.
 - **role** attr: `baseline`, `trial` (one search trial), `final` (the result a student
-  stands behind, rerun a few times), `ablation`, `hypothesis`.
+  stands behind, rerun a few times), `control` (the same model with one part taken out or
+  swapped), `hypothesis`.
 - **dataset** attr, on every run: the dataset the run was trained and scored on. Scores of
   different datasets are never compared with each other.
 - **a student's own study** carries, as study attrs, `origin`, `study` (its name),

@@ -497,6 +497,8 @@ class Run(BaseModel):
     @field_validator("attrs")
     @classmethod
     def _attrs(cls, v: dict[str, Any]) -> dict[str, Any]:
+        if v.get("role") == "ablation":  # A stored role 'ablation' reads as 'control'.
+            v = {**v, "role": "control"}
         check_keys("attr", v)
         check_json_size("attr", v)
         if "metrics" in v:
