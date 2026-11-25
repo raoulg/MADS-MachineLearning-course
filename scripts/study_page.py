@@ -93,13 +93,11 @@ from class_analysis import (
     plural,
     read_class,
     runs_frame,
-    sigma,
     signed,
     size_title,
     standard_error,
     study_of,
     train_flops,
-    verdict,
 )
 from class_analysis import tick as short
 from run_submission import (
@@ -449,6 +447,13 @@ def parse_space(line: str | None) -> list[Axis]:
     return out
 
 
+def difference(a: pd.Series, b: pd.Series) -> tuple[float, float]:
+    """`a` against `b` in points, and the standard error of that difference in points
+    from the spread of their repeats; NaN for the error when one side has no spread."""
+    se = standard_error((a["std"], a["n"]), (b["std"], b["n"]))
+    return 100 * (a.score - b.score), 100 * se
+
+
 @dataclass
 class Study:
     """A study of the page: its search (`trials`) and its runs (`base`, `final`), all
@@ -546,14 +551,11 @@ class Study:
                 return str(row.dataset)
         return "unknown"
 
-    def gain(self) -> tuple[float, float, str]:
-        """The winner against its own baseline: points, sigmas and `verdict`'s word; NaN
-        and `unmeasured` without both."""
-        b, f = self.base, self.final
-        if b is None or f is None:
-            return math.nan, math.nan, "unmeasured"
-        sig = sigma(f, b)
-        return 100 * (f.score - b.score), sig, verdict(sig)
+    def gain(self) -> tuple[float, float]:
+        """The winner against its own baseline (`difference`); NaN without both."""
+        if self.base is None or self.final is None:
+            return math.nan, math.nan
+        return difference(self.final, self.base)
 
     def params(self) -> dict[str, object]:
         """The winner's config: the final's params, else those of the best trial on the
@@ -792,16 +794,13 @@ def spread_text(score: float, std: object, n: object) -> str:
     return out
 
 
-def gain_words(
-    points: float, sig: float, word: str, base_n: object, final_n: object
-) -> str:
+def gain_words(points: float, se: float) -> str:
     """The gain in points, ± the standard error of the difference where both sides were
     run more than once: how far the winner moved from its own baseline. One run is a
-    result too, shown without a spread. `word` is not shown."""
+    result too, shown without a spread."""
     if math.isnan(points):
         return "no winner against a baseline yet"
-    se = f" ± {abs(points / sig):.1f}" if sig and not math.isnan(sig) else ""
-    return f"{signed(points)}{se} pt against its baseline"
+    return f"{pm(points, se)} against its baseline"
 
 
 def fig_results(study: Study) -> str:
@@ -847,17 +846,14 @@ def fig_results(study: Study) -> str:
     body.append(text(left, y + 14, tick(low), "s m"))
     body.append(text(right, y + 14, tick(high), "s m", "end"))
     body.append(text((left + right) / 2, y + 14, study.objective, "s m", "middle"))
-    points, sig, word = study.gain()
-    gain = gain_words(
-        points, sig, word, None if b is None else b["n"], None if f is None else f["n"]
-    )
+    gain = gain_words(*study.gain())
     lines = "".join(
         f"<li><b>{n}</b> {html.escape(spread_text(r.score, r['std'], r['n']))}</li>"
         for n, r in rows
     )
     return (
         svg(width, y + 22, "".join(body), f"winner and baseline of {study.label}")
-        + f"<p class='gain {word}'>{html.escape(gain)}</p>"
+        + f"<p class='gain'>{html.escape(gain)}</p>"
         + f"<ul class='plain'>{lines}</ul>"
         + f"<p class='foot'>{html.escape(study.objective)} on {html.escape(study.on_text())}"
         " · ± one standard error over the runs</p>"
@@ -1422,17 +1418,13 @@ def gain_line(study: Study) -> str:
     b, f = study.base, study.final
     if study.finished == 0 and f is None:
         return "<p class='gain unmeasured'>No finished trial yet.</p>"
-    points, sig, word = study.gain()
     scores = (
         f"<span class='vs'>baseline {se_text(b.score, b['std'], b['n'])} → winner "
         f"{se_text(f.score, f['std'], f['n'])}</span>"
         if b is not None and f is not None
         else ""
     )
-    words = gain_words(
-        points, sig, word, None if b is None else b["n"], None if f is None else f["n"]
-    )
-    return f"<p class='gain {word}'>{scores}{html.escape(words)}</p>"
+    return f"<p class='gain'>{scores}{html.escape(gain_words(*study.gain()))}</p>"
 
 
 def expects_line(study: Study) -> str:
@@ -1485,10 +1477,7 @@ def on_parent(study: Study, parent: Study | None) -> tuple[float, float] | None:
     f, g = study.final, parent.final
     if str(f.dataset) != str(g.dataset):
         return None
-    points = 100 * (f.score - g.score)
-    sig = sigma(f, g)
-    se = abs(points / sig) if sig and not math.isnan(sig) else math.nan
-    return points, se
+    return difference(f, g)
 
 
 def pm(points: float, se: float) -> str:

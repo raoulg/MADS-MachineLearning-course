@@ -180,20 +180,22 @@ def test_the_line_of_ideas_follows_builds_on(store, folder):
     ]
 
 
-def test_each_study_box_gives_its_own_gain_in_points_and_sigmas(store, folder):
+def test_each_study_box_gives_its_own_gain_in_points_and_its_standard_error(
+    store, folder
+):
     """By hand, with s the standard deviation over the repeats (ddof=0) and the standard
     error sqrt(s_b²/(n_b−1) + s_f²/(n_f−1)):
-    alice-skip: 0.633 against 0.833, s² = 1/450 on both sides, se = 0.0471, 4.2σ;
-    alice-lr-range: 0.600 against 0.667, s² = 1/150 and 1/450, se = 0.0667, 1.0σ."""
+    alice-skip: 0.633 against 0.833, s² = 1/450 on both sides, se = 0.0471;
+    alice-lr-range: 0.600 against 0.667, s² = 1/150 and 1/450, se = 0.0667."""
     subs, _, _ = study_page.read_store(store, 1)
     skip, lr = study_page.studies_of(subs)
-    points, sigma, word = skip.gain()
+    points, se = skip.gain()
     assert points == pytest.approx(100 * (25 / 30 - 19 / 30))
-    assert f"{sigma:.1f}" == "4.2" and word == "better"
-    points, sigma, word = lr.gain()
+    assert f"{se:.2f}" == "4.71"
+    points, se = lr.gain()
     # the store keeps scores to four decimals
     assert points == pytest.approx(100 * (20 / 30 - 18 / 30), abs=0.01)
-    assert f"{sigma:.1f}" == "1.0" and word == "inside"
+    assert f"{se:.2f}" == "6.67"
     text = page(store, folder)
     # the standard errors of the differences: 4.71 and 6.67 points
     assert "+20.0 ± 4.7 pt against its baseline" in text
