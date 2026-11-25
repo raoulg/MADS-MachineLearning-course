@@ -47,8 +47,8 @@ parameters" is geen reden.
 4.9 Een lang document chunken, embedden via een cache en met padding en masked aggregatie
 terugbrengen tot één vector per document, en vooraf de shape op elke stap voorspellen.
 
-4.10 Twee stromen fuseren en de ablatie draaien die laat zien of de fusie iets oplevert:
-één variabele tegelijk.
+4.10 Twee stromen fuseren en hetzelfde model zonder één stroom draaien: de control laat zien
+of de fusie iets oplevert, één variabele tegelijk.
 
 4.11 Een search draaien over de assen chunk, padding en aggregatie, en het resultaat
 rapporteren op een split waar de search nooit naar gekeken heeft.
@@ -64,7 +64,7 @@ publiceren, het werk van anderen bekijken en daarop voortbouwen met bronvermeldi
 | 4.1, 4.2, 4.3, 4.4 | attention, positional encoding, masking | `01_attention` |
 | 4.5 | tokens als budget | `02_tokenization` |
 | 4.6, 4.7, 4.9, 4.11 | lange documenten, padding, masked aggregatie, de search | `03_long_documents` |
-| 4.8, 4.10 | fusie en de ablatie | `04_composition` |
+| 4.8, 4.10 | fusie en de control | `04_composition` |
 | 4.12 | de klasopdracht | les |
 
 Generatieve modellen zitten niet in deze les. Les 4 gaat over de representatie van taal;

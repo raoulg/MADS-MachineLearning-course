@@ -266,7 +266,6 @@ def test_the_page_is_one_self_contained_file_with_every_picture():
     assert "id='panel-built' aria-labelledby='tab-built' hidden>" in page
     for goal in ("1.5", "1.6", "1.9", "1.10"):
         assert f"<span class='goal num'>{goal}</span>" in page
-    assert "ablation" not in page.lower().replace("ablation_", "")
     assert "σ" not in page
 
 

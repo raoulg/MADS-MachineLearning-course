@@ -223,6 +223,16 @@ def test_a_pruned_trial_without_a_value_passes(tmp_path, submission):
     assert invalid(tmp_path, submission("alice"), **run) == []
 
 
+def test_a_stored_role_ablation_reads_as_control(tmp_path, submission):
+    sub = submission("alice")
+    data = json.loads(sub.dump())
+    data["run"]["attrs"]["role"] = "ablation"
+    path = tmp_path / sub.relpath()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert run_submission.load(path).run.attrs["role"] == "control"
+
+
 def test_builds_on_classmates_runs_passes(tmp_path, submission):
     refs = f"lesson1/bob/{'a' * 32},lesson2/Carol-1/{'b' * 32}"
     attrs = {"role": "final", "builds_on": refs}
