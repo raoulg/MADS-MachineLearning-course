@@ -212,6 +212,17 @@ def test_ideas_merge_share_the_root_and_keep_a_dangling_parent():
     assert alice.gain_pt == pytest.approx(3.0)
 
 
+def test_the_lanes_name_the_handed_out_idea_a_first_idea_builds_on():
+    df = class_analysis.runs_frame(class_with_ideas())
+    ids = class_analysis.ideas(df, class_analysis.comparisons(df))
+    handed_out = ids[ids.author == class_analysis.COURSE]
+    for page in (
+        class_analysis.lanes(ids, class_analysis.edges(ids), None, {}),
+        class_analysis.lanes(handed_out, class_analysis.edges(handed_out), None, {}),
+    ):
+        assert f"The handed-out idea is <b>{ROOT['idea_name']}</b>" in page
+
+
 def test_the_lanes_hold_a_card_per_students_idea_and_link_only_submitted_ideas():
     df = class_analysis.runs_frame(class_with_ideas())
     ids = class_analysis.ideas(df, class_analysis.comparisons(df))

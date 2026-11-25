@@ -2290,10 +2290,17 @@ def lanes(
 ) -> str:
     """The ideas of the class: one lane per student, in the order their first idea ran,
     and in a lane the student's ideas in the order they ran, each card naming its day.
-    The links between cards are drawn by the page's script from `data-parents`."""
+    The links between cards are drawn by the page's script from `data-parents`. Above
+    the lanes stands the name of the handed-out idea, which a student's first idea
+    builds on by that name."""
+    handed = "".join(
+        f"<p class='handed-out'>The handed-out idea is <b>{esc(r.name)}</b>: an idea "
+        "that builds on it names it.</p>"
+        for r in rows(ids[ids.author == COURSE])
+    )
     own = ids[ids.author != COURSE]
     if own.empty:
-        return missing("No submitted run carries an idea of a student yet.")
+        return handed + missing("No submitted run carries an idea of a student yet.")
     by = {r.name: r for r in rows(ids)}
 
     def start(r: SimpleNamespace) -> float:
@@ -2312,7 +2319,7 @@ def lanes(
             f"<div class='lane-label'><b>{esc(lane)}</b><span>{plural(len(mine), 'idea')}</span></div>"
             f"<div class='cell'>{cards}</div>"
         )
-    return (
+    return handed + (
         "<div class='lanes-wrap'><div class='lanes'>"
         f"<svg class='links' aria-hidden='true'></svg>{''.join(body)}</div></div>"
     )
