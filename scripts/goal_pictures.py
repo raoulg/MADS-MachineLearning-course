@@ -1224,7 +1224,7 @@ for k, (name, c, shape) in enumerate(l4_steps):
 g += t(200, 214, "schrijf de shape op vóór elke stap", "c", "middle")
 PICTURES["4.9"] = ("Van document naar vector", g)
 
-# 4.10 an ablation table: drop one stream per row, read the score against the spread
+# 4.10 a table of controls: drop one stream per row, read the score against the spread
 g = t(130, 40, "embedding", "c", "middle") + t(190, 40, "feature", "c", "middle")
 g += t(310, 40, "score", "l", "middle")
 g += line("M 240 166 L 380 166", RULE, 1)
@@ -1250,7 +1250,7 @@ for k, (name, on, sc) in enumerate(
     ) + dot(sc, y, 5, VT if k == 0 else PT, V if k == 0 else P)
 g += t(310, 182, "spreiding tussen runs", "c", "middle")
 g += t(200, 208, "één variabele tegelijk, de rest blijft gelijk", "c", "middle")
-PICTURES["4.10"] = ("De ablatie beslist", g)
+PICTURES["4.10"] = ("De control beslist", g)
 
 # 4.11 the search loops over train and valid; test is touched once at the end
 g = t(20, 32, "search", "l v")

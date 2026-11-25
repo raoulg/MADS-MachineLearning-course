@@ -1584,7 +1584,7 @@ def encoder_runs(df: pd.DataFrame) -> pd.DataFrame:
         return df.iloc[:0]
     names = df.name.astype(str)
     return df[
-        (df.role == "ablation") & names.str.startswith("encoder-") & df.score.notna()
+        (df.role == "control") & names.str.startswith("encoder-") & df.score.notna()
     ]
 
 

@@ -834,8 +834,8 @@ def use_table(table: pd.DataFrame) -> pd.DataFrame:
 def control(exercise: Exercise, outcome: Outcome) -> Comparison:
     """The winner's route stage against its capacity-matched control: the winner's config
     with `route` on, once with the router and once with `matched`, each run as often as
-    the baseline and logged to the study's `-runs` (the route arm as `hypothesis`, the
-    control as `ablation`), the route arm with the use of its experts. An arm that is the
+    the baseline and logged to the study's `-runs` (the route arm with role `hypothesis`, the
+    control with role `control`), the route arm with the use of its experts. An arm that is the
     winner reuses the winner's runs."""
     best = outcome.best
     runs = StudyLog.runs(
@@ -849,7 +849,7 @@ def control(exercise: Exercise, outcome: Outcome) -> Comparison:
             "hypothesis",
             {**best, "route": True, "matched": False},
         ),
-        ("matched control", "ablation", {**best, "route": True, "matched": True}),
+        ("matched control", "control", {**best, "route": True, "matched": True}),
     ]
     for name, role, config in arms:
         data = HARNESS.data(config)
