@@ -795,18 +795,12 @@ def spread_text(score: float, std: object, n: object) -> str:
 def gain_words(
     points: float, sig: float, word: str, base_n: object, final_n: object
 ) -> str:
-    """The gain in points ± the standard error of the difference: how far the winner moved
-    from its own baseline, and how firm that number is. `word` is not shown."""
+    """The gain in points, ± the standard error of the difference where both sides were
+    run more than once: how far the winner moved from its own baseline. One run is a
+    result too, shown without a spread. `word` is not shown."""
     if math.isnan(points):
         return "no winner against a baseline yet"
-    if math.isnan(sig):
-        single = 1 in (number(base_n), number(final_n))
-        return f"{signed(points)} pt · " + (
-            "a side has a single run, so it has no standard error"
-            if single
-            else "the runs do not differ, so it has no standard error"
-        )
-    se = f" ± {abs(points / sig):.1f}" if sig else ""
+    se = f" ± {abs(points / sig):.1f}" if sig and not math.isnan(sig) else ""
     return f"{signed(points)}{se} pt against its baseline"
 
 
@@ -1189,6 +1183,16 @@ def fig_flops(
             f"y2='{ay(b.score):.1f}' class='baseline'/>"
         )
     below = 0
+    enc = done.p_encoder.dropna() if "p_encoder" in done else pd.Series(dtype=object)
+    by = "p_encoder" if enc.nunique() > 1 else "by_study"
+    names = (
+        sorted({str(v) for v in done[by].dropna()}, key=natural_key)
+        if by in done
+        else []
+    )
+    hue = (
+        {n: HUES[i % len(HUES)] for i, n in enumerate(names)} if len(names) > 1 else {}
+    )
     for r in t.sort_values("winner").itertuples():
         hint = (
             f"<title>{html.escape(flops_text(r.flops))} "
@@ -1202,22 +1206,53 @@ def fig_flops(
                 f"L{x:.1f},{bottom - 1} Z' class='dot'>{hint}</path>"
             )
             continue
+        paint = (
+            f" style='fill:{hue[str(getattr(r, by))]};stroke:{hue[str(getattr(r, by))]}'"
+            if hue and not r.winner
+            else ""
+        )
         body.append(
             f"<circle cx='{x:.1f}' cy='{ay(float(r.score)):.1f}' "
-            f"r='{5 if r.winner else 3.2}' class='{'win' if r.winner else 'dot'}'>"
+            f"r='{5 if r.winner else 3.2}' class='{'win' if r.winner else 'dot'}'{paint}>"
             f"{hint}</circle>"
         )
     left_out = len(done) - len(t)
+    key = (
+        "<p class='legend'>"
+        + ("<b>encoder</b> " if by == "p_encoder" else "<b>study</b> ")
+        + " ".join(
+            f"<svg class='sw' viewBox='-6 -6 12 12' aria-hidden='true'><circle r='4.6' "
+            f"fill='{c}'/></svg>{html.escape(n)}"
+            for n, c in hue.items()
+        )
+        + "</p>"
+        if hue
+        else ""
+    )
     return (
         head
         + f"<p class='ylab'>{html.escape(objective)}</p>"
         + svg(width, height, "".join(body), f"{objective} against {axis_name}")
-        + f"<p class='foot'>one dot per finished trial, the best filled · {counts} · "
+        + key
+        + f"<p class='foot'>one dot per finished trial, the best ringed · {counts} · "
         "dotted with its band: the baseline ± one standard deviation"
         + (f" · ▼ on the floor: {plural(below, 'trial')} far below the others" if below else "")
         + (f" · {plural(left_out, 'trial')} without known FLOPs left out" if left_out else "")
         + "</p>"
     )  # fmt: skip
+
+
+# The Okabe and Ito hues, in the explorer's order: a study is one colour on every picture.
+HUES = ("#0072B2", "#E69F00", "#009E73", "#CC79A7", "#56B4E9", "#D55E00", "#F0E442",
+        "#5a544d")  # fmt: skip
+
+
+def natural_key(v: str) -> tuple[int, float, str]:
+    """The explorer's order of categories: numbers by value, the rest by name."""
+    try:
+        return (0, float(v), "")
+    except ValueError:
+        return (1, 0.0, v.casefold())
 
 
 MIN_MEDIAN = 3  # curves of a panel that reach an epoch before its median is drawn
@@ -1435,21 +1470,59 @@ def idea_detail(study: Study, known: Mapping[str, Study], parent: Study | None) 
         f"<h3><span class='t'>{html.escape(study.short)}</span>{PEN}</h3>"
         "<p class='words'>"
         f"{html.escape(study.idea or 'the study carries no idea')}</p>"
-        f"{expects_line(study)}{gain_line(study)}{builds}"
+        f"{expects_line(study)}{parent_line(study, parent)}{gain_line(study)}{builds}"
         f"<p class='to'><a href='#studies/{study.slug}'>open the study</a>"
-        f"<span class='tag'>title in page.toml: [titles] "
-        f"&quot;{html.escape(study.label)}&quot;</span></p></div>"
+        "</p></div>"
     )
 
 
-def idea_numbers(study: Study) -> str:
-    """The winner's score and its gain over its own baseline, short, beside a title."""
+def on_parent(study: Study, parent: Study | None) -> tuple[float, float] | None:
+    """The winner against the winner of the idea it builds on: the difference in points
+    and its standard error in points (NaN without spread); None without both winners
+    on one dataset."""
+    if parent is None or study.final is None or parent.final is None:
+        return None
+    f, g = study.final, parent.final
+    if str(f.dataset) != str(g.dataset):
+        return None
+    points = 100 * (f.score - g.score)
+    sig = sigma(f, g)
+    se = abs(points / sig) if sig and not math.isnan(sig) else math.nan
+    return points, se
+
+
+def pm(points: float, se: float) -> str:
+    return f"{signed(points)}" + ("" if math.isnan(se) else f" ± {se:.1f}") + " pt"
+
+
+def parent_line(study: Study, parent: Study | None) -> str:
+    """What the winner moved from the winner of the idea it builds on."""
+    up = on_parent(study, parent)
+    if up is None or parent is None or parent.final is None or study.final is None:
+        return ""
+    return (
+        f"<p class='gain parent'>{pm(*up)} on {html.escape(parent.short)} "
+        f"<span class='vs'>{parent.final.score:.4f} → {study.final.score:.4f}</span></p>"
+    )
+
+
+def idea_numbers(study: Study, parent: Study | None = None) -> str:
+    """The winner's score, then what it moved from the idea it builds on, and small
+    behind it what it moved from its own baseline; an idea without a parent on the page
+    shows its gain on its baseline alone."""
     f = study.final
     points = study.gain()[0]
     if f is None:
         return "<span class='nums'>no winner yet</span>"
-    gain = "" if math.isnan(points) else f" · <b>{signed(points)} pt</b>"
-    return f"<span class='nums'>{f.score:.3f}{gain}</span>"
+    base = "" if math.isnan(points) else f"{signed(points)} pt on baseline"
+    up = on_parent(study, parent)
+    if up is None:
+        main = f" · <b>{base}</b>" if base else ""
+        return f"<span class='nums'>{f.score:.3f}{main}</span>"
+    small = f" <small>{base}</small>" if base else ""
+    return (
+        f"<span class='nums'>{f.score:.3f} · <b>{pm(*up)} on parent</b>{small}</span>"
+    )
 
 
 IDEA_ROW, IDEA_STEP, IDEA_R = 40, 26, 7  # a row of the graph, a step in, a circle
@@ -1503,7 +1576,7 @@ def idea_tree(studies: Sequence[Study]) -> str:
             f"<button type='button' class='node' data-study='{s.slug}' "
             f"data-parent='{up.slug if up is not None else ''}' aria-expanded='false' "
             f"aria-controls='idea-{s.slug}' style='padding-left:{x + IDEA_R + 12}px'>"
-            f"<span class='title'>{html.escape(s.short)}</span>{idea_numbers(s)}</button>"
+            f"<span class='title'>{html.escape(s.short)}</span>{idea_numbers(s, up)}</button>"
         )
     width = max(x for x, _ in at.values()) + IDEA_R + 4
     height = len(rows) * IDEA_ROW
@@ -1514,8 +1587,9 @@ def idea_tree(studies: Sequence[Study]) -> str:
         f"{''.join(nodes)}</div>"
     )
     legend = (
-        "<p class='foot key'>the number: the winner's score, then how far it moved from "
-        "its own baseline, in points</p>"
+        "<p class='foot key'>the numbers: the winner's score, what it moved from the idea "
+        "it builds on (± its standard error), and small what it moved from its own "
+        "baseline, in points</p>"
     )
     details = "".join(idea_detail(s, known, parent[s.slug]) for s, _ in rows)
     return (
@@ -1574,7 +1648,10 @@ def capacity(studies: Sequence[Study]) -> tuple[str, str]:
     several = len(groups) > 1
     flops, overfit = [], []
     for (d, objective), group in groups.items():
-        trials = pd.concat([st.trials_on(d) for st in group], ignore_index=True)
+        trials = pd.concat(
+            [st.trials_on(d).assign(by_study=st.short) for st in group],
+            ignore_index=True,
+        )
         done = trials[(trials.status == "COMPLETE") & trials.score.notna()]
         done = (
             done.assign(winner=done.index == done.score.idxmax()) if len(done) else done
@@ -1615,11 +1692,9 @@ def capacity(studies: Sequence[Study]) -> tuple[str, str]:
     return (
         (
             "<section><h2>Scaling FLOPs</h2><p class='cap'>Every trial of all my studies, "
-            "twice. The parameters say how heavy the head is for one image; the FLOPs "
-            "(floating point operations) count all of training, so they also grow with the "
-            "epochs and the training rows: training longer can buy score too. Where the dots "
-            "stop rising, more buys no more score; where they fall, the head learns its "
-            "training images by heart. Star a picture to keep it on the Starred tab."
+            "twice: against how heavy the head is, and against all the compute of "
+            "training it. Both count the head only, so a bigger encoder lifts a dot "
+            "without moving it right. Where the dots stop rising, more buys no more score."
             f"</p>{''.join(flops)}</section>"
         ),
         (
@@ -1632,20 +1707,12 @@ def capacity(studies: Sequence[Study]) -> tuple[str, str]:
 
 
 def glance(studies: Sequence[Study]) -> str:
-    """The strip over the ideas: how many studies, how many trials finished and were
-    pruned, and the best winner, each a number under its name."""
-    finals = [(s.final.score, s) for s in studies if s.final is not None]
-    best = max(finals, key=lambda x: x[0]) if finals else None
+    """The strip over the ideas: how many studies, and how many trials finished and were
+    pruned (stopped early by the search), each a number under its name."""
     cells = [
         ("ink", "Studies", str(len(studies)), ""),
         ("green", "Finished trials", str(sum(s.finished for s in studies)), ""),
-        ("amber", "Pruned trials", str(sum(s.pruned for s in studies)), ""),
-        (
-            "blue",
-            "Best winner",
-            "–" if best is None else f"{best[0]:.3f}",
-            "" if best is None else f"{best[1].objective} · {best[1].short}",
-        ),
+        ("amber", "Stopped early (pruned)", str(sum(s.pruned for s in studies)), ""),
     ]
     return (
         "<dl class='glance'>"
@@ -1673,6 +1740,20 @@ def overview(
         "starred here</label>"
         "<section id='starred-overview' class='starred-here' hidden><h2>Starred</h2>"
         "<div class='starred-list'></div></section>"
+        f"{own_sections(own, folder)}"
+    )
+
+
+def own_sections(own: Mapping[str, str] | None, folder: Path) -> str:
+    """What the student wrote: what they did, what surprised them, what they would try
+    next. A page of submitted runs has none of it, and says so once."""
+    if own is None:
+        return (
+            "<p class='foot own-note'>What the student wrote about the study (a message, "
+            "a picture, what surprised them, what they would try next) stays in their "
+            "page.toml and is not part of the submitted runs.</p>"
+        )
+    return (
         "<section class='own'><h2>What I did</h2>"
         f"{own_text(own, 'message')}{picture(own, folder)}</section>"
         "<section class='own'><h2>What surprised me</h2>"
@@ -1754,8 +1835,9 @@ def explore_defaults(
     studies: Sequence[Study], names: Sequence[str], objective: str
 ) -> dict[str, str]:
     """The view the explorer opens on: the objective against the FLOPs, coloured by the
-    study where there are several, else by the depth of the model where the trials have
-    one, else by the first searched axis."""
+    encoder where the trials used more than one (a bigger encoder lifts the score without
+    moving the head's FLOPs), else by the study where there are several, else by the
+    depth of the model, else by the first searched axis."""
     axes = [a for st in studies for a in st.axes]
     x = (
         FLOPS
@@ -1763,7 +1845,7 @@ def explore_defaults(
         else next((a for a in axes if a in names), names[min(1, len(names) - 1)])
     )
     depth = ("n_hidden_layers", "depth", "layers")
-    first = ("study",) if len(studies) > 1 else ()
+    first = ("encoder", "study") if len(studies) > 1 else ("encoder",)
     c = next((a for a in (*first, *depth, *axes) if a in names and a != x), "")
     return {"x": x, "y": objective, "c": c}
 
@@ -1840,17 +1922,36 @@ def explorer(
     }
     blob = json.dumps(data).replace("</", "<\\/")
 
+    searched = {a for st in group for a in st.axes}
+    measured = {objective, FLOPS, *MEASURED.values()}
+
+    def kind(n: str) -> str:
+        if n in measured:
+            return "measured"
+        if n == STUDY:
+            return "study"
+        if n in searched:
+            return "searched"
+        return "fixed" if n in space else "other params"
+
+    order = ("measured", "searched", "study", "fixed", "other params")
+    grouped = "".join(
+        f"<optgroup label='{g}'>"
+        + "".join(f"<option>{html.escape(n)}</option>" for n in names if kind(n) == g)
+        + "</optgroup>"
+        for g in order
+        if any(kind(n) == g for n in names)
+    )
+
     def menu(which: str, words: str, none: bool = False) -> str:
-        options = ("<option value=''>none</option>" if none else "") + "".join(
-            f"<option>{html.escape(n)}</option>" for n in names
-        )
+        options = ("<option value=''>none</option>" if none else "") + grouped
         return f"<label>{words} <select data-axis='{which}'>{options}</select></label>"
 
     studies = "".join(
         f"<option value='{html.escape(st.key)}'>{html.escape(st.short)}</option>"
         for st, _, _ in parts
     )
-    fields = "".join(f"<option>{html.escape(n)}</option>" for n in names)
+    fields = grouped
     return (
         head
         + f"<script type='application/json' class='explore-data'>{blob}</script>"
@@ -1864,7 +1965,8 @@ def explorer(
         "<select class='f-op' aria-label='how to compare'></select>"
         "<input class='f-value' aria-label='value' size='8'>"
         "<select class='f-choice' aria-label='value' hidden></select>"
-        "<button type='button' class='f-add'>add filter</button></div>"
+        "<button type='button' class='f-add'>add filter</button>"
+        "<button type='button' class='f-reset'>reset view</button></div>"
         "<div class='plot-head'><span class='chips'></span><span class='count'></span>"
         "<button type='button' class='star big' aria-pressed='false'>☆ star this view"
         "</button></div>"
@@ -1872,7 +1974,7 @@ def explorer(
         "<p class='foot'>one dot per finished trial, the best ringed · hover a dot for "
         "its values · ▼ on the floor: far below the others · a dot without a value for "
         "an axis is left out · a number may end in k, M or G</p></div>"
-        "<div class='starred'><h3>Starred here</h3><div class='stars'></div>"
+        "<div class='starred'><h3>Starred on this dataset</h3><div class='stars'></div>"
         "<p class='foot save-note'></p></div></div>"
     )  # fmt: skip
 
@@ -2063,7 +2165,8 @@ def design_tab(
                 "<section class='design'><h2>Design</h2><p class='cap'>"
                 f"{html.escape(command)} view {html.escape(shown(folder))}: the stages of "
                 "the design, the shape on every arrow, and where an option leaves a stage "
-                "out.</p><iframe id='atlas' title='the design in atlas'></iframe>"
+                "out. Zoom in with + at the top right. 'error types' folds the errors the "
+                "code can raise into one box; it is not a fault in the design.</p><iframe id='atlas' title='the design in atlas'></iframe>"
                 f"<script type='application/octet-stream' id='atlas-page'>{data}</script>"
                 "</section>"
             )
@@ -2122,11 +2225,11 @@ section>h2:first-child{margin:-2px -20px 14px;padding:0 20px 14px;border-bottom:
 h3{font-size:19px;font-weight:500;margin:0 0 8px}
 h4{font-size:15px;font-weight:500;margin:0;font-family:'JetBrains Mono',monospace}
 p{margin:4px 0;text-wrap:pretty}
-code,.name,.metrics td{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--course-blue);
+code,.name,.metrics td{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--course-ink);
   overflow-wrap:anywhere}
 .sub,.cap,.foot,.meta,.ylab{color:var(--course-muted);font-size:15px;overflow-wrap:anywhere}
-.cap{max-width:75ch;margin-bottom:10px}
-.foot{font-size:14px;margin-top:4px}
+.cap{max-width:68ch;margin-bottom:10px}
+.foot{font-size:14px;margin-top:4px;max-width:80ch}
 .ylab{margin:8px 0 0;font-size:14px}
 .ds{margin:10px 0 0;font-size:15px;font-weight:500;color:var(--course-ink)}
 footer.sub{margin:28px 0 0;max-width:90ch}
@@ -2150,7 +2253,7 @@ section{background:var(--course-surface);border:1px solid var(--course-rule);bor
 .theme{font:inherit;font-size:14px;background:var(--course-surface);color:var(--course-muted);flex:none;
   border:1px solid var(--course-rule);border-radius:3px;padding:5px 11px;cursor:pointer}
 .theme:hover{color:var(--course-ink)}
-.glance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 16px;
+.glance{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 16px;
   padding:0 0 16px;border-bottom:1px solid var(--course-rule)}
 .glance div{min-width:0}
 .glance dt{display:flex;align-items:center;gap:7px;font-size:14px;color:var(--course-muted)}
@@ -2164,16 +2267,18 @@ section{background:var(--course-surface);border:1px solid var(--course-rule);bor
 .dot-amber{background:var(--course-orange)}
 .dot-blue{background:var(--course-blue)}
 .side .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 2px;font-size:15px}
-.filters .lbl{color:var(--course-muted)}
+.filters .lbl{color:var(--course-muted);font-size:15px}
 .filters select,.filters input{font:inherit;font-size:15px;background:var(--course-surface);color:var(--course-ink);
   border:1px solid var(--course-rule);border-radius:2px;padding:3px 6px}
-.filters input{width:8ch}
+.filters input{width:11ch}
+.filters input::placeholder{color:var(--course-muted);opacity:.8;font-style:italic}
+.f-reset{font:inherit;font-size:15px;background:none;color:var(--course-muted);border:0;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .f-add{font:inherit;font-size:15px;background:var(--course-surface);color:var(--course-ink);
   border:1px solid var(--course-rule);border-radius:2px;padding:3px 9px;cursor:pointer}
 .chips{display:contents}
 .chip{display:inline-flex;align-items:center;gap:6px;padding:3px 4px 3px 9px;font-family:'JetBrains Mono',monospace;
-  font-size:13px;border:1px solid var(--course-blue);color:var(--course-ink);border-radius:2px;
-  background:color-mix(in srgb,var(--course-blue) 18%,transparent)}
+  font-size:13px;border:1px solid var(--course-green);color:var(--course-ink);border-radius:2px;
+  background:color-mix(in srgb,var(--course-green) 18%,transparent)}
 .plot-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 4px}
 .plot-head .count{color:var(--course-muted);font-size:14px}
 .star.big{margin-left:auto;background:var(--course-orange);color:#1a1405;border-color:var(--course-orange);
@@ -2208,7 +2313,8 @@ svg .dot.picked{stroke:var(--course-ink);stroke-width:3}
 .node[aria-expanded=true] .title{font-weight:500}
 .nums{flex:none;margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--course-muted);
   font-variant-numeric:tabular-nums}
-.nums b{font-weight:500}
+.nums b{font-weight:500;color:var(--course-ink)}
+.nums small{font-size:12px;margin-left:6px}
 .idea-panel{background:var(--course-paper);border-radius:3px;padding:12px 16px;min-height:80px}
 .idea-panel .hint{color:var(--course-muted);font-size:15px}
 .idea-panel h3{font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:6px}
@@ -2234,8 +2340,6 @@ svg .dot.picked{stroke:var(--course-ink);stroke-width:3}
 .builds{font-size:15px;color:var(--course-muted);overflow-wrap:anywhere}
 .gain{font-size:16px;font-weight:500;color:var(--course-muted)}
 .gain .vs{display:block;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;color:var(--course-ink)}
-.gain.better{color:var(--course-green)}
-.gain.worse{color:var(--course-orange)}
 .lead .meta{margin-top:8px}
 .switch{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
 .switch a{font-size:17px;color:var(--course-ink);text-decoration:none;border:1.5px solid var(--course-rule);
@@ -2259,16 +2363,16 @@ svg .b{font-weight:500}
 svg .on{fill:var(--course-paper)}
 svg .track{stroke:var(--course-muted);stroke-width:1}
 svg .err{stroke:var(--course-ink);stroke-width:2}
-svg .win{fill:var(--course-blue)}
+svg .win{fill:none;stroke:var(--course-ink);stroke-width:2.4}
 svg .base{fill:var(--course-paper);stroke:var(--course-orange);stroke-width:2.5}
 svg .dot{fill:none;stroke:var(--course-muted);stroke-width:1.2}
 svg .seg{fill:var(--course-paper);stroke:var(--course-rule)}
-svg .seg.on{fill:var(--course-blue);stroke:var(--course-blue)}
+svg .seg.on{fill:var(--course-green);stroke:var(--course-green)}
 svg .fixed{fill:var(--course-paper);stroke:var(--course-rule);stroke-dasharray:3 3}
 svg .band{fill:var(--course-orange-wash);opacity:.7}
 svg .baseline{stroke:var(--course-orange);stroke-width:1.5;stroke-dasharray:2 3}
-svg .faint{fill:none;stroke:var(--course-blue);stroke-width:1.1;stroke-opacity:.7}
-svg .wincurve{fill:none;stroke:var(--course-blue);stroke-width:2.6}
+svg .faint{fill:none;stroke:var(--course-green);stroke-width:1.1;stroke-opacity:.55}
+svg .wincurve{fill:none;stroke:var(--course-ink);stroke-width:2.6}
 svg .basecurve{fill:none;stroke:var(--course-orange);stroke-width:2;stroke-dasharray:2 3}
 svg .loss{fill:none;stroke-width:1;stroke-opacity:.18}
 svg .loss.test{stroke:var(--course-blue)}
@@ -2280,10 +2384,12 @@ svg .gap{fill:var(--course-blue);fill-opacity:.16;stroke:none}
 .key .k:first-child{margin-left:0}
 .key .k.test{background:var(--course-blue)}
 .key .k.train{background:var(--course-orange)}
+:root[data-theme="light"] svg .loss.train{stroke:var(--course-green)}
+:root[data-theme="light"] .key .k.train{background:var(--course-green)}
 .key .k.gap{height:10px;background:color-mix(in srgb,var(--course-blue) 22%,transparent)}
 .sizes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:8px}
 .sizes .card p{margin:0}
-.explore{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-top:8px}
+.explore{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;margin-top:8px}
 .explore .live,.explore .starred{background:var(--course-paper);border-radius:3px;padding:12px;min-width:0}
 .controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:15px}
 .controls select{font:inherit;font-size:15px;background:var(--course-surface);color:var(--course-ink);
@@ -2291,7 +2397,7 @@ svg .gap{fill:var(--course-blue);fill-opacity:.16;stroke:none}
 .star,.card button{font:inherit;font-size:15px;background:var(--course-surface);color:var(--course-ink);
   border:1px solid var(--course-rule);border-radius:2px;padding:3px 10px;cursor:pointer}
 .star[aria-pressed=true]{border-color:var(--slot-ink);color:var(--slot-ink)}
-.stars{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;max-height:820px;overflow-y:auto}
+.stars{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:10px}
 figure.card{margin:0;background:var(--course-surface)}
 .starred-list figure.card{background:var(--course-paper)}
 .pinnable{padding:12px}
@@ -2318,7 +2424,7 @@ svg .pt.best{stroke:var(--course-ink);stroke-width:2}
 .stages li+li::before{content:'↓';position:absolute;top:-16px;left:12px;font-size:13px;line-height:1;color:var(--course-muted)}
 .stages li b{font-weight:500;font-family:'JetBrains Mono',monospace;font-size:14px}
 .stages .in{border-style:none;padding-left:0}
-.stages .optional{border-style:dashed;border-color:var(--course-blue)}
+.stages .optional{border-style:dashed;border-color:var(--course-muted)}
 .stages .optional.off{border-color:var(--course-rule)}
 .stages .optional.off code{color:var(--course-muted)}
 .stages .opt{font-size:13px;color:var(--course-muted);width:100%}
@@ -2601,7 +2707,7 @@ EXPLORE = r"""
   // the colour of every row, and the legend that reads it
   function colour(d, i) {
     const round = function () { return 0; };
-    if (i < 0) return {of: function () { return 'var(--course-blue)'; }, shape: round, legend: ''};
+    if (i < 0) return {of: function () { return 'var(--course-green)'; }, shape: round, legend: ''};
     const f = d.fields[i];
     const ax = axis(d, i, 0, 1);
     if (f.kind === 'cat') {
@@ -2628,6 +2734,7 @@ EXPLORE = r"""
   // one picture of d: y against x, coloured by c
   // width: the pixels the picture gets, so its labels keep their size on any screen
   function draw(d, view, small, width) {
+    const all = d;
     d = kept(d, view);
     if (!d.rows.length) return '<p class="missing">No trial passes these filters.</p>';
     const W = small ? 320 : Math.round(Math.max(300, Math.min(760, width || 560)));
@@ -2635,7 +2742,7 @@ EXPLORE = r"""
     const L = small ? 44 : 58, R = W - 10, T = 10, B = H - (small ? 34 : 42);
     const xi = field(d, view.x), yi = field(d, view.y), ci = view.c ? field(d, view.c) : -1;
     if (xi < 0 || yi < 0) return '<p class="missing">This view names a field these trials do not have.</p>';
-    const X = axis(d, xi, L, R), Y = axis(d, yi, B, T, true), C = colour(d, ci);
+    const X = axis(d, xi, L, R), Y = axis(d, yi, B, T, true), C = colour(all, ci);
     const out = ['<line x1="' + L + '" x2="' + R + '" y1="' + B + '" y2="' + B + '" class="track"/>',
                  '<line x1="' + L + '" x2="' + L + '" y1="' + T + '" y2="' + B + '" class="track"/>'];
     X.ticks.forEach(function (t, k) {
@@ -2745,7 +2852,7 @@ EXPLORE = r"""
       }).join('');
     } else {
       val.value = '';
-      val.placeholder = vs.length ? short(quantile(vs, 0.5)) : '';
+      val.placeholder = vs.length ? 'e.g. ' + short(+quantile(vs, 0.5).toPrecision(1)) : '';
     }
     sync(box);
   }
@@ -2776,7 +2883,7 @@ EXPLORE = r"""
     const plot = box.querySelector('.plot');
     plot.innerHTML = draw(d, view, false, plot.clientWidth);
     const shown = kept(d, view);
-    box.querySelector('.legend').innerHTML = shown.rows.length ? colour(shown, view.c ? field(d, view.c) : -1).legend : '';
+    box.querySelector('.legend').innerHTML = shown.rows.length ? colour(d, view.c ? field(d, view.c) : -1).legend : '';
     box.querySelector('.chips').innerHTML = (view.f || []).map(function (f, k) {
       return '<span class="chip">' + esc(filterText(f)) + '<button type="button" data-k="' + k +
         '" aria-label="remove this filter">×</button></span>';
@@ -2931,6 +3038,9 @@ EXPLORE = r"""
       render(box);
     }
     box.querySelector('.f-add').addEventListener('click', add);
+    box.querySelector('.f-reset').addEventListener('click', function () {
+      apply(box, {study: '', x: d.defaults.x, y: d.defaults.y, c: d.defaults.c, f: []});
+    });
     value.addEventListener('keydown', function (e) { if (e.key === 'Enter') add(); });
     value.addEventListener('input', function () { value.setCustomValidity(''); });
     box.querySelector('.star').addEventListener('click', function () {
@@ -2998,7 +3108,8 @@ EXPLORE = r"""
     name.short = shown;
     const slug = name.slug;
     document.querySelectorAll('.node[data-study="' + slug + '"] .title, #idea-' + slug + ' h3 .t, ' +
-      '.switch a[data-study="' + slug + '"], #view-' + slug + ' .lead h2,       '.which option[value="' + key + '"]').forEach(function (e) {
+      '.switch a[data-study="' + slug + '"], #view-' + slug + ' .lead h2, ' +
+      '.which option[value="' + key + '"]').forEach(function (e) {
       e.textContent = shown;
     });
     Object.keys(sets).forEach(function (id) {
@@ -3140,7 +3251,7 @@ def build_page(
     yours = (
         f"What is yours on the page comes from {html.escape(shown(page))}."
         if own is not None and page is not None
-        else "What is the student's own on the page is not part of the submitted runs."
+        else "The student's own words are not part of the submitted runs."
     )
     runs = sum(len(s.df) for s in studies)
     mode = "own" if stars_file is not None else "submitted"

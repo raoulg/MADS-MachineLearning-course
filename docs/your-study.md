@@ -136,17 +136,17 @@ make page LESSON=<N>
 It writes `artefacts/study-page/lesson<N>/index.html` and serves it on the student's own
 machine until Ctrl-C; the student reads it in the browser. Its tabs sit in a rail on
 the left. Overview holds their ideas as a tree of titles, each idea under the one it
-builds on; opened, an idea shows what it expected and its gain over its own baseline.
-Beside the tree, every idea shows what the student expected next to what they found. No
-idea is judged: one that found nothing can teach as much as one that rose. Studies shows
+builds on, with what its winner moved from the idea it builds on (± its standard error)
+and from its own baseline; opened, an idea shows what it expected. No idea is judged:
+one that found nothing can teach as much as one that rose. Studies shows
 one study at a time, picked by its title: the idea, the architecture, the search space,
 the winner next to its baseline, the learning curves. Explore holds every finished trial
 of all their studies: the student sets two fields against each other and a third in
 colour, picks the studies, and filters (only the heads above 300k parameters, only the
 trials above 0.82, only those that logged recall). Scaling sets the score of every trial
-against the parameters of the head and against the FLOPs of training it; Overfitting
-shows the train and test loss per size of the head. A view of Explore and a picture of
-Scaling or Overfitting can be starred; Starred gathers them all, and a switch on the
+against the parameters of the head and against the FLOPs of training it, coloured by
+encoder, and shows the training curves (train and test loss) per size of the head. A
+view of Explore and every picture of Studies and Scaling can be starred; Starred gathers them all, and a switch on the
 Overview shows them there too. Stars are saved in `exercises/stars.json`, with their
 filters, so they are there again the next time the page opens; Design shows the design in Atlas. The pen beside the title of an opened idea edits that title
 in `page.toml`. `make page LESSON=<N> ARGS=--no-serve` opens the written file instead,

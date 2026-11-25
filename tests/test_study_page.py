@@ -7,8 +7,10 @@ import threading
 import urllib.error
 import urllib.request
 from pathlib import Path
+from types import SimpleNamespace
 
 import optuna
+import pandas as pd
 import pytest
 import study_page  # ty: ignore[import-not-found]  (scripts/ is on sys.path, see conftest.py)
 
@@ -329,7 +331,8 @@ def test_submitted_runs_read_no_local_page_toml(store, folder, monkeypatch):
     )
     text = page(store, folder, submitted="alice")
     assert not (folder / "page.toml").exists()
-    assert text.count(study_page.NOT_SUBMITTED) == len(study_page.OWN)
+    assert study_page.NOT_SUBMITTED not in text  # said once, not per slot
+    assert "is not part of the submitted runs" in text
     assert "Say in three sentences what you did." not in text
 
     named = folder / "elsewhere.toml"
@@ -605,3 +608,20 @@ def test_the_page_server_keeps_a_title_in_page_toml(tmp_path):
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_an_idea_shows_what_it_moved_from_the_idea_it_builds_on():
+
+    def winner(score, std, n=3):
+        return pd.Series({"score": score, "std": std, "n": n, "dataset": "dtd"})
+
+    parent = SimpleNamespace(final=winner(0.8406, 0.002), short="dinov2")
+    child = SimpleNamespace(final=winner(0.8408, 0.002))
+    points, se = study_page.on_parent(child, parent)
+    assert points == pytest.approx(0.02)
+    assert se == pytest.approx(100 * study_page.standard_error((0.002, 3), (0.002, 3)))
+    assert study_page.on_parent(child, None) is None
+    other = SimpleNamespace(
+        final=pd.Series({"score": 0.9, "std": 0.0, "n": 3, "dataset": "eurosat"})
+    )
+    assert study_page.on_parent(child, other) is None  # never across datasets
