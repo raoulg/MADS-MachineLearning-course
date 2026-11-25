@@ -1,6 +1,11 @@
 """`scripts/study_page.py` on a made-up store of two studies, the second built on the
 first; nothing here trains, downloads or runs atlas."""
 
+import json
+import re
+import threading
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import optuna
@@ -142,16 +147,28 @@ def test_both_ideas_and_their_expectations_are_on_the_page(store, folder):
     for words, expects in (FIRST, SECOND):
         assert words in text and expects in text
     assert "Lesson 1: what alice studied" in text
-    for tab in ("Overview", "Design", "alice-skip", "alice-lr-range"):
+    for tab in ("Overview", "Studies", "Design"):
         assert f">{tab}</button>" in text
+    assert ">Starred <span class='count'></span></button>" in text
+    for slug, short in (
+        ("study-alice-skip", "skip"),
+        ("study-alice-lr-range", "lr range"),
+    ):
+        assert f"data-study='{slug}' title='{slug[6:]}'>{short}</a>" in text
+        assert f"id='view-{slug}'" in text
 
 
 def test_the_line_of_ideas_follows_builds_on(store, folder):
     text = page(store, folder)
-    line = text[text.index("class='ideas'") :]
-    assert line.index(FIRST[0]) < line.index(SECOND[0])
-    first = Idea.of(FIRST[0], builds_on=Idea.handed_out(1).name, author="alice")
-    assert f"builds on {first.name} (alice-skip)" in text
+    # the second idea builds on the first: a row below it, joined to it
+    first = text.index("class='node' data-study='study-alice-skip' data-parent=''")
+    second = text.index(
+        "class='node' data-study='study-alice-lr-range' data-parent='study-alice-skip'"
+    )
+    assert first < second
+    assert text.count("class='edge'") == 1
+    handed = Idea.handed_out(1).name
+    assert f"builds on {handed}, not on this page" in text
     subs, _, _ = study_page.read_store(store, 1)
     assert [s.label for s in study_page.studies_of(subs)] == [
         "alice-skip",
@@ -174,8 +191,10 @@ def test_each_study_box_gives_its_own_gain_in_points_and_sigmas(store, folder):
     assert points == pytest.approx(100 * (20 / 30 - 18 / 30), abs=0.01)
     assert f"{sigma:.1f}" == "1.0" and word == "inside"
     text = page(store, folder)
-    assert "+20.0 pt · 4.2σ · more than two sigma above its baseline" in text
-    assert "+6.7 pt · 1.0σ · inside two sigma" in text
+    # the standard errors of the differences: 4.71 and 6.67 points
+    assert "+20.0 ± 4.7 pt · clearly above its baseline: more than two" in text
+    assert "+6.7 ± 6.7 pt · not measurably different from its baseline: within" in text
+    assert "σ" not in text
 
 
 def test_an_empty_page_toml_gives_open_slots_and_a_filled_one_its_text(store, folder):
@@ -274,7 +293,7 @@ def test_a_search_over_two_datasets_is_drawn_per_dataset(tmp_path, folder):
     subs, _, _ = study_page.read_store(store, 1)
     [two] = study_page.studies_of(subs)
     assert two.dataset == "dtd" and two.datasets() == ["dtd", "eurosat"]
-    tab = study_page.study_tab(two)
+    tab = study_page.study_view(two)
     assert "<h4>dataset</h4>" not in tab  # no card compares datasets by score
     assert tab.count("<p class='ds'>on dtd</p>") == tab.count(
         "<p class='ds'>on eurosat</p>"
@@ -394,3 +413,167 @@ def test_atlas_code_is_tried_when_the_nightly_fails(folder):
 
     text = study_page.design_tab(folder, which=lambda c: c, run=fail)
     assert "atlas-code-nightly failed; atlas-code failed" in text
+
+
+def test_a_short_name_drops_what_every_label_shares():
+    def named(*labels: str) -> list[str]:
+        studies = [
+            study_page.Study(
+                key=x,
+                label=x,
+                handed_out=x == "handed out",
+                objective="a",
+                df=None,
+                subs={},
+            )
+            for x in labels
+        ]
+        return study_page.short_names(studies)
+
+    assert named("handed out", "bob-wide-head-on-dtd", "bob-deep-skip-on-dtd") == [
+        "handed out",
+        "wide head",
+        "deep skip",
+    ]
+    assert named("bob-wide-on-dtd") == ["bob wide"]
+    assert named("bob-x-on-dtd", "bob-x-on-eurosat") == [
+        "bob-x-on-dtd",
+        "bob-x-on-eurosat",
+    ]
+
+
+def test_a_title_in_page_toml_names_the_study_everywhere(store, folder):
+    page(store, folder)  # makes page.toml, with an empty [titles]
+    toml = folder / "page.toml"
+    assert "[titles]" in toml.read_text(encoding="utf-8")
+    toml.write_text(
+        toml.read_text(encoding="utf-8") + '"alice-skip" = "the skip helps"\n',
+        encoding="utf-8",
+    )
+    text = page(store, folder)
+    assert "<span class='title'>the skip helps</span>" in text
+    assert "title='alice-skip'>the skip helps</a>" in text
+    assert "<span class='title'>lr range</span>" in text  # untitled: its short name
+    assert study_page.read_titles(folder / "missing.toml") == {}
+
+
+def test_the_design_tab_opens_on_the_forward_of_the_design(folder):
+    assert study_page.design_route(folder) is None
+    (folder / "designs.py").write_text(
+        "class Head:\n    pass\n\nDESIGN = Design(Head, space=SPACE)\n",
+        encoding="utf-8",
+    )
+    assert study_page.design_route(folder) == "exercises.designs.Head.forward"
+    (folder / "designs.py").write_text("DESIGN = (", encoding="utf-8")
+    assert study_page.design_route(folder) is None
+
+
+def test_every_study_tab_has_an_explorer_of_its_finished_trials(store, folder):
+    text = page(store, folder)
+    blobs = re.findall(r"class='explore-data'>(.*?)</script>", text)
+    assert len(blobs) == 2  # one per study, both on dtd
+    for blob in blobs:
+        data = json.loads(blob)
+        names = [f["name"] for f in data["fields"]]
+        assert names[0] == "accuracy" and "lr" in names
+        assert data["defaults"]["y"] == "accuracy"
+        assert all(len(row) == len(names) for row in data["rows"])
+    assert "<h2>Explore the trials</h2>" in text
+
+
+def test_a_view_starred_in_stars_json_is_on_the_page(store, folder):
+    star = {"study": "lesson1-study-alice-skip", "dataset": "dtd", "x": "lr",
+            "y": "accuracy", "c": ""}  # fmt: skip
+    study_page.write_stars(folder / "stars.json", [star])
+    text = page(store, folder)
+    held = re.search(r"id='stars-data' data-mode='own'[^>]*>(.*?)</script>", text)
+    assert held is not None and json.loads(held.group(1)) == [star]
+
+
+def test_stars_that_are_not_views_are_refused():
+    with pytest.raises(TypeError):
+        study_page.clean_stars({"x": "lr"})
+    with pytest.raises(ValueError, match="names its study"):
+        study_page.clean_stars([{"study": "", "x": "lr", "y": "accuracy"}])
+    view = {"study": "s", "dataset": "dtd", "x": "lr", "y": "accuracy", "c": "skip"}
+    assert study_page.clean_stars([view, dict(view)]) == [view]
+
+
+def test_the_page_server_keeps_the_stars_in_their_file(tmp_path):
+    stars = tmp_path / "stars.json"
+    server = study_page.page_server("<p>the page</p>", stars)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    address = f"http://127.0.0.1:{server.server_address[1]}"
+    view = {"study": "s", "dataset": "dtd", "x": "FLOPs", "y": "accuracy", "c": ""}
+
+    def post(origin: str | None) -> int:
+        headers = {"Content-Type": "application/json"} | (
+            {"Origin": origin} if origin else {}
+        )
+        request = urllib.request.Request(
+            address + "/stars", json.dumps([view]).encode(), headers, method="POST"
+        )
+        try:
+            return urllib.request.urlopen(request).status
+        except urllib.error.HTTPError as e:
+            return e.code
+
+    try:
+        assert urllib.request.urlopen(address + "/").read() == b"<p>the page</p>"
+        assert post("http://elsewhere.example") == 403 and not stars.exists()
+        assert post(address) == 200
+        assert json.loads(stars.read_text(encoding="utf-8")) == [view]
+        assert json.loads(urllib.request.urlopen(address + "/stars").read()) == [view]
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_a_title_is_written_under_titles_and_nothing_else_moves(tmp_path):
+    toml = tmp_path / "page.toml"
+    toml.write_text(study_page.PAGE_TOML.format(lesson=1), encoding="utf-8")
+    before = toml.read_text(encoding="utf-8")
+    study_page.write_title(toml, "bob-wide", "a wider head")
+    assert study_page.read_titles(toml) == {"bob-wide": "a wider head"}
+    study_page.write_title(toml, "bob-wide", 'the "wide" one')
+    study_page.write_title(toml, "bob-deep", "deeper")
+    assert study_page.read_titles(toml) == {
+        "bob-wide": 'the "wide" one',
+        "bob-deep": "deeper",
+    }
+    study_page.write_title(toml, "bob-wide", "")
+    study_page.write_title(toml, "bob-deep", "")
+    assert toml.read_text(encoding="utf-8") == before
+    with pytest.raises(ValueError, match="one line"):
+        study_page.write_title(toml, "bob-wide", "two\nlines")
+
+
+def test_the_page_server_keeps_a_title_in_page_toml(tmp_path):
+    toml = tmp_path / "page.toml"
+    toml.write_text('message = "mine"\n', encoding="utf-8")
+    server = study_page.page_server("<p>the page</p>", tmp_path / "stars.json", toml)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    address = f"http://127.0.0.1:{server.server_address[1]}"
+
+    def post(body: object) -> int:
+        request = urllib.request.Request(
+            address + "/titles",
+            json.dumps(body).encode(),
+            {"Content-Type": "application/json", "Origin": address},
+            method="POST",
+        )
+        try:
+            return urllib.request.urlopen(request).status
+        except urllib.error.HTTPError as e:
+            return e.code
+
+    try:
+        assert post({"study": "bob-wide", "title": "a wider head"}) == 200
+        assert post({"study": "bob-wide", "title": 3}) == 400
+        assert json.loads(urllib.request.urlopen(address + "/titles").read()) == {
+            "bob-wide": "a wider head"
+        }
+        assert 'message = "mine"' in toml.read_text(encoding="utf-8")
+    finally:
+        server.shutdown()
+        server.server_close()

@@ -1,9 +1,9 @@
 """A student's page: one page that shows what one student studied in a lesson.
 
     uv run scripts/study_page.py --lesson 1                      # from your own store
-    uv run scripts/study_page.py --lesson 1 --open               # ... and open it
+    uv run scripts/study_page.py --lesson 1 --open               # ... served and opened
     uv run scripts/study_page.py --lesson 1 --submitted raoulg   # from a login's submitted runs
-    make page LESSON=1                                           # the first, opened
+    make page LESSON=1                                           # the second
 
 The page is the class view (`scripts/class_analysis.py`) read for one student. By
 default it reads the student's own store (`hpo.record.Store.default()`): every study of
@@ -13,17 +13,28 @@ the class runs repository's `main`, as `class_analysis.py` reads them, so a page
 built from published runs alone.
 
 It writes one self-contained page, `artefacts/study-page/lesson<N>/index.html`, and
-prints its path. The page has three kinds of tab:
+prints its path. With `--open`, a page of the student's own store is served on this
+machine until Ctrl-C (`page_server`), so that the views they star are saved in
+`exercises/stars.json` and shown again the next time; `--no-serve` opens the file, where a
+star lasts until the page is closed. The page has four tabs:
 
-- **Overview**: the student's message and picture, the line of their ideas in the order
-  they build on each other, three panels for one study (its architecture, its search
-  space, its winner next to its baseline), and what surprised and what comes next.
-- **Design**: the page atlas draws of the lesson's `exercises/` folder.
-- **one per study**: its idea and expectation, every searched axis against the objective
-  and against `train_seconds`, the learning curves, and the winner's other metrics.
+- **Overview**: the student's message and picture, their ideas as a tree of titles (each
+  under the idea it builds on, opened to what it expected and found), two scaling
+  pictures over every trial (the score against the parameters of the head and against
+  the FLOPs of training it), the train and test loss per size of the head, and what
+  surprised and what comes next.
+- **Studies**: one study at a time, picked by its title: its idea and expectation, three
+  panels (its architecture, its search space, its winner next to its baseline), an
+  explorer of its trials (two fields against each other and a third in colour, chosen by
+  the student, with the views they starred beside it), the learning curves, and the
+  winner's other metrics.
+- **Starred**: every starred view of every study, gathered by study.
+- **Design**: the page atlas draws of the lesson's `exercises/` folder, opened on the
+  forward of its design.
 
 What is the student's own comes from `notebooks/<lesson>/exercises/page.toml`, or the
-file `--page` names: the message, the picture, what surprised and what next. A key left
+file `--page` names: the message, the picture, what surprised, what next, and a title
+per study under `[titles]`. A key left
 empty shows as an open slot that asks its question. Once runs of the lesson are found,
 the script creates the default file with empty keys when it is missing, and never writes
 it otherwise. The file is not tracked: a student commits theirs on a branch of their own.
@@ -31,7 +42,10 @@ A page of submitted runs reads no page.toml unless `--page` names one; its own s
 they are not part of the submitted runs.
 
 Every score is read on its own study's objective and its own dataset: scores of two
-studies, or of two datasets, are never put on one axis.
+datasets, or of two objectives, are never put on one axis. The capacity pictures of the
+overview put the trials of several studies on one axis when they share the dataset and
+the objective: one study searches a narrow band of head sizes, and only all of them
+together show where a bigger head stops paying.
 """
 
 from __future__ import annotations
@@ -40,6 +54,7 @@ import argparse
 import ast
 import base64
 import html
+import json
 import math
 import os
 import re
@@ -52,6 +67,7 @@ import webbrowser
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import numpy as np
@@ -60,10 +76,15 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from class_analysis import (
+    HEAD_SIZES,
     OFF,
     ON,
+    TRAIN_ROWS,
     budget_text,
     chip_value,
+    column,
+    decade_ticks,
+    flops_text,
     idea_depths,
     number,
     page_metric,
@@ -72,7 +93,10 @@ from class_analysis import (
     runs_frame,
     sigma,
     signed,
+    size_title,
+    standard_error,
     study_of,
+    train_flops,
     verdict,
 )
 from class_analysis import tick as short
@@ -117,6 +141,11 @@ surprised = ""
 
 # What would you try next, and why?
 next = ""
+
+# A title of your own for a study, instead of the name the page gives it: the study's
+# name in study.py, then your title. The page shows that name when you open an idea.
+[titles]
+# "wide-head-on-dtd" = "a wider head"
 """
 
 
@@ -155,6 +184,68 @@ def read_own(path: Path, lesson: int, create: bool = False) -> dict[str, str]:
     except tomllib.TOMLDecodeError as e:
         sys.exit(f"{path} is not valid TOML: {e}")
     return {key: str(held.get(key) or "").strip() for key in OWN}
+
+
+def read_titles(path: Path | None) -> dict[str, str]:
+    """The `[titles]` of the page.toml at `path`: a study's name to the title the student
+    gives it. Empty without a file, without the table, or for a value that is not text."""
+    if path is None or not path.exists():
+        return {}
+    try:
+        held = tomllib.loads(path.read_text(encoding="utf-8")).get("titles")
+    except tomllib.TOMLDecodeError:
+        return {}
+    if not isinstance(held, dict):
+        return {}
+    return {
+        str(k): v.strip() for k, v in held.items() if isinstance(v, str) and v.strip()
+    }
+
+
+def titled(studies: Sequence[Study], titles: Mapping[str, str]) -> None:
+    """Give every study the student titled in `titles` (by its label or its key) that
+    title as the name it goes by on the page."""
+    for s in studies:
+        s.short = titles.get(s.label) or titles.get(s.key) or s.short
+
+
+TITLE_MAX = 80
+
+
+def write_title(path: Path, study: str, title: str) -> None:
+    """Set the title of `study` (its name in study.py) under `[titles]` in the page.toml
+    at `path`, or take it out when `title` is empty; every other line stays as the
+    student wrote it. A `ValueError` for a title the page cannot hold."""
+    title = title.strip()
+    if "\n" in title or len(title) > TITLE_MAX or not study or "\n" in study:
+        raise ValueError(f"a title is one line of at most {TITLE_MAX} characters")
+    key = json.dumps(study, ensure_ascii=False)
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    head = next((i for i, x in enumerate(lines) if x.strip() == "[titles]"), None)
+    if head is None:
+        lines += ["", "[titles]"]
+        head = len(lines) - 1
+    end = next(
+        (i for i in range(head + 1, len(lines)) if lines[i].lstrip().startswith("[")),
+        len(lines),
+    )
+    mine = [
+        i
+        for i in range(head + 1, end)
+        if lines[i].split("=", 1)[0].strip() in (key, study)
+        and not lines[i].lstrip().startswith("#")
+    ]
+    for i in reversed(mine):
+        del lines[i]
+        end -= 1
+    if title:
+        at = end
+        while at > head + 1 and not lines[at - 1].strip():
+            at -= 1
+        lines.insert(at, f"{key} = {json.dumps(title, ensure_ascii=False)}")
+    text = "\n".join(lines) + "\n"
+    tomllib.loads(text)  # a TOMLDecodeError is a ValueError: nothing is written
+    path.write_text(text, encoding="utf-8")
 
 
 def sentences(text: str) -> int:
@@ -377,6 +468,8 @@ class Study:
     axes: list[str] = field(default_factory=list)
     start: float = 0.0
     slug: str = ""
+    short: str = ""
+    auto: str = ""  # the short name the page gives it, before a title of the student's
 
     @property
     def trials(self) -> pd.DataFrame:
@@ -550,7 +643,33 @@ def studies_of(subs: Sequence[Submission]) -> list[Study]:
         while s.slug in taken:
             s.slug, n = f"{base}-{n}", n + 1
         taken.add(s.slug)
+    for s, name in zip(out, short_names(out), strict=True):
+        s.short = s.auto = name
     return out
+
+
+def short_names(studies: Sequence[Study]) -> list[str]:
+    """The name each study goes by on the page: its label without what every label of
+    the student shares (their own prefix, the dataset at the end) and without
+    `on-<dataset>`, the words joined by spaces. A name two studies would share stays the
+    whole label."""
+    words = [s.label.split("-") for s in studies]
+    for w in words:
+        if len(w) > 2 and w[-2] == "on":
+            del w[-2:]
+    own = [w for s, w in zip(studies, words, strict=True) if not s.handed_out]
+    if len(own) > 1:
+        shortest = min(len(w) for w in own) - 1
+        lead = 0
+        while lead < shortest and len({w[lead] for w in own}) == 1:
+            lead += 1
+        for w in own:
+            del w[:lead]
+    names = [" ".join(w) for w in words]
+    return [
+        name if names.count(name) == 1 else s.label
+        for s, name in zip(studies, names, strict=True)
+    ]
 
 
 # ---- pictures: inline svg, coloured by the course's tokens -----------------------------
@@ -588,6 +707,9 @@ def fraction(value: float, low: float, high: float, log: bool) -> float:
     if not high > low:
         return 0.5
     return min(1.0, max(0.0, (value - low) / (high - low)))
+
+
+LABEL_CHAR = 7.4  # the width of one character of a small label (`svg .s`)
 
 
 def fig_space(study: Study) -> str:
@@ -635,7 +757,8 @@ def fig_space(study: Study) -> str:
                     f"<rect x='{x + 1:.1f}' y='{y + 2}' width='{w - 2:.1f}' height='20' "
                     f"rx='3' class='{'seg on' if on else 'seg'}'/>"
                 )
-                short = c if len(c) * 6 < w - 4 else c[: max(1, int((w - 8) / 6))] + "…"
+                fits = int((w - 10) / LABEL_CHAR)
+                short = c if len(c) <= fits else c[: max(1, fits - 1)] + "…"
                 body.append(
                     text(x + w / 2, y + 16, short, "s on" if on else "s", "middle")
                 )
@@ -653,12 +776,15 @@ def fig_space(study: Study) -> str:
     )
 
 
+def se_text(score: float, std: object, n: object) -> str:
+    """A mean score ± its standard error over the runs; the score alone with one run."""
+    se = standard_error((std, n))
+    return f"{score:.4f}" + ("" if math.isnan(se) else f" ± {se:.4f}")
+
+
 def spread_text(score: float, std: object, n: object) -> str:
-    s = number(std)
     runs = number(n)
-    out = f"{score:.4f}"
-    if not math.isnan(s):
-        out += f" ± {s:.4f}"
+    out = se_text(score, std, n)
     if not math.isnan(runs):
         out += f" · {plural(int(runs), 'run')}"
     return out
@@ -667,25 +793,30 @@ def spread_text(score: float, std: object, n: object) -> str:
 def gain_words(
     points: float, sig: float, word: str, base_n: object, final_n: object
 ) -> str:
-    """The gain in points and in sigmas, and what it means, in words."""
+    """The gain in points ± the standard error of the difference, and what it means: a
+    gain of more than two standard errors is clearly a gain."""
     if math.isnan(points):
         return "no winner against a baseline yet"
     if math.isnan(sig):
         single = 1 in (number(base_n), number(final_n))
-        return f"{signed(points)} pt · no sigma: " + (
-            "a side has a single run" if single else "no spread to measure it by"
+        return f"{signed(points)} pt · " + (
+            "a side has a single run, so it has no standard error"
+            if single
+            else "the runs do not differ, so it has no standard error"
         )
+    se = f" ± {abs(points / sig):.1f}" if sig else ""
     meaning = {
-        "better": "more than two sigma above its baseline",
-        "worse": "more than two sigma below its baseline",
-        "inside": "inside two sigma: no measurable difference from its baseline",
+        "better": "clearly above its baseline: more than two standard errors",
+        "worse": "clearly below its baseline: more than two standard errors",
+        "inside": "not measurably different from its baseline: within two standard "
+        "errors",
     }[word]
-    return f"{signed(points)} pt · {sig:.1f}σ · {meaning}"
+    return f"{signed(points)}{se} pt · {meaning}"
 
 
 def fig_results(study: Study) -> str:
-    """The baseline and the winner on the study's objective, each ± one standard
-    deviation between its runs."""
+    """The baseline and the winner on the study's objective, each ± the standard error
+    of its mean over its runs."""
     b, f = study.base, study.final
     rows = [(n, r) for n, r in (("baseline", b), ("winner", f)) if r is not None]
     if not rows:
@@ -693,21 +824,23 @@ def fig_results(study: Study) -> str:
             "No finished trial yet." if study.finished == 0 else
             "No baseline or winner rerun was logged."
         )  # fmt: skip
+    ses = [standard_error((r["std"], r["n"])) for _, r in rows]
     lows = [
-        r.score - (0 if math.isnan(number(r["std"])) else r["std"]) for _, r in rows
+        r.score - (0 if math.isnan(e) else e)
+        for (_, r), e in zip(rows, ses, strict=True)
     ]
     highs = [
-        r.score + (0 if math.isnan(number(r["std"])) else r["std"]) for _, r in rows
+        r.score + (0 if math.isnan(e) else e)
+        for (_, r), e in zip(rows, ses, strict=True)
     ]
     low, high = min(lows), max(highs)
     pad = max((high - low) * 0.25, 0.002)
     low, high = low - pad, high + pad
     width, left, right = 320, 70, 308
     body = []
-    for i, (name, r) in enumerate(rows):
+    for i, ((name, r), s) in enumerate(zip(rows, ses, strict=True)):
         y = 22 + i * 40
         x = left + fraction(r.score, low, high, False) * (right - left)
-        s = number(r["std"])
         if not math.isnan(s):
             x0 = left + fraction(r.score - s, low, high, False) * (right - left)
             x1 = left + fraction(r.score + s, low, high, False) * (right - left)
@@ -737,7 +870,7 @@ def fig_results(study: Study) -> str:
         + f"<p class='gain {word}'>{html.escape(gain)}</p>"
         + f"<ul class='plain'>{lines}</ul>"
         + f"<p class='foot'>{html.escape(study.objective)} on {html.escape(study.on_text())}"
-        " · ± one standard deviation between runs</p>"
+        " · ± one standard error over the runs</p>"
     )
 
 
@@ -894,95 +1027,6 @@ def architecture_panel(study: Study) -> str:
     return missing("No architecture was logged for this study.")
 
 
-def scatter(
-    xs: Sequence[object],
-    ys: Sequence[float],
-    winner: Sequence[bool],
-    axis: Axis | None,
-    x_label: str,
-    y_label: str,
-) -> str:
-    """One dot per trial, `ys` against `xs`, the winner filled: a range on its own scale
-    (log when the space says so), a choice or anything else that is not a number as its
-    values side by side."""
-    width, height, left, right, top, bottom = 300, 160, 46, 292, 10, 124
-    pts = [
-        (x, y, w)
-        for x, y, w in zip(xs, ys, winner, strict=True)
-        if not math.isnan(number(y))
-    ]
-    if not pts:
-        return missing(f"No finished trial logged {y_label}.")
-    numeric = (
-        axis.kind == "range"
-        if axis is not None and axis.kind != "fixed"
-        else all(
-            not isinstance(x, bool | np.bool_ | str) and not math.isnan(number(x))
-            for x, _, _ in pts
-        )
-    )
-    if numeric:
-        values = [number(x) for x, _, _ in pts]
-        low, high = (
-            (axis.low, axis.high)
-            if axis and axis.kind == "range"
-            else (min(values), max(values))
-        )
-        log = bool(axis.log) if axis and axis.kind == "range" else (
-            min(values) > 0 and max(values) / max(min(values), 1e-12) > 20
-        )  # fmt: skip
-
-        def at(x: object) -> float:
-            return left + fraction(number(x), low, high, log) * (right - left)
-
-        ticks = [(left, tick(low)), (right, tick(high) + (" log" if log else ""))]
-    else:
-        cats = (
-            list(axis.choices)
-            if axis and axis.kind == "choice"
-            else sorted({str(x).lower() for x, _, _ in pts})
-        )
-        cats_lower = [c.lower() for c in cats]
-        step = (right - left) / max(len(cats), 1)
-
-        def at(x: object) -> float:
-            key = str(x).lower()
-            i = cats_lower.index(key) if key in cats_lower else 0
-            return left + step * (i + 0.5)
-
-        ticks = [(left + step * (i + 0.5), c) for i, c in enumerate(cats)]
-    yv = [float(y) for _, y, _ in pts]
-    ylow, yhigh = min(yv), max(yv)
-    pad = (yhigh - ylow) * 0.08 or max(abs(yhigh) * 0.01, 1e-3)
-    ylow, yhigh = ylow - pad, yhigh + pad
-    if min(yv) >= 0:  # seconds and scores do not go below zero
-        ylow = max(ylow, 0.0)
-
-    def ay(y: float) -> float:
-        return bottom - fraction(y, ylow, yhigh, False) * (bottom - top)
-
-    body = [
-        f"<line x1='{left}' x2='{right}' y1='{bottom}' y2='{bottom}' class='track'/>",
-        f"<line x1='{left}' x2='{left}' y1='{top}' y2='{bottom}' class='track'/>",
-        text(left - 4, top + 8, tick(yhigh), "s m", "end"),
-        text(left - 4, bottom, tick(ylow), "s m", "end"),
-    ]
-    jitter = 0 if numeric else 6
-    for i, (x, y, w) in enumerate(sorted(pts, key=lambda p: p[2])):
-        dx = 0 if not jitter else ((i * 37) % 13 - 6) / 6 * jitter
-        body.append(
-            f"<circle cx='{at(x) + dx:.1f}' cy='{ay(float(y)):.1f}' r='{5 if w else 3.2}' "
-            f"class='{'win' if w else 'dot'}'/>"
-        )
-    for x, label in ticks:
-        anchor = "middle" if not numeric else ("start" if x == left else "end")
-        body.append(text(x, bottom + 14, label, "s m", anchor))
-    body.append(text((left + right) / 2, bottom + 30, x_label, "s", "middle"))
-    return f"<p class='ylab'>{html.escape(y_label)}</p>" + svg(
-        width, height, "".join(body), f"{y_label} against {x_label}"
-    )
-
-
 def fig_curves(
     study: Study, trials: pd.DataFrame, b: pd.Series | None, dataset: str | None
 ) -> str:
@@ -1069,6 +1113,201 @@ def fig_curves(
     )
 
 
+# What a scaling picture sets the score against: its axis, and what that axis counts.
+SCALES = {
+    "params": (
+        "parameters of the head",
+        "parameters: how heavy the head is, the same for every image in every epoch",
+    ),
+    "flops": (
+        "FLOPs of training the head",
+        (
+            "FLOPs (floating point operations) of all training: about 6 × parameters × "
+            "training rows × epochs"
+        ),
+    ),
+}
+
+
+def fig_flops(
+    objective: str,
+    done: pd.DataFrame,
+    b: pd.Series | None,
+    dataset: str | None,
+    by: str = "flops",
+) -> str:
+    """The objective of every finished trial of `done` (one dataset's) against the
+    parameters of its head (`by="params"`) or the FLOPs of training it
+    (`class_analysis.train_flops`), on a log axis, the winner filled and the baseline
+    `b` as its score ± one standard deviation: where the dots stop rising as the head
+    grows, more head buys no more score."""
+    head = f"<p class='ds'>on {html.escape(dataset)}</p>" if dataset else ""
+    if done.empty:
+        return head + missing("No finished trial yet.")
+    t = done.assign(
+        flops=train_flops(done) if by == "flops" else column(done, "n_params")
+    )
+    t = t[t.flops.notna() & (t.flops > 0)]
+    if t.empty:
+        return head + missing(
+            "The FLOPs of these trials are not known: the page knows the training rows "
+            f"of {', '.join(sorted(TRAIN_ROWS))} only, and every trial needs n_params."
+            if by == "flops"
+            else "These trials logged no n_params."
+        )
+    axis_name, counts = SCALES[by]
+    ticks, words = decade_ticks(t.flops)
+    low, high = ticks[0], ticks[-1]
+    ys = list(t.score)
+    if b is not None:
+        s = 0.0 if math.isnan(number(b["std"])) else float(b["std"])
+        ys += [b.score - s, b.score + s]
+    q10, q90 = np.quantile(t.score, [0.1, 0.9])
+    floor = q10 - (q90 - q10)  # below it a dot is drawn on the floor, as a triangle
+    ylow, yhigh = max(min(ys), floor), max(ys)
+    pad = (yhigh - ylow) * 0.06 or 0.01
+    ylow, yhigh = ylow - pad, yhigh + pad
+    width, height, left, right, top, bottom = 320, 210, 46, 312, 10, 176
+
+    def ax(x: float) -> float:
+        return left + fraction(x, low, high, True) * (right - left)
+
+    def ay(y: float) -> float:
+        return bottom - fraction(y, ylow, yhigh, False) * (bottom - top)
+
+    body = [
+        f"<line x1='{left}' x2='{right}' y1='{bottom}' y2='{bottom}' class='track'/>",
+        f"<line x1='{left}' x2='{left}' y1='{top}' y2='{bottom}' class='track'/>",
+        text(left - 4, top + 8, tick(yhigh), "s m", "end"),
+        text(left - 4, bottom, tick(ylow), "s m", "end"),
+        text((left + right) / 2, bottom + 28, axis_name, "s", "middle"),
+    ]  # fmt: skip
+    for v, w in zip(ticks, words, strict=True):
+        body.append(text(ax(v), bottom + 14, w.replace(" ", ""), "s m", "middle"))
+    if b is not None:
+        s = 0.0 if math.isnan(number(b["std"])) else float(b["std"])
+        body.append(
+            f"<rect x='{left}' y='{ay(b.score + s):.1f}' width='{right - left}' "
+            f"height='{max(ay(b.score - s) - ay(b.score + s), 1):.1f}' class='band'/>"
+            f"<line x1='{left}' x2='{right}' y1='{ay(b.score):.1f}' "
+            f"y2='{ay(b.score):.1f}' class='baseline'/>"
+        )
+    below = 0
+    for r in t.sort_values("winner").itertuples():
+        hint = (
+            f"<title>{html.escape(flops_text(r.flops))} "
+            f"{'FLOPs' if by == 'flops' else 'params'} · {r.score:.3f}</title>"
+        )
+        x = ax(r.flops)
+        if r.score < ylow:
+            below += 1
+            body.append(
+                f"<path d='M{x - 4:.1f},{bottom - 7} L{x + 4:.1f},{bottom - 7} "
+                f"L{x:.1f},{bottom - 1} Z' class='dot'>{hint}</path>"
+            )
+            continue
+        body.append(
+            f"<circle cx='{x:.1f}' cy='{ay(float(r.score)):.1f}' "
+            f"r='{5 if r.winner else 3.2}' class='{'win' if r.winner else 'dot'}'>"
+            f"{hint}</circle>"
+        )
+    left_out = len(done) - len(t)
+    return (
+        head
+        + f"<p class='ylab'>{html.escape(objective)}</p>"
+        + svg(width, height, "".join(body), f"{objective} against {axis_name}")
+        + f"<p class='foot'>one dot per finished trial, the best filled · {counts} · "
+        "dotted with its band: the baseline ± one standard deviation"
+        + (f" · ▼ on the floor: {plural(below, 'trial')} far below the others" if below else "")
+        + (f" · {plural(left_out, 'trial')} without known FLOPs left out" if left_out else "")
+        + "</p>"
+    )  # fmt: skip
+
+
+MIN_MEDIAN = 3  # curves of a panel that reach an epoch before its median is drawn
+
+
+def fig_overfitting(trials: pd.DataFrame, dataset: str | None) -> str:
+    """The train loss (dashed) and test loss (solid) after every epoch of every trial
+    of `trials` (one dataset's) that logged them, one panel per size of the head
+    (`class_analysis.HEAD_SIZES`), with the median test loss of a panel bold where it
+    has enough curves. A test loss that turns up while the train loss keeps falling is
+    the head learning its training images by heart. Nothing else is coloured: depth,
+    skip, norm, dropout and the rest all move these curves at once."""
+    head = f"<p class='ds'>on {html.escape(dataset)}</p>" if dataset else ""
+    has = trials[trials.losses.map(lambda v: isinstance(v, (list, tuple)))]
+    if has.empty:
+        return head + missing("No trial of this study logged its train and test loss.")
+    sizes = column(has, "n_params")
+    epochs = max(len(c[1]) for c in has.losses)
+    rows = TRAIN_ROWS.get(str(dataset or has.dataset.iloc[0]))
+    width, height, left, right, ptop, bottom = 300, 190, 34, 292, 12, 160
+
+    def ax(i: int) -> float:
+        return left + (i / max(epochs - 1, 1)) * (right - left)
+
+    def ay(y: float) -> float:
+        return bottom - fraction(min(y, top), 0.0, top, False) * (bottom - ptop)
+
+    def path(c: Sequence[float]) -> str:
+        return " ".join(
+            f"{'M' if i == 0 else 'L'}{ax(i):.1f},{ay(v):.1f}" for i, v in enumerate(c)
+        )
+
+    def median_of(part: pd.DataFrame) -> list[float]:
+        curves = [list(c[1]) for c in part.losses]
+        out = []
+        for e in range(epochs):
+            at = [c[e] for c in curves if len(c) > e]
+            if len(at) < MIN_MEDIAN:
+                break
+            out.append(float(np.median(at)))
+        return out if len(out) > 1 else []
+
+    cells = [has[(sizes >= lo) & (sizes < hi)] for lo, hi, _ in HEAD_SIZES]
+    medians = [median_of(cell) for cell in cells]
+    # the axis holds nearly every point of the medians; a curve above it runs along the top
+    held = [v for m in medians for v in m] or [v for c in has.losses for v in c[1]]
+    top = 1.15 * float(np.quantile(held, 0.95))
+    panels_ = []
+    for (lo, hi, words), cell, median in zip(HEAD_SIZES, cells, medians, strict=True):
+        title = "".join(
+            f"<p class='{'ds' if i == 0 else 'foot'}'>{html.escape(line)}</p>"
+            for i, line in enumerate(size_title(lo, hi, words, rows).split("<br>"))
+        )
+        if cell.empty:
+            panels_.append(
+                f"<div class='card'>{title}{missing('No trial of this size.')}</div>"
+            )
+            continue
+        body = [
+            f"<line x1='{left}' x2='{right}' y1='{bottom}' y2='{bottom}' class='track'/>",
+            f"<line x1='{left}' x2='{left}' y1='{ptop}' y2='{bottom}' class='track'/>",
+            text(left - 4, ptop + 8, tick(top), "s m", "end"),
+            text(left - 4, bottom, "0", "s m", "end"),
+            text(left, bottom + 14, "1", "s m"),
+            text(right, bottom + 14, str(epochs), "s m", "end"),
+            text((left + right) / 2, bottom + 26, "epoch", "s", "middle"),
+        ]  # fmt: skip
+        for c in cell.losses:
+            body.append(f"<path d='{path(c[0])}' class='loss train'/>")
+            body.append(f"<path d='{path(c[1])}' class='loss'/>")
+        if median:
+            body.append(f"<path d='{path(median)}' class='loss median'/>")
+        panels_.append(
+            f"<div class='card'>{title}"
+            + svg(width, height, "".join(body), f"losses of heads of {words}")
+            + f"<p class='foot'>{plural(len(cell), 'trial')}</p></div>"
+        )
+    return (
+        head
+        + f"<p class='cap'>bold: the median test loss of the panel, where {MIN_MEDIAN} or "
+        "more trials reach that epoch · faint: every trial, solid its test loss, dashed "
+        "its train loss · a curve above the axis runs along its top</p>"
+        + "<div class='sizes'>" + "".join(panels_) + "</div>"
+    )  # fmt: skip
+
+
 def metrics_table(study: Study) -> str:
     """Every metric the winner's rerun logged, with its spread between runs."""
     f = study.final
@@ -1134,144 +1373,393 @@ def missing(text_: str) -> str:
 # ---- the page --------------------------------------------------------------------------
 
 
-def idea_box(study: Study, known: Mapping[str, Study]) -> str:
-    """One box of the line of ideas: the idea in the student's words, what they
-    expected, and the gain over its own baseline."""
-    points, sig, word = study.gain()
+def gain_line(study: Study) -> str:
+    """The winner against its own baseline: both scores, then the gain in points and
+    its standard error, so a gain is never read without what it compares with."""
     b, f = study.base, study.final
     if study.finished == 0 and f is None:
-        result = "<p class='gain unmeasured'>No finished trial yet.</p>"
-    else:
-        result = (
-            f"<p class='gain {word}'>"
-            + html.escape(
-                gain_words(
-                    points,
-                    sig,
-                    word,
-                    None if b is None else b["n"],
-                    None if f is None else f["n"],
-                )
+        return "<p class='gain unmeasured'>No finished trial yet.</p>"
+    points, sig, word = study.gain()
+    scores = (
+        f"<span class='vs'>baseline {se_text(b.score, b['std'], b['n'])} → winner "
+        f"{se_text(f.score, f['std'], f['n'])}</span>"
+        if b is not None and f is not None
+        else ""
+    )
+    words = gain_words(
+        points, sig, word, None if b is None else b["n"], None if f is None else f["n"]
+    )
+    return f"<p class='gain {word}'>{scores}{html.escape(words)}</p>"
+
+
+def expects_line(study: Study) -> str:
+    if study.expects:
+        return f"<p class='expects'><b>expected</b> {html.escape(study.expects)}</p>"
+    where = (
+        "the handed-out study states no expectation"
+        if study.handed_out
+        else "EXPECTS in study.py"
+    )
+    return f"<p class='expects open'><b>expected</b> not said: {where}</p>"
+
+
+# The button beside an idea's title that edits it; shown only where a title is saved.
+PEN = (
+    "<button type='button' class='pen' aria-label='edit the title'>"
+    "<svg viewBox='0 0 16 16' width='15' height='15' aria-hidden='true'>"
+    "<path d='M11.2 2.3l2.5 2.5-7.9 7.9-3.2.7.7-3.2z M9.8 3.7l2.5 2.5' fill='none' "
+    "stroke='currentColor' stroke-width='1.5' stroke-linejoin='round'/></svg></button>"
+)
+
+
+def idea_detail(study: Study, known: Mapping[str, Study], parent: Study | None) -> str:
+    """What an idea of the graph opens to: the idea in the student's words, what they
+    expected, the gain over its own baseline, and the way to its study and to its title
+    in page.toml."""
+    away = [p for p in study.parents if p not in known]
+    builds = (
+        f"<p class='builds'>builds on {html.escape(', '.join(away))}, not on this page</p>"
+        if away and parent is None
+        else ""
+    )
+    return (
+        f"<div class='idea-detail' id='idea-{study.slug}' hidden>"
+        f"<h3><span class='t'>{html.escape(study.short)}</span>{PEN}</h3>"
+        "<p class='words'>"
+        f"{html.escape(study.idea or 'the study carries no idea')}</p>"
+        f"{expects_line(study)}{gain_line(study)}{builds}"
+        f"<p class='to'><a href='#studies/{study.slug}'>open the study</a>"
+        f"<span class='tag'>title in page.toml: [titles] "
+        f"&quot;{html.escape(study.label)}&quot;</span></p></div>"
+    )
+
+
+def idea_numbers(study: Study) -> str:
+    """The winner's score and its gain over its own baseline, short, beside a title."""
+    f = study.final
+    points, _, word = study.gain()
+    if f is None:
+        return "<span class='nums'>no winner yet</span>"
+    gain = "" if math.isnan(points) else f" · <b>{signed(points)} pt</b>"
+    return f"<span class='nums {word}'>{f.score:.3f}{gain}</span>"
+
+
+IDEA_ROW, IDEA_STEP, IDEA_R = 40, 26, 7  # a row of the graph, a step in, a circle
+
+
+def idea_tree(studies: Sequence[Study]) -> str:
+    """The ideas as a graph: a circle per idea, under and right of the idea it builds on
+    (the first of its parents on this page), joined by a line; the circle filled when
+    the winner beat its own baseline by more than two standard errors. Beside each its
+    title, the winner's score and its gain; a click opens what it expected and found."""
+    known = {s.idea_name: s for s in studies if s.idea_name}
+    parent = {
+        s.slug: next(
+            (known[p] for p in s.parents if p in known and known[p] is not s), None
+        )
+        for s in studies
+    }
+    children: dict[str | None, list[Study]] = {}
+    for s in studies:
+        up = parent[s.slug]
+        children.setdefault(None if up is None else up.slug, []).append(s)
+    rows: list[tuple[Study, int]] = []
+
+    def walk(of: str | None, depth: int, seen: frozenset[str]) -> None:
+        for s in children.get(of, []):
+            if s.slug not in seen:
+                rows.append((s, depth))
+                walk(s.slug, depth + 1, seen | {s.slug})
+
+    walk(None, 0, frozenset())
+    at = {
+        s.slug: (IDEA_R + 4 + d * IDEA_STEP, i * IDEA_ROW + IDEA_ROW / 2)
+        for i, (s, d) in enumerate(rows)
+    }
+    lines, dots, nodes = [], [], []
+    for s, _ in rows:
+        x, y = at[s.slug]
+        up = parent[s.slug]
+        if up is not None and up.slug in at:
+            px, py = at[up.slug]
+            lines.append(
+                f"<path d='M{px},{py + IDEA_R} V{y - 9} Q{px},{y} {px + 9},{y} "
+                f"H{x - IDEA_R}' class='edge'/>"
             )
-            + "</p>"
+        dots.append(
+            f"<circle cx='{x}' cy='{y}' r='{IDEA_R}' class='dot {s.gain()[2]}' "
+            f"data-study='{s.slug}'/>"
         )
-    words = study.idea or "the study carries no idea"
-    expects = (
-        f"<p class='expects'><b>expected</b> {html.escape(study.expects)}</p>"
-        if study.expects
-        else (
-            "<p class='expects open'><b>expected</b> not said: the handed-out study "
-            "states no expectation</p>"
-            if study.handed_out
-            else "<p class='expects open'><b>expected</b> not said: EXPECTS in study.py</p>"
+        nodes.append(
+            f"<button type='button' class='node' data-study='{s.slug}' "
+            f"data-parent='{up.slug if up is not None else ''}' aria-expanded='false' "
+            f"aria-controls='idea-{s.slug}' style='padding-left:{x + IDEA_R + 12}px'>"
+            f"<span class='title'>{html.escape(s.short)}</span>{idea_numbers(s)}</button>"
         )
+    width = max(x for x, _ in at.values()) + IDEA_R + 4
+    height = len(rows) * IDEA_ROW
+    graph = (
+        f"<div class='graph' style='height:{height}px'>"
+        f"<svg class='edges' width='{width}' height='{height}' aria-hidden='true' "
+        f"xmlns='http://www.w3.org/2000/svg'>{''.join(lines)}{''.join(dots)}</svg>"
+        f"{''.join(nodes)}</div>"
     )
-    parents = []
-    for p in study.parents:
-        other = known.get(p)
-        parents.append(
-            f"{html.escape(p)} ({html.escape(other.label)})" if other else
-            f"{html.escape(p)} (not on this page)"
-        )  # fmt: skip
-    builds = f"<p class='builds'>builds on {', '.join(parents)}</p>" if parents else ""
+    legend = (
+        "<p class='foot key'><svg width='12' height='12' aria-hidden='true'>"
+        "<circle cx='6' cy='6' r='5' class='dot better'/></svg> clearly above its own "
+        "baseline <svg width='12' height='12' aria-hidden='true'>"
+        "<circle cx='6' cy='6' r='5' class='dot inside'/></svg> no measurable difference "
+        "<svg width='12' height='12' aria-hidden='true'><circle cx='6' cy='6' r='5' "
+        "class='dot worse'/></svg> clearly below it · the number: the winner's score, then its "
+        "gain in points</p>"
+    )
+    details = "".join(idea_detail(s, known, parent[s.slug]) for s, _ in rows)
     return (
-        f"<li><button type='button' class='idea' data-study='{study.slug}' "
-        f"aria-pressed='false'><span class='label'>{html.escape(study.label)}</span>"
-        f"<span class='name'>{html.escape(study.idea_name or study.key)}</span>"
-        f"<span class='words'>{html.escape(words)}</span>{expects}{result}{builds}"
-        f"<span class='meta'>{html.escape(study.objective)} on {html.escape(study.on_text())}"
-        f" · {html.escape(budget_text(study.budget, study.finished + study.pruned))}</span>"
-        "</button></li>"
+        f"<div class='ideas'>{graph}<div class='idea-panel'>"
+        "<p class='hint'>Click an idea for what it expected and what it found.</p>"
+        f"{details}</div></div>{legend}"
     )
 
 
-def panels(study: Study, shown: bool) -> str:
-    """The three panels of one study on the overview."""
+def panels(study: Study) -> str:
+    """The three panels of one study: what it built, what it searched, what it found."""
     return (
-        f"<div class='three' data-panels='{study.slug}'{'' if shown else ' hidden'}>"
+        "<div class='three'>"
         f"<div class='panel'><h3>Architecture</h3>{architecture_panel(study)}</div>"
         f"<div class='panel'><h3>Search space</h3>{fig_space(study)}</div>"
         f"<div class='panel'><h3>Results</h3>{fig_results(study)}</div></div>"
     )
 
 
+def capacity(studies: Sequence[Study]) -> str:
+    """Both capacity pictures over every trial of the student's studies, once per
+    dataset and objective: one study searches a narrow band of head sizes, and only
+    the trials of all of them together show where a bigger head stops paying."""
+    groups: dict[tuple[str, str], list[Study]] = {}
+    for st in studies:
+        for d in st.datasets():
+            groups.setdefault((d, st.objective), []).append(st)
+    several = len(groups) > 1
+    flops, overfit = [], []
+    for (d, objective), group in groups.items():
+        trials = pd.concat([st.trials_on(d) for st in group], ignore_index=True)
+        done = trials[(trials.status == "COMPLETE") & trials.score.notna()]
+        done = (
+            done.assign(winner=done.index == done.score.idxmax()) if len(done) else done
+        )
+        bases = pd.DataFrame(
+            [
+                b
+                for b in (st.base for st in group)
+                if b is not None and str(b.dataset) == d
+            ]
+        )
+        base = None if bases.empty else bases.sort_values("start").iloc[-1]
+        name = f"{d} · {objective}" if several else None
+        flops.append(
+            "<div class='scaling'>"
+            + "".join(
+                f"<div class='card'><h3>{title}</h3>"
+                f"{fig_flops(objective, done, base, name, by)}</div>"
+                for by, title in (
+                    ("params", "By parameters: how heavy the head is"),
+                    ("flops", "By FLOPs: all the compute of training it"),
+                )
+            )
+            + "</div>"
+        )
+        overfit.append(fig_overfitting(trials, name))
+    if not groups:
+        return ""
+    return (
+        "<section><h2>Scaling FLOPs</h2><p class='cap'>Every trial of all my studies, "
+        "twice. The parameters say how heavy the head is for one image; the FLOPs "
+        "(floating point operations) count all of training, so they also grow with the "
+        "epochs and the training rows: training longer can buy score too. Where the dots "
+        "stop rising, more buys no more score; where they fall, the head learns its "
+        f"training images by heart.</p>{''.join(flops)}</section>"
+        "<section><h2>Overfitting, by size of the head</h2><p class='cap'>A test loss "
+        "that turns up while the train loss keeps falling: from that epoch on, more "
+        "training makes the head worse on images it has not seen.</p>"
+        f"{''.join(overfit)}</section>"
+    )
+
+
 def overview(
     studies: Sequence[Study], own: Mapping[str, str] | None, folder: Path
 ) -> str:
-    known = {s.idea_name: s for s in studies if s.idea_name}
-    if studies:
-        line = (
-            "<ol class='ideas'>"
-            + "".join(idea_box(s, known) for s in studies)
-            + "</ol>"
-        )
-        current = studies[-1]
-        three = "".join(panels(s, s is current) for s in studies)
-        caption = (
-            f"<p class='cap' id='panels-cap'>Showing <b>{html.escape(current.label)}</b>. "
-            "Click a box above to show another study.</p>"
-        )
-    else:
-        line, three, caption = (
-            missing("No study of this lesson is in the runs."),
-            "",
-            "",
-        )
+    tree = idea_tree(studies) if studies else missing(
+        "No study of this lesson is in the runs."
+    )  # fmt: skip
     return (
         "<section class='own'><h2>What I did</h2>"
         f"{own_text(own, 'message')}{picture(own, folder)}</section>"
-        "<section><h2>The line of my ideas</h2><p class='cap'>One box per study, each "
-        "after the studies it builds on. The gain is the winner against the study's own "
-        "baseline, in points and in sigmas (standard errors of the difference).</p>"
-        f"{line}</section>"
-        f"<section><h2>One study, in three panels</h2>{caption}{three}</section>"
+        "<section><h2>My ideas</h2><p class='cap'>Each idea under the idea it builds "
+        "on.</p>"
+        f"{tree}</section>"
+        f"{capacity(studies)}"
         "<section class='own'><h2>What surprised me</h2>"
         f"{own_text(own, 'surprised')}<h2>What I would try next</h2>"
         f"{own_text(own, 'next')}</section>"
     )
 
 
-def study_tab(study: Study) -> str:
-    """A study's own tab. When the search drew more than one dataset, every picture is
-    drawn once per dataset, and no picture compares scores of two datasets."""
+# ---- explore: two axes and a colour, chosen by the student ----------------------------
+
+# What every trial carries besides its params, in the order the menus list them.
+MEASURED = {
+    "n_params": "params",
+    "train_seconds": "train_seconds",
+    "epochs_run": "epochs",
+}
+FLOPS = "FLOPs"
+
+
+def explore_value(value: object) -> float | str | None:
+    """A trial's value of one field for the page: a number, a category as text (a
+    switch as on or off), or None where the trial has none."""
+    if value is None or isinstance(value, float) and math.isnan(value):
+        return None
+    if isinstance(value, bool | np.bool_):
+        return "on" if value else "off"
+    if isinstance(value, int | float | np.integer | np.floating):
+        return float(value)
+    return str(value)
+
+
+def explore_fields(
+    study: Study, done: pd.DataFrame
+) -> dict[str, list[float | str | None]]:
+    """The fields the explorer offers for the finished trials `done`, each with every
+    trial's value: the objective, the FLOPs of training the head, the searched axes, the
+    other params that vary, and what every trial measured. A field with one value, or
+    none, says nothing about these trials and is left out; the dataset never is an axis."""
+    cols: dict[str, pd.Series] = {
+        study.objective: done.score,
+        FLOPS: train_flops(done),
+    }
+    searched = [f"p_{a}" for a in study.axes]
+    params = [c for c in done.columns if str(c).startswith("p_")]
+    for c in searched + sorted(set(params) - set(searched)):
+        if c in done and c != "p_dataset":
+            cols.setdefault(str(c)[2:], done[c])
+    for c, name in MEASURED.items():
+        if c in done:
+            cols.setdefault(name, done[c])
+    out = {}
+    for name, col in cols.items():
+        values = [explore_value(v) for v in col]
+        if len({v for v in values if v is not None}) > 1:
+            out[name] = values
+    return out
+
+
+# Fields that grow by factors, drawn on a log scale.
+LOG_FIELDS = {FLOPS, "params"}
+
+
+def explore_kind(
+    name: str, values: Sequence[object], space: Mapping[str, Axis]
+) -> tuple[str, bool]:
+    """How a field is drawn: `num` on a scale or `cat` as its values side by side. A
+    number is on a log scale when the search space draws it on one, or when it grows by
+    factors (`LOG_FIELDS`)."""
+    present = [v for v in values if v is not None]
+    if not all(isinstance(v, float) for v in present):
+        return "cat", False
+    axis = space.get(name)
+    log = axis.log if axis is not None and axis.kind == "range" else name in LOG_FIELDS
+    return "num", log and min(v for v in present if isinstance(v, float)) > 0
+
+
+def explore_defaults(study: Study, names: Sequence[str]) -> dict[str, str]:
+    """The view the explorer opens on: the objective against the FLOPs, coloured by the
+    depth of the model where the trials have one, else by the first searched axis."""
+    x = (
+        FLOPS
+        if FLOPS in names
+        else next((a for a in study.axes if a in names), names[min(1, len(names) - 1)])
+    )
+    depth = ("n_hidden_layers", "depth", "layers")
+    c = next((a for a in (*depth, *study.axes) if a in names and a != x), "")
+    return {"x": x, "y": study.objective, "c": c}
+
+
+def explorer(
+    study: Study, done: pd.DataFrame, b: pd.Series | None, dataset: str, head: str
+) -> str:
+    """The explorer of one study's finished trials on one dataset: the student picks
+    what goes along x, along y and in colour, stars a view to keep it, and sees the
+    views they starred beside it. The script `EXPLORE` draws it from the data here."""
+    if done.empty:
+        return head + missing("No finished trial yet.")
+    fields = explore_fields(study, done)
+    if study.objective not in fields or len(fields) < 2:
+        return head + missing(
+            "These trials differ in too little to set two against each other."
+        )
+    names = list(fields)
+    space = {a.name: a for a in parse_space(study.space)}
+    winner = [i for i, w in enumerate(done.winner) if w]
+    data = {
+        "id": f"{study.slug}--{re.sub(r'[^a-z0-9]+', '-', dataset.lower())}",
+        "study": study.key,
+        "dataset": dataset,
+        "objective": study.objective,
+        "fields": [
+            {"name": n, "kind": k, "log": log}
+            for n in names
+            for k, log in [explore_kind(n, fields[n], space)]
+        ],
+        "rows": [list(r) for r in zip(*fields.values(), strict=True)],
+        "winner": winner[0] if winner else None,
+        "base": None
+        if b is None
+        else [float(b.score), 0.0 if math.isnan(number(b["std"])) else float(b["std"])],
+        "defaults": explore_defaults(study, names),
+    }
+    blob = json.dumps(data).replace("</", "<\\/")
+
+    def menu(which: str, words: str, none: bool = False) -> str:
+        options = ("<option value=''>none</option>" if none else "") + "".join(
+            f"<option>{html.escape(n)}</option>" for n in names
+        )
+        return f"<label>{words} <select data-axis='{which}'>{options}</select></label>"
+
+    return (
+        head
+        + f"<script type='application/json' class='explore-data'>{blob}</script>"
+        f"<div class='explore' data-set='{data['id']}'>"
+        "<div class='live'><div class='controls'>"
+        + menu("x", "along x") + menu("y", "along y") + menu("c", "colour", none=True)
+        + "<button type='button' class='star' aria-pressed='false'>☆ star this view</button>"
+        "</div><div class='plot'></div><div class='legend'></div>"
+        "<p class='foot'>one dot per finished trial, the best ringed · hover a dot for "
+        "its values · ▼ on the floor: far below the others · a dot without a value for "
+        "an axis is left out</p></div>"
+        "<div class='starred'><h3>Starred in this study</h3><div class='stars'></div>"
+        "<p class='foot save-note'></p></div></div>"
+    )  # fmt: skip
+
+
+def study_view(study: Study) -> str:
+    """One study on the Studies tab. When the search drew more than one dataset, every
+    picture is drawn once per dataset, and no picture compares scores of two datasets."""
     trials = study.trials
     datasets = study.datasets()
     several = len(datasets) > 1
-    space = {a.name: a for a in parse_space(study.space)}
-    axes = study.axes or [a for a, v in space.items() if v.kind != "fixed"]
-    if several:
-        axes = [a for a in axes if a != "dataset"]
     on = {d: study.trials_on(d) for d in datasets}
     done = {d: t[(t.status == "COMPLETE") & t.score.notna()] for d, t in on.items()}
-    cards = []
-    for axis in axes:
-        col = f"p_{axis}"
-        parts = []
-        for d in datasets:
-            head = f"<p class='ds'>on {html.escape(d)}</p>" if several else ""
-            got = done[d]
-            if col not in got or got.empty:
-                parts.append(head + missing("No finished trial carries this axis."))
-                continue
-            xs, win = list(got[col]), list(got.winner)
-            parts.append(
-                head
-                + scatter(xs, list(got.score), win, space.get(axis), axis, study.objective)
-                + scatter(
-                    xs, [number(v) for v in got.train_seconds], win, space.get(axis),
-                    axis, "train_seconds",
-                )
-            )  # fmt: skip
-        cards.append(
-            f"<div class='card'><h4>{html.escape(axis)}</h4>{''.join(parts)}</div>"
+    base = study.base
+    explore = "".join(
+        explorer(
+            study,
+            done[d],
+            base if base is not None and str(base.dataset) == d else None,
+            d,
+            f"<p class='ds'>on {html.escape(d)}</p>" if several else "",
         )
-    finished = any(len(t) for t in done.values())
-    effects = (
-        "<div class='cards'>" + "".join(cards) + "</div>"
-        if cards
-        else missing("This study names no searched axis.")
-        if finished
-        else missing("No finished trial yet.")
+        for d in datasets
     )
     drew = (
         f"<p class='cap'>The search drew the dataset ({html.escape(', '.join(datasets))}): "
@@ -1280,7 +1768,6 @@ def study_tab(study: Study) -> str:
         if several
         else ""
     )
-    base = study.base
     curves = "".join(
         fig_curves(
             study,
@@ -1290,40 +1777,83 @@ def study_tab(study: Study) -> str:
         )
         for d in datasets
     )
-    expects = (
-        f"<p><b>Expected</b> {html.escape(study.expects)}</p>"
-        if study.expects
-        else "<p class='expects open'><b>Expected</b> not said.</p>"
-    )
     counts = f"{plural(study.finished, 'finished trial')}, {plural(study.pruned, 'pruned trial')}"
+    meta = " · ".join(
+        html.escape(x)
+        for x in (
+            study.label,
+            study.idea_name or study.key,
+            f"{study.objective} on {study.on_text()}",
+            counts,
+            budget_text(study.budget, len(trials)),
+        )
+    )
     return (
-        f"<section><h2>{html.escape(study.label)} · "
-        f"<span class='name'>{html.escape(study.idea_name or study.key)}</span></h2>"
-        f"<p><b>Idea</b> {html.escape(study.idea or 'the study carries no idea')}</p>"
-        f"{expects}<p class='cap'>{html.escape(study.key)} · {html.escape(study.objective)}"
-        f" on {html.escape(study.on_text())} · {html.escape(counts)} · "
-        f"{html.escape(budget_text(study.budget, len(trials)))}</p></section>"
-        "<section><h2>Each searched axis</h2><p class='cap'>One dot per finished "
-        f"trial, the best filled: {html.escape(study.objective)} above, the seconds "
-        "it trained below. Read an axis on its own: the others varied at the same "
-        f"time.</p>{drew}{effects}</section>"
+        f"<div class='study' id='view-{study.slug}' data-key='{html.escape(study.key)}' hidden>"
+        f"<section class='lead'><h2>{html.escape(study.short)}</h2>"
+        f"<p class='words'>{html.escape(study.idea or 'the study carries no idea')}</p>"
+        f"{expects_line(study)}{gain_line(study)}<p class='meta'>{meta}</p></section>"
+        f"<section>{panels(study)}</section>"
+        "<section><h2>Explore the trials</h2><p class='cap'>Set two things against "
+        "each other and a third in colour: what changes together, and where does it "
+        "stop paying? Star a view to keep it; every starred view is also on the Starred "
+        f"tab.</p>{drew}{explore}</section>"
         "<div class='two'>"
         f"<section><h2>Learning curves</h2>{curves}</section>"
         f"<section><h2>The winner's other metrics</h2>{metrics_table(study)}</section>"
-        "</div>"
+        "</div></div>"
+    )
+
+
+def studies_tab(studies: Sequence[Study]) -> str:
+    """Every study, one at a time: a switch of their short names, then the study picked."""
+    if not studies:
+        return missing("No study of this lesson is in the runs.")
+    links = "".join(
+        f"<a href='#studies/{s.slug}' data-study='{s.slug}' title='{html.escape(s.label)}'>"
+        f"{html.escape(s.short)}</a>"
+        for s in studies
+    )
+    return f"<nav class='switch' aria-label='studies'>{links}</nav>" + "".join(
+        study_view(s) for s in studies
     )
 
 
 ATLAS_SECONDS = 60
 
 
+def design_route(folder: Path) -> str | None:
+    """The atlas route of the design in `folder`: the `forward` of the class that
+    `DESIGN = Design(<class>, ...)` names in `designs.py`, as atlas names it from that
+    folder (`exercises.designs.Head.forward`); None without one."""
+    script = folder / "designs.py"
+    try:
+        tree = ast.parse(script.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return None
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == "DESIGN" for t in node.targets)
+            and isinstance(node.value, ast.Call)
+            and node.value.args
+            and isinstance(node.value.args[0], ast.Name)
+        ):
+            return f"{folder.name}.designs.{node.value.args[0].id}.forward"
+    return None
+
+
 def atlas_page(command: str, folder: Path) -> tuple[bytes | None, str]:
-    """The page `command view` writes of `folder`, or None and why it gave none."""
+    """The page `command view` writes of `folder`, or None and why it gave none. Atlas
+    reads the folder with what it imports, the course's `hpo` among it, so the page opens
+    on the route of the design (`design_route`): its stages and the shape on every arrow."""
+    route = design_route(folder)
+    view = ["--view", json.dumps({"route": route})] if route else []
     with tempfile.TemporaryDirectory() as tmp:
         out = Path(tmp) / "atlas.html"
         try:
             ran = subprocess.run(
-                [command, "view", str(folder), "--out", str(out), "--no-open"],
+                [command, "view", str(folder), *view, "--out", str(out), "--no-open"],
                 capture_output=True,
                 text=True,
                 timeout=ATLAS_SECONDS,
@@ -1405,64 +1935,109 @@ CSS = """
 :root[data-theme="dark"]{--slot-ink:var(--course-orange)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--course-paper);color:var(--course-ink);
-  font-family:Outfit,Arial,sans-serif;font-size:16px;line-height:1.45}
-main{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
-header{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
-h1{font-size:26px;font-weight:500;margin:0}
-h2{font-size:18px;font-weight:500;margin:0 0 6px;color:var(--course-ink)}
-h3{font-size:15px;font-weight:500;margin:0 0 8px}
-h4{font-size:14px;font-weight:500;margin:0;font-family:'JetBrains Mono',monospace}
-p{margin:4px 0}
-code,.name,.metrics td{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--course-blue);
+  font-family:Outfit,Arial,sans-serif;font-size:18px;line-height:1.45}
+::selection{background:var(--course-blue);color:var(--course-paper)}
+:focus-visible{outline:3px solid var(--course-blue);outline-offset:2px;border-radius:4px}
+main{max-width:1240px;margin:0 auto;padding:24px 16px 48px}
+header{display:flex;gap:12px;align-items:baseline;justify-content:space-between}
+h1{font-size:34px;font-weight:500;margin:0;line-height:1.15;text-wrap:balance}
+h2{font-size:25px;font-weight:500;margin:0 0 8px;color:var(--course-ink);text-wrap:balance}
+h3{font-size:19px;font-weight:500;margin:0 0 8px}
+h4{font-size:15px;font-weight:500;margin:0;font-family:'JetBrains Mono',monospace}
+p{margin:4px 0;text-wrap:pretty}
+code,.name,.metrics td{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--course-blue);
   overflow-wrap:anywhere}
-.sub,.cap,.foot,.meta,.ylab{color:var(--course-muted);font-size:13.5px;overflow-wrap:anywhere}
-.foot{font-size:12px;margin-top:2px}
-.ylab{margin:8px 0 0;font-size:12px}
-.ds{margin:10px 0 0;font-size:13px;font-weight:500;color:var(--course-ink)}
-section{background:var(--course-surface);border-radius:10px;padding:16px 18px;margin:14px 0;min-width:0}
-.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0 0;border-bottom:1px solid var(--course-rule)}
-.tabs button{font:inherit;font-size:14px;background:none;border:0;border-bottom:3px solid transparent;
-  color:var(--course-muted);padding:8px 10px;cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+.sub,.cap,.foot,.meta,.ylab{color:var(--course-muted);font-size:15px;overflow-wrap:anywhere}
+.cap{max-width:75ch;margin-bottom:10px}
+.foot{font-size:14px;margin-top:4px}
+.ylab{margin:8px 0 0;font-size:14px}
+.ds{margin:10px 0 0;font-size:15px;font-weight:500;color:var(--course-ink)}
+footer.sub{margin:28px 0 0;max-width:90ch}
+section{background:var(--course-surface);border-radius:10px;padding:18px 20px;margin:16px 0;min-width:0}
+.tabs{display:flex;gap:4px;margin:18px 0 0;border-bottom:1px solid var(--course-rule);overflow-x:auto}
+.tabs button{font:inherit;font-size:18px;background:none;border:0;border-bottom:3px solid transparent;
+  color:var(--course-muted);padding:10px 14px;cursor:pointer;white-space:nowrap}
+.tabs button:hover{color:var(--course-ink)}
 .tabs button[aria-selected=true]{color:var(--course-ink);border-bottom-color:var(--course-green)}
-.theme{font:inherit;font-size:13px;background:var(--course-surface);color:var(--course-ink);
+.tabs .count{font-size:14px;color:var(--course-orange);font-weight:500;margin-left:2px}
+.theme{font:inherit;font-size:14px;background:none;color:var(--course-muted);flex:none;
   border:1px solid var(--course-rule);border-radius:6px;padding:4px 10px;cursor:pointer}
 .slot{border-radius:8px;padding:10px 14px;margin:8px 0}
-.slot.filled{background:var(--course-paper);border-left:4px solid var(--course-green);font-size:17px}
+.slot.filled{background:var(--course-paper);border:1.5px solid var(--course-green);font-size:21px}
 .slot.open{border:2px dashed var(--slot-ink);color:var(--slot-ink)}
 .slot.open p{font-style:italic}
 .slot.absent{border:2px dotted var(--course-rule);color:var(--course-muted)}
-.slot .tag{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--course-muted)}
+.slot .tag{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--course-muted)}
 .slot.picture{text-align:center}
 .slot.picture svg,.slot.picture img{max-width:100%;max-height:360px;height:auto}
-.warn{color:var(--slot-ink);font-size:13px}
-.missing{color:var(--course-muted);font-size:13.5px;background:var(--course-paper);border-radius:6px;
+.warn{color:var(--slot-ink);font-size:15px}
+.missing{color:var(--course-muted);font-size:15px;background:var(--course-paper);border-radius:6px;
   padding:8px 12px;margin:6px 0;overflow-wrap:anywhere}
-.ideas{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:22px}
-.ideas li{position:relative;flex:1 1 240px;min-width:0;max-width:380px}
-.ideas li+li::before{content:'→';position:absolute;left:-19px;top:40%;color:var(--course-muted);font-size:16px}
-.idea{display:flex;flex-direction:column;gap:3px;text-align:left;width:100%;height:100%;font:inherit;
-  color:inherit;background:var(--course-paper);border:2px solid var(--course-rule);border-radius:8px;
-  padding:10px 12px;cursor:pointer}
-.idea[aria-pressed=true]{border-color:var(--course-blue)}
-.idea .label{font-size:12px;color:var(--course-muted);text-transform:uppercase;letter-spacing:.04em}
-.idea .words{font-size:16px}
-.expects{font-size:13.5px}
+.ideas{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr);gap:12px 28px;align-items:start}
+.graph{position:relative;min-width:0}
+.graph svg.edges{position:absolute;left:0;top:0;width:auto;overflow:visible}
+svg .edge{fill:none;stroke:var(--course-rule);stroke-width:2}
+svg .dot{stroke-width:2;fill:var(--course-paper);stroke:var(--course-muted)}
+svg .dot.better{fill:var(--course-green);stroke:var(--course-green)}
+svg .dot.worse{fill:var(--course-orange);stroke:var(--course-orange)}
+svg .dot.unmeasured{stroke-dasharray:3 2}
+svg .dot.picked{stroke:var(--course-ink);stroke-width:3}
+.node{position:relative;display:flex;align-items:baseline;gap:12px;width:100%;height:40px;font:inherit;
+  font-size:17px;color:var(--course-ink);background:none;border:0;border-radius:6px;
+  padding:0 10px 0 0;text-align:left;cursor:pointer;white-space:nowrap;line-height:40px}
+.node .title{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.node:hover .title{text-decoration:underline;text-underline-offset:3px}
+.node[aria-expanded=true] .title{font-weight:500}
+.nums{flex:none;margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--course-muted);
+  font-variant-numeric:tabular-nums}
+.nums b{font-weight:500}
+.nums.better b{color:var(--course-green)}
+.nums.worse b{color:var(--course-orange)}
+.idea-panel{background:var(--course-paper);border-radius:8px;padding:12px 16px;min-height:80px}
+.idea-panel .hint{color:var(--course-muted);font-size:15px}
+.idea-panel h3{font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:6px}
+.idea-panel h3[hidden]{display:none}
+.pen{display:none;align-items:center;justify-content:center;width:28px;height:28px;padding:0;
+  background:none;border:0;border-radius:6px;color:var(--course-muted);cursor:pointer}
+.titles .pen{display:inline-flex}
+.pen:hover{color:var(--course-ink);background:var(--course-surface)}
+.title-edit{font:inherit;font-size:19px;font-weight:500;width:100%;max-width:32ch;margin:0 0 4px;
+  padding:2px 8px;color:var(--course-ink);background:var(--course-surface);
+  border:1.5px solid var(--course-blue);border-radius:6px}
+.idea-detail .words{font-size:17px}
+.idea-detail .expects,.idea-detail .gain{font-size:15px}
+.key svg{display:inline-block;width:12px;height:12px;vertical-align:-1px;margin:0 2px 0 6px}
+.to{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;margin-top:6px}
+.to a{color:var(--course-blue);text-underline-offset:3px}
+.to .tag{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--course-muted);overflow-wrap:anywhere}
+.words{font-size:19px}
+.lead .words{font-size:22px;max-width:65ch}
+.expects{font-size:16px;max-width:75ch}
 .expects b,.slot b{font-weight:500;color:var(--course-muted)}
 .expects.open{color:var(--slot-ink);font-style:italic}
-.builds{font-size:12.5px;color:var(--course-muted);overflow-wrap:anywhere}
-.gain{font-size:14px;font-weight:500;color:var(--course-muted)}
+.builds{font-size:15px;color:var(--course-muted);overflow-wrap:anywhere}
+.gain{font-size:16px;font-weight:500;color:var(--course-muted)}
+.gain .vs{display:block;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;color:var(--course-ink)}
 .gain.better{color:var(--course-green)}
 .gain.worse{color:var(--course-orange)}
-.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:8px}
-.three[hidden]{display:none}
+.lead .meta{margin-top:8px}
+.switch{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 0}
+.switch a{font-size:17px;color:var(--course-ink);text-decoration:none;border:1.5px solid var(--course-rule);
+  border-radius:999px;padding:5px 14px;background:var(--course-surface)}
+.switch a:hover{border-color:var(--course-blue)}
+.switch a[aria-current]{background:var(--course-ink);color:var(--course-paper);border-color:var(--course-ink)}
+.study[hidden]{display:none}
+.group+.group{margin-top:22px}
+.group .words{margin-bottom:8px;color:var(--course-muted);font-size:17px;max-width:75ch}
+.three{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .panel{background:var(--course-paper);border-radius:8px;padding:12px;min-width:0}
 .panel .missing,.card .missing{background:var(--course-surface)}
 .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 14px}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:12px}
 .card{background:var(--course-paper);border-radius:8px;padding:10px;min-width:0}
 svg{width:100%;height:auto;display:block;overflow:visible}
-svg .t{font-size:12px;fill:var(--course-ink)}
-svg .s{font-size:10px;fill:var(--course-ink)}
+svg .t{font-size:14px;fill:var(--course-ink)}
+svg .s{font-size:13px;fill:var(--course-ink)}
 svg .m{fill:var(--course-muted)}
 svg .b{font-weight:500}
 svg .on{fill:var(--course-paper)}
@@ -1479,35 +2054,65 @@ svg .baseline{stroke:var(--course-orange);stroke-width:1.5;stroke-dasharray:2 3}
 svg .faint{fill:none;stroke:var(--course-blue);stroke-width:1.1;stroke-opacity:.7}
 svg .wincurve{fill:none;stroke:var(--course-blue);stroke-width:2.6}
 svg .basecurve{fill:none;stroke:var(--course-orange);stroke-width:2;stroke-dasharray:2 3}
+svg .loss{fill:none;stroke:var(--course-blue);stroke-width:1;stroke-opacity:.25}
+svg .loss.train{stroke-dasharray:3 3}
+svg .loss.median{stroke:var(--course-ink);stroke-width:2.6;stroke-opacity:1}
+.sizes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:8px}
+.sizes .card p{margin:0}
+.explore{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:14px;margin-top:8px}
+.explore .live,.explore .starred{background:var(--course-paper);border-radius:8px;padding:12px;min-width:0}
+.controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;font-size:15px}
+.controls select{font:inherit;font-size:15px;background:var(--course-surface);color:var(--course-ink);
+  border:1px solid var(--course-rule);border-radius:6px;padding:3px 6px;max-width:190px}
+.star,.card button{font:inherit;font-size:15px;background:var(--course-surface);color:var(--course-ink);
+  border:1px solid var(--course-rule);border-radius:6px;padding:3px 10px;cursor:pointer}
+.star[aria-pressed=true]{border-color:var(--slot-ink);color:var(--slot-ink)}
+.stars{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;max-height:820px;overflow-y:auto}
+figure.card{margin:0;background:var(--course-surface)}
+#starred-all figure.card{background:var(--course-paper)}
+figure.card figcaption{font-size:15px;color:var(--course-muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+figure.card .drop{padding:0 9px}
+.legend{font-size:14px;color:var(--course-muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.legend b{font-weight:500;color:var(--course-ink)}
+.legend .sw{display:inline-block;width:13px;height:13px;margin-right:3px;vertical-align:-2px;overflow:visible}
+.legend .ramp{display:inline-block;width:90px;height:9px;border-radius:3px}
+svg .grid{stroke:var(--course-rule);stroke-width:.6}
+svg .pt{stroke:var(--course-paper);stroke-width:.6;fill-opacity:.9}
+svg .pt.best{stroke:var(--course-ink);stroke-width:2}
+.scaling{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.scaling h3{font-size:17px}
 .stages{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:14px}
 .stages li{border:1.5px solid var(--course-rule);border-radius:6px;padding:5px 9px;display:flex;
   flex-wrap:wrap;gap:2px 10px;align-items:baseline;position:relative}
-.stages li+li::before{content:'↓';position:absolute;top:-16px;left:12px;font-size:12px;line-height:1;color:var(--course-muted)}
-.stages li b{font-weight:500;font-family:'JetBrains Mono',monospace;font-size:13px}
+.stages li+li::before{content:'↓';position:absolute;top:-16px;left:12px;font-size:13px;line-height:1;color:var(--course-muted)}
+.stages li b{font-weight:500;font-family:'JetBrains Mono',monospace;font-size:14px}
 .stages .in{border-style:none;padding-left:0}
 .stages .optional{border-style:dashed;border-color:var(--course-blue)}
-.stages .optional.off{opacity:.6}
-.stages .opt{font-size:11.5px;color:var(--course-muted);width:100%}
+.stages .optional.off{border-color:var(--course-rule)}
+.stages .optional.off code{color:var(--course-muted)}
+.stages .opt{font-size:13px;color:var(--course-muted);width:100%}
 .gain+ul.plain{margin:4px 0}
-ul.plain{list-style:none;padding:0;font-size:13px}
+ul.plain{list-style:none;padding:0;font-size:15px}
 ul.plain b{font-weight:500}
-table.metrics{border-collapse:collapse;font-size:13px;width:100%}
+table.metrics{border-collapse:collapse;font-size:15px;width:100%;font-variant-numeric:tabular-nums}
 table.metrics th{text-align:left;font-weight:400;padding:3px 8px 3px 0;overflow-wrap:anywhere}
 table.metrics td{padding:3px 6px;text-align:right}
-table.metrics thead th{color:var(--course-muted);font-size:12px}
+table.metrics thead th{color:var(--course-muted);font-size:14px}
 table.per-class tbody tr:nth-child(odd){background:var(--course-paper)}
 details{margin-top:10px}
-summary{cursor:pointer;color:var(--course-muted);font-size:13.5px}
+summary{cursor:pointer;color:var(--course-muted);font-size:15px}
 .design iframe{width:100%;height:78vh;border:1px solid var(--course-rule);border-radius:8px;
   background:var(--course-surface)}
 [role=tabpanel][hidden]{display:none}
 @media (max-width:860px){
-  .three,.two{grid-template-columns:minmax(0,1fr)}
-  .ideas{flex-direction:column;gap:20px}
-  .ideas li{max-width:none;flex:none}
-  .ideas li+li::before{content:'↓';left:16px;top:-19px}
-  section{padding:12px}
-  h1{font-size:22px}
+  .three,.two,.sizes,.explore,.scaling,.ideas{grid-template-columns:minmax(0,1fr)}
+  section{padding:14px 12px}
+  body{font-size:17px}
+  h1{font-size:26px}
+  h2{font-size:22px}
+  .lead .words{font-size:20px}
+  .node{font-size:16px;gap:8px}
+  .nums{font-size:12.5px}
 }
 """
 
@@ -1530,6 +2135,7 @@ SCRIPT = """
   label();
 
   const tabs = Array.from(document.querySelectorAll('.tabs button'));
+  const links = Array.from(document.querySelectorAll('.switch a'));
   function atlas() {
     const frame = document.getElementById('atlas');
     const data = document.getElementById('atlas-page');
@@ -1538,7 +2144,22 @@ SCRIPT = """
     frame.srcdoc = new TextDecoder('utf-8').decode(bytes);
     frame.dataset.loaded = '1';
   }
-  function show(id) {
+  // the study the Studies tab shows: the one asked for, else the last one shown, else the latest
+  let picked = links.length ? links[links.length - 1].dataset.study : '';
+  function pick(slug) {
+    if (!document.getElementById('view-' + slug)) return;
+    picked = slug;
+    links.forEach(function (a) {
+      if (a.dataset.study === slug) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
+    });
+    document.querySelectorAll('.study').forEach(function (v) { v.hidden = v.id !== 'view-' + slug; });
+    document.dispatchEvent(new Event('study-shown'));
+  }
+  // a hash is a tab, or studies/<study>
+  function show(hash, keep) {
+    let [id, slug] = hash.split('/');
+    if (id && id.indexOf('study-') === 0) { slug = id; id = 'studies'; }
     if (!document.getElementById('tab-' + id)) id = 'overview';
     tabs.forEach(function (t) {
       const on = t.dataset.tab === id;
@@ -1546,9 +2167,15 @@ SCRIPT = """
       t.tabIndex = on ? 0 : -1;
       document.getElementById('tab-' + t.dataset.tab).hidden = !on;
     });
+    if (id === 'studies') pick(slug || picked);
     if (id === 'design') atlas();
-    try { history.replaceState(null, '', '#' + id); } catch (e) {}
+    const want = '#' + id + (id === 'studies' && picked ? '/' + picked : '');
+    if (!keep && location.hash !== want) {
+      try { history.replaceState(null, '', want); } catch (e) {}
+    }
+    if (slug) window.scrollTo(0, document.querySelector('.tabs').offsetTop);
   }
+  window.studyPage = {show: show};
   tabs.forEach(function (t, i) {
     t.addEventListener('click', function () { show(t.dataset.tab); });
     t.addEventListener('keydown', function (e) {
@@ -1560,18 +2187,412 @@ SCRIPT = """
       next.focus();
     });
   });
+  // an idea of the graph opens what it expected and found; a second click closes it
+  const nodes = Array.from(document.querySelectorAll('.node'));
+  nodes.forEach(function (n) {
+    n.addEventListener('click', function () {
+      const open = n.getAttribute('aria-expanded') !== 'true';
+      nodes.forEach(function (m) {
+        const on = open && m === n;
+        m.setAttribute('aria-expanded', on ? 'true' : 'false');
+        document.getElementById('idea-' + m.dataset.study).hidden = !on;
+        document.querySelector('.dot[data-study="' + m.dataset.study + '"]').classList.toggle('picked', on);
+      });
+      const hint = document.querySelector('.idea-panel .hint');
+      if (hint) hint.hidden = open;
+    });
+  });
+  window.addEventListener('hashchange', function () { show(decodeURIComponent(location.hash.slice(1))); });
+  if (picked) pick(picked);
   show(decodeURIComponent(location.hash.slice(1)) || 'overview');
+})();
+"""
 
-  const boxes = Array.from(document.querySelectorAll('.idea'));
-  const cap = document.getElementById('panels-cap');
-  function pick(slug) {
-    boxes.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.study === slug ? 'true' : 'false'); });
-    document.querySelectorAll('[data-panels]').forEach(function (p) { p.hidden = p.dataset.panels !== slug; });
-    const box = boxes.find(function (b) { return b.dataset.study === slug; });
-    if (cap && box) cap.querySelector('b').textContent = box.querySelector('.label').textContent;
+# The explorer of every study tab: draws the view the student picks, and keeps their
+# starred views (`stars.json` through `serve`, else for as long as the page is open).
+EXPLORE = r"""
+(function () {
+  // viridis for a number, the Okabe and Ito hues for a category
+  const VIRIDIS = ['#440154', '#482878', '#3e4989', '#31688e', '#26828e', '#1f9e89',
+                   '#35b779', '#6ece58', '#b5de2b', '#fde725'];
+  const HUES = ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#56B4E9', '#D55E00',
+                '#F0E442', '#5a544d'];
+  const store = document.getElementById('stars-data');
+  if (!store) return;
+  const sets = {};
+  document.querySelectorAll('script.explore-data').forEach(function (s) {
+    const d = JSON.parse(s.textContent);
+    sets[d.id] = d;
+  });
+  let stars = JSON.parse(store.textContent || '[]');
+  const named = document.getElementById('study-names');
+  const names = named ? JSON.parse(named.textContent) : {};
+  let saving = false;
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c];
+    });
   }
-  boxes.forEach(function (b) { b.addEventListener('click', function () { pick(b.dataset.study); }); });
-  if (boxes.length) pick(boxes[boxes.length - 1].dataset.study);
+  function short(v) {
+    if (v === null || v === undefined) return '–';
+    if (typeof v === 'string') return v;
+    const a = Math.abs(v);
+    for (const [u, s] of [[1e12, 'T'], [1e9, 'G'], [1e6, 'M'], [1e3, 'k']]) {
+      if (a >= u) return +(v / u).toPrecision(3) + s;
+    }
+    if (Number.isInteger(v)) return String(v);
+    if (a >= 100) return v.toFixed(0);
+    if (a >= 1) return +v.toPrecision(3) + '';
+    if (a >= 0.001) return +v.toPrecision(3) + '';
+    return v.toExponential(1);
+  }
+  function natural(a, b) {
+    const x = parseFloat(a), y = parseFloat(b);
+    return !isNaN(x) && !isNaN(y) ? x - y : String(a).localeCompare(String(b));
+  }
+  function jitter(r) { return (((r * 37) % 13) - 6) / 6; }
+  function nice(a, b) {
+    const raw = (b - a) / 4;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 5, 10].map(function (m) { return m * mag; })
+      .find(function (st) { return (b - a) / st <= 5; });
+    const out = [];
+    for (let t = Math.ceil(a / step) * step; t <= b + 1e-12; t += step) out.push(+t.toPrecision(12));
+    return out;
+  }
+  function field(d, name) { return d.fields.findIndex(function (f) { return f.name === name; }); }
+
+  // where a value lies between lo and hi, with the ticks of that axis
+  function quantile(xs, q) {
+    const v = xs.slice().sort(function (a, b) { return a - b; });
+    const at = (v.length - 1) * q, k = Math.floor(at);
+    return k + 1 < v.length ? v[k] + (at - k) * (v[k + 1] - v[k]) : v[k];
+  }
+  // floor: a value far below the others sits on the floor of the axis, so one bad
+  // trial does not squash every other dot
+  function axis(d, i, lo, hi, floor) {
+    const f = d.fields[i];
+    const vs = d.rows.map(function (r) { return r[i]; });
+    if (f.kind === 'cat') {
+      const cats = Array.from(new Set(vs.filter(function (v) { return v !== null; }))).sort(natural);
+      const step = (hi - lo) / Math.max(cats.length, 1);
+      const pos = function (c) { return lo + step * (cats.indexOf(c) + 0.5); };
+      return {
+        cats: cats,
+        at: function (v, r) { return v === null ? null : pos(v) + jitter(r) * step * 0.28; },
+        ticks: cats.map(function (c) { return [pos(c), c]; }),
+      };
+    }
+    const tf = f.log ? Math.log10 : function (x) { return x; };
+    const num = vs.filter(function (v) { return v !== null && (!f.log || v > 0); });
+    const tnum = num.map(tf);
+    let ta = Math.min.apply(null, tnum), tb = Math.max.apply(null, tnum);
+    const q10 = quantile(tnum, 0.1), q90 = quantile(tnum, 0.9);
+    const cut = floor && tnum.length >= 8 ? q10 - (q90 - q10) : -Infinity;
+    if (ta < cut) ta = Math.min.apply(null, tnum.filter(function (t) { return t >= cut; }));
+    if (ta === tb) { ta -= 0.5; tb += 0.5; }
+    const pad = (tb - ta) * 0.05;
+    ta -= pad; tb += pad;
+    const at = function (v) {
+      return v === null || (f.log && v <= 0) ? null : lo + ((tf(v) - ta) / (tb - ta)) * (hi - lo);
+    };
+    const low = function (v) { return v !== null && (!f.log || v > 0) && tf(v) < ta; };
+    let ticks;
+    if (f.log) {
+      ticks = [];
+      for (let e = Math.ceil(ta); e <= Math.floor(tb); e++) ticks.push(Math.pow(10, e));
+      if (ticks.length < 2) ticks = nice(Math.pow(10, ta), Math.pow(10, tb)).filter(function (t) { return t > 0; });
+    } else {
+      ticks = nice(ta, tb);
+    }
+    ticks = ticks.filter(function (t) { return tf(t) >= ta && tf(t) <= tb; });
+    return {at: at, low: low, ticks: ticks.map(function (t) { return [at(t), short(t)]; }), range: [ta, tb], tf: tf,
+            ends: [Math.min.apply(null, num), Math.max.apply(null, num)]};
+  }
+
+  // the marks of a category's values, about equal in area: circle, square, triangle,
+  // diamond, cross, pentagon (no downward triangle: that is a dot on the floor)
+  const SHAPES = 6;
+  function mark(k, x, y, r) {
+    const poly = function (n, turn, size) {
+      const pts = [];
+      for (let j = 0; j < n; j++) {
+        const a = turn + (2 * Math.PI * j) / n;
+        pts.push((x + size * Math.sin(a)).toFixed(1) + ',' + (y - size * Math.cos(a)).toFixed(1));
+      }
+      return 'M' + pts.join('L') + 'Z';
+    };
+    if (k === 1) return poly(4, Math.PI / 4, r * 1.2);
+    if (k === 2) return poly(3, 0, r * 1.45);
+    if (k === 3) return poly(4, 0, r * 1.3);
+    if (k === 4) {
+      const a = r * 1.15, b = r * 0.42;
+      return 'M' + [[-b, -a], [b, -a], [b, -b], [a, -b], [a, b], [b, b], [b, a], [-b, a], [-b, b], [-a, b], [-a, -b], [-b, -b]]
+        .map(function (q) { return (x + q[0]).toFixed(1) + ',' + (y + q[1]).toFixed(1); }).join('L') + 'Z';
+    }
+    if (k === 5) return poly(5, 0, r * 1.2);
+    return 'M' + (x - r).toFixed(1) + ',' + y.toFixed(1) + 'a' + r + ',' + r + ' 0 1,0 ' + (2 * r) + ',0a' + r + ',' + r + ' 0 1,0 ' + (-2 * r) + ',0Z';
+  }
+  function viridis(t) {
+    t = Math.min(1, Math.max(0, t)) * (VIRIDIS.length - 1);
+    const i = Math.min(Math.floor(t), VIRIDIS.length - 2), u = t - i;
+    const a = VIRIDIS[i], b = VIRIDIS[i + 1];
+    const ch = function (h, k) { return parseInt(h.slice(1 + 2 * k, 3 + 2 * k), 16); };
+    return 'rgb(' + [0, 1, 2].map(function (k) { return Math.round(ch(a, k) + u * (ch(b, k) - ch(a, k))); }).join(',') + ')';
+  }
+  // the colour of every row, and the legend that reads it
+  function colour(d, i) {
+    const round = function () { return 0; };
+    if (i < 0) return {of: function () { return 'var(--course-blue)'; }, shape: round, legend: ''};
+    const f = d.fields[i];
+    const ax = axis(d, i, 0, 1);
+    if (f.kind === 'cat') {
+      // a category has its own shape as well as its own hue: on a pale projector or in
+      // grey the shapes still tell the values apart
+      const k = function (v) { return ax.cats.indexOf(v); };
+      const of = function (v) { return v === null ? 'var(--course-rule)' : HUES[k(v) % HUES.length]; };
+      const shape = function (v) { return v === null ? 0 : k(v) % SHAPES; };
+      return {of: of, shape: shape, legend: '<b>' + esc(f.name) + '</b> ' + ax.cats.map(function (c) {
+        return '<svg class="sw" viewBox="-6 -6 12 12" aria-hidden="true"><path d="' + mark(shape(c), 0, 0, 4.6) +
+          '" fill="' + of(c) + '"/></svg>' + esc(c);
+      }).join(' ')};
+    }
+    const of = function (v) {
+      if (v === null || (f.log && v <= 0)) return 'var(--course-rule)';
+      return viridis((ax.tf(v) - ax.range[0]) / (ax.range[1] - ax.range[0]));
+    };
+    const ends = ax.ends;
+    return {of: of, shape: round, legend: '<b>' + esc(f.name) + '</b> ' + esc(short(ends[0])) +
+      ' <span class="ramp" style="background:linear-gradient(to right,' + VIRIDIS.join(',') + ')"></span> ' +
+      esc(short(ends[1])) + (f.log ? ' <span class="m">log</span>' : '')};
+  }
+
+  // one picture of d: y against x, coloured by c
+  // width: the pixels the picture gets, so its labels keep their size on any screen
+  function draw(d, view, small, width) {
+    const W = small ? 320 : Math.round(Math.max(300, Math.min(760, width || 560)));
+    const H = small ? 210 : Math.round(Math.max(240, Math.min(380, W * 0.6)));
+    const L = small ? 44 : 58, R = W - 10, T = 10, B = H - (small ? 34 : 42);
+    const xi = field(d, view.x), yi = field(d, view.y), ci = view.c ? field(d, view.c) : -1;
+    if (xi < 0 || yi < 0) return '<p class="missing">This view names a field these trials do not have.</p>';
+    const X = axis(d, xi, L, R), Y = axis(d, yi, B, T, true), C = colour(d, ci);
+    const out = ['<line x1="' + L + '" x2="' + R + '" y1="' + B + '" y2="' + B + '" class="track"/>',
+                 '<line x1="' + L + '" x2="' + L + '" y1="' + T + '" y2="' + B + '" class="track"/>'];
+    X.ticks.forEach(function (t, k) {
+      if (t[0] === null || (X.cats && small && X.ticks.length > 6 && k % 2)) return;
+      out.push('<text x="' + t[0].toFixed(1) + '" y="' + (B + 14) + '" class="s m" text-anchor="middle">' + esc(t[1]) + '</text>');
+    });
+    Y.ticks.forEach(function (t) {
+      if (t[0] === null) return;
+      out.push('<text x="' + (L - 5) + '" y="' + (t[0] + 3).toFixed(1) + '" class="s m" text-anchor="end">' + esc(t[1]) + '</text>');
+      out.push('<line x1="' + L + '" x2="' + R + '" y1="' + t[0].toFixed(1) + '" y2="' + t[0].toFixed(1) + '" class="grid"/>');
+    });
+    out.push('<text x="' + ((L + R) / 2) + '" y="' + (H - 4) + '" class="s" text-anchor="middle">' + esc(d.fields[xi].name) + '</text>');
+    if (d.base && view.y === d.objective) {
+      const hi = Y.at(d.base[0] + d.base[1]), lo = Y.at(d.base[0] - d.base[1]), at = Y.at(d.base[0]);
+      out.push('<rect x="' + L + '" width="' + (R - L) + '" y="' + Math.max(T, hi).toFixed(1) + '" height="' +
+               Math.max(1, Math.min(B, lo) - Math.max(T, hi)).toFixed(1) + '" class="band"/>');
+      if (at >= T && at <= B) out.push('<line x1="' + L + '" x2="' + R + '" y1="' + at.toFixed(1) + '" y2="' + at.toFixed(1) + '" class="baseline"/>');
+    }
+    const order = d.rows.map(function (_, r) { return r; }).sort(function (a, b) { return (a === d.winner) - (b === d.winner); });
+    order.forEach(function (r) {
+      const row = d.rows[r];
+      const x = X.at(row[xi], r), y = Y.at(row[yi], r + 5);
+      if (x === null || y === null) return;
+      const hint = d.fields.map(function (f, k) { return f.name + ': ' + short(row[k]); }).join('\n');
+      const win = r === d.winner;
+      if (Y.low && Y.low(row[yi])) {
+        out.push('<path d="M' + (x - 4).toFixed(1) + ',' + (B - 8) + ' L' + (x + 4).toFixed(1) + ',' + (B - 8) +
+                 ' L' + x.toFixed(1) + ',' + (B - 2) + ' Z" fill="' + C.of(ci < 0 ? null : row[ci]) +
+                 '" class="pt"><title>' + esc(hint) + '</title></path>');
+        return;
+      }
+      const v = ci < 0 ? null : row[ci];
+      out.push('<path d="' + mark(C.shape(v), x, y, win ? 6.5 : small ? 3.6 : 4.6) + '" fill="' + C.of(v) +
+               '" class="pt' + (win ? ' best' : '') + '"><title>' +
+               esc((win ? 'the best trial\n' : '') + hint) + '</title></path>');
+    });
+    return '<p class="ylab">' + esc(d.fields[yi].name) + '</p><svg viewBox="0 0 ' + W + ' ' + H +
+           '" role="img" aria-label="' + esc(view.y + ' against ' + view.x) + '" xmlns="http://www.w3.org/2000/svg">' +
+           out.join('') + '</svg>' + (small ? '<div class="legend">' + C.legend + '</div>' : '');
+  }
+
+  function same(a, b) { return a.study === b.study && a.dataset === b.dataset && a.x === b.x && a.y === b.y && (a.c || '') === (b.c || ''); }
+  function current(box) {
+    const v = {};
+    box.querySelectorAll('select').forEach(function (s) { v[s.dataset.axis] = s.value; });
+    return v;
+  }
+  function noteText() {
+    if (store.dataset.mode === 'submitted') return 'Stars on a page of submitted runs last until you close it.';
+    if (saving) return 'Saved in ' + store.dataset.file + ': you see them again the next time you open the page.';
+    return 'Not saved: this page was not opened by make page, so a star lasts until you close it.';
+  }
+
+  function render(box) {
+    const d = sets[box.dataset.set];
+    const v = current(box);
+    const view = {study: d.study, dataset: d.dataset, x: v.x, y: v.y, c: v.c};
+    const plot = box.querySelector('.plot');
+    plot.innerHTML = draw(d, view, false, plot.clientWidth);
+    box.querySelector('.legend').innerHTML = colour(d, v.c ? field(d, v.c) : -1).legend;
+    const on = stars.some(function (s) { return same(s, view); });
+    const button = box.querySelector('.star');
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    button.textContent = on ? '★ starred' : '☆ star this view';
+    const mine = stars.filter(function (s) { return s.study === d.study && s.dataset === d.dataset; });
+    box.querySelector('.stars').innerHTML = mine.length ? mine.map(function (s, k) { return card(d, s, k, ''); }).join('')
+      : '<p class="foot">None yet. Star a view to keep it here.</p>';
+    box.querySelectorAll('.stars figure').forEach(function (fig) { wire(fig, mine[+fig.dataset.k]); });
+    box.querySelector('.save-note').textContent = noteText();
+  }
+  // a starred view as a small picture, with the buttons that open and remove it
+  function card(d, s, k, where) {
+    return '<figure class="card" data-k="' + k + '">' + (d ? draw(d, s, true) :
+      '<p class="missing">This view is of trials that are not on this page.</p>') + '<figcaption>' +
+      esc(s.y) + ' against ' + esc(s.x) + (s.c ? ', colour ' + esc(s.c) : '') + where +
+      (d ? ' <button type="button" class="open">explore</button>' : '') +
+      '<button type="button" class="drop" aria-label="remove this star">×</button></figcaption></figure>';
+  }
+  function boxOf(s) {
+    return Array.from(document.querySelectorAll('.explore')).find(function (b) {
+      const d = sets[b.dataset.set];
+      return d.study === s.study && d.dataset === s.dataset;
+    });
+  }
+  function wire(fig, s) {
+    const box = boxOf(s);
+    const open = fig.querySelector('.open');
+    if (open) open.addEventListener('click', function () {
+      const name = names[s.study];
+      if (name && window.studyPage) window.studyPage.show('studies/' + name.slug);
+      box.querySelectorAll('select').forEach(function (sel) { sel.value = s[sel.dataset.axis] || ''; });
+      render(box);
+      box.scrollIntoView({block: 'start'});
+    });
+    fig.querySelector('.drop').addEventListener('click', function () {
+      stars = stars.filter(function (t) { return !same(t, s); });
+      save(); renderAll();
+    });
+  }
+  // the Starred tab: every star, gathered by study in the order of the page
+  function renderStarred() {
+    const all = document.getElementById('starred-all');
+    const count = document.querySelector('#tabbtn-starred .count');
+    if (count) count.textContent = stars.length ? String(stars.length) : '';
+    if (!all) return;
+    const order = Object.keys(names);
+    stars.forEach(function (s) { if (order.indexOf(s.study) < 0) order.push(s.study); });
+    const html = order.map(function (key) {
+      const mine = stars.filter(function (s) { return s.study === key; });
+      if (!mine.length) return '';
+      const name = names[key] || {short: key, idea: ''};
+      const several = new Set(mine.map(function (s) { return s.dataset; })).size > 1;
+      return '<div class="group" data-study="' + esc(key) + '"><h3>' + esc(name.short) + '</h3>' +
+        (name.idea ? '<p class="words">' + esc(name.idea) + '</p>' : '') + '<div class="cards">' +
+        mine.map(function (s, k) {
+          const box = boxOf(s);
+          return card(box ? sets[box.dataset.set] : null, s, k, several ? ' · on ' + esc(s.dataset) : '');
+        }).join('') + '</div></div>';
+    }).join('');
+    all.innerHTML = html || '<p class="missing">No starred view yet. In a study on the Studies tab, ' +
+      'star a view of the explorer to gather it here.</p>';
+    all.querySelectorAll('.group').forEach(function (g) {
+      const mine = stars.filter(function (s) { return s.study === g.dataset.study; });
+      g.querySelectorAll('figure').forEach(function (fig) { wire(fig, mine[+fig.dataset.k]); });
+    });
+    const note = document.querySelector('#tab-starred .save-note');
+    if (note) note.textContent = noteText();
+  }
+  function renderAll() { document.querySelectorAll('.explore').forEach(render); renderStarred(); }
+  function save() {
+    if (!saving) return;
+    fetch('stars', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(stars)})
+      .then(function (r) { if (!r.ok) throw new Error(r.status); })
+      .catch(function () { saving = false; renderAll(); });
+  }
+
+  document.querySelectorAll('.explore').forEach(function (box) {
+    const d = sets[box.dataset.set];
+    box.querySelectorAll('select').forEach(function (sel) {
+      const want = d.defaults[sel.dataset.axis] || '';
+      if (Array.from(sel.options).some(function (o) { return o.value === want; })) sel.value = want;
+      sel.addEventListener('change', function () { render(box); });
+    });
+    box.querySelector('.star').addEventListener('click', function () {
+      const v = current(box);
+      const view = {study: d.study, dataset: d.dataset, x: v.x, y: v.y, c: v.c};
+      const on = stars.some(function (s) { return same(s, view); });
+      stars = on ? stars.filter(function (s) { return !same(s, view); }) : stars.concat([view]);
+      save(); renderAll();
+    });
+  });
+  renderAll();
+  // a study's plot is drawn for the width it has once it is shown
+  document.addEventListener('study-shown', renderAll);
+  let resized = null;
+  window.addEventListener('resize', function () { clearTimeout(resized); resized = setTimeout(renderAll, 150); });
+  if (location.protocol.indexOf('http') === 0 && store.dataset.mode === 'own') {
+    fetch('stars', {cache: 'no-store'})
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (list) { stars = list; saving = true; renderAll(); })
+      .catch(function () {});
+    fetch('titles', {cache: 'no-store'})
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (titles) {
+        Object.keys(names).forEach(function (key) { retitle(key, titles[names[key].label] || ''); });
+        document.body.classList.add('titles');
+      })
+      .catch(function () {});
+  }
+
+  // a study's title, given by the student under [titles] in page.toml, everywhere it shows
+  function retitle(key, title) {
+    const name = names[key];
+    const shown = title || name.auto;
+    name.short = shown;
+    const slug = name.slug;
+    document.querySelectorAll('.node[data-study="' + slug + '"] .title, #idea-' + slug + ' h3 .t, ' +
+      '.switch a[data-study="' + slug + '"], #view-' + slug + ' .lead h2').forEach(function (e) {
+      e.textContent = shown;
+    });
+    renderStarred();
+  }
+  function keyOf(detail) {
+    return Object.keys(names).find(function (k) { return 'idea-' + names[k].slug === detail.id; });
+  }
+  document.querySelectorAll('.idea-detail .pen').forEach(function (pen) {
+    pen.addEventListener('click', function () {
+      const detail = pen.closest('.idea-detail');
+      const key = keyOf(detail);
+      const h3 = pen.parentElement;
+      const t = h3.querySelector('.t');
+      const input = document.createElement('input');
+      input.className = 'title-edit';
+      input.maxLength = 80;
+      input.value = t.textContent;
+      input.setAttribute('aria-label', 'title of this study; empty gives its own name back');
+      h3.hidden = true;
+      h3.after(input);
+      input.focus();
+      input.select();
+      let done = false;
+      function close() { if (done) return; done = true; input.remove(); h3.hidden = false; pen.focus(); }
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') close();
+        if (e.key !== 'Enter') return;
+        const title = input.value.trim() === names[key].auto ? '' : input.value.trim();
+        fetch('titles', {method: 'POST', headers: {'Content-Type': 'application/json'},
+                         body: JSON.stringify({study: names[key].label, title: title})})
+          .then(function (r) { if (!r.ok) return r.text().then(function (m) { throw new Error(m); }); })
+          .then(function () { retitle(key, title); close(); })
+          .catch(function (err) { input.setCustomValidity(String(err.message)); input.reportValidity(); });
+      });
+      input.addEventListener('input', function () { input.setCustomValidity(''); });
+      input.addEventListener('blur', close);
+    });
+  });
 })();
 """
 
@@ -1588,27 +2609,50 @@ def build_page(
     own: Mapping[str, str] | None,
     page: Path | None,
     design: str,
+    stars: Sequence[Mapping[str, str]] = (),
+    stars_file: Path | None = None,
 ) -> str:
     """The page of `login`'s `studies` of `lesson`, with what they wrote in `own`, read
     from the page.toml at `page`; `own` None for a page of submitted runs without one.
-    A picture is looked for in the folder of `page`."""
+    A picture is looked for in the folder of `page`. `stars` are the views the student
+    starred, kept in `stars_file`; a page of submitted runs has none."""
     folder = page.parent if page is not None else COURSE_ROOT
-    tabs = [("overview", "Overview"), ("design", "Design")] + [
-        (s.slug, s.label) for s in studies
+    tabs = [
+        ("overview", "Overview"),
+        ("studies", "Studies"),
+        ("starred", "Starred <span class='count'></span>"),
+        ("design", "Design"),
     ]
     nav = "".join(
         f"<button type='button' role='tab' id='tabbtn-{t}' data-tab='{t}' "
-        f"aria-controls='tab-{t}' tabindex='-1'>"
-        f"{html.escape(name)}</button>"
+        f"aria-controls='tab-{t}' tabindex='-1'>{name}</button>"
         for t, name in tabs
     )
-    body = (
-        f"<div role='tabpanel' id='tab-overview' aria-labelledby='tabbtn-overview'>{overview(studies, own, folder)}</div>"
-        f"<div role='tabpanel' id='tab-design' aria-labelledby='tabbtn-design' hidden>{design}</div>"
-        + "".join(
-            f"<div role='tabpanel' id='tab-{s.slug}' aria-labelledby='tabbtn-{s.slug}' hidden>{study_tab(s)}</div>"
+    names = json.dumps(
+        {
+            s.key: {
+                "short": s.short,
+                "auto": s.auto,
+                "label": s.label,
+                "idea": s.idea,
+                "slug": s.slug,
+            }
             for s in studies
-        )
+        }
+    ).replace("</", "<\\/")
+    panes = {
+        "overview": overview(studies, own, folder),
+        "studies": studies_tab(studies),
+        "starred": "<section><h2>Starred views</h2><p class='cap'>Every view starred "
+        "in the explorer of a study, gathered by study. Explore takes a view back to its "
+        "study.</p><div id='starred-all'></div><p class='foot save-note'></p></section>"
+        f"<script type='application/json' id='study-names'>{names}</script>",
+        "design": design,
+    }
+    body = "".join(
+        f"<div role='tabpanel' id='tab-{t}' aria-labelledby='tabbtn-{t}'"
+        f"{'' if t == 'overview' else ' hidden'}>{panes[t]}</div>"
+        for t, _ in tabs
     )
     title = (
         f"Lesson {lesson}: what {login} studied"
@@ -1621,18 +2665,60 @@ def build_page(
         else "What is the student's own on the page is not part of the submitted runs."
     )
     runs = sum(len(s.df) for s in studies)
+    mode = "own" if stars_file is not None else "submitted"
+    where = shown(stars_file) if stars_file is not None else ""
+    starred = json.dumps(list(stars)).replace("</", "<\\/")
     return (
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width, initial-scale=1'>"
         f"<title>{html.escape(title)}</title>"
         f"<style>{font_faces()}{course_tokens()}{CSS}</style></head><body><main>"
-        f"<header><div><h1>{html.escape(title)}</h1>"
-        f"<p class='sub'>{studies_text(len(studies))}, {plural(runs, 'run')}, read from "
-        f"{html.escape(source)}. {yours}</p></div>"
+        f"<header><h1>{html.escape(title)}</h1>"
         "<button type='button' class='theme' id='theme'>dark theme</button></header>"
         f"<nav class='tabs' role='tablist'>{nav}</nav>{body}"
-        f"</main><script>{SCRIPT}</script></body></html>"
+        f"<footer class='sub'>{studies_text(len(studies))}, {plural(runs, 'run')}, read "
+        f"from {html.escape(source)}. {yours}</footer>"
+        f"<script type='application/json' id='stars-data' data-mode='{mode}' "
+        f"data-file='{html.escape(where)}'>{starred}</script>"
+        f"</main><script>{SCRIPT}</script><script>{EXPLORE}</script></body></html>"
     )
+
+
+STAR_KEYS = ("study", "dataset", "x", "y", "c")
+
+
+def clean_stars(value: object) -> list[dict[str, str]]:
+    """The starred views in `value`, each with exactly `STAR_KEYS` as text, in order and
+    without doubles; anything else raises TypeError or ValueError."""
+    if not isinstance(value, list):
+        raise TypeError("the stars are not a list")
+    out: list[dict[str, str]] = []
+    for item in value:
+        if not isinstance(item, dict) or not all(
+            isinstance(item.get(k, ""), str) for k in STAR_KEYS
+        ):
+            raise TypeError(f"not a starred view: {item!r}")
+        star = {k: str(item.get(k, "")) for k in STAR_KEYS}
+        if not (star["study"] and star["x"] and star["y"]):
+            raise ValueError(f"a starred view names its study, x and y: {item!r}")
+        if star not in out:
+            out.append(star)
+    return out
+
+
+def read_stars(path: Path) -> list[dict[str, str]]:
+    """The views starred in `path`; none when it is missing or not a list of views."""
+    if not path.is_file():
+        return []
+    try:
+        return clean_stars(json.loads(path.read_text(encoding="utf-8")))
+    except (TypeError, ValueError) as e:
+        print(f"{shown(path)} is left as it is and not read: {e}")
+        return []
+
+
+def write_stars(path: Path, stars: Sequence[Mapping[str, str]]) -> None:
+    path.write_text(json.dumps(list(stars), indent=2) + "\n", encoding="utf-8")
 
 
 def page_of(
@@ -1664,13 +2750,102 @@ def page_of(
     toml = page or (None if submitted else folder / "page.toml")
     own = None if toml is None else read_own(toml, lesson, create=page is None)
     studies = studies_of(subs)
+    titled(studies, read_titles(toml))
+    stars_file = None if submitted else folder / "stars.json"
+    stars = [] if stars_file is None else read_stars(stars_file)
     return (
         build_page(
-            studies, lesson, login, source, own, toml, design_tab(folder, which)
+            studies,
+            lesson,
+            login,
+            source,
+            own,
+            toml,
+            design_tab(folder, which),
+            stars,
+            stars_file,
         ),
         studies,
         login,
     )
+
+
+def page_server(
+    page: str, stars_file: Path, toml: Path | None = None
+) -> ThreadingHTTPServer:
+    """A server of `page` on this machine only, on a free port, that keeps the views
+    the student stars in `stars_file` (GET and POST /stars) and the titles they give
+    their studies under `[titles]` in the page.toml `toml` (GET and POST /titles). A
+    request from another site's page is refused."""
+    body = page.encode("utf-8")
+
+    class Page(BaseHTTPRequestHandler):
+        def log_message(self, format: str, *args: object) -> None:
+            pass
+
+        def send(self, code: int, data: bytes, kind: str = "text/plain") -> None:
+            self.send_response(code)
+            self.send_header("Content-Type", kind)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
+
+        def do_GET(self) -> None:
+            path = self.path.split("?")[0]
+            if path in ("/", "/index.html"):
+                self.send(200, body, "text/html; charset=utf-8")
+            elif path == "/stars":
+                stars = json.dumps(read_stars(stars_file)).encode("utf-8")
+                self.send(200, stars, "application/json")
+            elif path == "/titles" and toml is not None:
+                titles = json.dumps(read_titles(toml)).encode("utf-8")
+                self.send(200, titles, "application/json")
+            else:
+                self.send(404, b"not here")
+
+        def do_POST(self) -> None:
+            origin = self.headers.get("Origin")
+            if self.path not in ("/stars", "/titles") or (
+                self.path == "/titles" and toml is None
+            ):
+                return self.send(404, b"not here")
+            if origin is not None and origin != address:
+                return self.send(403, b"only the page itself saves")
+            size = int(self.headers.get("Content-Length") or 0)
+            try:
+                sent = json.loads(self.rfile.read(size))
+                if self.path == "/stars":
+                    write_stars(stars_file, clean_stars(sent))
+                elif toml is not None:
+                    study, title = sent.get("study"), sent.get("title")
+                    if not isinstance(study, str) or not isinstance(title, str):
+                        raise TypeError("a title is {study: text, title: text}")
+                    write_title(toml, study, title)
+            except (TypeError, ValueError, AttributeError) as e:
+                return self.send(400, str(e).encode("utf-8"))
+            return self.send(200, b"saved")
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Page)
+    address = f"http://127.0.0.1:{server.server_address[1]}"
+    return server
+
+
+def serve(page: str, stars_file: Path, toml: Path | None = None) -> None:
+    """Serve `page` (`page_server`), open it, and keep its stars and titles until
+    Ctrl-C."""
+    server = page_server(page, stars_file, toml)
+    address = f"http://127.0.0.1:{server.server_address[1]}"
+    print(
+        f"served at {address}/ · stars are saved in {shown(stars_file)} · Ctrl-C stops"
+    )
+    webbrowser.open(address + "/")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print()
+    finally:
+        server.server_close()
 
 
 def main() -> None:
@@ -1706,7 +2881,15 @@ def main() -> None:
         "when missing; none with --submitted)",
     )
     parser.add_argument(
-        "--open", action="store_true", help="open the page in the browser"
+        "--open",
+        action="store_true",
+        help="open the page in the browser; a page of your own store is served on "
+        "this machine, so the views you star are saved in exercises/stars.json",
+    )
+    parser.add_argument(
+        "--no-serve",
+        action="store_true",
+        help="with --open: open the written file, not served (stars are not saved)",
     )
     args = parser.parse_args()
 
@@ -1732,7 +2915,10 @@ def main() -> None:
         f"{studies_text(len(studies))}, {plural(sum(len(x.df) for x in studies), 'run')} of {login or 'this store'}"
     )
     print(f"page: {out}")
-    if args.open:
+    if args.open and not args.submitted and not args.no_serve:
+        folder = exercises_folder(args.lesson)
+        serve(html_, folder / "stars.json", args.page or folder / "page.toml")
+    elif args.open:
         webbrowser.open(out.resolve().as_uri())
 
 

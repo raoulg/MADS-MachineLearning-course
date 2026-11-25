@@ -93,10 +93,13 @@ study:
 	@test -n "$(STUDY_SCRIPT)" || { echo "lesson $(or $(LESSON),1) has no exercises/study.py"; exit 2; }
 	uv run $(STUDY_SCRIPT)
 
-# Your page of a lesson, from your own store: artefacts/study-page/lesson<N>/index.html.
-# What is yours on it comes from notebooks/<N>_*/exercises/page.toml.
+# Your page of a lesson, from your own store: artefacts/study-page/lesson<N>/index.html,
+# served on this machine until Ctrl-C. What is yours on it comes from
+# notebooks/<N>_*/exercises/page.toml, where a title you give a study is saved too; the
+# views you star are kept in exercises/stars.json.
 #
 #   make page LESSON=1
+#   make page LESSON=1 ARGS=--no-serve              # open the file, nothing is saved
 #   make page LESSON=1 ARGS="--submitted <login>"   # from a login's submitted runs
 
 page: check-lesson

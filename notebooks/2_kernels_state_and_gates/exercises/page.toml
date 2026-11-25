@@ -1,0 +1,21 @@
+# Your page of lesson 2: what is yours on it. `make page LESSON=2` reads this
+# file and never writes it once it exists. An empty key shows as an open slot on the page.
+
+# Say in at most three sentences what you did: what you investigated, what you found,
+# and what it means.
+message = ""
+
+# A picture of your own, shown under the message: a path, relative to this folder, to an
+# .svg, a .png or an .html fragment. The beelddenker skill helps you find one.
+picture = ""
+
+# What surprised you, against what you expected (EXPECTS in study.py)?
+surprised = ""
+
+# What would you try next, and why?
+next = ""
+
+# A title of your own for a study, instead of the name the page gives it: the study's
+# name in study.py, then your title. The page shows that name when you open an idea.
+[titles]
+# "wide-head-on-dtd" = "a wider head"

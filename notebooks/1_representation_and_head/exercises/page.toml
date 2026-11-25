@@ -14,3 +14,8 @@ surprised = ""
 
 # What would you try next, and why?
 next = ""
+
+# A title of your own for a study, instead of the name the page gives it: the study's
+# name in study.py, then your title. The page shows that name when you open an idea.
+[titles]
+# "wide-head-on-dtd" = "a wider head"

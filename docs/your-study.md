@@ -133,17 +133,34 @@ walking past, in three minutes.
 make page LESSON=<N>
 ```
 
-It writes `artefacts/study-page/lesson<N>/index.html` and opens it; the student reads it
-in the browser. The template fills what the store holds: the line of their ideas, the
-architecture, the search space, the winner next to its baseline, a Design tab, and a tab
-per study. What is the student's own stands in `exercises/page.toml` of the lesson
-folder: `message`, `picture`, `surprised` and `next`. The script creates that file with
+It writes `artefacts/study-page/lesson<N>/index.html` and serves it on the student's own
+machine until Ctrl-C; the student reads it in the browser. It has four tabs. Overview
+holds their ideas as a tree of titles, each idea under the one it builds on; opened, an
+idea shows what it expected and its gain over its own baseline. Under it, Scaling FLOPs sets the score of every trial against the parameters of the
+head and against the FLOPs of training it, with the train and test loss per size of the
+model. Studies shows one study at a time, picked by its short name: the architecture, the
+search space, the winner next to its baseline, and an explorer where the student sets two
+fields of the trials against each other and a third in colour, and stars a view to keep
+it. Starred gathers every starred view of every study. Stars are saved in
+`exercises/stars.json`, so they are there again the next time the page opens; Design
+shows the design in Atlas. The pen beside the title of an opened idea edits that title
+in `page.toml`. `make page LESSON=<N> ARGS=--no-serve` opens the written file instead,
+and then a star or a title is not saved. What is the student's own stands in `exercises/page.toml` of the lesson
+folder: `message`, `picture`, `surprised` and `next`, and under `[titles]` a title of
+their own per study, by the study's name in study.py. The script creates that file with
 empty keys once the lesson has runs, and never writes it afterwards; an empty key shows
 as an open slot on the page. With no runs of the lesson in the store, `make page` stops
 and says to run the study first: that is step 5.
 
+The page is a starting point, not a form. A student who wants to see their runs another way
+(another picture, another comparison, a layout that tells their story better) is
+encouraged to build their own, better dashboard with Claude: from `scripts/study_page.py`
+or from scratch, on the same store (`artefacts/optuna/studies.db`). What keeps it honest
+stays: every score next to its baseline, and no axis that mixes two datasets. The student
+decides what it shows; you build what they ask for.
+
 This step is about a study of the student's own. When the page shows only the handed-out
-study (one box "handed out" in the line of ideas, no expectation, no design script), the
+study (one idea "handed out" in the tree, no expectation, no design script), the
 student has no study of their own yet: say so, and go with them to step 1. Do not
 interview them about the handed-out study.
 
@@ -160,7 +177,8 @@ the step it belongs to: the blocks of the architecture and the Design tab to ste
 shapes to step 2, the spread of the baseline to step 3, the axes and ranges and a study's
 idea and expectation in the line of ideas to step 4, a refusal or a missing trial to
 step 5, the winner in sigmas to step 6, and what a study builds on to step 9. The
-interview goes on once they can say it.
+interview goes on once they can say it. A starred view is the student's own question to
+the trials: ask what they see in it, and do not star views for them.
 
 Write `exercises/page.toml` once, after the last question, in the student's own words:
 
