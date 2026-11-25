@@ -1,7 +1,7 @@
 """What lesson 1 gives the study of `study.py`: the caches it trains on, the trainer, the
 linear baseline and the params a run logs. The study itself (the budget, the search, the
-winner rerun, the comparison in sigmas) is `hpo.exercise.study.Exercise`, the same in every
-lesson.
+winner rerun, the difference with the baseline in points) is
+`hpo.exercise.study.Exercise`, the same in every lesson.
 
 It is the machinery of `05_exercises.ipynb`, written for any design: a design comes in
 as `make_model(config, data)`, which builds the model a drawn config chooses.

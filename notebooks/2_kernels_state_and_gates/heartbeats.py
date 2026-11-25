@@ -238,20 +238,18 @@ def spread(
     return Spread(runs)
 
 
-def standard_errors(a: Spread, b: Spread) -> float:
-    """The difference of the two means in standard errors of that difference, as in
-    lesson 1: `(mean_a - mean_b) / sqrt(var_a / n_a + var_b / n_b)`."""
-    se = np.sqrt(a.std**2 / len(a.runs) + b.std**2 / len(b.runs))
-    return float((a.mean - b.mean) / max(se, 1e-3))
+def points(a: Spread, b: Spread) -> float:
+    """The mean of `a` minus the mean of `b`, in points of macro recall (hundredths)."""
+    return float(100 * (a.mean - b.mean))
 
 
 def line(name: str, result: Spread, versus: Spread | None = None) -> str:
-    """One result as `mean ± std` of the runs, the seconds of one run, and its distance
-    to `versus` in standard errors of the difference."""
+    """One result as `mean ± std` of the runs, the seconds of one run, and, against
+    `versus`, the difference of the means in points."""
     text = f"{name:36s} macro recall {result.mean:.3f} ± {result.std:.3f}"
     text += f"   {result.seconds:5.1f}s"
     if versus is not None:
-        text += f"   {standard_errors(result, versus):+.1f} se"
+        text += f"   {points(result, versus):+.1f} pt"
     return text
 
 

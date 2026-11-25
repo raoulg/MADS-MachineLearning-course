@@ -849,7 +849,7 @@ class Rehearsal:
                 if line.startswith(f"{label:<9}:"):
                     outcome.lines[label] = line.split(":", 1)[1].strip()
             if line.startswith("the winner against the baseline:"):
-                outcome.lines["sigma"] = line.split(":", 1)[1].strip()
+                outcome.lines["gain"] = line.split(":", 1)[1].strip()
         if "idea" not in outcome.lines:
             raise Stop(f"{planned.key}: make study printed no idea line")
         outcome.idea = outcome.lines["idea"].split()[0]
@@ -1177,7 +1177,7 @@ def summary(rehearsal: Rehearsal) -> None:
         print(f"{key} ({p.student}, round {p.round}) {p.study}")
         print(f"  idea   : {o.lines.get('idea', '-')}")
         print(f"  parents: {', '.join(o.parents) or 'nothing (the root)'}")
-        for label in ("budget", "winner", "sigma"):
+        for label in ("budget", "winner", "gain"):
             print(f"  {label:<7}: {o.lines.get(label, '-')}")
     for verdict in rehearsal.verdicts:
         print(f"check {verdict}")

@@ -66,7 +66,7 @@ def test_only_the_latest_session_of_a_handed_out_run_counts():
     assert sorted(df.score) == [0.75, 0.80]
 
 
-def test_baseline_against_final_in_points_and_sigmas():
+def test_baseline_against_final_in_points_with_both_spreads():
     study = "lesson1-study-alice-depth"
     df = class_analysis.runs_frame(
         [
@@ -79,15 +79,14 @@ def test_baseline_against_final_in_points_and_sigmas():
     [row] = class_analysis.comparisons(df).itertuples()
     assert (row.student, row.study) == ("alice", "alice-depth")
     assert row.gain_pt == pytest.approx(3.0)
-    # a stored std is over n=3 repeats with ddof=0: the standard error is
-    # sqrt(0.01^2/2 + 0.01^2/2) = 0.01
-    assert row.sigma == pytest.approx(0.03 / math.sqrt(2 * 0.01**2 / 2))
+    assert (row.base_std, row.final_std) == (0.01, 0.01)
+    assert "sigma" not in class_analysis.comparisons(df)
     assert row.best_trial == 0.84
     assert row.survived == pytest.approx(0.03 / 0.04)
     assert row.n_trials == 2
 
 
-def test_the_page_and_compare_give_the_same_sigma_for_the_same_repeats():
+def test_the_page_and_compare_give_the_same_gain_for_the_same_repeats():
     import numpy as np
 
     from hpo.measure.compare import Comparison
@@ -103,10 +102,10 @@ def test_the_page_and_compare_give_the_same_sigma_for_the_same_repeats():
         ]
     )  # fmt: skip
     [row] = class_analysis.comparisons(df).itertuples()
-    assert row.sigma == pytest.approx(Comparison.of("final", final, base).sigmas)
+    assert row.gain_pt == pytest.approx(Comparison.of("final", final, base).points)
 
 
-def test_a_single_run_has_no_sigma_and_its_card_names_no_seeds():
+def test_a_single_run_keeps_its_gain_and_its_card_names_no_seeds():
     study = "lesson1-study-alice-depth"
     df = class_analysis.runs_frame(
         [
@@ -115,7 +114,7 @@ def test_a_single_run_has_no_sigma_and_its_card_names_no_seeds():
         ]
     )
     [row] = class_analysis.comparisons(df).itertuples()
-    assert math.isnan(row.sigma)
+    assert row.gain_pt == pytest.approx(3.0)
     r = class_analysis.SimpleNamespace(
         name="x", final=0.83, final_std=0.0, final_n=1, dataset="dtd"
     )
@@ -206,11 +205,11 @@ def test_ideas_merge_share_the_root_and_keep_a_dangling_parent():
     assert root.students == ["alice", "bob"] and root.n_runs == 3
     merge = ids.loc[MERGE["idea_name"]]
     assert sorted(merge.parents) == sorted([ALICE["idea_name"], BOB["idea_name"]])
-    assert merge.missing == [] and merge.verdict == "unmeasured"
+    assert merge.missing == [] and math.isnan(merge.final)
     lost = ids.loc[ON_GHOST["idea_name"]]
     assert lost.parents == lost.missing == [GHOST["idea_name"]]
     alice = ids.loc[ALICE["idea_name"]]
-    assert alice.gain_pt == pytest.approx(3.0) and alice.verdict == "better"
+    assert alice.gain_pt == pytest.approx(3.0)
 
 
 def test_the_lanes_hold_a_card_per_students_idea_and_link_only_submitted_ideas():
@@ -295,15 +294,6 @@ def test_a_students_words_and_names_hold_no_tag():
     assert words not in page and "&lt;a href=" in page
 
 
-@pytest.mark.parametrize(
-    ("sigma", "word"),
-    [(2.0, "better"), (1.9, "inside"), (-1.9, "inside"), (-2.0, "worse"),
-     (None, "unmeasured"), (math.nan, "unmeasured")],
-)  # fmt: skip
-def test_a_verdict_is_two_sigmas_either_way(sigma, word):
-    assert class_analysis.verdict(sigma) == word
-
-
 def test_a_parent_that_is_not_submitted_is_named_on_the_card():
     df = class_analysis.runs_frame(
         [with_idea(sub("bob", "lesson1-study-bob-x", "trial-00", "trial", 0.8),
@@ -329,7 +319,7 @@ def test_an_idea_searched_twice_shows_the_study_with_the_most_trials():
         ]
     df = class_analysis.runs_frame([with_idea(r, attrs) for r in runs])
     [row] = class_analysis.ideas(df, class_analysis.comparisons(df)).itertuples()
-    assert (row.study, row.verdict) == ("alice-zzz", "better")
+    assert (row.study, row.final) == ("alice-zzz", 0.85)
 
 
 def test_the_page_reads_any_logged_metric_and_names_it():
@@ -455,7 +445,7 @@ def test_an_idea_stands_one_column_right_of_its_furthest_parent():
     assert len(eds) == 7 and eds.number.sum() == 5  # the two from the course carry none
 
 
-def test_a_link_carries_the_childs_final_on_its_parents_final_and_says_whether_it_counts():
+def test_a_link_carries_the_childs_final_on_its_parents_final_with_its_spread():
     runs, named = rehearsal()
     df = class_analysis.runs_frame(runs)
     assert (
@@ -469,13 +459,13 @@ def test_a_link_carries_the_childs_final_on_its_parents_final_and_says_whether_i
     def at(parent, child):
         return arrow.loc[(named[parent]["idea_name"], named[child]["idea_name"])]
 
-    inside = at("a1", "b1")  # 0.755 on 0.75
-    assert inside.diff_pt == pytest.approx(0.5) and inside.verdict == "inside"
-    assert inside.sigma == pytest.approx(0.005 / se)
-    assert inside.band_pt == pytest.approx(200 * se)
-    assert at("c1", "c2").verdict == "better"  # 0.80 on 0.76
-    worse = at("c1", "d1")  # 0.70 on 0.76
-    assert worse.diff_pt == pytest.approx(-6.0) and worse.verdict == "worse"
+    near = at("a1", "b1")  # 0.755 on 0.75
+    assert near.diff_pt == pytest.approx(0.5)
+    assert near.spread_pt == pytest.approx(100 * se)
+    assert at("c1", "c2").diff_pt == pytest.approx(4.0)  # 0.80 on 0.76
+    lower = at("c1", "d1")  # 0.70 on 0.76
+    assert lower.diff_pt == pytest.approx(-6.0)
+    assert not {"sigma", "verdict", "band_pt"} & set(eds.columns)
     course = arrow.loc[(ROOT["idea_name"], named["a1"]["idea_name"])]
     assert not course.number and "handed-out" in course.why
 
@@ -492,13 +482,13 @@ def test_a_link_reads_the_class_noise_when_the_baseline_was_rerun():
     assert noise.spread == pytest.approx(
         class_analysis.pd.Series([0.70, 0.72, 0.71, 0.71]).std()
     )
-    assert noise.band == pytest.approx(2 * math.sqrt(2) * noise.spread)
+    assert noise.between == pytest.approx(math.sqrt(2) * noise.spread)
     eds = class_analysis.edges(
         class_analysis.ideas(df, class_analysis.comparisons(df)), noise
     )
     [arrow] = eds[eds.number].itertuples()
     assert arrow.diff_pt == pytest.approx(1.0)
-    assert arrow.band_pt == pytest.approx(100 * noise.band)
+    assert arrow.spread_pt == pytest.approx(100 * noise.between)
 
 
 GHOST_CHILD = idea_attrs("dave", "on a parent nobody sent", ["plaid-eagle-75"])
@@ -650,7 +640,7 @@ def test_a_merge_is_as_deep_as_its_deepest_parent_not_its_nearest():
     assert ids.loc[e1["idea_name"], "round"] == 3
 
 
-def test_a_link_at_one_and_a_half_standard_errors_is_within_the_noise():
+def test_a_link_reads_as_its_difference_with_its_spread_and_no_verdict():
     a = idea_attrs("a", "the parent", [ROOT["idea_name"]])
     b = idea_attrs("b", "the child", [a["idea_name"]])
     # two finals of three repeats, std 0.01 each: the standard error is 0.01
@@ -662,15 +652,12 @@ def test_a_link_at_one_and_a_half_standard_errors_is_within_the_noise():
     ids = class_analysis.ideas(df, class_analysis.comparisons(df))
     eds = class_analysis.edges(ids)
     [arrow] = eds[eds.number].itertuples()
-    assert arrow.sigma == pytest.approx(1.5)
-    assert arrow.verdict == "inside"
+    assert arrow.spread_pt == pytest.approx(1.0)
     by = {r.name: r for r in class_analysis.rows(ids)}
     lines = class_analysis.found_line(by[b["idea_name"]], None, by, eds)
     assert (
-        "inside",
-        "<span class='num'>+1.5 pt</span> on a’s "
-        + a["idea_name"]
-        + " · within the noise",
+        "diff",
+        "<span class='num'>+1.5 ± 1.0 pt</span> on a’s " + a["idea_name"],
     ) in lines
 
 
@@ -848,9 +835,12 @@ def test_a_link_without_a_final_or_with_a_single_run_has_no_number():
     df = class_analysis.runs_frame(runs)
     eds = class_analysis.edges(class_analysis.ideas(df, class_analysis.comparisons(df)))
     why = dict(zip(eds.child, eds.why, strict=True))
-    assert not eds[eds.parent == a["idea_name"]].number.any()
+    assert not eds[eds.child == b["idea_name"]].number.any()
     assert why[b["idea_name"]] == "no final at both ends"
-    assert why[c["idea_name"]] == "a side has a single run: no standard error"
+    # a final of one run still gives its difference, only without a spread
+    single = eds.set_index("child").loc[c["idea_name"]]
+    assert single.number and single.diff_pt == pytest.approx(1.0)
+    assert math.isnan(single.spread_pt)
 
 
 def test_the_page_can_load_plotly_from_cdnjs_with_its_hash():
@@ -934,7 +924,7 @@ def test_training_compute_counts_parameters_rows_and_epochs():
     assert class_analysis.flops_text(2.5e9) == "2.5 G"
 
 
-def test_the_lines_carry_both_colourings_with_the_midpoint_at_the_noise_of_the_best():
+def test_the_lines_carry_both_colourings_and_keep_every_trial():
     noise = class_analysis.Noise(center=0.70, spread=0.005, n=10, dataset="dtd")
     trials = class_analysis.pd.DataFrame({
         "status": ["COMPLETE"] * 4, "score": [0.72, 0.74, 0.76, 0.69],
@@ -946,16 +936,9 @@ def test_the_lines_carry_both_colourings_with_the_midpoint_at_the_noise_of_the_b
     assert below == 1
     meta = fig.layout.meta
     assert [e for e, _ in meta["encoders"]] == ["dinov2-small", "dinov2-large"]
-    scale = meta["by_score"]["colorscale"]
-    # brown up to the midpoint, teal above it: the midpoint sits at the best minus the band
-    f = (0.76 - noise.band - 0.70) / (0.76 - 0.70)
-    assert scale[2][0] == pytest.approx(f) and scale[2][1] == class_analysis.BROWNS[-1]
-    assert scale[3][1] == class_analysis.TEALS[0]
-    # a filter on one encoder keeps the trials within the noise of that encoder's best
-    kept = meta["kept_by_code"]
-    assert kept[0][0] == pytest.approx(max(0.74 - noise.band, 0.70))
-    assert kept[1][0] == pytest.approx(0.76 - noise.band)
-    assert meta["score_axis"] == 2
+    assert meta["by_score"]["colorscale"] == class_analysis.SCORE_SCALE
+    # no range is kept on any axis: every trial above the baseline is drawn
+    assert all(d.constraintrange is None for d in fig.data[0].dimensions)
 
 
 def test_a_run_has_loss_curves_only_when_it_logs_both_as_numbers():

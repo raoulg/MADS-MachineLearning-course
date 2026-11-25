@@ -247,6 +247,7 @@ def runs_frame(subs: Iterable[Submission], metric: str = METRIC) -> pd.DataFrame
     )
 
 
+# `sigma` and `verdict` are read by `study_page.py` alone; the class page uses neither.
 def sigma(diff_a: pd.Series, diff_b: pd.Series) -> float:
     """`a` against `b` in pooled standard errors of their repeats (`standard_error`);
     NaN when one of them has a single run or no spread."""
@@ -254,9 +255,18 @@ def sigma(diff_a: pd.Series, diff_b: pd.Series) -> float:
     return (diff_a["score"] - diff_b["score"]) / se
 
 
+def verdict(sig: float | None) -> str:
+    """`better`, `worse` or `inside` for `sig` beyond or within 2, `unmeasured` for NaN."""
+    if sig is None or math.isnan(sig):
+        return "unmeasured"
+    if sig >= 2:
+        return "better"
+    return "worse" if sig <= -2 else "inside"
+
+
 def comparisons(df: pd.DataFrame) -> pd.DataFrame:
     """Baseline against final, per student and study: both scores with their spread
-    between runs, the gain in points and in sigmas, and how much of the best single trial
+    between runs, the gain in points, and how much of the best single trial
     is left in the final. Own studies only; one row per student and study."""
     rows = []
     own = df[df.origin == "study"]
@@ -282,7 +292,6 @@ def comparisons(df: pd.DataFrame) -> pd.DataFrame:
                 "final_std": f["std"],
                 "final_n": f["n"],
                 "gain_pt": 100 * gain,
-                "sigma": sigma(f, b),
                 "best_trial": best,
                 "survived": gain / (best - b.score) if best > b.score else float("nan"),
                 "n_trials": len(trials),
@@ -328,16 +337,10 @@ class Noise(NamedTuple):
     dataset: str
 
     @property
-    def floor(self) -> float:
-        """Two standard deviations of one run around `center`: a run inside
-        center ± floor scores what the baseline scores."""
-        return 2 * self.spread
-
-    @property
-    def band(self) -> float:
-        """Two standard deviations of the difference between two runs: two ideas whose
-        scores differ by less than this cannot be told apart."""
-        return 2 * math.sqrt(2) * self.spread
+    def between(self) -> float:
+        """The standard deviation of the difference between two runs of one model: the
+        spread beside a difference of two single runs."""
+        return math.sqrt(2) * self.spread
 
 
 def config_of(row: Mapping[str, object]) -> tuple[tuple[str, str], ...]:
@@ -384,7 +387,7 @@ def class_noise(df: pd.DataFrame) -> Noise | None:
 IDEA_COLUMNS = [
     "name", "idea", "author", "parents", "missing", "students", "n_runs", "student",
     "study", "dataset", "objective", "base", "base_std", "base_n", "final", "final_std",
-    "final_n", "gain_pt", "sigma", "verdict", "expects", "budget", "axes", "studies",
+    "final_n", "gain_pt", "expects", "budget", "axes", "studies",
     "round", "start",
 ]  # fmt: skip
 
@@ -399,8 +402,8 @@ def number(value: object) -> float:
 
 
 def standard_error(*runs: tuple[object, object]) -> float:
-    """The pooled standard error of the means of `runs`, each (spread, repeats), as
-    `hpo.measure.compare.Comparison` computes it. A run logs its spread as the standard
+    """The pooled standard error of the means of `runs`, each (spread, repeats): the
+    spread beside a difference of two means. A run logs its spread as the standard
     deviation over its n repeats (ddof=0); the standard error of its mean is the sample
     standard deviation over √n, so s²/(n−1). NaN when one of them has a single run, no
     spread or no count."""
@@ -413,17 +416,7 @@ def standard_error(*runs: tuple[object, object]) -> float:
     return math.sqrt(total) if total > 0 else float("nan")
 
 
-def verdict(sig: float | None) -> str:
-    """A result at a glance: `better` or `worse` than what it is compared with by at
-    least two standard errors, `inside` two standard errors, or `unmeasured`."""
-    if sig is None or math.isnan(sig):
-        return "unmeasured"
-    if sig >= 2:
-        return "better"
-    return "worse" if sig <= -2 else "inside"
-
-
-# What an idea's row takes from the study that stands for it, when it has a result.
+# What an idea's row takes from the study that stands for it, when it has a final.
 RESULT = (
     "base",
     "base_std",
@@ -432,7 +425,6 @@ RESULT = (
     "final_std",
     "final_n",
     "gain_pt",
-    "sigma",
 )
 
 
@@ -447,12 +439,12 @@ def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
     their number of runs, its round (the column of the graph, `idea_layout`), its
     `studies` (student, study, trials; the one that stands for it first), and the
     study that stands for it: the one `comparisons` has with the most trials, or else
-    the one with the most trials. Of that study: its result (the winner against its own
-    baseline, in points and in sigmas, both with their spread and repeats), its dataset
+    the one with the most trials. Of that study: the winner against its own baseline, in
+    points, both with their spread and repeats, its dataset
     and objective, what its author `expects`, its `budget` and the axes it searched.
 
     An idea is its name, so the handed-out idea of author `course` is one row for the
-    whole class; it has no result of its own, the class's baselines and pooled search
+    whole class; it has no final of its own, the class's baselines and pooled search
     are its outcome, and its axes are those of the handed-out search."""
     if df.empty or "idea_name" not in df:
         return pd.DataFrame(columns=IDEA_COLUMNS)
@@ -508,7 +500,6 @@ def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
                 "dataset": None if c is None else c.dataset,
                 "objective": None if c is None else c.objective,
                 **{key: np.nan if c is None else getattr(c, key) for key in RESULT},
-                "verdict": verdict(None if c is None else c.sigma),
                 "expects": first_of(ran.expects, str) or "",
                 "budget": first_of(ran.budget, dict),
                 "axes": str(axes).split(",") if axes else [],
@@ -524,22 +515,23 @@ def ideas(df: pd.DataFrame, cmp: pd.DataFrame) -> pd.DataFrame:
 
 
 EDGE_COLUMNS = [
-    "parent", "child", "parent_author", "child_author", "diff_pt", "band_pt", "sigma",
-    "verdict", "number", "why",
+    "parent", "child", "parent_author", "child_author", "diff_pt", "spread_pt", "number",
+    "why",
 ]  # fmt: skip
 
 
 def arrow_between(
     parent: SimpleNamespace, child: SimpleNamespace, noise: Noise | None = None
 ) -> tuple[float, float]:
-    """What an arrow compares, as (difference, standard error): the child's final minus
-    the parent's final, both on the page's metric, so what building on the parent gave.
-    The standard error is that of a difference between two runs: from the class's
-    reruns of one model (`Noise`) when they ran on the same dataset, else from the
-    seeds of the two finals. Every number an arrow carries comes from here."""
+    """What an arrow compares, as (difference, spread): the child's final minus the
+    parent's final, both on the page's metric, so what building on the parent gave.
+    The spread is that of a difference between two runs: from the class's reruns of one
+    model (`Noise.between`) when they ran on the same dataset, else the standard error
+    from the seeds of the two finals, NaN when a final has a single run. Every number an
+    arrow carries comes from here."""
     diff = child.final - parent.final
     if noise is not None and noise.dataset == child.dataset:
-        return diff, noise.band / 2
+        return diff, noise.between
     se = standard_error(
         (child.final_std, child.final_n), (parent.final_std, parent.final_n)
     )
@@ -549,12 +541,11 @@ def arrow_between(
 def edges(ids: pd.DataFrame, noise: Noise | None = None) -> pd.DataFrame:
     """One row per link of the graph, from a parent to the idea that builds on it. The
     number on it, `diff_pt`, is the child's final minus the parent's final in points
-    (`arrow_between`); `band_pt` is two standard errors of that difference in points,
-    `sigma` the difference in standard errors, and `verdict` reads `sigma` as `verdict`
-    does. A link has no number (`number` False, `why` says why) from a parent that is
-    not submitted, from the course's idea (the child's own card holds its score against
-    the handed-out baseline), from or to an idea without a final, between ideas of
-    different datasets, and where the difference has no standard error."""
+    (`arrow_between`), and `spread_pt` the spread of that difference in points, NaN
+    where a final has a single run. A link has no number (`number` False, `why` says
+    why) from a parent that is not submitted, from the course's idea (the child's own
+    card holds its score against the handed-out baseline), from or to an idea without a
+    final, and between ideas of different datasets."""
     by = {r.name: r for r in rows(ids)}
     out = []
     for child in rows(ids):
@@ -563,8 +554,7 @@ def edges(ids: pd.DataFrame, noise: Noise | None = None) -> pd.DataFrame:
             row = {
                 "parent": p, "child": child.name, "child_author": child.author,
                 "parent_author": None if parent is None else parent.author,
-                "diff_pt": np.nan, "band_pt": np.nan, "sigma": np.nan,
-                "verdict": "unmeasured", "number": False, "why": "",
+                "diff_pt": np.nan, "spread_pt": np.nan, "number": False, "why": "",
             }  # fmt: skip
             if parent is None:
                 row["why"] = "the parent is not among the submissions"
@@ -576,17 +566,9 @@ def edges(ids: pd.DataFrame, noise: Noise | None = None) -> pd.DataFrame:
                 row["why"] = "no final at both ends"
             elif parent.dataset != child.dataset:
                 row["why"] = f"different datasets ({parent.dataset}, {child.dataset})"
-            elif math.isnan(number(arrow_between(parent, child, noise)[1])):
-                row["why"] = "a side has a single run: no standard error"
             else:
-                diff, se = arrow_between(parent, child, noise)
-                row.update(
-                    diff_pt=100 * diff,
-                    band_pt=200 * se,
-                    sigma=diff / se,
-                    verdict=verdict(diff / se),
-                    number=True,
-                )
+                diff, spread = arrow_between(parent, child, noise)
+                row.update(diff_pt=100 * diff, spread_pt=100 * spread, number=True)
             out.append(row)
     return pd.DataFrame(out, columns=EDGE_COLUMNS)
 
@@ -652,14 +634,6 @@ def moment(start: object) -> pd.Timestamp | None:
         return None
     when = pd.Timestamp(int(ms), unit="ms", tz="UTC").tz_convert(WHEN_TZ)
     return when if isinstance(when, pd.Timestamp) else None
-
-
-def verdict_words(v: str) -> str:
-    return {
-        "better": "clearly better",
-        "worse": "clearly worse",
-        "inside": "within the noise",
-    }.get(v, "not measured")
 
 
 def idea_depths(ids: pd.DataFrame) -> dict[str, int]:
@@ -766,19 +740,6 @@ FONT = "Outfit, 'Segoe UI', Helvetica, Arial, sans-serif"
 MONO = "'JetBrains Mono', ui-monospace, Menlo, monospace"
 # A score above the baseline, from just above it to the best: one hue, light to dark.
 SCORE_SCALE = [[0.0, "#d6e6ec"], [0.35, "#7fb0c3"], [0.7, "#2f7491"], [1.0, "#0c3445"]]
-# ColorBrewer BrBG without its pale centre: brown under the midpoint, teal above.
-BROWNS = ["#8c510a", "#bf812d", "#c9a85c"]
-TEALS = ["#5fb3a6", "#35978f", "#01665e"]
-
-
-def diverging_at(f: float) -> list[list]:
-    """`BROWNS` from 0 to `f`, `TEALS` from `f` to 1: a diverging scale whose midpoint
-    sits at `f` of the range."""
-    f = min(max(f, 0.02), 0.98)
-    low = [[f * i / (len(BROWNS) - 1), c] for i, c in enumerate(BROWNS)]
-    high = [[f + (1 - f) * i / (len(TEALS) - 1), c] for i, c in enumerate(TEALS)]
-    high[0][0] = min(f + 1e-4, 1.0)
-    return low + high
 
 
 # Okabe and Ito's colours, distinct for colour-blind readers, one per encoder.
@@ -832,14 +793,14 @@ def empty_note(fig: go.Figure, text: str) -> None:
 
 
 def score_range(scores: Iterable[float], noise: Noise | None) -> list[float]:
-    """The score axis of a picture: from just under the baseline (or the lowest score
-    when there is no baseline) to just over the best score. What lies under the
-    baseline is no result and gets no room."""
+    """The score axis of a picture: from under the baseline's band (or the lowest score
+    when there is no baseline) to just over the best score. The pictures show what the
+    class found above the baseline, so what lies under the band gets no room."""
     values = [float(s) for s in scores if not math.isnan(number(s))]
     if not values:
         return [0, 1]
     high = max(values)
-    low = noise.center - 2 * noise.floor if noise is not None else min(values)
+    low = noise.center - 2 * noise.spread if noise is not None else min(values)
     low = min(low, high - 0.01)
     pad = (high - low) * 0.06
     return [low, high + pad]
@@ -887,9 +848,9 @@ def fig_lines(
     height: int = 420,
 ) -> tuple[go.Figure, int]:
     """Parallel coordinates of the finished `trials` that beat the baseline, over the
-    `axes` that vary among them, coloured by score from the baseline up; the trials
-    within the noise of the best are kept at first, the rest fade. Also the number of finished trials left out because they scored under the
-    baseline (all are drawn when there is no baseline)."""
+    `axes` that vary among them, coloured by score from the baseline up. Also the number
+    of finished trials left out because they scored under the baseline (all are drawn
+    when there is no baseline)."""
     done = finished(trials)
     floor = noise.center if noise is not None else -math.inf
     shown = done[done.score > floor].sort_values("score")
@@ -916,17 +877,10 @@ def fig_lines(
         score["label"] = "pt above baseline"
         score["tickvals"] = [low + g / 100 for g in gains[::step]]
         score["ticktext"] = [f"+{g}" for g in gains[::step]]
-    if noise is not None:
-        # the trials within the noise of the best are kept at first; the rest fade
-        score["constraintrange"] = [max(top - noise.band, low), top + 1e-9]
     dims.append(score)
-    # diverging at the edge of the best trial's noise: teal is as good as the best,
-    # brown is further down; the scale's pale centre is left out so no line vanishes
-    mid = top - noise.band if noise is not None else float(shown.score.median())
-    mid = min(max(mid, low + (top - low) * 0.05), top - (top - low) * 0.05)
     by_score = {
         "color": shown.score.tolist(),
-        "colorscale": diverging_at((mid - low) / (top - low)),
+        "colorscale": SCORE_SCALE,
         "cmin": low,
         "cmax": top,
         "showscale": False,
@@ -943,10 +897,6 @@ def fig_lines(
         .astype(str)
     ]
     steps = max(len(encoders), 1)
-    # per encoder, its own best and the trials within its noise: what a filter on it keeps
-    best_of = pd.Series(shown.score.to_numpy(), index=codes).groupby(level=0).max()
-    band = noise.band if noise is not None else 0.0
-    kept_by_code = {int(c): [max(b - band, low), b + 1e-9] for c, b in best_of.items()}
     by_encoder = {
         "color": codes,
         "cmin": -0.5,
@@ -966,11 +916,7 @@ def fig_lines(
                 [e, ENCODER_COLOURS[i % len(ENCODER_COLOURS)]]
                 for i, e in enumerate(encoders)
             ],
-            "mid": 100 * (mid - low),
             "encoder_axis": used.index("encoder") if "encoder" in used else None,
-            "score_axis": len(used),
-            "kept": score.get("constraintrange"),
-            "kept_by_code": kept_by_code,
         }
     )
     fig.add_trace(
@@ -986,37 +932,15 @@ def fig_lines(
     return style(fig, height, margin={"l": 110, "r": 90, "t": 54, "b": 24}), below
 
 
-def outside_words(runs: pd.DataFrame, noise: Noise) -> str:
-    """A sentence naming every rerun outside the band, how far out it lies, and that its
-    logged config is the others': what moved it is not in the runs, so ask its
-    student. Nothing when every rerun lies inside."""
-    out = runs[(runs.score - noise.center).abs() > noise.floor]
-    if out.empty:
-        return ""
-    named = "; ".join(
-        f"{esc(r.student)} · {esc(r.study if isinstance(r.study, str) else 'notebook')} at "
-        f"<span class='num'>{r.score:.3f}</span>, "
-        f"{abs(r.score - noise.center) / noise.spread:.1f} spreads "
-        f"{'above' if r.score > noise.center else 'below'} the median"
-        for r in rows(out)
-    )
-    them = "it" if len(out) == 1 else "them"
-    return (
-        f" Outside the band: {named}. Its logged config is the others’, so what moved {them} "
-        f"is not in the runs: ask the student. It widens the spread the page reads every "
-        f"comparison against, so the page errs on the side of “within the noise”."
-    )
-
-
 def fig_reruns(runs: pd.DataFrame, noise: Noise, metric: str) -> go.Figure:
     """Every rerun of the handed-out baseline as a dot with its seeds' spread, the
-    median as a line and median ± two standard deviations between runs as a band."""
+    median as a line and median ± the standard deviation between runs as a band."""
     fig = go.Figure()
     labels = [
         plain(f"{r.student} · {r.study}" if isinstance(r.study, str) else f"{r.student} · notebook")
         for r in rows(runs)
     ]  # fmt: skip
-    fig.add_vrect(x0=noise.center - noise.floor, x1=noise.center + noise.floor,
+    fig.add_vrect(x0=noise.center - noise.spread, x1=noise.center + noise.spread,
                   fillcolor=BLUE_WASH, opacity=0.55, line_width=0, layer="below")  # fmt: skip
     fig.add_vline(x=noise.center, line_color=BLUE, line_width=1.5, line_dash="dot")
     fig.add_scatter(
@@ -1147,8 +1071,8 @@ def fig_interactions(
     the head and dropout against the FLOPs of training it: a cell is the median score
     of the finished trials that fell in it, in points above the baseline; a cell under the baseline, or with fewer than `MIN_CELL` trials, gets no
     colour. Each encoder has its own colour scale, from its weakest coloured cell to its
-    best, and a cell within the noise band of its best is set in bold. Widths count only
-    where the head has a hidden layer."""
+    best, and its best cell is set in bold. Widths count only where the head has a hidden
+    layer."""
     facets = interaction_facets(trials)
     if not facets:
         return None
@@ -1184,8 +1108,8 @@ def fig_interactions(
             grids.append(
                 (a, b, xs, ys, gain, cnt, gain.where((cnt >= MIN_CELL) & (gain > 0)))
             )
-        # one colour scale per encoder, from its weakest coloured cell to its best; a cell
-        # within the noise band of the best is as good as the best, and is set in bold
+        # one colour scale per encoder, from its weakest coloured cell to its best, which
+        # is set in bold
         shown = [z.values[~np.isnan(z.values)] for *_, z in grids]
         values = np.concatenate(shown) if shown else np.array([])
         low, best = (
@@ -1193,8 +1117,8 @@ def fig_interactions(
         )
         for j, (a, b, xs, ys, gain, cnt, z) in enumerate(grids):
             text = [
-                [cell_text(gain.iloc[r, c], int(cnt.iloc[r, c]),
-                           top=best - 100 * noise.band) for c in range(len(xs))]
+                [cell_text(gain.iloc[r, c], int(cnt.iloc[r, c]), top=best)
+                 for c in range(len(xs))]
                 for r in range(len(ys))
             ]  # fmt: skip
             fig.add_heatmap(
@@ -1609,10 +1533,10 @@ def band_shape(
     col: int | None = None,
     accuracy: bool = False,
 ) -> None:
-    """The handed-out baseline with the band a rerun of it lands in: at zero on an axis
-    of points above it, at its score on an axis of scores (`accuracy`)."""
+    """The handed-out baseline with the spread of its reruns as a band: at zero on an
+    axis of points above it, at its score on an axis of scores (`accuracy`)."""
     kw = {} if row is None else {"row": row, "col": col}
-    at, half = (noise.center, noise.floor) if accuracy else (0.0, 100 * noise.floor)
+    at, half = (noise.center, noise.spread) if accuracy else (0.0, 100 * noise.spread)
     fig.add_hrect(y0=at - half, y1=at + half, fillcolor=BLUE_WASH, opacity=0.5,
                   line_width=0, layer="below", **kw)  # fmt: skip
     fig.add_hline(y=at, line_color=BLUE, line_width=1.2, line_dash="dot", **kw)
@@ -2273,10 +2197,10 @@ def found_line(
     brief: bool = False,
 ) -> list[tuple[str, str]]:
     """What an idea found, as lines of (class, html): its final with its seeds, then its
-    final against the final of each idea of a student it builds on, then its score
-    against the handed-out baseline. The baseline line is coloured only for an idea
-    that builds on the handed-out idea alone; for one that builds on a student's idea
-    it is context, grey, and `brief` (a card) leaves it out."""
+    final against the final of each idea of a student it builds on, with the spread of
+    that difference, then its score against the handed-out baseline with the spread of
+    its reruns. For an idea that builds on a student's idea the baseline line is
+    context, grey, and `brief` (a card) leaves it out."""
     if math.isnan(number(r.final)):
         return [("none", "no final submitted yet")]
     seeds = ""
@@ -2292,30 +2216,32 @@ def found_line(
         who = esc(e.parent) if parent is None or parent.author == r.author else (
             f"{esc(lane_of(parent))}’s {esc(e.parent)}")  # fmt: skip
         if e.number:
-            text = f"<span class='num'>{signed(e.diff_pt)} pt</span> on {who} · {verdict_words(e.verdict)}"
-            out.append((e.verdict, text))
+            out.append(
+                (
+                    "diff",
+                    f"<span class='num'>{signed(e.diff_pt)}{pm(e.spread_pt)} pt</span> on {who}",
+                )
+            )
         else:
             out.append(("none", f"on {who}: {esc(e.why)}"))
     if noise is not None and noise.dataset == r.dataset and not (brief and on_parent):
         gain = 100 * (r.final - noise.center)
-        word = (
-            "base" if on_parent
-            else "better" if gain > 100 * noise.floor
-            else ("worse" if gain < -100 * noise.floor else "inside")
-        )  # fmt: skip
+        text = f"<span class='num'>{signed(gain)}{pm(100 * noise.spread)} pt</span>"
         out.append(
-            (
-                word,
-                f"<span class='num'>{signed(gain)} pt</span> on the handed-out baseline",
-            )
+            ("base" if on_parent else "diff", f"{text} on the handed-out baseline")
         )
     return out
+
+
+def pm(spread_pt: float) -> str:
+    """` ± spread` in points, nothing when there is no spread."""
+    return "" if math.isnan(number(spread_pt)) else f" ± {spread_pt:.1f}"
 
 
 def card_found(r: SimpleNamespace, noise: Noise | None, eds: pd.DataFrame) -> str:
     """An idea's result on one line: its final, then how far it lies from the final of
     each student's idea it builds on, or, building on the handed-out idea alone, from
-    the handed-out baseline; coloured by whether that is beyond the noise."""
+    the handed-out baseline, each with its spread."""
     if math.isnan(number(r.final)):
         return "<span class='none'>no final yet</span>"
     out = [f"<b class='num'>{r.final:.3f}</b>"]
@@ -2325,17 +2251,12 @@ def card_found(r: SimpleNamespace, noise: Noise | None, eds: pd.DataFrame) -> st
             continue
         on_parent = True
         if e.number:
-            out.append(f"<span class='d {e.verdict}' title='on {esc(e.parent)}: {esc(verdict_words(e.verdict))}'>"
-                       f"<span class='num'>{signed(e.diff_pt)}</span> pt on its parent</span>")  # fmt: skip
+            out.append(f"<span class='d' title='on {esc(e.parent)}'>"
+                       f"<span class='num'>{signed(e.diff_pt)}{pm(e.spread_pt)}</span> pt on its parent</span>")  # fmt: skip
     if not on_parent and noise is not None and noise.dataset == r.dataset:
         gain = 100 * (r.final - noise.center)
-        word = (
-            "better"
-            if gain > 100 * noise.floor
-            else ("worse" if gain < -100 * noise.floor else "inside")
-        )
         out.append(
-            f"<span class='d {word}'><span class='num'>{signed(gain)}</span> pt on the baseline</span>"
+            f"<span class='d'><span class='num'>{signed(gain)}{pm(100 * noise.spread)}</span> pt on the baseline</span>"
         )
     return " ".join(out)
 
@@ -2796,7 +2717,7 @@ SCRIPT = r"""
     b.parentElement.querySelectorAll(sel).forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
   }
   // what the lines show: colour by score or by encoder, every encoder or one; a picked
-  // encoder's lines alone are drawn, those within the noise of its own best kept
+  // encoder's lines alone are drawn
   const view = {colour: 'score', code: -1};
   let whole = null;
   function snapshot() {
@@ -2815,11 +2736,9 @@ SCRIPT = r"""
     const codes = Array.from(m.by_encoder.color);
     const keep = codes.map(function (c, k) { return view.code < 0 || c === view.code ? k : -1; })
                       .filter(function (k) { return k >= 0; });
-    const kept = view.code < 0 ? m.kept : (m.kept_by_code || {})[view.code];
-    const dims = whole.map(function (dim, k) {
+    const dims = whole.map(function (dim) {
       const out = Object.assign({}, dim, {values: keep.map(function (r) { return dim.values[r]; })});
       delete out.constraintrange;
-      if (k === m.score_axis && kept) out.constraintrange = kept;
       return out;
     });
     const colours = Array.from(by.color);
@@ -3107,7 +3026,6 @@ a.idea.on{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue)}
 .idea-time{font-size:13px;color:var(--muted);white-space:nowrap}
 .res{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:0 8px;align-items:baseline}
 .res b.num{font-size:16px;font-weight:500;color:var(--ink)}
-.res .d.better{color:var(--green)}.res .d.worse{color:var(--orange)}
 .q{font-size:16px;line-height:1.35}
 .tag{align-self:flex-start;font-size:12px;line-height:1.5;border-radius:4px;padding:1px 7px;background:var(--surface);color:var(--muted)}
 .tag.cross{background:var(--orange-wash);color:#7a2410;font-weight:500}
@@ -3115,9 +3033,8 @@ ul.found{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;g
 ul.found li.final{color:var(--ink);font-size:15px}
 ul.found li.final b{font-weight:500;font-size:20px}
 ul.found .pm{font-size:14px;color:var(--muted)}
-ul.found li.better{color:var(--green)}
-ul.found li.better .num,ul.found li.worse .num{font-weight:500}
-ul.found li.worse{color:var(--ink)}
+ul.found li.diff{color:var(--ink)}
+ul.found li.diff .num{font-weight:500}
 svg.links path{fill:none;stroke-linecap:round}
 svg.links path.own{stroke:#9a958d;stroke-width:1.6}
 svg.links path.cross{stroke:var(--orange);stroke-width:3}
@@ -3329,7 +3246,7 @@ def build_page(
         "investigated", "What they investigated", "",
         panel("The class’s evidence per learning goal. Click a student to light up the runs of "
               "their ideas on that goal, a final as a star; click an idea to open it. The dotted line is the handed-out "
-              "baseline, its band where a rerun of it lands.",
+              "baseline, its band the spread of its reruns.",
               themes_view(df, ids, noise, pooled, lesson, tags, metric)),
     ))  # fmt: skip
     tabs.append((
@@ -3343,10 +3260,9 @@ def build_page(
         noise_how = (
             f"Everyone ran the handed-out baseline with the same config: <b>{noise.n} runs</b> of one "
             f"model. Each averages its own seeds on its own machine, and what is left between them is "
-            f"noise, a spread of <b class='num'>{100 * noise.spread:.2f} pt</b>. The band is the median ± "
-            f"two of those. A bar is one run’s spread over its seeds, smaller than the spread between "
-            f"runs, so the page reads every comparison against the spread between runs."
-            + outside_words(runs, noise)
+            f"noise, a spread of <b class='num'>{100 * noise.spread:.2f} pt</b> (one standard deviation). "
+            f"The band is the median ± that spread. A bar is one run’s spread over its seeds, smaller "
+            f"than the spread between runs, so a difference on the page carries the spread between runs."
         )
     else:
         noise_body = missing(
@@ -3362,10 +3278,7 @@ def build_page(
     searched = (
         f"Every finished trial above the handed-out baseline, <b>{len(pooled) - below}</b> of {len(pooled)}"
         + (f"; the {below} under it are left out" if below and noise else "")
-        + ". The trials within the noise of the best are kept, the rest fade: click the score "
-        "axis beside the kept range to see every line. Pick an encoder to draw only its trials, "
-        "those within the noise of its own best kept. Teal is within the noise of the best, "
-        "brown further down."
+        + ". Pick an encoder to draw only its trials. The darker a line, the higher its score."
     )
     tabs.append((
         "searched", "Search space", "1.14",
@@ -3378,7 +3291,7 @@ def build_page(
     tabs.append((
         "interactions", "Two choices", "",
         panel("Each grid crosses two choices of the head; a cell is the median of its trials in points "
-              "above the baseline, a bold number is within the noise of its row’s best."
+              "above the baseline, a bold number its row’s best."
               + (f" No grid for {esc('; '.join(left))}." if (left := facets_left_out(pooled)) else ""),
               figure(inter) if inter is not None else missing(
                   "Not enough finished trials over hidden layers, width and dropout for a grid."),
@@ -3427,10 +3340,9 @@ def build_page(
         for i, (t, _, _, body) in enumerate(tabs)
     )
     yardstick = (
-        f"<p class='yardstick'>Two ideas differ when their scores are more than "
-        f"<b class='num'>{100 * noise.band:.1f} pt</b> apart: the handed-out baseline "
-        f"(<span class='num'>{noise.center:.3f}</span>) moves <span class='num'>± {100 * noise.floor:.1f} pt</span> "
-        f"when run again.</p>"
+        f"<p class='yardstick'>The handed-out baseline scores <span class='num'>{noise.center:.3f}</span> "
+        f"and moves <b class='num'>± {100 * noise.spread:.1f} pt</b> when run again "
+        f"(the standard deviation over {noise.n} runs).</p>"
         if noise is not None
         else "<p class='yardstick'>Too few runs of the handed-out baseline to say how far a score moves.</p>"
     )

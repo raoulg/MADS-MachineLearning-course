@@ -1,7 +1,7 @@
 """What lesson 2 gives the study of `study.py`: the heartbeats it trains on, the trainer,
 the linear baseline and the params a run logs. The study itself (the budget, the search,
-the winner rerun, the comparison in sigmas) is `hpo.exercise.Exercise`, the same in every
-lesson.
+the winner rerun, the difference with the baseline in points) is
+`hpo.exercise.Exercise`, the same in every lesson.
 
 The data is MIT-BIH, split by patient (`pttrn-io/heartbeats-mitbih-raw`): three classes,
 N, S and V. A study trains on train without the patients of `VAL_RECORDS`, and is scored

@@ -1,5 +1,5 @@
 """Your study of lesson 2, over the design in `designs.py`: a baseline, a search, the
-winner rerun, and the difference in sigmas.
+winner rerun, and its difference with the baseline in points.
 
 Run it from the root of the course repository, once Part 1 of `04_exercise.ipynb` has
 run on this machine (it measures what one trial costs here):

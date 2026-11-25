@@ -1,5 +1,5 @@
 """The study of an exercise, the same in every lesson: a baseline, a search over a design
-of the student's own, the winner rerun, and the difference in sigmas.
+of the student's own, the winner rerun, and the difference with the baseline in points.
 
 A lesson says what is its own in a `Harness` (`hpo.exercise.harness`). Every lesson's
 `exercises/study.py` is then the student's answers (`Questions`), a space, a design, and
@@ -301,7 +301,7 @@ class Exercise:
         print(f"objective: {self.objective}")
         print(baseline)
         print(winner)
-        print(f"\nthe winner against the baseline: {winner.sigmas:+.1f} sigma")
+        print(f"\nthe winner against the baseline: {winner.points:+.2f} pt")
         print(f"idea     : {idea}")
         print(f"studies  : {self.name}, {self.name}-runs  (make optuna-dashboard)")
         return Outcome(
