@@ -57,7 +57,7 @@ MIN_STEPS, MAX_STEPS = 400, 20_000
 # images per class of the data axis: 1,010 to 70,700 training images
 PER_CLASS = [10, 30, 70, 200, 700]
 # hidden units of the one-layer heads of the sweep; 0 is the linear head
-WIDTHS = [0, 16, 32, 64, 128, 256]
+WIDTHS = [0, 16, 32, 64]
 RESULTS = Path(__file__).parent / "results"
 
 
