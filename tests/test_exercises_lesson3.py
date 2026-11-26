@@ -112,10 +112,19 @@ def test_the_moe_and_its_control_cost_about_the_same_flops():
     assert abs(mine - its) / mine < 0.05
 
 
-def test_the_front_keeps_each_run_that_beats_every_cheaper_one():
+def test_the_front_keeps_each_run_no_other_run_is_better_than():
+    # d ties c on FLOPs and e ties a on accuracy: both are off; f equals a on both: on
+    runs = [("a", 1, 0.5), ("b", 2, 0.4), ("c", 3, 0.7), ("d", 3, 0.6), ("e", 2, 0.5)]
     rows = [
-        {"name": n, "flops": f, "accuracy": a}
-        for n, f, a in [("a", 1, 0.5), ("b", 2, 0.4), ("c", 3, 0.7), ("d", 3, 0.6)]
+        {"name": n, "flops": f, "accuracy": a} for n, f, a in [*runs, ("f", 1, 0.5)]
+    ]
+    assert [r["name"] for r in harness.front(rows)] == ["a", "f", "c"]
+
+
+def test_the_front_reads_the_score_a_study_maximises():
+    rows = [
+        {"name": n, "flops": f, "objective": "macro_recall", "macro_recall": m}
+        for n, f, m in [("a", 1, 0.5), ("b", 2, 0.4), ("c", 3, 0.7)]
     ]
     assert [r["name"] for r in harness.front(rows)] == ["a", "c"]
 

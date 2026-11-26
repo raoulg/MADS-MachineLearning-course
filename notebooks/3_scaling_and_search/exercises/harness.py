@@ -51,7 +51,8 @@ import pandas as pd
 import torch
 from huggingface_hub.utils import disable_progress_bars as hub_quiet
 from loguru import logger
-from matplotlib.ticker import NullFormatter
+from matplotlib.axis import Axis
+from matplotlib.ticker import FuncFormatter, LogLocator, NullFormatter
 from notebooktester import param
 from pandas.io.formats.style import Styler
 from torch import Tensor, nn
@@ -487,28 +488,49 @@ def table(rows: Sequence[dict]) -> Styler:
     )
 
 
+def metric_of(rows: Sequence[dict]) -> str:
+    """The metric the rows are scored on: their study's objective, or the notebook's."""
+    return rows[0].get("objective", OBJECTIVE) if rows else OBJECTIVE
+
+
 def front(rows: Sequence[dict]) -> list[dict]:
-    """The runs no other run beats on both measures, from cheap to dear: each is more
-    accurate than every run with fewer FLOPs per image."""
-    on, best = [], -1.0
-    for row in sorted(rows, key=lambda r: (r["flops"], -r["accuracy"])):
-        if row["accuracy"] > best:
-            on.append(row)
-            best = row["accuracy"]
-    return on
+    """The runs on the Pareto front, from cheap to dear. A run is on the front when no
+    other run is at least as accurate at no more FLOPs per image and better on one of
+    the two."""
+    metric = metric_of(rows)
+
+    def beats(other: dict, row: dict) -> bool:
+        as_good = other[metric] >= row[metric] and other["flops"] <= row["flops"]
+        return as_good and (
+            other[metric] > row[metric] or other["flops"] < row["flops"]
+        )
+
+    on = [row for row in rows if not any(beats(other, row) for other in rows)]
+    return sorted(on, key=lambda r: r["flops"])
+
+
+def plain_ticks(axis: Axis) -> None:
+    """A log axis named at 1, 2, 3 and 5 times each power of ten, in plain numbers:
+    20k, 0.5."""
+    axis.set_major_locator(LogLocator(subs=(1.0, 2.0, 3.0, 5.0)))
+    axis.set_major_formatter(
+        FuncFormatter(lambda v, _: f"{v / 1000:g}k" if v >= 1000 else f"{v:g}")
+    )
+    axis.set_minor_formatter(NullFormatter())
 
 
 def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
-    """Accuracy against FLOPs per image, one colour per `experiment` of the rows, the
+    """The score against FLOPs per image, one colour per `experiment` of the rows, the
     front as steps with its runs named. Returns the runs on the front."""
     on = front(rows)
+    metric = metric_of(rows)
     _, ax = plt.subplots(figsize=(9, 4.8))
     groups = list(dict.fromkeys(r["experiment"] for r in rows))
     for group, hue in zip(groups, HUES, strict=False):
         mine = [r for r in rows if r["experiment"] == group]
         ax.scatter(
             [r["flops"] for r in mine],
-            [r["accuracy"] for r in mine],
+            [r[metric] for r in mine],
             color=hue,
             s=40,
             label=group,
@@ -516,7 +538,7 @@ def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
         )
     ax.step(
         [r["flops"] for r in on],
-        [r["accuracy"] for r in on],
+        [r[metric] for r in on],
         where="post",
         color="gray",
         lw=1,
@@ -527,7 +549,7 @@ def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
     # there, or it would be more accurate and cheaper
     ax.scatter(
         [r["flops"] for r in on],
-        [r["accuracy"] for r in on],
+        [r[metric] for r in on],
         s=110,
         facecolors="none",
         edgecolors="black",
@@ -537,7 +559,7 @@ def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
     for r in on:
         ax.annotate(
             r["name"],
-            (r["flops"], r["accuracy"]),
+            (r["flops"], r[metric]),
             xytext=(-7, 5),
             ha="right",
             va="bottom",
@@ -545,9 +567,9 @@ def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
             fontsize=8,
         )
     ax.set_xscale("log")
-    ax.xaxis.set_minor_formatter(NullFormatter())  # names on the powers of ten only
+    plain_ticks(ax.xaxis)
     ax.set_xlabel("FLOPs per image (log scale); better is up and to the left")
-    ax.set_ylabel("validation accuracy")
+    ax.set_ylabel(f"validation {metric.replace('_', ' ')}")
     ax.set_title(title, loc="left", fontsize=10)
     ax.legend(fontsize=8, loc="lower right")
     ax.spines[["top", "right"]].set_visible(False)
@@ -557,7 +579,8 @@ def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
 
 def rows_of(study: str, by: str | None = None) -> list[dict]:
     """The finished runs of a study in the store as rows for `plot_front`, grouped by
-    their role (baseline, trial, final), or by the value of the axis `by`."""
+    their role (baseline, trial, final), or by the value of the axis `by`. Each row
+    holds its score under the study's objective."""
     log = StudyLog.load(study, HARNESS.store)
     rows = []
     for t in log.trials(optuna.trial.TrialState.COMPLETE):
@@ -567,7 +590,8 @@ def rows_of(study: str, by: str | None = None) -> list[dict]:
             {
                 "name": t.user_attrs.get("name", f"{role} {t.number}"),
                 "experiment": role if by is None else f"{by}={config.get(by)}",
-                "accuracy": t.value,
+                "objective": log.objective,
+                log.objective: t.value,
                 "flops": t.user_attrs["flops_per_image"],
                 "latency_us": t.user_attrs["latency_us"],
                 **{k: v for k, v in config.items() if k in t.params},
