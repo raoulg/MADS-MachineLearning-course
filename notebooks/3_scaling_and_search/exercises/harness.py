@@ -51,6 +51,7 @@ import pandas as pd
 import torch
 from huggingface_hub.utils import disable_progress_bars as hub_quiet
 from loguru import logger
+from matplotlib.ticker import NullFormatter
 from notebooktester import param
 from pandas.io.formats.style import Styler
 from torch import Tensor, nn
@@ -544,6 +545,7 @@ def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
             fontsize=8,
         )
     ax.set_xscale("log")
+    ax.xaxis.set_minor_formatter(NullFormatter())  # names on the powers of ten only
     ax.set_xlabel("FLOPs per image (log scale); better is up and to the left")
     ax.set_ylabel("validation accuracy")
     ax.set_title(title, loc="left", fontsize=10)
