@@ -1,6 +1,6 @@
 .PHONY: help study page share dashboard rehearsal optuna-dashboard check-lesson check-hf-auth publish-fashion publish-flowers publish-imdb publish-all list-caches \
         build-eurosat build-dtd build-lesson1 publish-eurosat publish-dtd publish-lesson1 \
-        build-heartbeats publish-heartbeats
+        build-heartbeats publish-heartbeats build-ecg-windows publish-ecg-windows
 
 # Publishing course caches to https://huggingface.co/pttrn-io
 #
@@ -199,6 +199,22 @@ publish-heartbeats: check-hf-auth
 			--train $$(ls -dt artefacts/*_heartbeats-$${ds}_train_raw_beat 2>/dev/null | head -1) \
 			--test  $$(ls -dt artefacts/*_heartbeats-$${ds}_test_raw_beat 2>/dev/null | head -1) || exit 1; \
 	done
+
+# ECG windows of 10 s from the MIT-BIH records, split by patient, with the annotated beats
+# and rhythms inside each window (scripts/build_ecg_window_cache.py).
+MITDB_SOURCE = artefacts/sources/mitdb
+
+$(MITDB_SOURCE):
+	uv run --with wfdb python -c "import wfdb; wfdb.dl_database('mitdb', '$(MITDB_SOURCE)')"
+
+build-ecg-windows: | $(MITDB_SOURCE)
+	uv run --with wfdb python scripts/build_ecg_window_cache.py
+
+publish-ecg-windows: check-hf-auth
+	uv run python scripts/publish_cache.py $(ARGS) \
+		--dataset ecg-mitbih-10s --card scripts/cards/ecg-mitbih-10s.md \
+		--train $$(ls -dt artefacts/*_ecg-mitbih-10s_train_raw_ecg 2>/dev/null | head -1) \
+		--test  $$(ls -dt artefacts/*_ecg-mitbih-10s_test_raw_ecg 2>/dev/null | head -1)
 
 publish-eurosat: check-hf-auth
 	@for enc in $(ENCODERS); do \
