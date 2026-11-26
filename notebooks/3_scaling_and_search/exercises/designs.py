@@ -18,7 +18,8 @@ The choices of this design, each a bet about the data:
 
 - `input`: the CLS vector, the patch mean, or both side by side;
 - `kernel`: the grid of the chosen vectors (`form="grid"`) read by a 2D kernel and a
-  pool, lesson 2's bet that neighbouring numbers belong together;
+  pool; folded 16 x 24, numbers 24 apart in the vector are neighbours, and the kernel
+  bets that neighbours belong together, as lesson 2 bet on a folded beat;
 - `width`, `depth`: the hidden layers of the head;
 - `skip`: a projected skip around the hidden layers, `hidden + Projection(features)`
   (lesson 1's variant: the input and the hidden layer differ in width);
@@ -26,6 +27,9 @@ The choices of this design, each a bet about the data:
 - `norm`, `dropout`: a norm and dropout in every hidden layer; dropout sets a share of
   the hidden numbers to zero at random while training;
 - `moe`: `n_experts` heads behind a router that runs one of them per image (3.1).
+
+In a shape, `*form` stands for any number of axes: `"batch 2 *form"` is `(batch, 2, 384)`
+from the flat loader and `(batch, 2, 16, 24)` from the grid.
 
 Read it in atlas before you train anything: the shape on every arrow, and where a choice
 leaves a stage out.

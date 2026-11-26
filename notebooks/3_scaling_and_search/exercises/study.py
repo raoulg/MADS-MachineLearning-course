@@ -54,9 +54,11 @@ OBJECTIVE = "accuracy"
 # the starter space of Part 1 (E4): share, input, width, depth and dropout. Every option
 # of designs.py (@option) needs an axis here: search it with Choice([False, True]), or
 # fix it to one value. An option you search needs its control of equal compute among the
-# trials: search `width` beside it over a range that holds the control's width (the
-# control of equal compute in Part 2 of 05_exercise.ipynb). The kernel reads the grid: with it, put "form": "grid". Which axes do the
-# trials you can afford cover well enough to read?
+# trials (Part 2 of 05_exercise.ipynb): search `width` beside it over a range that holds
+# the control's width, and fix `share` and every axis your question does not study, so
+# that at equal FLOPs the option is the only difference. With `moe` on, `width` is each
+# expert's width. The kernel reads the grid: with it, put "form": "grid". Which axes do
+# the trials you can afford cover well enough to read?
 SPACE = Space(
     {
         "dataset": "mix7",

@@ -601,7 +601,8 @@ def search(space: Space, n_trials: int, make: Make, experiment: str) -> list[dic
                 Architecture.of(model, data.example),
             )
 
-    log.optimize(run_trial, n_trials=n_trials)
+    # no progress bar: a saved notebook keeps it at its first frame
+    log.study.optimize(run_trial, n_trials=n_trials)
     done = log.trials(optuna.trial.TrialState.COMPLETE)[-n_trials:]
     rows = [
         {
