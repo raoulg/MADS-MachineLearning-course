@@ -46,15 +46,13 @@ The lesson folders are `notebooks/1_representation_and_head/exercises/`,
 `05_exercises.ipynb` in lesson 1, `04_exercise.ipynb` in lesson 2 and
 `05_exercise.ipynb` in lesson 3.
 
-Lesson 3 adds three things to the loop. Its design has a route stage (`route`) and a
-control of the same parameter count (`matched`); with `"route": True` and
-`"matched": Choice([False, True])` in `SPACE`, every draw of the route stage is followed
-by its twin with `matched` flipped, on the same seed, and the study reads the difference
-within the pairs. A study is either one for the best design, which fixes an axis that
-still climbs at its limit, or one of a curve, which searches that axis below its limit
-(Part 2 of `05_exercise.ipynb` says which is which). And every trial with a router logs
-the use of its experts as Optuna user attributes (`expert_share`, `expert_weight`,
-`expert_peak`, `experts_in_use`), which step 6 reads next to the score.
+Lesson 3 adds two things to the loop. Every run logs what one image costs it,
+`flops_per_image` and `latency_us`, beside `n_params`, so step 6 reads accuracy against
+FLOPs as a Pareto front, not only the best trial. And a study of an architecture of the
+student's own has a control of equal compute beside it: the plain head at the same FLOPs
+per image, among the trials of the same space (`control_width` in `designs.py` gives its
+width for a mixture of experts; Part 2 of `05_exercise.ipynb` says how for another
+design).
 
 ## Before the loop: Part 1 of the exercise notebook
 
