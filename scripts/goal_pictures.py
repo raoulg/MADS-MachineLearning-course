@@ -1009,10 +1009,11 @@ g += arrow(240, 98, 310, 113, "p", 2) + t(250, 90, "schaal", "n p")
 g += t(200, 205, "zoek over gewichten, vergelijk bij gelijke gewichten", "c", "middle")
 PICTURES["3.11"] = ("Scaling in je zoekruimte", g)
 
-# 3.12 routing and its control published to the runs-repo, read and built on by the class
-g = t(20, 36, "hartslagen", "c")
-g += box(20, 46, 100, 30, "routing", "v", VT) + t(128, 65, "120k", "n")
-g += box(20, 90, 100, 30, "control", "p") + t(128, 109, "120k", "n")
+# 3.12 a study of one's own and its control of equal compute, published to the runs-repo,
+# read and built on by the class
+g = t(20, 36, "beeldmix", "c")
+g += box(20, 46, 100, 30, "jouw ontwerp", "v", VT) + t(128, 65, "7k", "n")
+g += box(20, 90, 100, 30, "control", "p") + t(128, 109, "7k", "n")
 g += line("M 156 61 L 162 61 L 162 105 L 156 105", MUT, 1.5) + arrow(162, 83, 184, 83)
 for x in (200, 228, 256):
     g += f'<circle cx="{x}" cy="28" r="7" fill="{BG}" stroke="{P}" stroke-width="1.5"/>'
@@ -1024,8 +1025,8 @@ for i, h in enumerate((22, 34, 16, 40, 28)):
     g += f'<rect x="{304 + i * 16}" y="{116 - h}" width="10" height="{h}" fill="{V if i == 3 else PT}" stroke="{P}"/>'
 g += path("M 338 124 L 338 160 L 70 160 L 70 124", "v", 2.5)
 g += t(204, 182, "bouw voort, noem je bron", "l v", "middle")
-g += t(200, 212, "wat leverde routing op, bij evenveel gewichten?", "c", "middle")
-PICTURES["3.12"] = ("Parallelle architecturen, als klas", g)
+g += t(200, 212, "wat leverde het op, bij evenveel FLOPs?", "c", "middle")
+PICTURES["3.12"] = ("Je eigen studie naar scaling, als klas", g)
 
 # 4.1 attention: one output position as a weighted sum of all input positions
 s = 22

@@ -72,10 +72,10 @@ control met evenveel gewichten ernaast zetten, zodat de search het effect van ee
 architectuur kan scheiden van het effect van meer gewichten. Kiest de ranges van gewichten,
 data en epochs op basis van een gemeten curve.
 
-3.12 Een parallelle architectuur met routing ontwerpen, trainen en tunen op de
-hartslagen, met een control met evenveel gewichten ernaast: vooraf een verwachting
-uitspreken, achteraf het gebruik van de experts lezen. Als klas uitzoeken wat routing
-opleverde: de runs publiceren, het werk van anderen bekijken en daarop voortbouwen met
+3.12 Een eigen studie naar scaling ontwerpen, trainen en tunen op de beeldmix, met een
+control van evenveel compute ernaast: vooraf een verwachting uitspreken, achteraf de
+compute en het resultaat lezen. Als klas uitzoeken wat schaal en architectuur
+opleverden: de runs publiceren, het werk van anderen bekijken en daarop voortbouwen met
 bronvermelding.
 
 ## Materiaal
