@@ -11,7 +11,8 @@ The runs go to the Optuna studies `lesson3-study-<STUDY>` (the search) and
 hands them in. Every run carries `designs.py` as its design script, its whole confusion
 matrix, and what one image costs it: `flops_per_image` and `latency_us`, beside
 `n_params`. The search maximises `OBJECTIVE`; accuracy against FLOPs, the Pareto front,
-is read from the runs afterwards (`make optuna-dashboard`). The study itself is
+is drawn from the runs afterwards with `rows_of` and `plot_front` of `harness.py` (Part 2
+of `05_exercise.ipynb`). The study itself is
 `hpo.exercise.Exercise`, the same in every lesson; `harness.py` is what lesson 3 gives
 it.
 """
@@ -53,8 +54,8 @@ OBJECTIVE = "accuracy"
 # the starter space of Part 1 (E4): share, input, width, depth and dropout. Every option
 # of designs.py (@option) needs an axis here: search it with Choice([False, True]), or
 # fix it to one value. An option you search needs its control of equal compute among the
-# trials: search `width` beside it over a range that holds the control's width (step 4
-# of Part 2). The kernel reads the grid: with it, put "form": "grid". Which axes do the
+# trials: search `width` beside it over a range that holds the control's width (the
+# control of equal compute in Part 2 of 05_exercise.ipynb). The kernel reads the grid: with it, put "form": "grid". Which axes do the
 # trials you can afford cover well enough to read?
 SPACE = Space(
     {

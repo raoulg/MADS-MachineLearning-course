@@ -30,8 +30,8 @@ its best epoch.
 
 The notebook's helpers are at the end: `run` (one run, logged and stored), `table`,
 `front` and `plot_front` (the Pareto front of accuracy against FLOPs per image),
-`rows_of` (the runs of a study in the store, to draw its front) and `search` (the
-search of Part 1).
+`rows_of` (the runs of a study in the store, to draw its front), `search` (the
+search of Part 1) and `from_study` (a setting of `study.py`).
 """
 
 import ast
@@ -618,12 +618,12 @@ def search(space: Space, n_trials: int, make: Make, experiment: str) -> list[dic
     return rows
 
 
-def study_space() -> Space:
-    """`SPACE` of `study.py`, the starter space as handed out until you change it. Only
-    its assignment is read: the rest of `study.py` asks for your own words first."""
+def from_study(name: str) -> Param | Space:
+    """The value `study.py` gives `name` (`"SPACE"`, `"MINUTES"`), as it stands. Only that
+    assignment is read: the rest of `study.py` asks for your own words first."""
     source = (Path(__file__).resolve().parent / "study.py").read_text(encoding="utf-8")
     for node in ast.parse(source).body:
-        if isinstance(node, ast.Assign) and ast.unparse(node.targets[0]) == "SPACE":
+        if isinstance(node, ast.Assign) and ast.unparse(node.targets[0]) == name:
             names = {"Space": Space, "Choice": Choice, "Float": Float, "Int": Int}
             return eval(ast.unparse(node.value), {**names, "EPOCHS": EPOCHS})
-    raise ValueError("study.py has no SPACE = Space({...})")
+    raise ValueError(f"study.py gives no value to {name}")
