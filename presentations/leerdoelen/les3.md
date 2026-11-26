@@ -25,10 +25,13 @@ helling zegt hoeveel 10× meer oplevert, alleen binnen het gemeten bereik. Weet 
 verband gemeten is in LLMs, image models en sequence models (speech, video), en dat de
 helling per domein verschilt en dus op je eigen probleem gemeten moet worden.
 
-3.3 Dat gewichten en data samen moeten groeien: een groter model op dezelfde data gaat
-overfitten. Kan uit een gemeten verhouding aflezen hoeveel data erbij moet; bij Kaplan
-vraagt 8× zoveel gewichten maar ongeveer 5× zoveel data. Weet dat die verhouding per
-studie verschilt.
+3.3 Dat gewichten en data samen moeten groeien: op dezelfde data levert elk extra gewicht
+minder op, omdat de data de grens wordt, en een groter model gaat zonder regularisatie
+overfitten; met genoeg regularisatie niet, maar dan kost het vooral compute. Kan uit een
+gemeten verhouding aflezen hoeveel data erbij moet; bij Kaplan vraagt 8× zoveel gewichten
+ongeveer 5× zoveel data. Weet dat twee studies op de vraag hoe je één compute-budget
+verdeelt verschillend antwoorden (Kaplan: vooral het model, Hoffmann: data even hard als
+het model), en dat een verhouding hoort bij de studie die hem mat.
 
 3.4 Dat een gate een onderdeel is van een parallelle architectuur: een highway weegt een
 blok met g en de skip eromheen met 1 − g, en een mixture of experts is een highway met
