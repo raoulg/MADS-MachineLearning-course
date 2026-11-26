@@ -216,6 +216,11 @@ def _distribution(
     return None
 
 
+def same_axes(held: str, given: str) -> bool:
+    """Two lines of `Space.line()` hold the same axes, in whatever order they are listed."""
+    return sorted(held.split(" | ")) == sorted(given.split(" | "))
+
+
 class StudyLog:
     """One study in the store, and every run written to it.
 
@@ -366,7 +371,8 @@ class StudyLog:
         searched = attrs.get("search_space")
         if (
             space is not None
-            and searched not in (None, space.line())
+            and searched is not None
+            and not same_axes(searched, space.line())
             and self.study.trials
         ):
             return (

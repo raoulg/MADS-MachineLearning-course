@@ -450,3 +450,15 @@ def test_a_study_on_macro_recall_passes_the_check(store, tmp_path):
     (out / sub.relpath()).parent.mkdir(parents=True)
     (out / sub.relpath()).write_text(sub.dump(), encoding="utf-8")
     assert check(out, [sub.relpath()], "sam", set()) == []
+
+
+def test_a_study_takes_its_space_back_in_another_order(store):
+    """A space is its axes: listing them in another order is the same space."""
+    log = StudyLog.search("lesson1-notebook", SPACE, store=store)
+    log.study.optimize(lambda t: 0.5, n_trials=1)
+    reordered = Space(dict(reversed(list(SPACE.axes.items()))))
+    assert reordered.line() != SPACE.line()
+    StudyLog.search("lesson1-notebook", reordered, store=store)
+    other = Space({**SPACE.axes, "lr": Float(1e-3, 1e-1, log=True)})
+    with pytest.raises(ValueError, match="another search space"):
+        StudyLog.search("lesson1-notebook", other, store=store)
