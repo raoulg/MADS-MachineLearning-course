@@ -15,32 +15,60 @@ The trainer axes, besides `lr`:
 - `encoder`: `dinov2-small` (384 numbers per vector) or `dinov2-base` (768);
 - `share`: the share of every class's train rows a run trains on, between 0 and 1; a
   smaller share is a subset of a larger one;
-- `drop_domain`: one domain left out of train and validation, or `"none"`;
+- `drop_domain`: one domain left out of train and validation, or `"none"`; a run
+  without a domain is scored on the other six, so its accuracy is read against another
+  run's on those six domains, from the recall per class every run logs;
 - `form`: the two vectors as `(batch, 2, dim)` (`"flat"`), or each folded into a grid
-  (`"grid"`), `(batch, 2, 16, 24)` for small and `(batch, 2, 24, 32)` for base.
+  (`"grid"`), `(batch, 2, 16, 24)` for small and `(batch, 2, 24, 32)` for base; the
+  design's kernel reads the grid.
 
 An epoch is a fixed number of optimizer steps, one pass over every train row, whatever
 the share: on a share of 10% an epoch passes over its rows ten times. So the epochs of
-two runs are the same compute. A run trains until its validation accuracy has not
+two runs are the same steps. A run trains until its validation accuracy has not
 improved for `PATIENCE` epochs, or for `EPOCHS` epochs at most, and keeps the weights of
 its best epoch.
+
+The notebook's helpers are at the end: `run` (one run, logged and stored), `table`,
+`front` and `plot_front` (the Pareto front of accuracy against FLOPs per image),
+`rows_of` (the runs of a study in the store, to draw its front) and `search` (the
+search of Part 1).
 """
 
-from collections.abc import Mapping, Sequence
+import ast
+import json
+import sys
+import time
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from functools import cache
+from pathlib import Path
 
+import datasets
+import matplotlib.pyplot as plt
 import numpy as np
+import optuna
+import pandas as pd
 import torch
+from huggingface_hub.utils import disable_progress_bars as hub_quiet
+from loguru import logger
 from notebooktester import param
+from pandas.io.formats.style import Styler
 from torch import Tensor, nn
 from torch.utils.data import BatchSampler, DataLoader, RandomSampler, TensorDataset
 from vectormesh import VectorCache
 
 from hpo.exercise import Baseline, Data
-from hpo.measure import Confusion, Fit, OnEpoch, Training
-from hpo.record import Store
-from hpo.search import Config, Param
+from hpo.measure import Architecture, Confusion, Fit, OnEpoch, Training
+from hpo.record import Idea, RunRecord, Store, StudyLog
+from hpo.record.runs import Role
+from hpo.search import Choice, Config, Float, Int, Param, Space
+
+# the notebook and study.py print what a run found, not the progress of every download
+logger.remove()
+logger.add(sys.stderr, level="WARNING")
+datasets.disable_progress_bars()
+hub_quiet()
+optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 EPOCHS = param(150, test=1)  # the most epochs a run trains
 # the epochs in a row without a better validation accuracy after which a run stops
@@ -353,3 +381,249 @@ def kept_epoch(fit: Fit) -> int:
 
 
 HARNESS = Lesson3()
+
+
+# The notebook's helpers. Part 1 is the same for everyone, so its idea is the course's:
+# "lesson 3 as handed out".
+SEED = 0
+OBJECTIVE = "accuracy"
+NOTEBOOK = "lesson3-notebook"
+# Okabe-Ito, one hue per group, told apart without colour vision
+HUES = ["#000000", "#0072B2", "#D55E00", "#009E73", "#CC79A7", "#E69F00", "#56B4E9"]
+Make = Callable[[Config, Data], nn.Module]
+
+
+@cache
+def notebook_runs() -> StudyLog:
+    """The study `lesson3-notebook-runs`: the runs of Part 1 that are not trials."""
+    return StudyLog.runs(
+        name=f"{NOTEBOOK}-runs",
+        idea=Idea.handed_out(lesson=3),
+        objective=OBJECTIVE,
+        choices=CHOICES,
+    )
+
+
+def results() -> Path:
+    """The file every run of Part 1 is stored in, by name."""
+    name = "part1-test.json" if HARNESS.store.testing else "part1.json"
+    return HARNESS.store.root.parent / "lesson3" / name
+
+
+def stored() -> dict:
+    path = results()
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def store(rows: Sequence[dict]) -> None:
+    kept = stored() | {row["name"]: row for row in rows}
+    results().parent.mkdir(parents=True, exist_ok=True)
+    results().write_text(json.dumps(kept), encoding="utf-8")
+
+
+def run(name: str, config: Config, role: Role, experiment: str, make: Make) -> dict:
+    """One run of `config` from `SEED`: trained until it settles, its accuracy, FLOPs and
+    latency measured, logged to `lesson3-notebook-runs` and stored under `name`."""
+    data = HARNESS.data(config)
+    torch.manual_seed(SEED)
+    model = make(config, data)
+    start = time.time()
+    fit = HARNESS.fit(model, data, config)
+    seconds = time.time() - start
+    architecture = Architecture.of(model, data.example)
+    notebook_runs().log(
+        name=name,
+        role=role,
+        results=fit.as_repeats(),
+        dataset="mix7",
+        params=HARNESS.params(config, data),
+        architecture=architecture,
+    )
+    scores = fit.scores()
+    row = {
+        "name": name,
+        "experiment": experiment,
+        "accuracy": scores.accuracy,
+        "flops": architecture.flops_per_image,
+        "latency_us": architecture.latency_us,
+        "n_params": architecture.n_params,
+        "kept_epoch": kept_epoch(fit),
+        "epochs_run": len(fit.curves.accuracy),
+        "minutes": seconds / 60,
+        "curve": fit.curves.accuracy,
+        "share": config["share"],
+        "width": config.get("width", 0),
+    }
+    store([row])
+    return row
+
+
+def table(rows: Sequence[dict]) -> Styler:
+    """The runs side by side: accuracy, what one image costs, and how the run settled."""
+    columns = [
+        "accuracy",
+        "flops",
+        "latency_us",
+        "n_params",
+        "kept_epoch",
+        "epochs_run",
+        "minutes",
+    ]
+    return (
+        pd.DataFrame(rows)
+        .set_index("name")[columns]
+        .style.format(
+            {
+                "accuracy": "{:.3f}",
+                "flops": "{:,.0f}",
+                "latency_us": "{:.2f}",
+                "n_params": "{:,.0f}",
+                "minutes": "{:.1f}",
+            }
+        )
+    )
+
+
+def front(rows: Sequence[dict]) -> list[dict]:
+    """The runs no other run beats on both measures, from cheap to dear: each is more
+    accurate than every run with fewer FLOPs per image."""
+    on, best = [], -1.0
+    for row in sorted(rows, key=lambda r: (r["flops"], -r["accuracy"])):
+        if row["accuracy"] > best:
+            on.append(row)
+            best = row["accuracy"]
+    return on
+
+
+def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
+    """Accuracy against FLOPs per image, one colour per `experiment` of the rows, the
+    front as steps with its runs named. Returns the runs on the front."""
+    on = front(rows)
+    _, ax = plt.subplots(figsize=(9, 4.8))
+    groups = list(dict.fromkeys(r["experiment"] for r in rows))
+    for group, hue in zip(groups, HUES, strict=False):
+        mine = [r for r in rows if r["experiment"] == group]
+        ax.scatter(
+            [r["flops"] for r in mine],
+            [r["accuracy"] for r in mine],
+            color=hue,
+            s=40,
+            label=group,
+            zorder=3,
+        )
+    ax.step(
+        [r["flops"] for r in on],
+        [r["accuracy"] for r in on],
+        where="post",
+        color="gray",
+        lw=1,
+        zorder=2,
+        label="Pareto front",
+    )
+    for i, r in enumerate(on):  # names above and below the steps in turn
+        ax.annotate(
+            r["name"],
+            (r["flops"], r["accuracy"]),
+            xytext=(-4, 7) if i % 2 else (5, -13),
+            ha="right" if i % 2 else "left",
+            textcoords="offset points",
+            fontsize=8,
+        )
+    ax.set_xscale("log")
+    ax.set_xlabel("FLOPs per image (log scale); better is up and to the left")
+    ax.set_ylabel("validation accuracy")
+    ax.set_title(title, loc="left", fontsize=10)
+    ax.legend(fontsize=8, loc="lower right")
+    ax.spines[["top", "right"]].set_visible(False)
+    plt.show()
+    return on
+
+
+def rows_of(study: str, by: str | None = None) -> list[dict]:
+    """The finished runs of a study in the store as rows for `plot_front`, grouped by
+    their role (baseline, trial, final), or by the value of the axis `by`."""
+    log = StudyLog.load(study, HARNESS.store)
+    rows = []
+    for t in log.trials(optuna.trial.TrialState.COMPLETE):
+        config = t.user_attrs.get("config") or t.params
+        role = t.user_attrs.get("role", "trial")
+        rows.append(
+            {
+                "name": t.user_attrs.get("name", f"{role} {t.number}"),
+                "experiment": role if by is None else f"{by}={config.get(by)}",
+                "accuracy": t.value,
+                "flops": t.user_attrs["flops_per_image"],
+                "latency_us": t.user_attrs["latency_us"],
+                **{k: v for k, v in config.items() if k in t.params},
+            }
+        )
+    return rows
+
+
+def search(space: Space, n_trials: int, make: Make, experiment: str) -> list[dict]:
+    """The search of Part 1 in the study `lesson3-notebook`: `n_trials` trials drawn at
+    random from `space`, each trained until it settles and logged with its FLOPs and
+    latency. Returns them as rows."""
+    log = StudyLog.search(
+        name=NOTEBOOK,
+        space=space,
+        idea=Idea.handed_out(lesson=3),
+        objective=OBJECTIVE,
+        attrs={"origin": "notebook"},
+    )
+
+    def run_trial(trial: optuna.Trial) -> float:
+        config = space.draw(trial)
+        data = HARNESS.data(config)
+        model = make(config, data)
+        seen = Fit()
+
+        def to_optuna(epoch: int, fit: Fit) -> None:
+            trial.report(fit.scores().get(OBJECTIVE), epoch)
+
+        try:
+            seen = HARNESS.fit(model, data, config, to_optuna)
+            return seen.scores().get(OBJECTIVE)
+        finally:
+            log.record(
+                trial,
+                RunRecord(
+                    role="trial",
+                    dataset="mix7",
+                    config=config,
+                    fixed=space.fixed(),
+                    train_seconds=seen.seconds,
+                    curves=seen.curves,
+                    scores=seen.confusion.scores() if seen.confusion else None,
+                    confusion=seen.confusion,
+                    extra=dict(data.dims),
+                ),
+                Architecture.of(model, data.example),
+            )
+
+    log.optimize(run_trial, n_trials=n_trials)
+    done = log.trials(optuna.trial.TrialState.COMPLETE)[-n_trials:]
+    rows = [
+        {
+            "name": f"trial {t.number}",
+            "experiment": experiment,
+            "accuracy": t.value,
+            "flops": t.user_attrs["flops_per_image"],
+            "latency_us": t.user_attrs["latency_us"],
+            **t.params,
+        }
+        for t in done
+    ]
+    store(rows)
+    return rows
+
+
+def study_space() -> Space:
+    """`SPACE` of `study.py`, the starter space as handed out until you change it. Only
+    its assignment is read: the rest of `study.py` asks for your own words first."""
+    source = (Path(__file__).resolve().parent / "study.py").read_text(encoding="utf-8")
+    for node in ast.parse(source).body:
+        if isinstance(node, ast.Assign) and ast.unparse(node.targets[0]) == "SPACE":
+            names = {"Space": Space, "Choice": Choice, "Float": Float, "Int": Int}
+            return eval(ast.unparse(node.value), {**names, "EPOCHS": EPOCHS})
+    raise ValueError("study.py has no SPACE = Space({...})")

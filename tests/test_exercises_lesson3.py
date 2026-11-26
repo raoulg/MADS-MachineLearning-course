@@ -41,18 +41,24 @@ def images(n: int = 4, grid: bool = False) -> torch.Tensor:
 @pytest.mark.parametrize("chosen", list(DESIGN.combinations()), ids=str)
 def test_every_combination_gives_batch_by_classes(chosen, head):
     model = Mix(Config(width=8, n_experts=3, **chosen, **head), **SMALL)
-    assert model(images()).shape == (4, 321)
-    ran = [step.stage for step in DESIGN.trace(model, images())]
+    assert model(images(grid=True)).shape == (4, 321)
+    ran = [step.stage for step in DESIGN.trace(model, images(grid=True))]
     for axis, on in chosen.items():
         assert (axis in ran) == on
 
 
-@pytest.mark.parametrize("kernel", [False, True])
 @pytest.mark.parametrize("input_", ["cls", "mean", "both"])
-def test_both_forms_of_the_loader_give_the_same_scores(input_, kernel):
-    model = Mix(Config(width=8, input=input_, kernel=kernel), **SMALL).eval()
+def test_the_plain_head_reads_both_forms_of_the_loader_alike(input_):
+    model = Mix(Config(width=8, input=input_), **SMALL).eval()
     flat = images()
     assert torch.allclose(model(flat), model(harness.fold(flat)))
+
+
+def test_the_kernel_reads_the_grid_and_refuses_the_flat_form_by_name():
+    model = Mix(Config(width=8, input="both", kernel=True), **SMALL)
+    assert model(images(grid=True)).shape == (4, 321)
+    with pytest.raises(ValueError, match="form='grid'"):
+        model(images())
 
 
 def test_the_base_encoder_folds_to_its_own_grid():
@@ -86,21 +92,32 @@ def test_a_head_without_a_hidden_layer_is_refused_by_name():
         Mix(Config(depth=0), **SMALL)
 
 
-@pytest.mark.parametrize(("d_in", "control"), [(64, 9), (384, 12)])
-def test_the_control_width_is_the_one_of_3_1(d_in, control):
-    assert designs.control_width(8, 8, d_in, 321) == control
+@pytest.mark.parametrize("width", [16, 64, 256])
+def test_the_control_width_of_a_plain_head_is_its_own_width(width):
+    model = Mix(Config(width=width), **SMALL)
+    flops = Architecture.of(model, torch.zeros(2, 2, 384)).flops_per_image
+    assert flops is not None
+    assert designs.control_width(flops, 384, 321) == width
 
 
 def test_the_moe_and_its_control_cost_about_the_same_flops():
     moe = Mix(Config(width=8, moe=True), **SMALL)
-    control = Mix(Config(width=designs.control_width(8, 8, 384, 321)), **SMALL)
-    mine, its = (
-        Architecture.of(m, torch.zeros(2, 2, 384)).flops_per_image
-        for m in (moe, control)
-    )
+    mine = Architecture.of(moe, torch.zeros(2, 2, 384)).flops_per_image
     assert mine == 2 * (384 * 8 + 384 * 8 + 8 * 321)  # router and one head
+    width = designs.control_width(mine, 384, 321)
+    assert width == 12
+    control = Mix(Config(width=width), **SMALL)
+    its = Architecture.of(control, torch.zeros(2, 2, 384)).flops_per_image
     assert its is not None
     assert abs(mine - its) / mine < 0.05
+
+
+def test_the_front_keeps_each_run_that_beats_every_cheaper_one():
+    rows = [
+        {"name": n, "flops": f, "accuracy": a}
+        for n, f, a in [("a", 1, 0.5), ("b", 2, 0.4), ("c", 3, 0.7), ("d", 3, 0.6)]
+    ]
+    assert [r["name"] for r in harness.front(rows)] == ["a", "c"]
 
 
 @pytest.fixture

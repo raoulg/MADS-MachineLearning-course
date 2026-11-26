@@ -2,11 +2,12 @@
 supergraph, one typed stage per operation.
 
 An image of the mix is two vectors, `(batch, 2, dim)`: its CLS token and the mean of its
-patch tokens (`dim` is 384 for `dinov2-small`, 768 for `dinov2-base`). The loader can
-also give every vector folded into a grid, `(batch, 2, 16, 24)` for small (the trainer
-axis `form`); the design reads both forms. It picks the vectors it reads, turns them
-into features (flattened, or read by a kernel on the grid), and gives a score per class
-from a dense head, or from a mixture of such heads behind a router.
+patch tokens (`dim` is 384 for `dinov2-small`, 768 for `dinov2-base`). With the trainer
+axis `form="grid"` the loader gives every vector folded into a grid instead,
+`(batch, 2, 16, 24)` for small; the kernel reads that grid, and the plain head flattens
+either form. The design picks the vectors it reads, turns them into features
+(flattened, or read by a kernel on the grid), and gives a score per class from a dense
+head, or from a mixture of such heads behind a router.
 
 Every block the search may leave out is a choice in `forward` (`if self.config.moe:`),
 and `@option("moe")` on its stage names the axis of the search space that decides it.
@@ -16,11 +17,14 @@ The config a trial draws picks the subgraph that is built. `option` and `Design`
 The choices of this design, each a bet about the data:
 
 - `input`: the CLS vector, the patch mean, or both side by side;
-- `kernel`: the chosen vectors folded into a grid and read by a 2D kernel and a pool,
-  lesson 2's bet that neighbouring numbers belong together;
+- `kernel`: the grid of the chosen vectors (`form="grid"`) read by a 2D kernel and a
+  pool, lesson 2's bet that neighbouring numbers belong together;
 - `width`, `depth`: the hidden layers of the head;
-- `skip`, `gate`: a skip around the hidden layers, a gate on their output (lesson 1);
-- `norm`, `dropout`: a norm and dropout in every hidden layer;
+- `skip`: a projected skip around the hidden layers, `hidden + Projection(features)`
+  (lesson 1's variant: the input and the hidden layer differ in width);
+- `gate`: a gate on the output of the hidden layers (lesson 2);
+- `norm`, `dropout`: a norm and dropout in every hidden layer; dropout sets a share of
+  the hidden numbers to zero at random while training;
 - `moe`: `n_experts` heads behind a router that runs one of them per image (3.1).
 
 Read it in atlas before you train anything: the shape on every arrow, and where a choice
@@ -205,29 +209,22 @@ class Mix(nn.Module):
             self.dense = Head(config, self.d_in, n_classes)
 
     @jaxtyped(typechecker=beartype)
-    def vectors(
-        self, image: Float[Tensor, "batch 2 *form"]
-    ) -> Float[Tensor, "batch 2 {self.dim}"]:
-        return image.flatten(2)  # a grid back to its vector; a vector stays as it is
-
-    @jaxtyped(typechecker=beartype)
     def choose(
-        self, vectors: Float[Tensor, "batch 2 {self.dim}"]
-    ) -> Float[Tensor, "batch {self.n_in} {self.dim}"]:
-        return vectors[:, self.rows]
+        self, image: Float[Tensor, "batch 2 *form"]
+    ) -> Float[Tensor, "batch {self.n_in} *form"]:
+        return image[:, self.rows]  # a vector or a grid per chosen row
 
     @jaxtyped(typechecker=beartype)
     def flatten(
-        self, chosen: Float[Tensor, "batch {self.n_in} {self.dim}"]
+        self, chosen: Float[Tensor, "batch {self.n_in} *form"]
     ) -> Float[Tensor, "batch {self.d_in}"]:
         return chosen.flatten(1)
 
     @option("kernel")
     @jaxtyped(typechecker=beartype)
     def kernel(
-        self, chosen: Float[Tensor, "batch {self.n_in} {self.dim}"]
+        self, grid: Float[Tensor, "batch {self.n_in} {self.height} {self.breadth}"]
     ) -> Float[Tensor, "batch {self.d_in}"]:
-        grid = chosen.reshape(-1, self.n_in, self.height, self.breadth)
         return self.kernels(grid).flatten(1)  # (batch, channels, h/2, w/2), flattened
 
     @jaxtyped(typechecker=beartype)
@@ -247,8 +244,13 @@ class Mix(nn.Module):
     def forward(
         self, image: Float[Tensor, "batch 2 *form"]
     ) -> Float[Tensor, "batch {self.n_classes}"]:
-        chosen = self.choose(self.vectors(image))
+        chosen = self.choose(image)
         if self.config.kernel:
+            if chosen.ndim != 4:
+                raise ValueError(
+                    "Mix: the kernel reads the grid the loader gives with form='grid'; "
+                    f"this batch is {tuple(image.shape)}, put form='grid' in SPACE"
+                )
             features = self.kernel(chosen)
         else:
             features = self.flatten(chosen)
@@ -257,13 +259,11 @@ class Mix(nn.Module):
         return self.head(features)
 
 
-def control_width(width: int, n_experts: int, d_in: int, n_classes: int) -> int:
-    """The width of the dense head that uses as many parameters per image as a mixture
-    of `n_experts` heads of one hidden layer of `width`, router included (3.1.2). A head
-    of width `d` has `d * (d_in + 1 + n_classes) + n_classes` parameters."""
-    router = d_in * n_experts + n_experts
-    expert = d_in * width + width + width * n_classes + n_classes
-    return round((router + expert - n_classes) / (d_in + 1 + n_classes))
+def control_width(flops: int, d_in: int, n_classes: int) -> int:
+    """The width of the plain head (one hidden layer, every option off) that does `flops`
+    FLOPs per image: the control of equal compute of a design that does `flops`. Such a
+    head does `2 * (d_in * w + w * n_classes)` FLOPs per image."""
+    return max(1, round(flops / (2 * (d_in + n_classes))))
 
 
 # The model and the config that switches its options, as the study reads them; the head
@@ -273,15 +273,11 @@ HEAD = Design(Head, Config)
 
 
 if __name__ == "__main__":
-    # dinov2-small: 384 numbers per vector, folded 16 x 24; 321 classes. Two images are
+    # dinov2-small as the loader gives it with form="grid": two vectors of 384 numbers,
+    # each folded 16 x 24; 321 classes. Every combination reads the grid (the plain head
+    # flattens it); with form="flat", (2, 2, 384), the kernel is refused. Two images are
     # enough to trace every shape.
-    DESIGN.show(torch.randn(2, 2, 384), dim=384, height=16, breadth=24, n_classes=321)
-    HEAD.show(torch.randn(2, 384), d_in=384, n_classes=321)
-    # the loader's grid form (form="grid") goes in as (batch, 2, 16, 24); `vectors`
-    # gives the same (batch, 2, 384) from it
-    print("form='grid', kernel=True")
-    grid = DESIGN.build(
-        Config(kernel=True), dim=384, height=16, breadth=24, n_classes=321
+    DESIGN.show(
+        torch.randn(2, 2, 16, 24), dim=384, height=16, breadth=24, n_classes=321
     )
-    for step in DESIGN.trace(grid, torch.randn(2, 2, 16, 24)):
-        print(f"  {step.stage:<12} {step.shape}")
+    HEAD.show(torch.randn(2, 384), d_in=384, n_classes=321)

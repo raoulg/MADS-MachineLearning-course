@@ -36,9 +36,9 @@ from hpo.search import Choice, Config, Float, Int, Space
 # letters, digits and dashes: "sam-kernel-on-the-fold".
 STUDY = "name-your-study"
 
-# What does your study investigate, in a few words of your own? Which idea does it build
-# on? Your first one builds on the exercise as handed out; after that, name an idea of
-# the class as the class page shows it: builds_on="blissful-bee-18".
+# What does your study investigate, in a few words of your own? `builds_on` names the
+# idea yours starts from: the exercise as handed out (below), or an idea of the class by
+# its name as the class page shows it: builds_on="blissful-bee-18".
 IDEA = Idea.of("say what your study investigates", builds_on=Idea.handed_out(3).name)
 
 # What do you expect to happen, and why? One line, written before you run. It is stored
@@ -50,9 +50,12 @@ EXPECTS = "say what you expect, and why"
 OBJECTIVE = "accuracy"
 
 # Which axes does your search space search, and over which ranges? The space below is
-# the starter space of Part 1 (E4): width, depth, share and input. Every option of
-# designs.py (@option) needs an axis here: search it with Choice([False, True]), or fix
-# it to one value. Which axes do the trials you can afford cover well enough to read?
+# the starter space of Part 1 (E4): share, input, width, depth and dropout. Every option
+# of designs.py (@option) needs an axis here: search it with Choice([False, True]), or
+# fix it to one value. An option you search needs its control of equal compute among the
+# trials: search `width` beside it over a range that holds the control's width (step 4
+# of Part 2). The kernel reads the grid: with it, put "form": "grid". Which axes do the
+# trials you can afford cover well enough to read?
 SPACE = Space(
     {
         "dataset": "mix7",

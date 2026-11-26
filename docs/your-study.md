@@ -48,11 +48,11 @@ The lesson folders are `notebooks/1_representation_and_head/exercises/`,
 
 Lesson 3 adds two things to the loop. Every run logs what one image costs it,
 `flops_per_image` and `latency_us`, beside `n_params`, so step 6 reads accuracy against
-FLOPs as a Pareto front, not only the best trial. And a study of an architecture of the
-student's own has a control of equal compute beside it: the plain head at the same FLOPs
-per image, among the trials of the same space (`control_width` in `designs.py` gives its
-width for a mixture of experts; Part 2 of `05_exercise.ipynb` says how for another
-design).
+FLOPs as a Pareto front, not only the best trial (`rows_of` and `plot_front` in
+`harness.py` draw it from the store). And a study of an architecture of the student's own
+has a control of equal compute beside it: the plain head at the same FLOPs per image,
+among the trials of the same space (`control_width` in `designs.py` gives its width from
+the design's FLOPs; Part 2 of `05_exercise.ipynb` gives the recipe).
 
 ## Before the loop: Part 1 of the exercise notebook
 
