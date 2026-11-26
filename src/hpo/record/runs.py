@@ -18,7 +18,8 @@ one idea, the trials of one space and one objective, and refuses another.
 Every trial carries, as user attrs, what the protocol asks of a run (`RunRecord`): its
 `run_id`, `role`, `session`, `dataset`, `train_seconds`, curves, every metric
 (`metrics`, `metrics_std`), the confusion over its repeats (`confusion`), and with an
-architecture the model's `n_params` and one-line `architecture`. The layer table goes
+architecture the model's `n_params`, its `flops_per_image` and `latency_us` (the cost of
+one image's forward pass) and its one-line `architecture`. The layer table goes
 along as the trial's note and the artifact `architecture.json`, the design script as
 the artifact `design.py`.
 """
@@ -393,6 +394,8 @@ class StudyLog:
         artifacts: dict[str, str] = {}
         if architecture is not None:
             trial.set_user_attr("n_params", architecture.n_params)
+            trial.set_user_attr("flops_per_image", architecture.flops_per_image)
+            trial.set_user_attr("latency_us", architecture.latency_us)
             trial.set_user_attr("architecture", architecture.signature)
             save_note(trial, architecture.note())
             artifacts["architecture.json"] = architecture.model_dump_json(indent=1)

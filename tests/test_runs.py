@@ -147,8 +147,11 @@ def test_the_architecture_is_the_note_and_an_artifact(store):
     trial = only_trial(log)
     assert trial.user_attrs["n_params"] == 4 * 3 + 3 + 3 * 2 + 2
     assert "Linear(4->3)" in trial.user_attrs["architecture"]
+    assert trial.user_attrs["flops_per_image"] == 2 * (4 * 3 + 3 * 2)
+    assert trial.user_attrs["latency_us"] > 0
     arch = json.loads(artifact(store, "architecture.json", trial))
     assert arch["n_params"] == trial.user_attrs["n_params"]
+    assert arch["flops_per_image"] == trial.user_attrs["flops_per_image"]
 
 
 def test_the_architecture_of_a_model_with_two_streams():
