@@ -73,7 +73,9 @@ optuna.logging.set_verbosity(optuna.logging.WARNING)
 EPOCHS = param(150, test=1)  # the most epochs a run trains
 # the epochs in a row without a better validation accuracy after which a run stops
 PATIENCE = param(10, test=1)
-REPEATS = 1  # a run takes minutes: one seed, as an expensive run is run once
+# one seed per run, the course's default; the notebook says beside E2 what another
+# seed moves
+REPEATS = 1
 BATCH = 256
 
 CACHES = {
@@ -520,12 +522,24 @@ def plot_front(rows: Sequence[dict], title: str) -> list[dict]:
         zorder=2,
         label="Pareto front",
     )
-    for i, r in enumerate(on):  # names above and below the steps in turn
+    # a ring on every run of the front, its name above and to its left: no run lies
+    # there, or it would be more accurate and cheaper
+    ax.scatter(
+        [r["flops"] for r in on],
+        [r["accuracy"] for r in on],
+        s=110,
+        facecolors="none",
+        edgecolors="black",
+        linewidths=0.8,
+        zorder=4,
+    )
+    for r in on:
         ax.annotate(
             r["name"],
             (r["flops"], r["accuracy"]),
-            xytext=(-4, 7) if i % 2 else (5, -13),
-            ha="right" if i % 2 else "left",
+            xytext=(-7, 5),
+            ha="right",
+            va="bottom",
             textcoords="offset points",
             fontsize=8,
         )
@@ -572,7 +586,10 @@ def search(space: Space, n_trials: int, make: Make, experiment: str) -> list[dic
         attrs={"origin": "notebook"},
     )
 
+    mine: list[int] = []  # the numbers of this search's trials
+
     def run_trial(trial: optuna.Trial) -> float:
+        mine.append(trial.number)
         config = space.draw(trial)
         data = HARNESS.data(config)
         model = make(config, data)
@@ -603,7 +620,7 @@ def search(space: Space, n_trials: int, make: Make, experiment: str) -> list[dic
 
     # no progress bar: a saved notebook keeps it at its first frame
     log.study.optimize(run_trial, n_trials=n_trials)
-    done = log.trials(optuna.trial.TrialState.COMPLETE)[-n_trials:]
+    done = [t for t in log.trials(optuna.trial.TrialState.COMPLETE) if t.number in mine]
     rows = [
         {
             "name": f"trial {t.number}",

@@ -39,7 +39,7 @@ STUDY = "name-your-study"
 
 # What does your study investigate, in a few words of your own? `builds_on` names the
 # idea yours starts from: the exercise as handed out (below), or an idea of the class by
-# its name as the class page shows it: builds_on="blissful-bee-18".
+# its name as `make dashboard LESSON=3` shows it: builds_on="blissful-bee-18".
 IDEA = Idea.of("say what your study investigates", builds_on=Idea.handed_out(3).name)
 
 # What do you expect to happen, and why? One line, written before you run. It is stored
@@ -56,9 +56,10 @@ OBJECTIVE = "accuracy"
 # fix it to one value. An option you search needs its control of equal compute among the
 # trials (Part 2 of 05_exercise.ipynb): search `width` beside it over a range that holds
 # the control's width, and fix `share` and every axis your question does not study, so
-# that at equal FLOPs the option is the only difference. With `moe` on, `width` is each
-# expert's width. The kernel reads the grid: with it, put "form": "grid". Which axes do
-# the trials you can afford cover well enough to read?
+# that at equal FLOPs the control differs only in the option and the width that
+# matches. With `moe` on, `width` is each expert's width. The kernel reads the grid:
+# with it, put "form": "grid". Which axes do the trials you can afford cover well enough
+# to read?
 SPACE = Space(
     {
         "dataset": "mix7",
