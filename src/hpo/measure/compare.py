@@ -36,7 +36,9 @@ class Comparison(BaseModel):
         )
 
     def __str__(self) -> str:
-        line = f"{self.name:<32} {self.mean:.4f} +/- {self.std:.4f}   (n={len(self.values)})"
+        # a spread only beside repeated runs: one run has none to show
+        spread = f" +/- {self.std:.4f}" if len(self.values) > 1 else ""
+        line = f"{self.name:<32} {self.mean:.4f}{spread}   (n={len(self.values)})"
         if self.points is not None:
             line += f"   {self.points:+.2f} pt"
         return line
