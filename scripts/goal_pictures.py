@@ -957,13 +957,15 @@ PICTURES["3.8"] = ("Learning rate schedulers", g)
 
 # 3.9 trials by latency and score, the Pareto front, and one trial that another beats on both
 g = line("M 50 30 L 50 170 L 370 170", MUT, 1) + t(46, 22, "score", "c")
+g += f'<rect x="50" y="70" width="200" height="100" fill="{PT}" fill-opacity="0.6" stroke="{P}" stroke-width="1.5" stroke-dasharray="5 4"/>'
 for x, y, r in (
     (310, 150, 5),
     (270, 128, 7),
     (190, 88, 8),
     (130, 80, 8),
     (100, 120, 5),
-    (150, 140, 4),
+    (150, 132, 4),
+    (210, 108, 6),
     (240, 150, 3),
     (70, 100, 7),
 ):
@@ -971,9 +973,8 @@ for x, y, r in (
 front = ((80, 44, 9), (170, 52, 7), (250, 70, 5), (300, 96, 4), (340, 140, 3))
 g += line("M " + " L ".join(f"{x} {y}" for x, y, _ in front), V, 2)
 g += "".join(dot(x, y, r, VT, V) for x, y, r in front)
-g += f'<rect x="210" y="70" width="40" height="38" fill="none" stroke="{MUT}" stroke-width="1" stroke-dasharray="3 3"/>'
-g += dot(210, 108, 6) + t(186, 126, "trager én slechter", "n")
-g += t(316, 82, "Pareto front", "l v") + t(64, 68, "hoogste score", "c")
+g += t(150, 163, "trager én slechter", "n", "middle")
+g += t(316, 82, "Pareto front", "l v") + t(96, 34, "hoogste score", "c")
 g += t(210, 188, "snelheid", "c", "middle") + t(
     380, 188, "grootte = gewichten", "c", "end"
 )

@@ -1173,8 +1173,9 @@ def slow_starter():
         s += poly([(X(e), Y(f(e))) for e in range(1, last + 1)], col, wd)
         if last < 20:
             s += cross(X(last), Y(f(last)), MUT)
-    s += poly([(X(e), Y(slow(e))) for e in range(1, 21)], GREY, 3, "10 8")
     stop = end[slow]
+    s += poly([(X(e), Y(slow(e))) for e in range(1, stop + 1)], GREY, 2.5)
+    s += cross(X(stop), Y(slow(stop)), MUT)
     b = poly([(X(e), Y(slow(e))) for e in range(1, stop + 1)], V, 6)
     b += circ(X(stop), Y(slow(stop)), 22, BG, V, 4) + cross(
         X(stop), Y(slow(stop)), V, 10, 5
