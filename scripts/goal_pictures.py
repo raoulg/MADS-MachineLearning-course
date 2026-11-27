@@ -1748,44 +1748,46 @@ g += box(278, 140, 80, 32, "ja", "p")
 g += t(200, 206, "tussen de twee drempels: doorverwijzen", "c", "middle")
 PICTURES["6.9"] = ("Doorverwijzen als derde uitkomst", g)
 
-# 6.10 one trunk, a Gaussian and a quantile head, both scored in CRPS against seasonal naive
-g = t(14, 108, "(B, W)", "m") + arrow(62, 104, 78, 104)
-g += box(80, 89, 60, 30, "trunk", "p", PT)
-g += path("M 142 98 L 164 66") + path("M 142 110 L 164 144")
-g += box(166, 50, 76, 28, "Gauss", "v", VT) + t(204, 44, "(B, H, 2)", "n v", "middle")
-g += box(166, 132, 76, 28, "quantile", "v", VT) + t(
-    204, 176, "(B, H, Q)", "n v", "middle"
-)
-g += t(262, 68, "CRPS", "l v")
-for y, lab, w, c in (
-    (92, "naïef", 62, "p"),
-    (116, "Gauss", 46, "v"),
-    (140, "quantile", 41, "v"),
-):
-    fill, stroke = (PT, P) if c == "p" else (VT, V)
-    g += t(262, y + 4, lab, "n") + l6_rect(318, y - 7, w, 14, fill, stroke)
-g += line("M 380 80 L 380 152", MUT, 1, "4 3")
-g += t(200, 208, "beide heads tegen dezelfde naïeve baseline", "c", "middle")
-PICTURES["6.10"] = ("Twee heads tegen de naïeve baseline", g)
+# 6.10 a search over trunk and head, every trial scored in CRPS, the naive model as a line
+g = t(100, 44, "de search kiest", "c", "middle")
+g += box(20, 60, 70, 30, "trunk", "p", PT) + arrow(92, 75, 108, 75)
+g += box(110, 60, 70, 30, "head", "v", VT)
+g += t(55, 110, "soort, grootte", "n", "middle")
+g += t(145, 110, "Gauss of", "n v", "middle") + t(145, 126, "quantile", "n v", "middle")
+g += arrow(190, 75, 216, 75)
+g += t(300, 44, "CRPS per trial", "c", "middle")
+for i, w in enumerate((96, 78, 66, 52, 40)):
+    best = i == 4
+    g += l6_rect(232, 58 + i * 22, w, 14, VT if best else PT, V if best else P)
+g += t(224, 157, "laagste", "n v", "end")
+g += line("M 316 52 L 316 176", MUT, 1, "4 3") + t(316, 192, "naïef", "n", "middle")
+PICTURES["6.10"] = ("Zoeken naar een architectuur op CRPS", g)
 
-# 6.11 fit q-hat on valid, measure coverage on test, read it off the calibration plot
+# 6.11 calibrate on a set held apart, measure coverage on test, before and after on one plot
 s = 18
 g = row(30, 44, 14, s, {i: PT for i in range(5)})
 g += line("M 120 38 L 120 68 M 192 38 L 192 68", MUT, 1.5)
 g += path("M 160 40 Q 196 14 233 40", "v")
 g += t(75, 80, "train", "c p", "middle") + t(156, 80, "valid", "c p", "middle")
 g += t(237, 80, "test", "c p", "middle")
-g += t(156, 98, "q̂ fitten", "c v", "middle") + t(
-    237, 98, "dekking meten", "c v", "middle"
-)
+g += t(150, 98, "kalibreren", "c v", "middle") + t(212, 98, "dekking meten", "c v")
 g += line("M 60 116 L 60 200 L 200 200", MUT, 1) + line(
     "M 60 200 L 200 116", MUT, 1, "4 3"
 )
 g += t(60, 110, "gehaald", "n") + t(130, 214, "gevraagd", "n", "middle")
-for n, o in ((0.8, 0.81), (0.9, 0.9), (0.95, 0.94), (0.99, 0.99)):
-    g += dot(60 + (n - 0.5) / 0.5 * 140, 200 - (o - 0.5) / 0.5 * 84, 4, VT, V)
-g += t(220, 150, "op de diagonaal:", "c") + t(220, 168, "dekking gehaald", "l v")
-PICTURES["6.11"] = ("Dekking controleren op de testset", g)
+for n, before, after in (
+    (0.6, 0.55, 0.6),
+    (0.7, 0.63, 0.71),
+    (0.8, 0.71, 0.79),
+    (0.9, 0.8, 0.9),
+):
+    x = 60 + (n - 0.5) / 0.5 * 140
+    g += dot(x, 200 - (before - 0.5) / 0.5 * 84, 4)
+    g += dot(x, 200 - (after - 0.5) / 0.5 * 84, 4, VT, V)
+g += dot(228, 140, 4) + t(240, 145, "voor kalibreren", "c")
+g += dot(228, 164, 4, VT, V) + t(240, 169, "na kalibreren", "c v")
+g += t(222, 196, "diagonaal: dekking gehaald", "n")
+PICTURES["6.11"] = ("Kalibreren en de dekking controleren", g)
 
 # 6.12 a cost matrix with refer as third action sets two thresholds on p
 cols = ("alarm", "verwijs", "niets")
