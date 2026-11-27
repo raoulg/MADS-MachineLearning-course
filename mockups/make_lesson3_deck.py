@@ -1531,7 +1531,7 @@ def your_budget():
     return slide(
         "your-budget",
         5,
-        ["3.11", "3.12"],
+        ["3.13"],
         'One budget, <span class="v">your choice</span> how to spend it',
         s + a + build(b) + build(c),
         "Your hardware and the time you give it are the FLOPs you can spend: the area. A run costs about its parameters times the images it sees, so more runs means smaller runs.",
@@ -1575,7 +1575,7 @@ def your_front():
         ["3.9", "3.11", "3.12"],
         'Your study: find <span class="v">your own Pareto front</span>',
         s + build(b) + build(c),
-        "Test the scaling law on your own designs: within a band of compute you choose, find your own Pareto front, not the highest accuracy or the fastest model. Choose a route through the architectures you know and say why; a small model that wins on speed is a result too. A mixture of experts is allowed, but these vectors are close to linearly separable, which limits what it adds.",
+        "Test the scaling laws on your own designs. Start with your budget, and explore interesting architectures within that budget. We are not after the highest accuracy, but after the trade-off between FLOPs and competence.",
         mk="schematic",
         h=540,
     )

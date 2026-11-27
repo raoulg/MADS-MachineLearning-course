@@ -1030,6 +1030,25 @@ g += t(204, 182, "bouw voort, noem je bron", "l v", "middle")
 g += t(200, 212, "wat leverde het op, bij evenveel FLOPs?", "c", "middle")
 PICTURES["3.12"] = ("Je eigen studie naar scaling, als klas", g)
 
+# 3.13 one budget of FLOPs as a square of fixed area, cut into few large or many small runs
+g = t(200, 26, "hardware × tijd = FLOPs = runs × parameters × data", "l", "middle")
+for x, n, lab in (
+    (40, 2, "4 grote runs"),
+    (155, 4, "16 runs"),
+    (270, 8, "64 kleine runs"),
+):
+    g += t(x + 45, 50, lab, "c", "middle")
+    g += f'<rect x="{x}" y="58" width="90" height="90" fill="{P}" stroke="{P}" stroke-width="1.5"/>'
+    for k in range(1, n):
+        d = 90 * k / n
+        g += line(f"M {x + d} 58 L {x + d} 148", BG, 1.5) + line(
+            f"M {x} {58 + d} L {x + 90} {58 + d}", BG, 1.5
+        )
+g += t(85, 168, "groot model, veel data", "n", "middle")
+g += t(315, 168, "veel search", "n", "middle")
+g += t(200, 205, "hetzelfde budget: meer runs zijn kleinere runs", "c", "middle")
+PICTURES["3.13"] = ("Je budget verdelen", g)
+
 # 4.1 attention: one output position as a weighted sum of all input positions
 s = 22
 x0 = 60

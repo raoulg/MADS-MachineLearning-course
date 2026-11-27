@@ -82,6 +82,11 @@ compute en het resultaat lezen. Als klas uitzoeken wat schaal en architectuur
 opleverden: de runs publiceren, het werk van anderen bekijken en daarop voortbouwen met
 bronvermelding.
 
+3.13 Afwegingen maken binnen een vast budget aan compute: hardware × tijd is het aantal
+FLOPs dat je kunt uitgeven, en dat verdeel je over runs × parameters × data. Kan kiezen
+tussen weinig grote runs en veel kleine: meer runs betekent kleinere modellen of minder
+data per run. Kan een Pareto front gebruiken om die keuzes te maken.
+
 ## Materiaal
 
 | leerdoel | onderwerp | notebook |
@@ -90,7 +95,7 @@ bronvermelding.
 | 3.1, 3.5 | mixture of experts, de control, opgeslagen en gebruikte parameters (3.4 op de slides) | `02_mixture_of_experts` |
 | 3.6, 3.7 | random tegen TPE, successive halving en zijn valkuil (grid, populatie en de groei van een zoekruimte op de slides) | `03_search_on_a_budget` |
 | 3.8, 3.9 | learning rate scheduler, Pareto front | slides |
-| 3.11, 3.12 | de klasopdracht | `05_exercise`, `exercises/` |
+| 3.11, 3.12, 3.13 | de klasopdracht en je budget | `05_exercise`, `exercises/` |
 
 Train, validatie en test (1.9) en de spreiding tussen runs (1.10) zijn voorkennis uit les
 1: elke vergelijking in deze les kiest op validatie en rapporteert op test.
