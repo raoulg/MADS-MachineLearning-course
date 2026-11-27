@@ -1396,7 +1396,7 @@ g += t(185, 124, "op dezelfde vector uit?", "c v", "middle")
 g += t(200, 212, "de vector van de ene view is het doel voor de andere", "c", "middle")
 PICTURES["5.3"] = ("Twee views van hetzelfde item", g)
 
-# 5.4 one dataset, one augmentation that removes colour, and the space the encoder then learns
+# 5.4 one dataset, one augmentation that removes a property, and the space the encoder then learns
 l5_items = (
     (22, 30, False, True),
     (52, 22, True, False),
@@ -1420,7 +1420,7 @@ l5_grouped = (
 g = ""
 for x0, head in (
     (14, "data: x"),
-    (144, "\u03c6(x): kleur weg"),
+    (144, "\u03c6(x): eigenschap weg"),
     (274, "vectoren: g(x)"),
 ):
     g += l5_panel(x0, 44, 112, 104) + raw(x0 + 56, 34, head, "l", "middle")
@@ -1438,10 +1438,10 @@ for (x, y, sq, dark), (gx, gy) in zip(l5_items, l5_grouped, strict=True):
             if sq
             else dot(x0 + px, 44 + py, 6, fl, st)
         )
-g += t(14, 166, "vol of hol, rond of vierkant", "c")
-g += t(330, 166, "gegroepeerd op vorm", "l v", "middle")
-g += raw(200, 192, "g(\u03c6(x)) \u2248 g(x)", "big", "middle")
-g += t(200, 216, "de kleur staat niet meer in de vector", "c", "middle")
+g += t(330, 166, "gegroepeerd op", "l v", "middle")
+g += t(330, 182, "wat overblijft", "l v", "middle")
+g += raw(140, 180, "g(\u03c6(x)) \u2248 g(x)", "big", "middle")
+g += t(200, 216, "wat \u03c6 weghaalt, staat niet meer in de vector", "c", "middle")
 PICTURES["5.4"] = ("Wat \u03c6 weghaalt, negeert de encoder", g)
 
 # 5.5 the same square with a one-point space in the corner: every route agrees, nothing is learned
@@ -1465,14 +1465,8 @@ g += node(330, 152, RD, "v", 64)
 g += arrow(90, 52, 138, 52) + t(114, 42, "mask", "c", "middle")
 g += arrow(234, 52, 296, 52) + t(265, 42, "g", "big", "middle")
 g += arrow(60, 72, 60, 130)
-g += (
-    arrow(330, 72, 330, 130)
-    + t(342, 106, "h", "big")
-    + t(318, 106, "predictor", "c", "end")
-)
+g += arrow(330, 72, 330, 130) + t(342, 106, "h", "big")
 g += arrow(108, 152, 296, 152) + t(202, 142, "g′", "big", "middle")
-g += t(202, 186, "target encoder, geen gradient", "c", "middle")
-g += t(200, 212, "de loss vergelijkt vectoren, geen pixels", "c", "middle")
 PICTURES["5.6"] = ("JEPA: voorspel de vector van het verborgen deel", g)
 
 # 5.7 one patch grid: pooled it keeps what, with the patch axis it also keeps where

@@ -24,9 +24,9 @@ achtergrond en belichting.
 views, `φ₁(x)` en `φ₂(x)`. Beide gaan door een encoder, en de loss vraagt dat hun vectoren
 gelijk zijn: de vector van de ene view is het doel voor de andere.
 
-5.4 Dat de encoder daardoor negeert wat `φ` weghaalt of verandert: `g(φ(x)) ≈ g(x)`.
-Haalt `φ` de kleur weg, dan groepeert de encoder op vorm en staat kleur niet meer in de
-vector. Kies `φ` dus zo dat hij niets weghaalt wat jouw taak nodig heeft.
+5.4 Dat de encoder daardoor leert te negeren wat `φ` weghaalt, en zich richt op wat de
+twee views gemeen hebben: `g(φ(x)) ≈ g(x)`. Een eigenschap die `φ` weghaalt staat niet
+meer in de vector. Kies `φ` dus zo dat hij niets weghaalt wat jouw taak nodig heeft.
 
 5.5 Wat representation collapse is: de encoder geeft elk item dezelfde vector. Dat is een
 triviaal antwoord op "geef twee views dezelfde vector", dus de loss is laag terwijl er
@@ -34,9 +34,9 @@ niets geleerd is. Je ziet het aan de spreiding van de vectoren, niet aan de loss
 Methodes verschillen in hoe ze collapse voorkomen: de vectoren van andere items wegduwen,
 of een tweede encoder gebruiken die geen gradient krijgt.
 
-5.6 Wat JEPA anders doet: de views ontstaan door maskeren in plaats van augmenteren, en
-een predictor voorspelt de vector van het verborgen deel, niet de pixels. Een tweede
-encoder, de target encoder, levert die vector.
+5.6 Wat JEPA anders doet: de views ontstaan door maskeren in plaats van augmenteren.
+`g` en `g′` zijn encoders: `g` krijgt het zichtbare deel, `g′` het verborgen deel. De
+predictor `h` voorspelt de representatie die `g′` geeft, niet de pixels.
 
 5.7 Wat pooling weggooit: de plaats. Met de patch-as `(B, P, D)` weet je ook waar iets op
 de afbeelding staat; na pooling naar `(B, D)` alleen nog wat. Kan daarmee kiezen tussen
