@@ -40,9 +40,10 @@ aanwijzen welke routes worden samengevoegd en welke shapes daarvoor moeten passe
 
 3.5 Dat een sparse mixture of experts per input maar een deel van zijn gewichten
 gebruikt: hij traint alle experts en rekent alleen de gekozen expert uit. Kan het totale
-en het gebruikte aantal gewichten uit elkaar houden, weet dat minder gebruikte gewichten
-niet vanzelf sneller is, en herkent router collapse: alle inputs naar één expert. Weet dat
-load balancing de router dwingt de experts te spreiden.
+en het gebruikte aantal gewichten uit elkaar houden, weet dat de compute op schaal het
+gebruikte aantal volgt, en dat bij kleine experts de routering die winst kan opeten, en
+herkent router collapse: alle inputs naar één expert. Weet dat load balancing de router
+dwingt de experts te spreiden.
 
 3.6 Hoe grid search, random search, TPE en een populatie hun volgende trial kiezen: grid
 weet niets, random trekt in plaats van op te sommen, TPE leert van eerdere trials, een

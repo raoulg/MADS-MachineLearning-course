@@ -790,6 +790,62 @@ def highway_to_moe():
     )
 
 
+def moe_at_scale():
+    per_b = 13.0  # pixels per billion parameters, the same in both panels
+
+    def bars(x, y, stored, used):
+        s = txt(x, y + 30, "stored", 28, MUT) + rect(
+            x + 110, y, stored * per_b, 40, GREYT, GREY, 2
+        )
+        s += txt(x + 124 + stored * per_b, y + 30, f"{stored}B", 30, INK, weight=600)
+        s += txt(x, y + 86, "used", 28, V) + rect(x + 110, y + 56, used * per_b, 40, V)
+        s += txt(
+            x + 124 + used * per_b, y + 86, f"{used}B per token", 30, V, weight=600
+        )
+        return s
+
+    # Mixtral: 8 experts, 2 run per token
+    x0 = 60
+    a = txt(x0, 40, "Mixtral 8x7B", 38, INK, weight=600)
+    a += txt(x0, 84, "2 of 8 experts run per token", 28, MUT)
+    for i in range(8):
+        on = i in (2, 5)
+        a += rect(
+            x0 + i * 86, 120, 70, 150, V if on else GREYT, V if on else GREY, 2, rx=4
+        )
+    a += bars(x0, 330, 47, 13)
+
+    # Qwen: 256 experts, 8 routed per token
+    x1 = 900
+    lit = {(3, 1), (9, 5), (14, 2), (17, 6), (21, 0), (24, 4), (28, 3), (30, 7)}
+    b = txt(x1, 40, "Qwen3.5-35B-A3B", 38, INK, weight=600)
+    b += txt(x1, 84, "8 of 256 experts run per token, plus one shared", 28, MUT)
+    for r in range(8):
+        for c in range(32):
+            on = (c, r) in lit
+            b += rect(
+                x1 + c * 21.5,
+                120 + r * 19,
+                17,
+                15,
+                V if on else GREYT,
+                V if on else GREY,
+                1,
+            )
+    b += bars(x1, 330, 35, 3)
+    b += txt(x1, 470, "the name says it: 35B stored, 3B active", 28, MUT)
+    return slide(
+        "moe-at-scale",
+        2,
+        ["3.5"],
+        "At scale, a MoE computes with its used parameters",
+        a + build(b),
+        "Compute per token follows the used parameters, so a large MoE runs like a much smaller dense model. All stored parameters still have to fit in memory.",
+        credit="Jiang et al. (2024), Mixtral of Experts; Qwen3.5-35B-A3B model card.",
+        h=500,
+    )
+
+
 def moe_split():
     cw, ch = 72, 56
     even, band, neutral = 1 / 8, 0.05, "#e4ded5"
@@ -1578,7 +1634,7 @@ def deck():
     )
     out += family() + highway_g() + highway_to_moe()
     out += taken("lesson3-moe.html", "moe-parameters", 2, ["3.5"])
-    out += moe_split() + moe_collapse()
+    out += moe_at_scale() + moe_split() + moe_collapse()
     out += divider(
         "p03",
         3,
