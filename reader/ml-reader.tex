@@ -44,6 +44,10 @@
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\loss}{\mathcal{L}}
 
+% The course's notation page: every symbol and formula of the lessons.
+\newcommand{\notationurl}{https://raoulg.github.io/MADS-MachineLearning-course/notatie.html}
+\newcommand{\notationpage}{\href{\notationurl}{notation page}}
+
 % The recap that closes each part of a lesson.
 \newcommand{\inshort}{\paragraph{In short.}}
 
@@ -68,6 +72,8 @@ This reader accompanies the course Machine Learning. The slides of each lesson a
 The course is not about memorising architectures. Deep learning hands you a tool that is almost too powerful: a network can fit nearly anything, including the accidents in your training data. What I want you to learn is which knobs there are, what each knob assumes about your data, and how to read the curves that tell you whether a choice helped. If you understand that, you can steer a search instead of hoping it finds something.
 
 Each lesson gets its own section, and the sections follow the deck of that lesson: a subsection per part of the deck, and a subsubsection per slide, under the title of that slide. You can read the two side by side. The figures are taken from the decks and from the class page of the lesson. Each lesson starts with what the class found in the lesson before, because that is how the lessons start in the room. The sections are written in the order the lessons are given, so not every lesson is in here yet.
+
+The symbols and formulas in this reader ($\R$, $\circ$, $\partial$, $\eta$, $\Gamma$, $\otimes$, the shapes of tensors) follow the course's \notationpage, \url{\notationurl}. It gathers the symbols and formulas of the lessons in one place, in Dutch: keep it open beside the reader when a formula stops you.
 \newpage
 
 % ─────────────────────────────────────────────
@@ -80,7 +86,7 @@ Lesson 2 opened with a look back at lesson 1. If you came out of the first lesso
 \label{sec:l1-picture}
 
 \subsubsection{Supervised learning: from a photo to its label}
-Figure~\ref{fig:supervised} is the general scheme of everything we do in supervised learning. On the left is a photo. Its type, $\R^{3 \times H \times W}$, says what kind of numbers it is made of and how many. The $\R$ is the set of real numbers: not only whole numbers such as $1, 2, 3$ (those are the natural numbers, $\mathbb{N}$), but every number on the line from minus to plus infinity, $1.3$, $-4.6$, $\pi$. The exponent says how many of them, in which arrangement: three axes, a height $H$, a width $W$ and three colour channels, because a colour photo has a red, a green and a blue plane. So a photo is a cube of real numbers. The notation card of the course lists these symbols.
+Figure~\ref{fig:supervised} is the general scheme of everything we do in supervised learning. On the left is a photo. Its type, $\R^{3 \times H \times W}$, says what kind of numbers it is made of and how many. The $\R$ is the set of real numbers: not only whole numbers such as $1, 2, 3$ (those are the natural numbers, $\mathbb{N}$), but every number on the line from minus to plus infinity, $1.3$, $-4.6$, $\pi$. The exponent says how many of them, in which arrangement: three axes, a height $H$, a width $W$ and three colour channels, because a colour photo has a red, a green and a blue plane. So a photo is a cube of real numbers. The \notationpage{} lists these symbols.
 
 \begin{figure}[H]
 \centering
@@ -96,13 +102,14 @@ The ingredients are few. There is data: a set of inputs $X = \{x_1, \dots, x_n\}
 \[
 \hat y = l_n \circ \sigma \circ \cdots \circ \sigma \circ l_1(x).
 \]
+The $\circ$ means ``after'': apply $l_1$ first, then $\sigma$, and so on to $l_n$; the \notationpage{} has it under \emph{Functies}.
 The encoder does this too, on a much larger scale: in an image model the early layers respond to edges and round corners, later layers combine those into an ear of a cat. Your head does the same on a small scale. A head of one linear layer, the baseline, has no nonlinearity at all; a head with one or more hidden layers does.
 
 Then there is the \emph{loss}, which tells you how wrong the predictions are, in one number: the lower, the better. The mean squared error is an example, $\mathrm{MSE}(y, \hat y) = (y - \hat y)^2$; for classification we use another loss, the cross-entropy. The loss is the compass. The \emph{optimizer} uses it to change the weights:
 \[
 w \leftarrow w - \eta\, \frac{\partial \loss}{\partial w}.
 \]
-The curly $\partial$ means: take the derivative of the loss with respect to the weight. The derivative says in which direction the loss goes down, and that is enough to improve. It is a long game of ``warmer, colder'': as long as the feedback is consistent, you get there. The learning rate $\eta$ says how big a piece of that step you take. Never the whole step: that would be yanking the steering wheel. You correct a little at a time.
+The curly $\partial$ means: take the derivative of the loss with respect to the weight. The derivative says in which direction the loss goes down, and that is enough to improve. It is a long game of ``warmer, colder'': as long as the feedback is consistent, you get there. The learning rate $\eta$ (the Greek letter eta; see the \notationpage) says how big a piece of that step you take. Never the whole step: that would be yanking the steering wheel. You correct a little at a time.
 
 \subsubsection{The optimizer decides how to step downhill}
 Figure~\ref{fig:optimizer} shows three optimizers walking down the same made-up valley over two weights, from the same start. Plain SGD drops quickly into the valley and then crawls along its flat floor; momentum gathers speed along the floor but swings from side to side; Adam scales the step for every weight separately and goes almost straight. They are different ways of steering towards the weights that give you the function you need. Adam is the one we use by default.
@@ -161,7 +168,7 @@ In figure~\ref{fig:noise} a small network learns to separate two colours of poin
 \label{fig:noise}
 \end{figure}
 
-Paradoxically, you make the training data noisier to keep the model from over-specialising. This is not only useful for small datasets. A deep network is a universal model: it can model anything, and the risk is that it focuses on accidental details. Why is this photo a rose? Because there is a blue pixel at exactly that spot in the bottom right. We understand that this is no reason to call something a rose, but for the model it raised the score on the training data. Wiggle the photo a little, flip it now and then, and the blue pixel is sometimes here and sometimes there: the model learns that it cannot trust it. On a cache we cannot flip the photos any more, because we only have vectors; Gaussian noise on the vectors is the version of that trick that works on vectors. Dropout, below, has a similar idea.
+Why would noise make a model better? It sounds strange only if you picture a model that should learn its data as precisely as possible. A deep network has so many parameters that it is a universal function approximator: it can fit any function through the training points, including one that bends around every accident in them. That freedom is the risk, and noise takes it away: a point that moves a little every round cannot be memorised, only the region it lies in. This holds for large datasets as much as for small ones. Why is this photo a rose? Because there is a blue pixel at exactly that spot in the bottom right. We understand that this is no reason to call something a rose, but for the model it raised the score on the training data. Wiggle the photo a little, flip it now and then, and the blue pixel is sometimes here and sometimes there: the model learns that it cannot trust it. On a cache we cannot flip the photos any more, because we only have vectors; Gaussian noise on the vectors is the version of that trick that works on vectors. Dropout, below, has a similar idea.
 
 This is what makes deep learning hard for people: the tool is too powerful. It predicts so well that it finds patterns that don't matter. So you have to set it up not too dumb and not too smart, and that is a craft. If you don't understand what the knobs do, you end up with ``I don't know, I'm just trying things'', which is where some of you were after the first week. We still let an algorithm search, but it helps a lot if you can steer the search, and that is what the whole course is about.
 
@@ -195,7 +202,7 @@ If you make the head wider (more units) or deeper (more layers), it has more wei
 The model is so strong that it can memorise the few thousand photos of the training set: it has so many weights that it can set a group of weights aside for every photo, each group with the task ``I remember this one''. If you double the weights, you roughly need to double the data as well. Not exactly: there are scaling laws, which we meet in lesson 3. That is why the very large language models, gigantic as they are, do not overfit: their data grows with them. Our textures are simply too few for a head of more than about 400 thousand parameters. So the remedy for the third column is not more weights, and not more noise (the class tried that): it is more data. More photos give more vectors, and then a bigger head can train. Flipped and rotated copies of the photos, sent through the encoder again, would be one way. That is something you could have asked me for.
 
 \subsubsection{Dropout: nobody may carry the team alone}
-Dropout switches off a random part of the units in every training step. At first it is counterintuitive that a model gets better if parts of it are not allowed to train. Put yourself in its place. You are a department of ten. What happens if I take one or two of you out at random every lesson, but still hold the group responsible for the result? You prevent that one person over-specialises. Say one of you invented combining two encoders, and the rest think: great, we win as a group anyway. The day I happen to keep that person home, the group's competence collapses. So the group has an incentive to make sure it does not rest on one person. By switching off random units, several units must be able to do the same job; they check each other and share the expertise.
+Dropout switches off a random part of the units in every training step. That a model gets better when parts of it may not train sounds strange only if you think every unit should learn as much as it can. Put yourself in its place. You are a department of ten. What happens if I take one or two of you out at random every lesson, but still hold the group responsible for the result? You prevent that one person over-specialises. Say one of you invented combining two encoders, and the rest think: great, we win as a group anyway. The day I happen to keep that person home, the group's competence collapses. So the group has an incentive to make sure it does not rest on one person. By switching off random units, several units must be able to do the same job; they check each other and share the expertise.
 
 It also explains why dropout belongs with size. A team of five has far too much work to hyper-specialise. In a team of a thousand, someone can say ``I do photo 12, and 30, and 36 and 102'': that is the blue pixel again. With a dropout of 50\%, half of the thousand stay home every day, and nobody knows who: now you have to generalise and work together. And a dropout of 50\% on 64 units leaves 32 at work, while on a thousand units it still leaves 500: large layers can afford much more dropout than small ones. One side effect: units that are switched off do not train in that step, so with more dropout you often need more epochs before every unit has trained as much.
 
@@ -288,7 +295,7 @@ The data has a structure, and we look at it in four ways:
 \label{sec:kernels}
 A kernel makes an assumption about data: that things close to each other influence each other. That holds for a photo and for a heartbeat. It does not hold everywhere. In language, words far apart can matter a lot. ``My cat, which I got from my aunt when she was travelling in South Africa, eats fish'': \emph{eats} is singular because of \emph{my cat}, a dozen words earlier. A kernel assumes that only local things influence each other, or mostly local things.
 
-\subsubsection{A heartbeat as a 1D or 2D tensor}
+\subsubsection{A heartbeat as a series or as an image}
 A heartbeat can be shown in two ways: as one long row of 187 values, or folded into a rectangle, row by row, as if it were an image (figure~\ref{fig:beatfold}). 187 is $11 \times 17$, so you can fold it into 11 rows of 17. The values do not change, but which values are neighbours does: in the fold, the values that lie above and below each other are 17 steps apart on the series.
 
 \begin{figure}[H]
@@ -312,8 +319,8 @@ In space and in time, positions next to each other belong together: in a series 
 \label{fig:axes}
 \end{figure}
 
-\subsubsection{Kernels on 1D tensors}
-Start with a kernel of size 3 that computes a mean: three weights of $\tfrac{1}{3}$ each. Put it on the first three values of the beat, multiply each value by its weight and add them up: that is one output value. Now slide the kernel one step along the beat and do the same, and again, and you get a new signal, a moving average of the heartbeat. The mean smooths everything out. A kernel of 5 with weights of $0.2$ each is a moving average over five values.
+\subsubsection{A kernel along one axis: the 1D convolution}
+A convolution is named after the number of axes its kernel slides along, not after the rank of the tensor. A 1D convolution slides along one axis, the time steps of the beat; one beat is still a tensor of rank 2, $(187, 1)$: 187 positions and one channel. Start with a kernel of size 3 that computes a mean: three weights of $\tfrac{1}{3}$ each. Put it on the first three values of the beat, multiply each value by its weight and add them up: that is one output value. Now slide the kernel one step along the beat and do the same, and again, and you get a new signal, a moving average of the heartbeat. The mean smooths everything out. A kernel of 5 with weights of $0.2$ each is a moving average over five values.
 
 \begin{figure}[H]
 \centering
@@ -326,8 +333,8 @@ Other weights do something else. The weights $-1, 0, 1$ are an \emph{edge detect
 
 The good news: you don't have to invent these weights yourself. In machine learning we say: here is the data, here is the computer, find out which numbers belong in the kernel. What you do have to choose is how big the kernel is, and how many steps it takes. A kernel is local: it combines these five numbers into one, and it looks only at those five, not at the numbers further on.
 
-\subsubsection{Kernels on 2D tensors}
-The same works on images, with a kernel that is a block of $3 \times 3$, sliding along two axes (figure~\ref{fig:kernel2d}). The mean blurs: you still see the cross, but blurred. The kernel with $-1$ on one side and $+1$ on the other reacts mostly to vertical lines; it answers strongest where the line is purely vertical, and less where vertical and horizontal mix. Turn the kernel a quarter and it finds horizontal lines. With stride 2 it moves through faster and the image shrinks: from $9 \times 9$ to $4 \times 4$.
+\subsubsection{A kernel along two axes: the 2D convolution}
+The same works on images, with a kernel that is a block of $3 \times 3$, sliding along two axes, the height and the width (figure~\ref{fig:kernel2d}). That makes it a 2D convolution, but the tensor it reads has three axes: $(C, H, W)$, and a black-and-white image or a folded beat has a channel axis of length one, $(1, 11, 17)$. The mean blurs: you still see the cross, but blurred. The kernel with $-1$ on one side and $+1$ on the other reacts mostly to vertical lines; it answers strongest where the line is purely vertical, and less where vertical and horizontal mix. Turn the kernel a quarter and it finds horizontal lines. With stride 2 it moves through faster and the image shrinks: from $9 \times 9$ to $4 \times 4$.
 
 \begin{figure}[H]
 \centering
@@ -336,7 +343,7 @@ The same works on images, with a kernel that is a block of $3 \times 3$, sliding
 \label{fig:kernel2d}
 \end{figure}
 
-Kernels are 1D or 2D, and both are an operation on your data that makes an assumption about its underlying structure. I'll say it again, because it is important: your data has an underlying structure, and a kernel makes an assumption about what that structure is. The assumption of a kernel is that you can look locally. It is a block of $3 \times 3$, and it does not look left or right, it has no memory, it does not look around.
+Convolutions are 1D or 2D, and both are an operation on your data that makes an assumption about its underlying structure. I'll say it again, because it is important: your data has an underlying structure, and a kernel makes an assumption about what that structure is. The assumption of a kernel is that you can look locally. It is a block of $3 \times 3$, and it does not look left or right, it has no memory, it does not look around.
 
 In a real network you do not apply one kernel but many. You say: my kernel size is 3, my stride is 1 or 2, and I want 64 of them. The network then makes 64 kernels and works out 64 times what the weights should be. On an image of three colour channels the kernel stretches over all channels, like a small cube that slides over the image: a 2D convolution, because it moves in height and width. These kernels are very efficient: however big the image, a $3 \times 3$ kernel has only nine weights to learn per channel. And what do they learn? Patterns. To recognise a cat you need lines, stripes, colours, whiskers, and the kernels find those; a kernel can also react to red corners or skin-coloured stripes.
 
@@ -475,7 +482,7 @@ The skip was introduced for images in 2015 (He, Zhang, Ren and Sun, \emph{Deep R
 \end{figure}
 
 \subsubsection{A gate controls the flow of data}
-A \emph{gate} is written with the capital Greek letter gamma, $\Gamma$: a G for gate. A gate has the same shape as your data, and every value in it lies between 0 and 1: between 0\% and 100\%. The network computes it from its input with a sigmoid, which is why it never leaves that range. Multiply your data element by element with the gate: where the gate is 0, nothing of that element passes, it is blocked completely; where it is 1, everything passes; in between, a fraction. A gate can be half open, or open in one part and closed in another.
+A \emph{gate} is written with the capital Greek letter gamma, $\Gamma$: a G for gate. The \notationpage{} lists $\Gamma$ and the element-wise product $\otimes$ that goes with it. A gate has the same shape as your data, and every value in it lies between 0 and 1: between 0\% and 100\%. The network computes it from its input with a sigmoid, which is why it never leaves that range. Multiply your data element by element with the gate: where the gate is 0, nothing of that element passes, it is blocked completely; where it is 1, everything passes; in between, a fraction. A gate can be half open, or open in one part and closed in another.
 
 \begin{figure}[H]
 \centering
@@ -506,7 +513,7 @@ h_t = \Gamma_t \otimes x_t + (1 - \Gamma_t) \otimes h_{t-1}.
 \]
 Gate fully open for the input: the state is only ever the latest input, there is no memory. Fully closed: nothing new gets in and the start state just passes through. Half: a ghost of the earlier inputs lingers and fades. And a gate that opens only for crosses keeps the last cross and ignores everything else: a gate that has learned what is worth remembering. In a real network the gate is computed from the input and the state by the network itself.
 
-With images, the underlying assumption is never that there is time in the picture; that is what kernels are for. When the assumption is a flow of data (sensor data, audio, a story, a heartbeat), it is usually logical to open and close gates at certain moments in time, blocking and opening certain streams. A heartbeat of 187 time steps, read from the start, is a very deep model: it has to remember for 187 steps where it is in the beat. Are we rising? Falling? Past the peak, in a valley? To do that well, a sequence model needs exactly such a parallel structure with gates inside, and that is the GRU, the gated recurrent unit: it is what lets a recurrent model scan the whole length of the series.
+With images, the underlying assumption is never that there is time in the picture; that is what kernels are for. When the assumption is a flow of data (sensor data, audio, a story, a heartbeat), it is usually logical to open and close gates at certain moments in time, blocking and opening certain streams. A heartbeat of 187 time steps, read from the start, is a very deep model: it has to remember for 187 steps where it is in the beat. Are we rising? Falling? Past the peak, in a valley? To do that well, a sequence model needs exactly such a parallel structure with gates inside, and that is the GRU, the gated recurrent unit: it is what lets a recurrent model scan the whole length of the series. The \notationpage{} writes the GRU out in three lines: the gate, a candidate state $\tilde h_t$, and the new state that mixes the two.
 
 \subsubsection{Kernel and gates compared}
 The two are easy to confuse, so side by side (figure~\ref{fig:scangate}). A kernel \emph{scans}: a window slides along the axis, looks at neighbours and uses the same weights everywhere; the axis can get shorter. A gate \emph{weighs}: one multiplier per element, between 0 and 1, and nothing moves, so the shape stays exactly the same. The kernel is a scanner, the gate is a door. You can use both in one model.
@@ -552,7 +559,7 @@ Squeeze-excite runs a parallel route next to the channels (figure~\ref{fig:squee
 
 The narrowness is the point. You force the model to summarise hard, and then to recreate the 160 from the summary: you force it to hallucinate. You cannot throw away more than 90\% of your data without guessing, and the only way to guess well is to learn statistical patterns in the data, how often things occur together. If I see no cat's nose, no fur, no whiskers, it is just not a cat; it happens so rarely that you see cat ears without all of that, that the model ignores them. With a factor of 2 the model would not get into trouble; with a factor of 16 it has to. It works the other way too. If I wear a hat and you cannot see my ears, you don't panic that I am not a person: everyone knows there is an ear under there. You have a conceptual model of how people are put together, and one ear makes the other expected. So after squeeze-excite the model is sure it saw a face; the cat ears are turned down because there was no fur; and it saw a left ear, so it brings the right ear forward too.
 
-This is not applied to the data directly. That would break it. The output is a gate that tunes the original channels a little: some are turned down, others turned up. It is an ingenious trick and a bit counterintuitive, because the bottleneck causes hallucinations, and we use exactly that, because the hallucinations have to be based on statistical patterns, to correct confusion. I don't claim it always works or works for every kind of data. In the original SENet the block sits inside every residual block; for the small models of this course I would start with one, near the end of the model, where the channels already mean something and the model is nearly done, to adjust it.
+This is not applied to the data directly. That would break it. The output is a gate that tunes the original channels a little: some are turned down, others turned up. It is an ingenious trick: the bottleneck forces the model to guess, the guesses rest on statistical patterns, and those patterns are what corrects the confusion. I don't claim it always works or works for every kind of data. In the original SENet the block sits inside every residual block; for the small models of this course I would start with one, near the end of the model, where the channels already mean something and the model is nearly done, to adjust it.
 
 \subsubsection{Parallel architectures}
 Figure~\ref{fig:family} draws them all in one shape: an input splits into parallel routes, a gate decides how much of each route passes, and a join brings them together. The skip is the simplest: the gate is always open. The highway puts a learned gate on a block and on its own input, so the model can choose to do nothing or to do the complicated thing; if it messes up the complicated part, the other stream can still save it. Because each layer has that escape route, you can repeat it, say, ten times and go deep. The GRU is the same mix along a sequence. Squeeze-excite computes its gate in a side route.
