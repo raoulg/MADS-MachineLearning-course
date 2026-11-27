@@ -45,7 +45,7 @@ instead of holding one nearly fixed, and found models had been far too large for
 data — a 70B model beating a 280B one. **A widely believed empirical law was wrong because
 of how the experiment was designed, and the fix required no new idea, only a more careful
 measurement.** That is this course's standard, at a scale of millions of dollars, and it
-rhymes with what `02_scaling_curves` measures on a laptop: data is the axis that moves.
+rhymes with what `01_scaling_curves` measures on a laptop: data is the axis that moves.
 
 **L4 — Vaswani et al.** The mechanism `01_attention` derives by hand before importing it.
 

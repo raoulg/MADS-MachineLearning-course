@@ -1,4 +1,4 @@
-"""The tools of `01_mixture_of_experts`: load the seven-domain mix, train a head on it, and
+"""The tools of `02_mixture_of_experts`: load the seven-domain mix, train a head on it, and
 time a head per image.
 
 A head is trained with AdamW (learning rate 1e-3, weight decay 0.05), label smoothing 0.1,

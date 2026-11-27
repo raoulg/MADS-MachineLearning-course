@@ -26,7 +26,7 @@ The choices of this design, each a bet about the data:
 - `gate`: a gate on the output of the hidden layers (lesson 2);
 - `norm`, `dropout`: a norm and dropout in every hidden layer; dropout sets a share of
   the hidden numbers to zero at random while training;
-- `moe`: `n_experts` heads behind a router that runs one of them per image (3.1).
+- `moe`: `n_experts` heads behind a router that runs one of them per image (3.2).
 
 In a shape, `*form` stands for any number of axes: `"batch 2 *form"` is `(batch, 2, 384)`
 from the flat loader and `(batch, 2, 16, 24)` from the grid.

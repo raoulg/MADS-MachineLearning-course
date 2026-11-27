@@ -85,8 +85,8 @@ bronvermelding.
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 3.1, 3.5 | mixture of experts, de control, opgeslagen en gebruikte parameters (3.4 op de slides) | `01_mixture_of_experts` |
-| 3.2, 3.3, 3.10 | scaling laws, gewichten en data samen, eigen curves | `02_scaling_curves` |
+| 3.2, 3.3, 3.10 | scaling laws, gewichten en data samen, eigen curves | `01_scaling_curves` |
+| 3.1, 3.5 | mixture of experts, de control, opgeslagen en gebruikte parameters (3.4 op de slides) | `02_mixture_of_experts` |
 | 3.6, 3.7 | random tegen TPE, successive halving en zijn valkuil (grid, populatie en de groei van een zoekruimte op de slides) | `03_search_on_a_budget` |
 | 3.8, 3.9 | learning rate scheduler, Pareto front | slides |
 | 3.11, 3.12 | de klasopdracht | `05_exercise`, `exercises/` |

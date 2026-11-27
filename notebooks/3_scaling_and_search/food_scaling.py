@@ -1,4 +1,4 @@
-"""The tools of `02_scaling_curves` and its stored sweep: heads on Food-101's dinov2-large
+"""The tools of `01_scaling_curves` and its stored sweep: heads on Food-101's dinov2-large
 vectors, trained on a growing share of the train images.
 
 The data is `pttrn-io/food101-dinov2-large`: one 1024-dim vector per image from a frozen
