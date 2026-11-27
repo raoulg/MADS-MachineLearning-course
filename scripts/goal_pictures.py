@@ -1077,7 +1077,7 @@ g += (
     + t(272, 166, "(B, L, D)", "m")
     + t(200, 212, "gewicht naar relevantie, niet naar afstand", "c", "middle")
 )
-PICTURES["4.1"] = ("Wegen naar relevantie", g)
+PICTURES["4.1"] = ("Attention: een gewogen som van alle posities", g)
 
 # 4.2 kernel, state and attention on the same axis; attention needs positions
 s = 22
@@ -1104,10 +1104,12 @@ for y, name, sub in (
 ):
     g += t(14, y + 9, name, "l v") + t(14, y + 25, sub, "c")
 g += t(304, 168, "+ positional", "c") + t(304, 184, "encoding", "c")
-g += t(200, 212, "zonder positie kent attention geen volgorde", "c", "middle")
-PICTURES["4.2"] = ("Drie manieren langs een as", g)
+g += t(
+    200, 212, "zonder positional encoding kent attention geen volgorde", "c", "middle"
+)
+PICTURES["4.2"] = ("Kernel, state en attention op één as", g)
 
-# 4.3 one step across any distance, and an L x L weight matrix as the price
+# 4.3 one step across any distance, and an L x L matrix of attention weights as the price
 g = t(94, 34, "winst", "l", "middle") + t(298, 34, "kosten", "l", "middle")
 g += row(24, 110, 7, 20) + path("M 34 108 Q 94 40 154 108", "v", 2.5)
 g += t(94, 66, "1 stap", "l v", "middle") + t(
@@ -1120,47 +1122,60 @@ for gx, gy, n in ((222, 90, 4), (290, 50, 8)):
     )
 g += t(242, 150, "L = 4", "m", "middle") + t(330, 150, "L = 8", "m", "middle")
 g += t(242, 168, "16", "m v", "middle") + t(330, 168, "64", "m v", "middle")
-g += t(200, 212, "dubbele lengte, vier keer zoveel gewichten", "c", "middle")
-PICTURES["4.3"] = ("Overal één stap, kwadratisch", g)
+g += t(200, 212, "dubbele lengte, vier keer zoveel rekenwerk", "c", "middle")
+PICTURES["4.3"] = ("Eén stap naar elke positie, kwadratisch rekenwerk", g)
 
-# 4.4 three heads weigh the same tokens differently; the mask zeroes the padding
+# 4.4 one row of attention weights over five tokens and three padding positions at zero
 s = 26
 x0 = 110
-g = row(x0, 46, 5, s, {i: PT for i in range(5)})
-g += "".join(
-    cell(x0 + i * s, 46, s, SOFT, RULE, 1)
-    + t(x0 + i * s + s / 2, 63, "pad", "n", "middle")
-    for i in range(5, 8)
-)
-g += t(14, 63, "tokens", "m")
+l4_tokens = row(x0, 46, 5, s, {i: PT for i in range(5)}) + t(14, 63, "tokens", "m")
 l4_heads = [
     [0.2, 0.6, 1.0, 0.3, 0.1],
     [0.9, 0.1, 0.2, 0.1, 0.6],
     [0.1, 0.3, 0.2, 1.0, 0.5],
 ]
+
+
+def l4_weights(y: float, ws: list[float]) -> str:
+    out = ""
+    for i, w in enumerate(ws):
+        x = x0 + i * s
+        h = 22 * w
+        out += cell(x, y, s, BG, RULE, 1)
+        out += f'<rect x="{x + 4}" y="{y + 24 - h:.1f}" width="{s - 8}" height="{h:.1f}" fill="{VT}" stroke="{V}" stroke-width="1.5"/>'
+    return out
+
+
+g = l4_tokens + "".join(
+    cell(x0 + i * s, 46, s, SOFT, RULE, 1)
+    + t(x0 + i * s + s / 2, 63, "pad", "n", "middle")
+    for i in range(5, 8)
+)
+g += t(14, 127, "gewicht", "m") + l4_weights(110, l4_heads[0])
+g += "".join(
+    cell(x0 + i * s, 110, s, SOFT, RULE, 1)
+    + t(x0 + i * s + s / 2, 128, "0", "m v", "middle")
+    for i in range(5, 8)
+)
+g += f'<rect x="{x0 + 5 * s - 3}" y="43" width="{3 * s + 6}" height="96" fill="none" stroke="{V}" stroke-width="2" stroke-dasharray="5 4"/>'
+g += t(x0 + 6.5 * s, 34, "mask", "l v", "middle")
+g += t(200, 190, "padding krijgt gewicht nul", "c", "middle")
+PICTURES["4.4"] = ("Mask: padding telt niet mee", g)
+
+# 4.5 three heads weigh the same five tokens differently
+g = l4_tokens
 for k, ws in enumerate(l4_heads):
     y = 88 + k * 32
-    g += t(14, y + 17, f"head {k + 1}", "m")
-    for i in range(8):
-        x = x0 + i * s
-        if i < 5:
-            h = 22 * ws[i]
-            g += cell(x, y, s, BG, RULE, 1)
-            g += f'<rect x="{x + 4}" y="{y + 24 - h:.1f}" width="{s - 8}" height="{h:.1f}" fill="{VT}" stroke="{V}" stroke-width="1.5"/>'
-        else:
-            g += cell(x, y, s, SOFT, RULE, 1) + t(
-                x + s / 2, y + 18, "0", "m v", "middle"
-            )
-g += f'<rect x="{x0 + 5 * s - 3}" y="43" width="{3 * s + 6}" height="138" fill="none" stroke="{V}" stroke-width="2" stroke-dasharray="5 4"/>'
-g += t(x0 + 6.5 * s, 34, "mask", "l v", "middle")
-g += t(200, 210, "padding krijgt gewicht nul, in elke head", "c", "middle")
-PICTURES["4.4"] = ("Mask en heads", g)
+    g += t(14, y + 17, f"head {k + 1}", "m") + l4_weights(y, ws)
+g += t(260, 105, "elke head", "c") + t(260, 123, "eigen parameters", "c")
+g += t(200, 210, "dezelfde tokens, drie keer anders gewogen", "c", "middle")
+PICTURES["4.5"] = ("Multi-head: meerdere gewogen sommen", g)
 
-# 4.5 the same sentence as letter, subword and word tokens under a 4-token budget
+# 4.6 the same sentence as letter, subword and word tokens in a context window of 4 tokens
 l4_text = "de rechter verwierp het"
 l4_cw = 7.5
 x0 = 100
-g = t(x0, 38, "budget: 4 tokens", "l v")
+g = t(x0, 38, "context window: 4 tokens", "l v")
 for y, name, toks in (
     (54, "letters", list(l4_text)),
     (100, "subword", ["de", " recht", "er", " ver", "wierp", " het"]),
@@ -1174,9 +1189,9 @@ for y, name, toks in (
     g += t(14, y + 15.5, name, "l") + t(x0, y + 15.5, l4_text, "m")
     g += t(286, y + 15.5, f"{len(toks)} tokens", "m")
 g += t(200, 205, "hoeveel tekst past, hangt af van de tokenizer", "c", "middle")
-PICTURES["4.5"] = ("Tokens zijn een budget", g)
+PICTURES["4.6"] = ("Tokens en het context window", g)
 
-# 4.6 a long document cut into overlapping chunks becomes a (chunks, dim) matrix
+# 4.7 a long document cut into overlapping chunks becomes a (chunks, dim) matrix
 l4_starts = [14, 85, 156, 227, 298]
 g = t(14, 34, "document, 2400 tokens", "m")
 g += f'<rect x="14" y="44" width="372" height="14" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
@@ -1194,9 +1209,9 @@ g += t(14, 155, "(5, 512)", "m") + arrow(80, 150, 108, 150)
 g += box(112, 136, 92, 28, "encoder", "p", PT) + arrow(206, 150, 234, 150)
 g += grid(240, 128, 5, 8, 9) + t(320, 155, "(5, dim)", "m")
 g += t(200, 205, "kleinere chunks of meer overlap: meer rekentijd", "c", "middle")
-PICTURES["4.6"] = ("Te lang: chunken", g)
+PICTURES["4.7"] = ("Een lang document wordt (chunks, dim)", g)
 
-# 4.7 padding rows at zero pull a plain mean towards the origin; a masked mean does not
+# 4.8 padding rows at zero pull a plain mean towards the origin; a masked mean does not
 g = t(24, 40, "kort document", "c")
 for r in range(5):
     y = 50 + r * 16
@@ -1214,10 +1229,10 @@ g += dot(290, 60) + t(299, 57, "1", "n") + dot(350, 110) + t(359, 107, "2", "n")
 g += dot(254, 140.8, 6, BG, V) + t(264, 146, "gewoon gemiddelde", "c")
 g += dot(320, 85, 6, VT, V) + t(330, 92, "masked", "l v")
 g += t(200, 212, "padding trekt het gemiddelde naar de oorsprong", "c", "middle")
-PICTURES["4.7"] = ("Padding trekt naar nul", g)
+PICTURES["4.8"] = ("Padding verstoort een gewoon gemiddelde", g)
 
 
-# 4.8 two streams as circles: only the part the embedding lacks adds anything
+# 4.9 two streams as circles: only the part the embedding lacks adds anything
 def l4_crescent(xa: float, xb: float, y: float, r: float) -> str:
     xm = (xa + xb) / 2
     h = (r * r - ((xb - xa) / 2) ** 2) ** 0.5
@@ -1239,10 +1254,10 @@ g += t(345, 110, "nieuw", "l v", "middle") + line("M 190 40 L 190 160", RULE, 1)
 g += t(95, 180, "overlap: geen winst", "l", "middle") + t(
     295, 180, "complementair: winst", "l v", "middle"
 )
-g += t(200, 210, "meer parameters is geen reden", "c", "middle")
-PICTURES["4.8"] = ("Fusie vraagt nieuwe informatie", g)
+g += t(200, 210, "zonder nieuwe informatie voegt een stroom niets toe", "c", "middle")
+PICTURES["4.9"] = ("Een tweede stroom helpt met nieuwe informatie", g)
 
-# 4.9 the pipeline from document to one vector, with the shape after every step
+# 4.10 the pipeline from document to one vector, with the shape after every step
 g = ""
 l4_steps = [
     ("document", "g", "(T,)"),
@@ -1257,10 +1272,10 @@ for k, (name, c, shape) in enumerate(l4_steps):
     g += arrow(168, y + 11, 196, y + 11) + t(202, y + 15.5, shape, "m")
     if k < 4:
         g += arrow(94, y + 23, 94, y + 37)
-g += t(200, 214, "schrijf de shape op vóór elke stap", "c", "middle")
-PICTURES["4.9"] = ("Van document naar vector", g)
+g += t(200, 214, "de shape na elke stap", "c", "middle")
+PICTURES["4.10"] = ("Van document naar één vector", g)
 
-# 4.10 a table of controls: drop one stream per row, read the score against the spread
+# 4.11 the same model three times: with both streams, and without each one
 g = t(130, 40, "embedding", "c", "middle") + t(190, 40, "feature", "c", "middle")
 g += t(310, 40, "score", "l", "middle")
 g += line("M 240 166 L 380 166", RULE, 1)
@@ -1285,35 +1300,23 @@ for k, (name, on, sc) in enumerate(
         P,
     ) + dot(sc, y, 5, VT if k == 0 else PT, V if k == 0 else P)
 g += t(310, 182, "spreiding tussen runs", "c", "middle")
-g += t(200, 208, "één variabele tegelijk, de rest blijft gelijk", "c", "middle")
-PICTURES["4.10"] = ("De control beslist", g)
+g += t(200, 208, "hetzelfde model, steeds zonder één stroom", "c", "middle")
+PICTURES["4.11"] = ("Wat draagt elke stroom bij?", g)
 
-# 4.11 the search loops over train and valid; test is touched once at the end
-g = t(20, 32, "search", "l v")
-g += box(20, 40, 240, 30, "chunk × padding × aggregatie", "v", VT, "c")
-g += path("M 120 72 L 120 146") + path("M 250 148 L 250 74")
-g += t(185, 114, "24 trials", "c", "middle")
-for x, w, name in ((20, 210, "train"), (230, 70, "valid"), (300, 80, "test")):
-    g += box(x, 150, w, 26, name, "p", PT if name != "test" else BG)
-g += path("M 262 55 C 340 55, 340 90, 340 146", "v", 2)
-g += t(352, 106, "1×", "big v")
-g += t(200, 208, "rapporteer op de split die de search nooit zag", "c", "middle")
-PICTURES["4.11"] = ("Test pas aan het eind", g)
-
-# 4.12 the class design puts attention over chunks; the class publishes and builds on it
+# 4.12 the class design puts attention over chunks; below it, few examples for most classes
 g = t(14, 32, "ontwerp", "c")
 g += box(14, 42, 72, 28, "uitspraak", "g", BG, "c") + arrow(88, 56, 106, 56)
 g += row(110, 45, 4, 22, {i: PT for i in range(4)}) + arrow(200, 56, 220, 56)
 g += box(224, 42, 80, 28, "attention", "v", VT) + arrow(306, 56, 326, 56)
 g += box(330, 42, 56, 28, "head", "p")
 g += t(264, 88, "over chunks", "c", "middle")
-g += t(14, 108, "als klas", "c")
-g += box(14, 116, 110, 28, "publiceren", "p") + arrow(126, 130, 150, 130)
-g += box(154, 116, 100, 28, "bekijken", "p") + arrow(256, 130, 276, 130)
-g += box(280, 116, 106, 28, "voortbouwen", "v", VT)
-g += path("M 333 146 C 333 192, 69 192, 69 146", "v", 2.5)
-g += t(200, 204, "met bronvermelding", "l v", "middle")
-PICTURES["4.12"] = ("SCOTUS als klas", g)
+g += t(14, 112, "voorbeelden per klasse", "c")
+for i, h in enumerate((62, 50, 38, 24, 16, 11, 8, 6, 5, 4, 3, 3, 2)):
+    g += f'<rect x="{14 + i * 22}" y="{186 - h}" width="16" height="{h}" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
+g += line("M 14 186 L 300 186", MUT, 1)
+g += t(386, 150, "13 klassen,", "c", "end") + t(386, 168, "de meeste klein", "c", "end")
+g += t(200, 212, "lange documenten, weinig voorbeelden per klasse", "c", "middle")
+PICTURES["4.12"] = ("Een ontwerp voor de SCOTUS-uitspraken", g)
 
 
 def l5_square(x: float, y: float, fill: str = PT, stroke: str = P, r: float = 6) -> str:
@@ -1335,15 +1338,68 @@ g += t(386, 40, "voorspeld", "c", "end")
 g += row(24, 140, 8, 22, {5: VT, 6: VT}) + t(24, 182, "dezelfde data, compleet", "c")
 g += path("M 156 140 C 156 105, 364 120, 364 76", "v", 2.5)
 g += t(276, 134, "het doel", "l v")
-g += t(200, 210, "geen labels: de data levert het antwoord", "c", "middle")
-PICTURES["5.1"] = ("De data levert het antwoord", g)
+g += t(200, 210, "geen labels nodig: het doel komt uit de data", "c", "middle")
+PICTURES["5.1"] = ("Pretext task: het doel komt uit de data", g)
 
-# 5.2 the same items ordered by two pretext tasks: by colour or by shape
+# 5.2 a funnel from input to a narrow latent and back, the loss closing on the input
+g = "".join(cell(80, 40 + i * 16, 16, PT) for i in range(8))
+g += f'<polygon points="100,40 190,88 190,120 100,168" fill="{BG}" stroke="{P}" stroke-width="2"/>'
+g += "".join(cell(198, 88 + i * 16, 16, VT, V) for i in range(2))
+g += f'<polygon points="222,88 312,40 312,168 222,120" fill="{BG}" stroke="{P}" stroke-width="2"/>'
+g += "".join(cell(316, 40 + i * 16, 16, PT) for i in range(8))
+g += t(145, 108, "encoder", "l p", "middle") + t(267, 108, "decoder", "l p", "middle")
+g += t(88, 32, "invoer", "c", "middle") + t(324, 32, "uitvoer", "c", "middle")
+g += t(206, 80, "latent", "c", "middle")
+g += path("M 324 172 C 324 202, 88 202, 88 174", "v", 2.5)
+g += t(206, 188, "loss", "l v", "middle")
+g += t(200, 216, "de loss vergelijkt de uitvoer met de invoer", "c", "middle")
+PICTURES["5.2"] = ("Autoencoder: de invoer is het doel", g)
+
+
+def raw(x: float, y: float, s: str, cls: str = "l", anchor: str = "start") -> str:
+    """Text whose content is markup: a tspan for a subscript or a superscript."""
+    return f'<text x="{x}" y="{y}" class="{cls}" text-anchor="{anchor}">{s}</text>'
+
+
+def subscript(k: str) -> str:
+    return f'<tspan font-size="10" dy="4">{k}</tspan><tspan dy="-4">\u200b</tspan>'
+
+
+RD = 'ℝ<tspan font-size="11" dy="-7">d</tspan><tspan dy="7">\u200b</tspan>'
+
+
+def node(
+    cx: float, cy: float, label: str, c: str = "p", w: float = 76, cls: str = "big"
+) -> str:
+    col = {"p": P, "v": V}[c]
+    return (
+        f'<rect x="{cx - w / 2}" y="{cy - 17}" width="{w}" height="34" fill="{BG}" stroke="{col}" stroke-width="2"/>'
+        + raw(cx, cy + (5.5 if cls == "big" else 4.5), label, cls, "middle")
+    )
+
+
+# 5.3 the commuting square of lesson 1 with x twice: two views, one encoder, one vector space
+def l5_square_of_views(corner: str) -> str:
+    out = node(70, 52, "x") + node(300, 52, f"φ{subscript('1')}(x)")
+    out += node(70, 152, f"φ{subscript('2')}(x)") + corner
+    out += arrow(112, 52, 258, 52) + raw(185, 42, f"φ{subscript('1')}", "big", "middle")
+    out += arrow(70, 72, 70, 130) + raw(50, 106, f"φ{subscript('2')}", "big", "middle")
+    out += arrow(300, 72, 300, 130) + t(312, 106, "g", "big")
+    out += arrow(112, 152, 258, 152) + t(185, 142, "g", "big", "middle")
+    return out
+
+
+g = l5_square_of_views(node(300, 152, RD, "v"))
+g += t(185, 76, "augmentatie", "c", "middle") + t(185, 172, "encoder", "c", "middle")
+g += t(185, 108, "loss: komen beide routes", "c v", "middle")
+g += t(185, 124, "op dezelfde vector uit?", "c v", "middle")
+g += t(200, 212, "de vector van de ene view is het doel voor de andere", "c", "middle")
+PICTURES["5.3"] = ("Twee views van hetzelfde item", g)
+
+# 5.4 the same items in two spaces: what the augmentation changes no longer separates them
 g = l5_panel(20, 28, 170, 142) + l5_panel(210, 28, 170, 142)
-g += t(105, 48, "reconstructie", "l", "middle") + t(
-    295, 48, "contrastief", "l", "middle"
-)
-g += t(295, 66, "augmentatie: kleur", "c", "middle")
+g += raw(105, 48, "φ verandert de vorm", "l", "middle")
+g += raw(295, 48, "φ verandert de kleur", "l", "middle")
 for x, y, sq, dark in (
     (50, 92, False, True),
     (72, 86, True, True),
@@ -1364,107 +1420,44 @@ for x, y, sq, dark in (
 ):
     fill = P if dark else BG
     g += l5_square(x, y, fill) if sq else dot(x, y, 6, fill)
-g += t(105, 160, "vergeet de vorm", "l v", "middle") + t(
-    295, 160, "vergeet de kleur", "l v", "middle"
+g += t(105, 160, "vorm verdwijnt", "l v", "middle")
+g += t(295, 160, "kleur verdwijnt", "l v", "middle")
+g += raw(200, 194, "g(φ(x)) ≈ g(x)", "big", "middle")
+g += t(200, 216, "wat φ verandert, onderscheidt de encoder niet meer", "c", "middle")
+PICTURES["5.4"] = ("De encoder wordt ongevoelig voor φ", g)
+
+# 5.5 the same square with a one-point space in the corner: every route agrees, nothing is learned
+ONE = ""
+g = l5_square_of_views(node(300, 152, ONE, "v"))
+g += line(
+    "M 291 147 L 297 142 L 297 162 M 303 142 L 303 162 M 297 142 L 303 142 M 291 162 L 309 162",
+    INK,
+    1.8,
 )
-g += t(200, 208, "de pretext task kiest wat de ruimte vergeet", "c", "middle")
-PICTURES["5.2"] = ("Kiezen wat de ruimte vergeet", g)
+g += t(346, 148, "één", "c v") + t(346, 164, "punt", "c v")
+g += t(185, 108, "g geeft elk item dezelfde vector:", "c v", "middle")
+g += t(185, 124, "beide routes zijn altijd gelijk", "c v", "middle")
+g += t(200, 212, "loss laag, spreiding nul, niets geleerd", "c", "middle")
+PICTURES["5.5"] = ("Collapse: elk item dezelfde vector", g)
 
-# 5.3 a funnel from input to a narrow latent and back, the loss closing on the input
-g = "".join(cell(80, 40 + i * 16, 16, PT) for i in range(8))
-g += f'<polygon points="100,40 190,88 190,120 100,168" fill="{BG}" stroke="{P}" stroke-width="2"/>'
-g += "".join(cell(198, 88 + i * 16, 16, VT, V) for i in range(2))
-g += f'<polygon points="222,88 312,40 312,168 222,120" fill="{BG}" stroke="{P}" stroke-width="2"/>'
-g += "".join(cell(316, 40 + i * 16, 16, PT) for i in range(8))
-g += t(145, 108, "encoder", "l p", "middle") + t(267, 108, "decoder", "l p", "middle")
-g += t(88, 32, "invoer", "c", "middle") + t(324, 32, "uitvoer", "c", "middle")
-g += t(206, 80, "latent", "c", "middle")
-g += path("M 324 172 C 324 202, 88 202, 88 174", "v", 2.5)
-g += t(206, 188, "loss", "l v", "middle")
-g += t(200, 216, "het doel is de invoer zelf", "c", "middle")
-PICTURES["5.3"] = ("Smal midden, invoer als doel", g)
-
-# 5.4 one item, two augmentations, one shared encoder, two vectors pulled together
-g = t(39, 86, "item", "c", "middle") + grid(18, 94, 3, 3, 14)
-g += arrow(62, 106, 92, 74) + arrow(62, 124, 92, 156)
-g += box(96, 54, 52, 30, "aug 1", "v", VT) + box(96, 146, 52, 30, "aug 2", "v", VT)
-g += arrow(150, 69, 168, 69) + arrow(150, 161, 168, 161)
-g += "".join(
-    row(172, 51 + r * 12, 3, 12, {(r + 1) % 3: PT}) for r in range(3)
-) + "".join(row(172, 143 + r * 12, 3, 12, {r: PT}) for r in range(3))
-g += arrow(210, 69, 232, 69) + arrow(210, 161, 232, 161)
-g += box(236, 50, 68, 130, "encoder", "p", PT) + t(270, 138, "gedeeld", "c", "middle")
-g += arrow(306, 69, 326, 69) + arrow(306, 161, 326, 161)
-g += dot(334, 69, 6) + dot(334, 161, 6)
-g += line("M 334 80 L 334 104 M 334 126 L 334 150", V, 2)
-g += t(386, 120, "samen", "l v", "end")
-g += t(200, 208, "wat de augmentatie verandert, vergeet de ruimte", "c", "middle")
-PICTURES["5.4"] = ("Twee views, één encoder", g)
-
-# 5.5 three moments of training: the loss falls while the vectors shrink to one point
-g = ""
-for i, (ep, scale, lo, sp) in enumerate(
-    (
-        ("epoch 1", 1.0, "2.3", "0.9"),
-        ("epoch 10", 0.4, "1.1", "0.4"),
-        ("epoch 50", 0.0, "0.1", "0.0"),
-    )
-):
-    cx = 75 + i * 125
-    g += l5_panel(cx - 55, 28, 110, 108) + t(cx, 46, ep, "c", "middle")
-    for k, (dx, dy) in enumerate(
-        ((-35, -22), (-10, -30), (25, -18), (35, 10), (10, 30), (-25, 25), (0, 0))
-    ):
-        if scale:
-            g += dot(cx + dx * scale, 92 + dy * scale, 5)
-        else:
-            g += dot(cx + k * 0.6, 92, 6, VT, V)
-    g += t(cx, 156, f"loss {lo}", "m p", "middle")
-    g += t(cx, 176, f"spreiding {sp}", "m v", "middle")
-g += t(200, 208, "meet de spreiding, niet de loss", "c", "middle")
-PICTURES["5.5"] = ("Collapse: alles op één punt", g)
-
-# 5.6 a tidy-looking space the probe cannot split next to a messy one it can
-g = l5_panel(20, 26, 170, 124) + l5_panel(210, 26, 170, 124)
-for x, y in ((64, 78), (78, 92), (134, 100), (148, 114)):
-    g += dot(x, y)
-for x, y in ((76, 76), (62, 94), (146, 98), (132, 114)):
-    g += l5_square(x, y)
-g += line("M 88 140 L 122 36", V, 2, "5 4")
-for x, y in ((240, 90), (260, 125), (290, 130), (230, 135), (322, 140)):
-    g += dot(x, y)
-for x, y in ((280, 50), (320, 70), (350, 95), (300, 42), (362, 70)):
-    g += l5_square(x, y)
-g += line("M 220 40 L 370 140", V, 2)
-g += t(105, 168, "strak geclusterd", "l", "middle") + t(
-    295, 168, "verspreid", "l", "middle"
+# 5.6 JEPA as the same square: mask instead of augmentation, a predictor, a target encoder
+g = node(60, 52, "x", "p", 56) + node(186, 52, "zichtbaar", "p", 92, "l")
+g += node(330, 52, RD, "p", 64) + node(60, 152, "verborgen", "p", 92, "l")
+g += node(330, 152, RD, "v", 64)
+g += arrow(90, 52, 138, 52) + t(114, 42, "mask", "c", "middle")
+g += arrow(234, 52, 296, 52) + t(265, 42, "g", "big", "middle")
+g += arrow(60, 72, 60, 130)
+g += (
+    arrow(330, 72, 330, 130)
+    + t(342, 106, "h", "big")
+    + t(318, 106, "predictor", "c", "end")
 )
-g += t(105, 188, "probe 50 %", "m v", "middle") + t(
-    295, 188, "probe 92 %", "m v", "middle"
-)
-g += t(200, 214, "lees de ruimte af aan de probe", "c", "middle")
-PICTURES["5.6"] = ("De probe is de meetlat", g)
+g += arrow(108, 152, 296, 152) + t(202, 142, "g′", "big", "middle")
+g += t(202, 186, "target encoder, geen gradient", "c", "middle")
+g += t(200, 212, "de loss vergelijkt vectoren, geen pixels", "c", "middle")
+PICTURES["5.6"] = ("JEPA: voorspel de vector van het verborgen deel", g)
 
-# 5.7 two pipelines: the autoencoder loss sits on pixels, the JEPA loss on latent vectors
-g = t(20, 30, "autoencoder", "l") + grid(20, 40, 3, 3, 12)
-g += arrow(58, 58, 72, 58) + box(76, 42, 78, 32, "encoder", "p", PT)
-g += arrow(156, 58, 170, 58) + box(174, 42, 78, 32, "decoder", "p")
-g += arrow(254, 58, 268, 58) + grid(272, 40, 3, 3, 12)
-g += t(330, 54, "loss op", "l v") + t(330, 70, "pixels", "l v")
-g += t(20, 118, "JEPA", "l")
-g += "".join(
-    row(20, 128 + r * 12, 3, 12, {c: VT for c in (1, 2)} if r > 0 else {})
-    for r in range(3)
-)
-g += arrow(58, 146, 72, 146) + box(76, 130, 78, 32, "encoder", "p", PT)
-g += arrow(156, 146, 170, 146) + box(174, 130, 78, 32, "predictor", "p")
-g += arrow(254, 146, 268, 146) + row(272, 140, 4, 12, {i: PT for i in range(4)})
-g += t(330, 142, "loss op", "l v") + t(330, 158, "latent", "l v")
-g += t(20, 182, "gemaskeerd", "c")
-g += t(200, 210, "voorspel wat er hoort, niet hoe het eruitziet", "c", "middle")
-PICTURES["5.7"] = ("Voorspellen in latent space", g)
-
-# 5.8 one patch grid: pooled it keeps what, with the patch axis it also keeps where
+# 5.7 one patch grid: pooled it keeps what, with the patch axis it also keeps where
 g = t(68, 56, "patch tokens", "c", "middle")
 g += "".join(row(24, 64 + r * 22, 4, 22, {3: P} if r == 0 else {}) for r in range(4))
 g += arrow(116, 74, 170, 56) + box(174, 40, 70, 28, "pooling", "v", VT)
@@ -1474,20 +1467,20 @@ g += arrow(116, 140, 266, 140) + t(190, 132, "patch-as blijft", "c", "middle")
 g += "".join(row(274, 114 + r * 13, 4, 13, {3: P} if r == 0 else {}) for r in range(4))
 g += t(300, 108, "(B, P, D)", "n", "middle") + t(386, 184, "weet ook waar", "c", "end")
 g += t(200, 212, "pooling middelt de plaats weg", "c", "middle")
-PICTURES["5.8"] = ("Pooling gooit de plaats weg", g)
+PICTURES["5.7"] = ("Pooling gooit de plaats weg", g)
 
-# 5.9 a production line: unlabelled data and a pretext task make the encoder lesson 1 caches
+# 5.8 a production line: unlabelled data and a pretext task make the encoder lesson 1 caches
 g = t(108, 52, "deze les", "l v", "middle") + t(302, 52, "les 1", "l p", "middle")
 g += line("M 212 38 L 212 140", RULE, 1, "4 4")
 g += box(18, 70, 60, 40, "data", "g") + t(48, 130, "ongelabeld", "c", "middle")
 g += arrow(80, 90, 96, 90) + box(100, 70, 100, 40, "pretext task", "v", VT)
 g += arrow(202, 90, 222, 90) + box(226, 70, 74, 40, "encoder", "p", PT)
 g += arrow(302, 90, 318, 90) + box(322, 70, 60, 40, "cache", "p")
-g += t(263, 130, "halffabrikaat", "l p", "middle")
-g += t(200, 205, "de bevroren encoder is zo'n training", "c", "middle")
-PICTURES["5.9"] = ("Een halffabrikaat", g)
+g += t(263, 130, "bevroren", "l p", "middle")
+g += t(200, 205, "de encoder van les 1 komt uit zo'n training", "c", "middle")
+PICTURES["5.8"] = ("De encoder van les 1 is zo getraind", g)
 
-# 5.10 one dataset through three encoders into the same probe, three scores out
+# 5.9 one dataset through three encoders into the same probe, three scores out
 g = box(16, 95, 52, 34, "data", "g")
 for y, lab, w in (
     (50, "autoencoder", 40),
@@ -1498,10 +1491,10 @@ for y, lab, w in (
     g += arrow(208, y, 228, y) + arrow(298, y, 314, y)
     g += f'<rect x="318" y="{y - 7}" width="{w}" height="14" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
 g += box(232, 35, 64, 154, "probe", "v", VT) + t(264, 150, "dezelfde", "c", "middle")
-g += t(200, 214, "één meetlat, drie ruimtes", "c", "middle")
-PICTURES["5.10"] = ("Drie ruimtes, één probe", g)
+g += t(200, 214, "dezelfde linear probe, drie encoders", "c", "middle")
+PICTURES["5.9"] = ("Encoders vergelijken met een linear probe", g)
 
-# 5.11 a table of trials: the lowest loss is the collapsed one, the probe picks another
+# 5.10 a table of trials: the lowest loss is the collapsed one, the probe picks another
 g = f'<rect x="18" y="84" width="284" height="20" fill="{VT}"/>'
 g += f'<rect x="256" y="110" width="44" height="20" fill="none" stroke="{P}" stroke-width="2"/>'
 g += t(24, 44, "trial", "m") + t(115, 44, "loss", "m", "middle")
@@ -1521,22 +1514,8 @@ for i, (lo, sp, pr) in enumerate(
         278, y, pr, "m", "middle"
     )
 g += t(312, 98, "collapse", "c v") + t(312, 124, "gekozen", "l p")
-g += t(200, 200, "zoek op de probe, met de spreiding als alarm", "c", "middle")
-PICTURES["5.11"] = ("Zoeken op de meting", g)
-
-# 5.12 object left or right: the pooled vectors are equal, the patch rows differ
-g = t(20, 36, "beeld", "c") + t(205, 36, "gepoold", "l", "middle")
-g += t(325, 36, "patch-as", "l", "middle")
-for y, pos in ((56, 0), (120, 3)):
-    g += row(20, y, 4, 20, {pos: P}) + row(185, y, 2, 20, {0: PT, 1: PT})
-    g += row(285, y, 4, 20, {pos: P})
-g += t(205, 106, "=", "big v", "middle") + t(325, 106, "≠", "big p", "middle")
-g += t(20, 106, "links of rechts", "c")
-g += t(205, 168, "kan het niet zien", "l v", "middle") + t(
-    325, 168, "kan het zien", "l p", "middle"
-)
-g += t(200, 208, "de taak vraagt waar: kies de patch-as", "c", "middle")
-PICTURES["5.12"] = ("Plaats telt: houd de patch-as", g)
+g += t(200, 200, "de laagste loss is hier de collapse: kies op de probe", "c", "middle")
+PICTURES["5.10"] = ("Collapse zien, zoeken op de probe", g)
 
 
 def l6_rect(
@@ -1599,8 +1578,8 @@ g += line("M 200 26 L 200 182", RULE, 1)
 g += t(105, 182, "zegt niets over de grens", "c", "middle") + t(
     295, 182, "kans boven de grens: 8 %", "c v", "middle"
 )
-g += t(200, 210, "vraag over een grens: de breedte is het antwoord", "c", "middle")
-PICTURES["6.2"] = ("De breedte is het antwoord", g)
+g += t(200, 210, "een vraag over een grens vraagt om een verdeling", "c", "middle")
+PICTURES["6.2"] = ("Een verdeling geeft de kans boven een grens", g)
 
 # 6.3 stacked uncertainty against data: the epistemic layer shrinks, the aleatoric floor stays
 g = line("M 50 30 L 50 160 L 370 160", MUT, 1) + t(56, 28, "onzekerheid", "c")
@@ -1610,8 +1589,10 @@ g += line("M 60 40 C 140 90, 220 106, 360 110", V, 2) + line("M 60 110 L 360 110
 g += t(66, 100, "epistemisch", "l v")
 g += t(210, 140, "aleatorisch: de wereld varieert", "l p", "middle")
 g += t(210, 178, "meer data →", "c", "middle")
-g += t(200, 208, "meer data haalt alleen de epistemische laag weg", "c", "middle")
-PICTURES["6.3"] = ("Meer data, minder epistemisch", g)
+g += t(
+    200, 208, "meer data verkleint alleen de epistemische onzekerheid", "c", "middle"
+)
+PICTURES["6.3"] = ("Twee soorten onzekerheid", g)
 
 # 6.4 two forecasts with the same middle: equal MAE, different CRPS
 g = line("M 130 34 L 130 170", RULE, 1, "4 3") + t(130, 28, "midden", "n", "middle")
@@ -1626,15 +1607,15 @@ for base, sig, h, lab, crps in (
     )
     g += t(30, base - 22, lab, "c")
     g += t(262, base - 18, "MAE  0.5", "m") + t(262, base, f"CRPS {crps}", "m v")
-g += t(200, 208, "zelfde midden, zelfde MAE; CRPS ziet de breedte", "c", "middle")
-PICTURES["6.4"] = ("CRPS ziet de breedte", g)
+g += t(200, 208, "zelfde midden, zelfde MAE; de CRPS verschilt", "c", "middle")
+PICTURES["6.4"] = ("CRPS scoort de hele verdeling", g)
 
 # 6.5 a Gaussian head forces a bell on skewed data, a quantile head reads the quantiles
 bars = [6, 22, 34, 30, 22, 15, 10, 7, 4, 2]
-g = t(20, 46, "Gaussische head", "l v") + t(20, 66, "(B, 2)  μ, σ", "m")
-g += t(20, 84, "loss: NLL", "m") + t(20, 102, "neemt een bel aan", "c")
+g = t(20, 46, "Gaussian head", "l v") + t(20, 66, "(B, 2)  μ, σ", "m")
+g += t(20, 84, "loss: NLL", "m") + t(20, 102, "neemt een klokvorm aan", "c")
 g += t(20, 140, "quantile head", "l v") + t(20, 160, "(B, 3)  q10 q50 q90", "m")
-g += t(20, 178, "loss: pinball", "m") + t(20, 196, "geen vorm nodig", "c")
+g += t(20, 178, "loss: pinball", "m") + t(20, 196, "neemt geen vorm aan", "c")
 g += line("M 20 118 L 380 118", RULE, 1)
 for base in (104, 196):
     g += "".join(
@@ -1644,7 +1625,7 @@ for base in (104, 196):
 g += line(l6_bell(271, 104, 32, 48, 2.6), V, 2.5)
 for x, q in ((233, "q10"), (266, "q50"), (319, "q90")):
     g += line(f"M {x} 196 L {x} 140", V, 2.5) + t(x, 134, q, "n v", "middle")
-PICTURES["6.5"] = ("Quantiles nemen geen vorm aan", g)
+PICTURES["6.5"] = ("Gaussian head en quantile head", g)
 
 # 6.6 calibration plot below the diagonal, and narrow intervals that miss the truth
 g = line("M 44 36 L 44 166 L 174 166", MUT, 1) + line(
@@ -1672,8 +1653,8 @@ for i, c in enumerate(cs):
 g += t(300, 150, "smal", "l p", "middle") + t(
     300, 168, "dekt 6 van 10", "c v", "middle"
 )
-g += t(200, 208, "scherp, en toch slecht gekalibreerd", "c", "middle")
-PICTURES["6.6"] = ("Scherp is niet gekalibreerd", g)
+g += t(200, 208, "smalle intervallen, en toch slecht gekalibreerd", "c", "middle")
+PICTURES["6.6"] = ("Kalibratie: 90% hoort 90% te zijn", g)
 
 # 6.7 split conformal: a quantile of held-out scores sets a threshold, the set size varies
 scores = [
@@ -1712,19 +1693,19 @@ for y, lab, members, size in (
     g += t(20, y + 12, lab, "l") + row(140, y, 10, 16, {k: VT for k in members})
     g += t(310, y + 12, size, "m v")
 g += t(200, 200, "dekt 90 %, zolang test lijkt op kalibratie", "c", "middle")
-PICTURES["6.7"] = ("Dekking zonder aanname", g)
+PICTURES["6.7"] = ("Conformal prediction: een set met een garantie", g)
 
 # 6.8 expected cost against threshold: the minimum lies far from 0.5
 g = line("M 50 30 L 50 150 L 350 150", MUT, 1) + t(54, 28, "verwachte kosten", "c")
-g += t(370, 28, "C_fn = 5 × C_fp", "m", "end")
+g += t(370, 28, "gemist = 5 × vals alarm", "n", "end")
 g += line("M 56 108 C 70 128, 86 136, 101 136 C 146 136, 250 80, 344 46", P, 2)
 g += line("M 200 105 L 200 150", MUT, 1, "4 3") + dot(200, 105, 5, BG, MUT)
 g += line("M 101 136 L 101 150", V, 1.5) + dot(101, 136, 5, VT, V)
-g += t(200, 164, "0.5", "n", "middle") + t(200, 182, "gewoonte", "c", "middle")
+g += t(200, 164, "0.5", "n", "middle") + t(200, 182, "standaard", "c", "middle")
 g += t(101, 164, "0.17", "n v", "middle") + t(101, 182, "beste", "l v", "middle")
 g += t(350, 164, "drempel →", "c", "end")
 g += t(200, 210, "lager dan 0.5: meer recall, minder precision", "c", "middle")
-PICTURES["6.8"] = ("Drempel is een beslissing", g)
+PICTURES["6.8"] = ("De drempel kiezen bij ongelijke kosten", g)
 
 # 6.9 two thresholds make three outcomes: no, refer, yes
 ps = [0.05, 0.12, 0.2, 0.3, 0.45, 0.5, 0.58, 0.8, 0.9, 0.95]
@@ -1745,8 +1726,8 @@ g += (
 )
 g += box(42, 140, 80, 32, "nee", "p") + box(140, 140, 120, 32, "doorverwijzen", "v", VT)
 g += box(278, 140, 80, 32, "ja", "p")
-g += t(200, 206, "weten wat je niet weet is ook een antwoord", "c", "middle")
-PICTURES["6.9"] = ("Niet antwoorden mag", g)
+g += t(200, 206, "tussen de twee drempels: doorverwijzen", "c", "middle")
+PICTURES["6.9"] = ("Doorverwijzen als derde uitkomst", g)
 
 # 6.10 one trunk, a Gaussian and a quantile head, both scored in CRPS against seasonal naive
 g = t(14, 108, "(B, W)", "m") + arrow(62, 104, 78, 104)
@@ -1766,7 +1747,7 @@ for y, lab, w, c in (
     g += t(262, y + 4, lab, "n") + l6_rect(318, y - 7, w, 14, fill, stroke)
 g += line("M 380 80 L 380 152", MUT, 1, "4 3")
 g += t(200, 208, "beide heads tegen dezelfde naïeve baseline", "c", "middle")
-PICTURES["6.10"] = ("Beide heads tegen de baseline", g)
+PICTURES["6.10"] = ("Twee heads tegen de naïeve baseline", g)
 
 # 6.11 fit q-hat on valid, measure coverage on test, read it off the calibration plot
 s = 18
@@ -1785,7 +1766,7 @@ g += t(60, 110, "gehaald", "n") + t(130, 214, "gevraagd", "n", "middle")
 for n, o in ((0.8, 0.81), (0.9, 0.9), (0.95, 0.94), (0.99, 0.99)):
     g += dot(60 + (n - 0.5) / 0.5 * 140, 200 - (o - 0.5) / 0.5 * 84, 4, VT, V)
 g += t(220, 150, "op de diagonaal:", "c") + t(220, 168, "dekking gehaald", "l v")
-PICTURES["6.11"] = ("Fit op valid, meet op test", g)
+PICTURES["6.11"] = ("Dekking controleren op de testset", g)
 
 # 6.12 a cost matrix with refer as third action sets two thresholds on p
 cols = ("alarm", "verwijs", "niets")
@@ -1819,8 +1800,8 @@ g += t(104, 122, "0.2", "n v", "middle") + t(232, 122, "0.6", "n v", "middle")
 g += t(300, 128, "p(ziek)", "n", "middle")
 g += t(72, 172, "niets", "c", "middle") + t(168, 172, "verwijs", "c v", "middle")
 g += t(296, 172, "alarm", "c", "middle")
-g += t(200, 204, "de kosten kiezen de drempels, niet het model", "c", "middle")
-PICTURES["6.12"] = ("Kosten kiezen de drempels", g)
+g += t(200, 204, "de drempels volgen uit de kosten", "c", "middle")
+PICTURES["6.12"] = ("Twee drempels kiezen op de hartslagen", g)
 
 
 def l7_rect(
@@ -1836,7 +1817,7 @@ g = (
     + path("M 122 78 L 156 96", "v")
     + path("M 122 118 L 156 104", "v")
     + box(160, 72, 120, 56, "generalist", "p", PT)
-    + t(220, 146, "gewichten bevroren", "m", "middle")
+    + t(220, 146, "parameters bevroren", "m", "middle")
     + arrow(282, 100, 312, 100)
     + t(318, 104, "antwoord", "l")
 )
@@ -1845,8 +1826,8 @@ g += (
     + arrow(220, 40, 220, 68, "g", 1.5, "4 3")
     + line("M 212 46 L 228 62 M 228 46 L 212 62", MUT, 2.5)
 )
-g += t(200, 205, "de hefboom zit in wat je meegeeft", "c", "middle")
-PICTURES["7.1"] = ("Voeden, niet trainen", g)
+g += t(200, 205, "je verandert wat je meegeeft, niet de parameters", "c", "middle")
+PICTURES["7.1"] = ("Een generalist: zero-shot, zonder training", g)
 
 # 7.2 head and generalist as two points on a score-by-cost plane
 g = line("M 60 30 L 60 170 L 376 170", MUT, 1) + t(20, 40, "score", "c")
@@ -1859,15 +1840,15 @@ g += dot(320, 70, 6, VT, V) + t(320, 56, "generalist", "l v", "middle")
 g += t(95, 188, "bijna gratis", "m", "middle") + t(
     320, 188, "duur per item", "m", "middle"
 )
-g += t(200, 212, "één getal is een halve vergelijking", "c", "middle")
-PICTURES["7.2"] = ("Score én kosten", g)
+g += t(200, 212, "twee assen: score en kosten per item", "c", "middle")
+PICTURES["7.2"] = ("Vergelijk op score en op kosten", g)
 
-# 7.3 three outputs, each with its own verdict: reference, unreadable count, judged judge
+# 7.3 three outputs and what each is compared with: the label, a count of unreadable ones, own labels
 g = ""
 rows73 = [
-    (30, "uitvoer", "m", "vs. goed antwoord", "accuracy"),
-    (90, "?#!%", "m", "telt als uitkomst", "% onleesbaar"),
-    (150, "judge", "m", "vs. jouw labels", "judge-accuracy"),
+    (30, "uitvoer", "m", "tegen het label", "accuracy"),
+    (90, "?#!%", "m", "telt als fout", "% onleesbaar"),
+    (150, "judge", "m", "tegen jouw labels", "judge-accuracy"),
 ]
 for y, left, cls, mid, right in rows73:
     g += (
@@ -1877,8 +1858,8 @@ for y, left, cls, mid, right in rows73:
         + arrow(264, y + 14, 286, y + 14)
         + t(292, y + 19, right, "c")
     )
-g += t(200, 210, "ook de beoordelaar krijgt een score", "c", "middle")
-PICTURES["7.3"] = ("Elk oordeel wordt gemeten", g)
+g += t(200, 210, "controleer ook de beoordelaar", "c", "middle")
+PICTURES["7.3"] = ("De uitvoer van een LLM beoordelen", g)
 
 # 7.4 recall per class against a threshold sends each class to head or generalist
 g = ""
@@ -1901,8 +1882,8 @@ for i, (name, rec) in enumerate(classes74):
     )
 g += line(f"M {thr} 22 L {thr} 182", V, 2, "5 4")
 g += t(110, 196, "recall", "c") + t(thr, 196, "drempel", "m v", "middle")
-g += t(200, 216, "de recall per klasse kiest de route", "c", "middle")
-PICTURES["7.4"] = ("Recall kiest de route", g)
+g += t(200, 216, "klassen onder de drempel zijn voor de generalist", "c", "middle")
+PICTURES["7.4"] = ("Recall per klasse: wat kan de head aan?", g)
 
 # 7.5 cascade: head, router with a threshold knob, easy cases stay, hard ones go on
 g = (
@@ -1929,8 +1910,8 @@ g += (
     + f'<circle cx="242" cy="150" r="6" fill="{VT}" stroke="{V}" stroke-width="2"/>'
     + t(230, 174, "drempel", "l v", "middle")
 )
-g += t(200, 210, "de drempel stel je af tegen echte kosten", "c", "middle")
-PICTURES["7.5"] = ("Cascade met een drempel", g)
+g += t(200, 210, "de drempel bepaalt hoeveel naar de generalist gaat", "c", "middle")
+PICTURES["7.5"] = ("Cascade: de head, of door naar de generalist", g)
 
 # 7.6 nearest labelled neighbours in the cache go to the generalist or straight to recall@k
 g = t(20, 34, "cache uit les 1", "l p")
@@ -1955,35 +1936,14 @@ g += (
     + box(236, 134, 120, 36, "recall@k", "v", VT)
     + t(296, 188, "zonder aanroep", "m", "middle")
 )
-g += t(200, 212, "het geheugen meet je los van de generalist", "c", "middle")
-PICTURES["7.6"] = ("De cache is een geheugen", g)
+g += t(200, 212, "retrieval meet je zonder de generalist aan te roepen", "c", "middle")
+PICTURES["7.6"] = ("Retrieval: de cache als geheugen", g)
 
-# 7.7 one test set, two models, read in two columns: score close, cost far apart
-g = t(250, 34, "score", "l", "middle") + t(345, 34, "kosten", "l", "middle")
-g += (
-    box(14, 82, 70, 50, "testset", "g")
-    + path("M 86 100 L 108 72")
-    + path("M 86 114 L 108 144")
-    + box(110, 56, 96, 28, "head", "p", PT)
-    + box(110, 132, 96, 28, "generalist", "p", PT)
-)
-g += (
-    l7_rect(220, 62, 46, 16, PT, P)
-    + l7_rect(220, 138, 54, 16, PT, P)
-    + l7_rect(310, 62, 3, 16, PT, P)
-    + l7_rect(310, 138, 70, 16, PT, P)
-)
-g += t(250, 112, "Δ klein", "c v", "middle") + t(
-    345, 112, "veel duurder", "c v", "middle"
-)
-g += t(200, 205, "zelfde testset: score én kosten naast elkaar", "c", "middle")
-PICTURES["7.7"] = ("Head tegen generalist", g)
-
-# 7.8 score against cost: the router curve above the random-routing control, at the budget
+# 7.7 score against cost: the router curve above random forwarding, at the budget
 g = line("M 50 26 L 50 176 L 376 176", MUT, 1) + t(56, 34, "score", "c")
 g += t(376, 194, "kosten", "c", "end")
 g += line("M 60 140 L 360 60", MUT, 1.5, "5 4") + t(
-    240, 112, "control: willekeurig", "c"
+    228, 112, "willekeurig doorsturen", "c"
 )
 g += line("M 60 140 C 120 70, 200 62, 360 60", V, 2.5) + t(
     205, 52, "router", "l v", "middle"
@@ -1992,10 +1952,10 @@ g += dot(60, 140, 5, BG, P) + t(62, 160, "alleen head", "m")
 g += dot(360, 60, 5, BG, P) + t(376, 40, "alleen generalist", "m", "end")
 g += line("M 150 176 L 150 116", RULE, 1, "4 3") + line("M 150 116 L 150 84", V, 3)
 g += dot(150, 81, 5, VT, V) + t(150, 194, "budget → drempel", "m v", "middle")
-g += t(200, 214, "de afstand tot de control is wat de router oplevert", "c", "middle")
-PICTURES["7.8"] = ("De router tegen een control", g)
+g += t(200, 214, "het verschil: welke documenten de router doorstuurt", "c", "middle")
+PICTURES["7.7"] = ("Een cascade bouwen en de drempel kiezen", g)
 
-# 7.9 score per number of retrieved neighbours, k = 0 being zero-shot
+# 7.8 score per number of retrieved neighbours, k = 0 being zero-shot
 g = line("M 50 30 L 50 170 L 376 170", MUT, 1) + t(56, 34, "score", "c")
 pts79 = [(0, 80, 130), (1, 140, 104), (3, 200, 88), (5, 260, 82), (10, 320, 80)]
 for k, x, y in pts79:
@@ -2005,9 +1965,9 @@ g += t(80, 112, "zero-shot", "l p", "middle")
 g += line("M 90 130 L 370 130", RULE, 1, "4 3") + arrow(360, 128, 360, 84, "v", 2)
 g += t(354, 112, "winst", "l v", "end")
 g += t(200, 210, "aantal meegegeven buren (k)", "c", "middle")
-PICTURES["7.9"] = ("Meten wat geheugen oplevert", g)
+PICTURES["7.8"] = ("Meten wat retrieval oplevert", g)
 
-# 7.10 published class runs of three kinds flow into one run that names its sources
+# 7.9 published class runs of three kinds flow into one run that names its sources
 g = l7_rect(14, 22, 372, 70, BG, RULE, 1) + t(24, 40, "klas-runs op SCOTUS", "c")
 for x, lab in ((24, "head"), (150, "generalist"), (276, "retrieval")):
     g += box(x, 50, 100, 32, lab, "p", PT)
@@ -2019,8 +1979,8 @@ g += (
 g += box(110, 136, 180, 32, "jouw cascade", "v", VT) + t(
     200, 186, "builds_on: 3 bronnen", "m", "middle"
 )
-g += t(200, 212, "publiceren, bekijken, voortbouwen met bron", "c", "middle")
-PICTURES["7.10"] = ("Als klas combineren", g)
+g += t(200, 212, "één ontwerp uit drie soorten runs van de klas", "c", "middle")
+PICTURES["7.9"] = ("Head, generalist en retrieval combineren", g)
 
 
 def goals(block: str, lesson: int) -> list[tuple[str, str]]:
@@ -2049,11 +2009,6 @@ NOT_SHOWN: dict[str, str] = {
     "2.4": "wat downsampling met het receptive field doet, en kernels van verschillende grootte naast elkaar",
     "2.5": "wat stap voor stap rekenen kost",
     "2.11": "de metric die bij het probleem past",
-    "4.5": "waarom hele woorden als tokens tekortschieten: een te grote vocabulary en onbekende woorden",
-    "4.12": "dat er per klasse weinig voorbeelden zijn",
-    "5.7": "de target encoder die het doel in de latente ruimte levert",
-    "6.12": "het publiceren, bekijken en voortbouwen als klas; dat beeld staat bij 2.12",
-    "7.5": "de control waartegen de router zijn plek moet verdienen; die staat bij 7.8",
 }
 
 

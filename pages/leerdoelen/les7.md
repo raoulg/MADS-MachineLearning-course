@@ -1,8 +1,8 @@
 # Les 7 — Generalisten en hun geheugen
 
-De hele cursus ging over "bevroren representatie plus een goedkope head". Een generalist
-is hetzelfde patroon, één niveau hoger. Je traint hem niet, dus zit alle hefboom in wat je
-hem voert en in wanneer je hem inzet.
+In les 1 trainde je een kleine head op een bevroren encoder. Een generalist is een groot
+voorgetraind model, in deze les een LLM, dat jouw taak uitvoert zonder dat jij iets
+traint. Je bepaalt wat je hem meegeeft en voor welke items je hem aanroept.
 
 Alles in deze les draait op een gepubliceerde cache van modeluitvoer: op een CPU,
 herhaalbaar en gratis. Wie de hardware heeft kan die cache zelf opnieuw maken met een
@@ -10,49 +10,55 @@ lokaal model; nodig is dat niet.
 
 ## De student begrijpt
 
-7.1 Wat een generalist is: een model dat zero-shot op jouw taak werkt zonder dat jij iets
-getraind hebt. Weet dat je hem niet verbetert door te trainen, wel door wat je hem
-meegeeft.
+7.1 Wat een generalist is: een groot voorgetraind model, hier een LLM, dat zero-shot op
+jouw taak werkt, dus zonder dat jij iets traint. In deze les blijven zijn parameters
+bevroren; wat je verandert is de instructie en de voorbeelden die je meegeeft.
 
-7.2 Waarom je een generalist met een getrainde head vergelijkt op score *en* kosten: de
-generalist is duur per item, de head bijna gratis.
+7.2 Waarom je een generalist en een getrainde head op score en op kosten vergelijkt: de
+generalist kost per item veel rekentijd of geld, de head bijna niets. Kan beide op
+dezelfde testset naast elkaar zetten.
 
-7.3 Hoe je uitvoer van een generatief model beoordeelt: waar een goed antwoord bestaat
-gebruik je dat, uitvoer die je niet kunt lezen is ook een resultaat, en een model dat als
-beoordelaar dient, moet zelf beoordeeld worden.
+7.3 Hoe je de uitvoer van een generatief model beoordeelt. Is er een label, vergelijk
+daarmee. Een antwoord dat je niet kunt uitlezen tel je als fout; je laat het niet weg.
+Gebruik je een LLM als beoordelaar, controleer die dan eerst op voorbeelden die je zelf
+gelabeld hebt.
 
-7.4 Voor wie de head volstaat: de recall per klasse zegt welke gevallen de goedkope head
-aankan en welke niet, en dat is de beslissing over de route.
+7.4 Welke gevallen de head aankan: de recall per klasse laat zien op welke klassen de
+goedkope head goed genoeg is en op welke niet. Voor die laatste is de generalist bedoeld.
 
-7.5 Wat een cascade is: een router stuurt de makkelijke gevallen naar de head en de
-moeilijke naar de generalist. Weet dat de drempel van de router een knop is die je tegen
-echte kosten afregelt, en dat een router zijn plek moet verdienen tegen een control.
+7.5 Wat een cascade is: een router voorspelt per document of het in een klasse valt die
+de head aankan. Zo ja, dan antwoordt de head; zo nee, dan gaat het document naar de
+generalist. Dit is de routing van les 3 met twee experts, en het doorverwijzen van les 6.
+Met de drempel van de router kies je hoeveel documenten naar de generalist gaan, en dus
+wat het kost.
 
-7.6 Dat de cache uit les 1 een geheugen is: de dichtstbijzijnde gelabelde voorbeelden
-ophalen en aan de generalist meegeven is retrieval, en dat is hergebruik van wat je al
-had. Weet dat je de retrieval kunt meten zonder de generalist aan te roepen.
+7.6 Dat de cache uit les 1 als geheugen kan dienen: bij een nieuw document haal je de
+dichtstbijzijnde gelabelde voorbeelden op en geef je die mee aan de generalist. Dat heet
+retrieval. Of de juiste voorbeelden worden opgehaald meet je met recall@k, zonder de
+generalist aan te roepen.
 
 ## De student kan
 
-7.7 Een zero-shot generalist en een zelf getrainde head op dezelfde taak vergelijken, op
-score en op kosten.
+7.7 Een cascade bouwen van head, router en generalist, en de drempel kiezen uit de
+kosten. Vergelijk de router met willekeurig doorsturen bij dezelfde kosten: het verschil
+komt van welke documenten hij doorstuurt.
 
-7.8 Een cascade bouwen van head, router en generalist, de drempel kiezen uit de kosten,
-en met een control laten zien dat de router iets oplevert.
+7.8 De generalist een geheugen geven: de dichtstbijzijnde gelabelde uitspraken uit de
+cache ophalen, meegeven, en meten wat dat oplevert bij een verschillend aantal
+voorbeelden.
 
-7.9 De generalist een geheugen geven: de dichtstbijzijnde gelabelde uitspraken uit de
-cache ophalen, meegeven, en meten wat dat oplevert.
-
-7.10 Als klas head, generalist en retrieval combineren op de SCOTUS-uitspraken: de runs
-publiceren, het werk van anderen bekijken en daarop voortbouwen met bronvermelding.
+7.9 Als klas head, generalist en retrieval combineren op de SCOTUS-uitspraken.
 
 ## Materiaal
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 7.1, 7.2, 7.7 | de generalist tegenover de head | `03_who_can_the_head_serve`, `04_the_cascade` |
+| 7.1, 7.2 | de generalist tegenover de head | `03_who_can_the_head_serve`, `04_the_cascade` |
 | 7.3 | generatieve uitvoer beoordelen | `02_evaluating_generative_output` |
-| 7.4 | voor wie de head volstaat | `03_who_can_the_head_serve` |
-| 7.5, 7.8 | de cascade | `04_the_cascade` |
-| 7.6, 7.9 | retrieval als geheugen | les |
-| 7.10 | de klasopdracht | les |
+| 7.4 | welke gevallen de head aankan | `03_who_can_the_head_serve` |
+| 7.5, 7.7 | de cascade | `04_the_cascade` |
+| 7.6, 7.8 | retrieval als geheugen | les |
+| 7.9 | de klasopdracht | les |
+
+Publiceren naar de klas en voortbouwen op het werk van anderen (1.15, 2.12) geldt in elke
+les en staat hier niet opnieuw.
