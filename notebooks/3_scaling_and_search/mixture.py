@@ -1,4 +1,4 @@
-"""The tools of `01_mixture_of_experts`: load the four-domain mix, train a head on it, and
+"""The tools of `01_mixture_of_experts`: load the seven-domain mix, train a head on it, and
 time a head per image.
 
 A head is trained with AdamW (learning rate 1e-3, weight decay 0.05), label smoothing 0.1,
@@ -31,32 +31,33 @@ huggingface_hub.utils.disable_progress_bars()
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
 
-DOMAINS = ["dtd", "eurosat", "fashion-mnist", "oxford-flowers"]
+MIX = ("pttrn-io/mix7-dinov2-small", "31320bc67d31dd9c8d12e91a0a0c85cdac337278")
+DOMAINS = [
+    "dtd",
+    "eurosat",
+    "oxford-flowers",
+    "food101",
+    "gtsrb",
+    "galaxy10-decals",
+    "bloodmnist",
+]  # the order of the cache's `domain` labels
 BATCH, LR, WEIGHT_DECAY, SMOOTHING = 128, 1e-3, 0.05, 0.1
 
 
 def load_mix(split: str) -> tuple[torch.Tensor, torch.Tensor, np.ndarray]:
-    """The vectors, labels and domain of every row of one split of the four caches.
+    """The CLS vector, the label and the domain of every row of one split of the mix.
 
-    Each domain's labels are shifted past the classes of the domains before it, so no two
-    domains share a class number. A cache stored per patch is averaged over its patches.
+    The labels run over the 321 classes of the whole mix, so no two domains share a class
+    number. The cache also holds the mean of the patch tokens; the head reads the CLS
+    token, the vector lesson 1's `ImageVectorizer` gives.
     """
-    X, y, domain, offset = [], [], [], 0
-    for i, name in enumerate(DOMAINS):
-        part = VectorCache.from_hub(f"pttrn-io/{name}-dinov2-small", split=split)
-        part = part.dataset.with_format("numpy")
-        e = np.asarray(part["embed"], dtype=np.float32)
-        if e.ndim == 3:
-            e = e.mean(1)
-        labels = np.asarray(part["label"])
-        X.append(e)
-        y.append(labels + offset)
-        domain.append(np.full(len(labels), i))
-        offset += int(labels.max()) + 1
+    repo, revision = MIX
+    rows = VectorCache.from_hub(repo, split=split, revision=revision).dataset
+    rows = rows.with_format("numpy")[:]
     return (
-        torch.tensor(np.concatenate(X)),
-        torch.tensor(np.concatenate(y)).long(),
-        np.concatenate(domain),
+        torch.from_numpy(np.asarray(rows["embed"][:, 0], dtype=np.float32)),
+        torch.from_numpy(np.asarray(rows["label"])).long(),
+        np.asarray(rows["domain"]),
     )
 
 
