@@ -373,11 +373,11 @@ def glyph(kind):
             )
         )
     else:
-        fr = [(40, 14), (115, 30), (180, 60), (232, 104)]
-        inside = ((48, 84), (92, 106), (124, 82), (152, 112), (76, 72))
-        outside = ((70, 44), (140, 52), (204, 112), (216, 96))
+        fr = [(36, 104), (88, 60), (153, 30), (228, 14)]
+        inside = ((220, 84), (176, 106), (144, 82), (116, 112), (192, 72))
+        outside = ((198, 44), (128, 52), (64, 112), (52, 96))
         g = (
-            rect(12, 60, 168, 62, "#86b9c9", op=0.22)
+            rect(88, 60, 168, 62, "#86b9c9", op=0.22)
             + line(12, 4, 12, 122, "#8a837a", 2)
             + line(12, 122, 256, 122, "#8a837a", 2)
             + "".join(circ(x, y, 6, "#b8b0a5") for x, y in inside + outside)
@@ -1304,21 +1304,78 @@ def schedule_or_race():
 
 
 # ---------------------------------------------------------------- part 4
-def pareto_front():
-    sec = taken("lesson3-tradeoffs.html", "pareto-front", 4, ["3.9", "3.10"])
-    first = sec.index("</g>", sec.index("<g data-build-in><rect")) + 4
-    inner = build(
-        rect(220, 250, 800, 230, PT, P, 2, dash="8 6", op=0.45)
-        + txt(
-            220,
-            530,
-            "inside: can be faster at the same score, or score higher at the same speed",
-            28,
-            P,
-            weight=500,
-        )
+# models as (FLOPs per image, score) in drawing units; FRONT are the ones nothing beats
+MODELS = [
+    (1440, 440), (1380, 390), (1320, 330), (1270, 180), (1220, 420), (1180, 290),
+    (1100, 140), (1040, 350), (980, 240), (920, 400), (860, 200), (780, 300),
+    (720, 250), (660, 380), (600, 330), (540, 300), (460, 420), (390, 390), (320, 440),
+]  # fmt: skip
+FRONT = [(320, 440), (390, 390), (540, 300), (720, 250), (860, 200), (1100, 140)]
+
+
+def pareto_axes():
+    s = line(220, 480, 220, 26, MUT, 2.5, marker="g") + line(
+        220, 480, 1524, 480, MUT, 2.5, marker="g"
     )
-    return sec[:first] + inner + sec[first:]
+    s += txt(220, 530, "FLOPs per image (log) →", 32, MUT) + txt(
+        200, 50, "score ↑", 32, MUT, "end"
+    )
+    return s
+
+
+def pareto_beaten():
+    dots = "".join(circ(x, y, 13, PT, P, 3) for x, y in MODELS)
+    this, better = (1040, 350), (860, 200)
+    b = rect(220, 40, this[0] - 220, this[1] - 40, VT, V, 2, dash="8 6", op=0.55)
+    b += txt(240, 84, "better on both", 30, V, weight=500)
+    b += txt(this[0] + 30, this[1] + 12, "this model", 30, P, weight=500)
+    b += line(
+        this[0] - 12, this[1] - 12, better[0] + 16, better[1] + 14, V, 4, marker="v"
+    )
+    b += txt(better[0] - 30, better[1] - 22, "cheaper and higher", 30, V, "end", 500)
+    marks = circ(*this, 16, BG, P, 5) + circ(*better, 16, VT, V, 4)
+    return slide(
+        "pareto-beaten",
+        4,
+        ["3.9"],
+        "Which model is best, if you care about two things?",
+        pareto_axes() + build(b) + dots + marks,
+        "This model is beaten: another model costs fewer FLOPs and scores higher. The Pareto front is the set of models that no other model beats.",
+        h=560,
+    )
+
+
+def pareto_front():
+    dots = "".join(circ(x, y, 13, PT, P, 3) for x, y in MODELS)
+    px, py = 720, 250
+    empty = rect(220, 40, px - 220, py - 40, "none", V, 2, dash="8 6")
+    empty += circ(px, py, 16, VT, V, 5)
+    empty += txt(240, 84, "empty:", 30, V, weight=500)
+    empty += txt(240, 124, "nothing beats it on both", 30, V, weight=500)
+    inner = rect(px, py, 1520 - px, 480 - py, PT, P, 2, dash="8 6", op=0.45)
+    inner += txt(
+        1520,
+        530,
+        "inside: can cost less at the same score, or score higher at the same cost",
+        28,
+        P,
+        "end",
+        500,
+    )
+    front = poly(FRONT, V, 5) + "".join(circ(x, y, 15, V, V, 3) for x, y in FRONT)
+    front += txt(440, 322, "Pareto front", 32, V, "end", 600)
+    top = FRONT[-1]
+    best = circ(*top, 26, "none", P, 3)
+    best += txt(top[0] + 40, top[1] - 26, "best on score alone", 30, P, weight=500)
+    return slide(
+        "pareto-front",
+        4,
+        ["3.9", "3.10"],
+        "The models nothing beats: the Pareto front",
+        pareto_axes() + dots + build(empty) + build(inner) + build(front) + build(best),
+        "A model is on the Pareto front when no other model is at least as good on both and better on one. Best on score alone is one end; which point is best depends on the FLOPs you can spend.",
+        h=560,
+    )
 
 
 # ---------------------------------------------------------------- your study
@@ -1378,11 +1435,13 @@ def mix7():
 
 def your_budget():
     side, y0 = 290, 180
-    s = txt(860, 50, "hardware × time", 36, INK, "end", 500)
-    s += txt(880, 50, "=", 36, MUT, "middle")
-    s += txt(900, 50, "runs × parameters × data", 36, V, weight=600)
-    s += txt(860, 92, "what you have", 24, MUT, "end") + txt(
-        900, 92, "how you spend it", 24, MUT
+    s = txt(690, 50, "hardware × time", 36, INK, "end", 500)
+    s += txt(716, 50, "=", 36, MUT, "middle")
+    s += txt(800, 50, "FLOPs", 36, P, "middle", 600)
+    s += txt(884, 50, "=", 36, MUT, "middle")
+    s += txt(910, 50, "runs × parameters × data", 36, V, weight=600)
+    s += txt(690, 92, "what you have", 24, MUT, "end") + txt(
+        910, 92, "how you spend it", 24, MUT
     )
 
     def spend(x0, n, head, sub):
@@ -1414,7 +1473,7 @@ def your_budget():
         ["3.11", "3.12"],
         'One budget, <span class="v">your choice</span> how to spend it',
         s + a + build(b) + build(c),
-        "Your hardware and the time you give it fix the area. A run costs about its parameters times the images it sees, so more runs means smaller runs.",
+        "Your hardware and the time you give it are the FLOPs you can spend: the area. A run costs about its parameters times the images it sees, so more runs means smaller runs.",
         mk="schematic",
         h=580,
     )
@@ -1561,7 +1620,7 @@ def deck():
             ),
         ],
     )
-    out += taken("lesson3-tradeoffs.html", "pareto-beaten", 4, ["3.9"]) + pareto_front()
+    out += pareto_beaten() + pareto_front()
     out += mix7() + your_budget() + your_front()
     return out
 

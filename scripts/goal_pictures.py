@@ -955,29 +955,29 @@ for (x1, y1), (x2, y2) in itertools.pairwise(hops):
 g += t(200, 205, "binnen één training; een afvalrace stopt hele trials", "c", "middle")
 PICTURES["3.8"] = ("Learning rate schedulers", g)
 
-# 3.9 trials by latency and score, the Pareto front, and one trial that another beats on both
+# 3.9 trials by FLOPs per image and score, the Pareto front, and the region one front point beats
 g = line("M 50 30 L 50 170 L 370 170", MUT, 1) + t(46, 22, "score", "c")
-g += f'<rect x="50" y="70" width="200" height="100" fill="{PT}" fill-opacity="0.6" stroke="{P}" stroke-width="1.5" stroke-dasharray="5 4"/>'
-for x, y, r in (
-    (310, 150, 5),
-    (270, 128, 7),
-    (190, 88, 8),
-    (130, 80, 8),
-    (100, 120, 5),
-    (150, 132, 4),
-    (210, 108, 6),
-    (240, 150, 3),
-    (70, 100, 7),
+g += f'<rect x="170" y="70" width="200" height="100" fill="{PT}" fill-opacity="0.6" stroke="{P}" stroke-width="1.5" stroke-dasharray="5 4"/>'
+for x, y in (
+    (110, 150),
+    (150, 128),
+    (230, 88),
+    (290, 80),
+    (320, 120),
+    (270, 132),
+    (210, 108),
+    (180, 150),
+    (350, 100),
 ):
-    g += dot(x, y, r)
-front = ((80, 44, 9), (170, 52, 7), (250, 70, 5), (300, 96, 4), (340, 140, 3))
-g += line("M " + " L ".join(f"{x} {y}" for x, y, _ in front), V, 2)
-g += "".join(dot(x, y, r, VT, V) for x, y, r in front)
-g += t(150, 163, "trager én slechter", "n", "middle")
-g += t(316, 82, "Pareto front", "l v") + t(96, 34, "hoogste score", "c")
-g += t(210, 188, "snelheid", "c", "middle") + t(
-    380, 188, "grootte = gewichten", "c", "end"
+    g += dot(x, y, 6)
+front = ((80, 140), (120, 96), (170, 70), (250, 52), (340, 44))
+g += line("M " + " L ".join(f"{x} {y}" for x, y in front), V, 2)
+g += "".join(dot(x, y, 6, VT, V) for x, y in front)
+g += t(270, 163, "duurder én slechter", "n", "middle")
+g += t(150, 62, "Pareto front", "l v", "end") + t(
+    330, 30, "hoogste score", "c", "middle"
 )
+g += t(210, 188, "FLOPs per image", "c", "middle")
 g += t(200, 210, "elk punt op het front is een afweging", "c", "middle")
 PICTURES["3.9"] = ("Tradeoffs afwegen", g)
 
