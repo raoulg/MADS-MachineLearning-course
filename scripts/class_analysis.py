@@ -2348,7 +2348,7 @@ def ideas_list(
         )
         out.append(
             f"<article class='said' id='said-{esc(r.name)}'><header><a href='#{esc(r.name)}'>{esc(r.name)}</a>"
-            f"<span>{esc(lane_of(r))}{' · ' + when.strftime('%a %-d %b') if when is not None else ''}</span></header>"
+            f"<span>{esc(lane_of(r))}{f' · {when:%a} {when.day} {when:%b}' if when is not None else ''}</span></header>"
             f"<dl><dt>Asked</dt><dd>{esc(r.idea) or '<i>not written</i>'}</dd>"
             f"<dt>Expected</dt><dd>{esc(r.expects) or '<i>not said</i>'}</dd>"
             f"<dt>Found</dt><dd><ul class='found'>{found}</ul></dd></dl></article>"
@@ -2496,7 +2496,7 @@ def drawer_data(
             )
         head = (
             f"<h2 id='drawer-title'>{esc(r.name)}</h2>"
-            f"<p class='meta'>{esc(lane_of(r))}{' · ' + when.strftime('%a %-d %b, %H:%M') if when is not None else ''}"
+            f"<p class='meta'>{esc(lane_of(r))}{f' · {when:%a} {when.day} {when:%b, %H:%M}' if when is not None else ''}"
             f" · {plural(len(trials), 'trial')}, {n_done} finished</p>{studies}"
             f"<dl class='words'><dt>Asked</dt><dd>{esc(r.idea) or '<i>not written</i>'}</dd>"
             f"<dt>Expected</dt><dd>{esc(r.expects) or '<i>not said</i>'}</dd>"
