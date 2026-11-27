@@ -51,10 +51,11 @@ model.
 
 ## De student kan
 
-6.10 Een Gaussian en een quantile head bouwen op een reeks en beide met CRPS vergelijken
-met de naïeve baseline.
+6.10 Op een reeks zoeken naar een architectuur met een Gaussian of een quantile head, met
+CRPS als objective van de search, en het resultaat vergelijken met de naïeve baseline.
 
-6.11 Een kalibratieplot maken en aflezen of de gevraagde dekking gehaald wordt. Conformal
+6.11 Een kalibratieplot maken en aflezen of de gevraagde dekking gehaald wordt. Een model
+dat niet gekalibreerd is op een apart gehouden kalibratieset kalibreren. Conformal
 sets bouwen op een validatieset en de dekking op de testset controleren.
 
 6.12 Op de hartslagen twee drempels op `p(ziek)` kiezen: eronder niets doen, erboven
@@ -67,7 +68,7 @@ je wat verschillende modellen en kosten opleveren.
 | leerdoel | onderwerp | notebook |
 |---|---|---|
 | 6.1 | windowen, splitsen, de naïeve baseline | `00_forecasting_baselines` |
-| 6.2, 6.3, 6.4, 6.5, 6.6, 6.10 | verdeling, CRPS, Gaussian en quantile head, kalibratie | `01_probabilistic` |
+| 6.2, 6.3, 6.4, 6.5, 6.6, 6.10 | verdeling, CRPS, Gaussian en quantile head, search, kalibreren | `01_probabilistic` |
 | 6.7, 6.11 | conformal prediction | `02_conformal` |
 | 6.8, 6.9 | kosten, drempel, doorverwijzen | `03_decisions` |
 | 6.12 | de klasopdracht | `04_exercise` |
