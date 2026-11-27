@@ -730,17 +730,17 @@ def l3_bar(y: float, k: int, gate: bool, lab: str) -> str:
     if gate:
         out += f'<rect x="{100 + w - 30}" y="{y}" width="30" height="20" fill="{VT}" stroke="{V}" stroke-width="1.5"/>'
         out += t(100 + w - 15, y + 14, "gate", "n v", "middle")
-    return out + t(100 + w + 8, y + 15, f"{k}k gewichten", "n")
+    return out + t(100 + w + 8, y + 15, f"{k}k parameters", "n")
 
 
 g = t(20, 30, "zonder control", "l")
 g += l3_bar(40, 120, True, "met gate") + l3_bar(66, 75, False, "baseline")
-g += t(380, 100, "gate, of 45k gewichten meer?", "c v", "end")
+g += t(380, 100, "gate, of 45k parameters meer?", "c v", "end")
 g += line("M 20 112 L 380 112", RULE, 1)
 g += t(20, 134, "met control", "l p")
 g += l3_bar(144, 120, True, "met gate") + l3_bar(170, 120, False, "control")
 g += t(380, 204, "verschil: alleen de gate", "c v", "end")
-PICTURES["3.1"] = ("Testen bij gelijke gewichten", g)
+PICTURES["3.1"] = ("Testen bij gelijke parameters", g)
 
 
 # 3.2 three scaling laws: straight lines on log-log axes, the slope read as "10x more gives"
@@ -769,16 +769,16 @@ PICTURES["3.2"] = ("Scaling laws", g)
 
 # 3.3 data needed against weights on log axes: 8x the weights asks about 5x the data
 g = line("M 60 26 L 60 170 L 370 170", MUT, 1)
-g += t(66, 34, "data (log)", "n") + t(370, 188, "gewichten (log)", "n", "end")
+g += t(66, 34, "data (log)", "n") + t(370, 188, "parameters (log)", "n", "end")
 g += path("M 70 165 L 250 32 L 360 32 L 360 170 L 70 170 Z", "g", 0, False, PT)
 g += line("M 70 165 L 250 32", P, 2.5) + t(140, 70, "genoeg data", "c p", "end")
 g += t(355, 146, "te weinig data:", "c", "end")
 g += t(355, 162, "risico op overfitting", "c", "end")
 g += dot(110, 135, 6, BG, P) + dot(210, 61, 6, VT, V)
-g += arrow(116, 135, 204, 135, "v", 2) + t(172, 152, "8× gewichten", "n v", "middle")
+g += arrow(116, 135, 204, 135, "v", 2) + t(172, 152, "8× parameters", "n v", "middle")
 g += arrow(210, 135, 210, 69, "v", 2) + t(218, 104, "~5× data", "n v")
 g += t(200, 212, "groter model: meer data, maar minder dan evenredig", "c", "middle")
-PICTURES["3.3"] = ("Gewichten en data groeien samen", g)
+PICTURES["3.3"] = ("Parameters en data groeien samen", g)
 
 
 # 3.4 a highway and a mixture of experts: the gate weighs routes that are added again
@@ -842,7 +842,7 @@ for x0, hs, lab, cls in (
         g += f'<rect x="{x0 + i * 18}" y="{150 - h}" width="12" height="{h}" fill="{VT if hot else PT}" stroke="{V if hot else P}" stroke-width="1.5"/>'
     for k, word in enumerate(lab.split()):
         g += t(x0 + 33, 168 + k * 16, word, cls, "middle")
-PICTURES["3.5"] = ("MoE gebruikt maar een deel van de gewichten", g)
+PICTURES["3.5"] = ("MoE gebruikt maar een deel van de parameters", g)
 
 # 3.6 where grid, random, TPE and a population put their trials
 L3_RANDOM = [
@@ -983,7 +983,7 @@ PICTURES["3.9"] = ("Tradeoffs afwegen", g)
 
 # 3.10 loss against weights with run-to-run spread: the smaller model is nearly as good
 g = line("M 50 30 L 50 160 L 370 160", MUT, 1) + t(56, 38, "loss", "c")
-g += t(370, 178, "gewichten (log)", "c", "end")
+g += t(370, 178, "parameters (log)", "c", "end")
 pts310 = ((90, 70), (150, 96), (210, 112), (270, 118), (330, 120))
 g += line("M " + " L ".join(f"{x} {y}" for x, y in pts310), P, 1, "4 3")
 g += f'<rect x="210" y="111" width="120" height="10" fill="{VT}" fill-opacity="0.6"/>'
@@ -999,7 +999,7 @@ PICTURES["3.10"] = ("Meer dan de hoogste score", g)
 
 # 3.11 loss against weights for an architecture and its control: two effects apart
 g = line("M 50 30 L 50 160 L 370 160", MUT, 1) + t(56, 38, "loss", "c")
-g += t(370, 178, "gewichten (log)", "c", "end")
+g += t(370, 178, "parameters (log)", "c", "end")
 g += line("M 70 70 L 350 130", P, 2) + t(66, 62, "control", "c p")
 g += line("M 70 92 L 350 152", V, 2) + t(66, 126, "met gate", "c v")
 for x in (100, 170, 240, 310):
@@ -1008,7 +1008,9 @@ for x in (100, 170, 240, 310):
     )
 g += arrow(210, 102, 210, 118, "v", 2) + t(200, 142, "architectuur", "n v", "middle")
 g += arrow(240, 98, 310, 113, "p", 2) + t(250, 90, "schaal", "n p")
-g += t(200, 205, "zoek over gewichten, vergelijk bij gelijke gewichten", "c", "middle")
+g += t(
+    200, 205, "zoek over parameters, vergelijk bij gelijke parameters", "c", "middle"
+)
 PICTURES["3.11"] = ("Scaling in je zoekruimte", g)
 
 # 3.12 a study of one's own and its control of equal compute, published to the runs-repo,
@@ -1030,23 +1032,35 @@ g += t(204, 182, "bouw voort, noem je bron", "l v", "middle")
 g += t(200, 212, "wat leverde het op, bij evenveel FLOPs?", "c", "middle")
 PICTURES["3.12"] = ("Je eigen studie naar scaling, als klas", g)
 
-# 3.13 one budget of FLOPs as a square of fixed area, cut into few large or many small runs
+# 3.13 one budget of FLOPs as an area, spent four ways: a run is parameters wide and data
+# high, so one large run in two shapes, many small runs, or small runs and one larger run
 g = t(200, 26, "hardware × tijd = FLOPs = runs × parameters × data", "l", "middle")
-for x, n, lab in (
-    (40, 2, "4 grote runs"),
-    (155, 4, "16 runs"),
-    (270, 8, "64 kleine runs"),
-):
-    g += t(x + 45, 50, lab, "c", "middle")
-    g += f'<rect x="{x}" y="58" width="90" height="90" fill="{P}" stroke="{P}" stroke-width="1.5"/>'
-    for k in range(1, n):
-        d = 90 * k / n
-        g += line(f"M {x + d} 58 L {x + d} 148", BG, 1.5) + line(
-            f"M {x} {58 + d} L {x + 90} {58 + d}", BG, 1.5
-        )
-g += t(85, 168, "groot model, veel data", "n", "middle")
-g += t(315, 168, "veel search", "n", "middle")
-g += t(200, 205, "hetzelfde budget: meer runs zijn kleinere runs", "c", "middle")
+S, YB = 72, 150
+LONG, SHORT = S * 2**0.5, S / 2**0.5
+TILE = S / 4
+
+
+def l3_run(x: float, y: float, w: float, h: float, warm: bool = False) -> str:
+    fill, col = (VT, V) if warm else (PT, P)
+    return f'<rect x="{x:.1f}" y="{y:.1f}" width="{w:.1f}" height="{h:.1f}" fill="{fill}" stroke="{col}" stroke-width="1.5"/>'
+
+
+g += l3_run(22, YB - SHORT, LONG, SHORT) + t(22, YB - SHORT - 6, "parameters →", "n")
+g += l3_run(148, YB - LONG, SHORT, LONG, warm=True)
+for i in range(4):
+    for j in range(4):
+        tile = (TILE - 3, TILE - 3)
+        g += l3_run(224 + i * TILE + 1.5, YB - S + j * TILE + 1.5, *tile)
+        if i == 0 or j == 0:
+            g += l3_run(320 + i * TILE + 1.5, YB - S + j * TILE + 1.5, *tile)
+g += l3_run(
+    320 + TILE + 1.5, YB - S + TILE + 1.5, S - TILE - 3, S - TILE - 3, warm=True
+)
+g += t(22 + LONG / 2, 168, "één grote run", "n", "middle")
+g += t(148 + SHORT / 2, 168, "of meer data", "n", "middle")
+g += t(224 + S / 2, 168, "veel search", "n", "middle")
+g += t(320 + S / 2, 168, "search + groot", "n", "middle")
+g += t(200, 205, "hetzelfde budget, anders besteed", "c", "middle")
 PICTURES["3.13"] = ("Je budget verdelen", g)
 
 # 4.1 attention: one output position as a weighted sum of all input positions

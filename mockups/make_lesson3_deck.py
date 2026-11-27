@@ -1495,7 +1495,6 @@ def mix7():
 
 
 def your_budget():
-    side, y0 = 290, 180
     s = txt(690, 50, "hardware × time", 36, INK, "end", 500)
     s += txt(716, 50, "=", 36, MUT, "middle")
     s += txt(800, 50, "FLOPs", 36, P, "middle", 600)
@@ -1505,36 +1504,52 @@ def your_budget():
         910, 92, "how you spend it", 24, MUT
     )
 
-    def spend(x0, n, head, sub):
-        tile = side / n
-        g = txt(x0 + side / 2, y0 - 16, head, 30, INK, "middle", 500)
-        g += "".join(
-            rect(x0 + i * tile + 3, y0 + j * tile + 3, tile - 6, tile - 6, P)
-            for i in range(n)
-            for j in range(n)
-        )
-        g += rect(x0, y0, side, side, "none", MUT, 2.5)
-        g += txt(x0 + side / 2, y0 + side + 40, sub[0], 26, MUT, "middle")
-        g += txt(x0 + side / 2, y0 + side + 74, sub[1], 26, MUT, "middle")
-        return g
+    # every figure has the same area: a run is parameters (width) by data (height)
+    side, yb = 250, 470
+    long, short = side * 2**0.5, side / 2**0.5
 
-    a = spend(
-        240, 2, "4 large runs", ("more parameters and data per run", "little search")
+    def label(xc, head, sub):
+        return txt(xc, yb + 44, head, 30, INK, "middle", 500) + txt(
+            xc, yb + 80, sub, 26, MUT, "middle"
+        )
+
+    x = 110
+    wide = rect(x, yb - short, long, short, PT, P, 4)
+    wide += txt(x, yb - short - 16, "parameters →", 26, MUT)
+    wide += vtxt(x - 18, yb - short / 2, "data ↑", 26, MUT)
+    wide += label(x + long / 2, "one large run", "many parameters, less data")
+
+    x = 590
+    tall = rect(x, yb - long, short, long, VT, V, 4)
+    tall += label(x + short / 2, "one large run", "fewer parameters, more data")
+
+    x, n = 900, 4
+    tile = side / n
+    many = "".join(
+        rect(x + i * tile + 3, yb - side + j * tile + 3, tile - 6, tile - 6, PT, P, 2.5)
+        for i in range(n)
+        for j in range(n)
     )
-    b = spend(710, 4, "16 runs", ("", ""))
-    c = spend(
-        1180,
-        8,
-        "64 small runs",
-        ("a small model or little data per run", "much search"),
+    many += label(x + side / 2, "16 small runs", "much search")
+
+    x = 1290
+    mixed = "".join(
+        rect(x + i * tile + 3, yb - side + j * tile + 3, tile - 6, tile - 6, PT, P, 2.5)
+        for i in range(n)
+        for j in range(n)
+        if i == 0 or j == 0
     )
+    mixed += rect(
+        x + tile + 3, yb - side + tile + 3, side - tile - 6, side - tile - 6, VT, V, 4
+    )
+    mixed += label(x + side / 2, "search small", "then train one larger model")
     return slide(
         "your-budget",
         5,
         ["3.13"],
         'One budget, <span class="v">your choice</span> how to spend it',
-        s + a + build(b) + build(c),
-        "Your hardware and the time you give it are the FLOPs you can spend: the area. A run costs about its parameters times the images it sees, so more runs means smaller runs.",
+        s + wide + build(tall) + build(many) + build(mixed),
+        "Your hardware and the time you give it are the FLOPs you can spend: the area. A run costs about its parameters times the images it sees, so every figure spends the same budget.",
         mk="schematic",
         h=580,
     )
