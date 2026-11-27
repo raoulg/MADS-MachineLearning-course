@@ -13,6 +13,19 @@ This page is the routine once you have a VM. Setting one up (the SSH key, the ho
 lab guide, [`lab-setup.md`](lab-setup.md): give its raw URL to your assistant and let it
 walk you through.
 
+## Your 150 hours
+
+Every student has **150 VM hours**. The clock runs for every hour the VM is on, whether it
+trains or sits idle: a VM left on overnight with nothing running costs as many hours as
+one that trains. So the VM is on while a run goes, and off as soon as the runs are done.
+
+**Only Stop on the website stops the clock.** Shutting the VM down from inside
+(`sudo shutdown`, or closing the connection) does not: Azure counts a VM that was shut
+down from its own operating system as still running, and it keeps using your hours. Your
+assistant cannot stop it for you either; it has no access to your lab account. What it
+can do is tell you the moment a run has finished: ask it to check `tmux ls` on the VM
+when you come back, and to remind you to press Stop.
+
 ## Do you need one?
 
 Let the course measure it. Run Part 1 of a lesson's exercise notebook on your laptop
@@ -90,5 +103,6 @@ session is what keeps a run alive when the connection drops.
    make share LESSON=2
    ```
 
-10. **Stop the VM** on the website when no run is going (`tmux ls` lists none, or only
-    the dashboard). A VM that is left on keeps using your hours.
+10. **Stop the VM** at <https://labs.azure.com/virtualmachines> as soon as no run is going
+    (`tmux ls` lists none, or only the dashboard), and check on the tile that it says
+    stopped. A VM that is left on keeps using your 150 hours, also when it does nothing.

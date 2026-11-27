@@ -160,11 +160,16 @@ survives disconnecting → optuna-dashboard in your browser.* Most of it is once
 
 Also tell them the money and time facts now, because they change behaviour:
 
-- Every student has a budget of VM hours. **Your teacher tells you the budget**, and tells
-  you whether the VM shuts down by itself at a fixed time. More hours can be requested,
+- Every student has a budget of **150 VM hours**, and the clock runs for every hour the
+  VM is on, also when nothing trains. Your teacher tells you whether the VM shuts down by
+  itself at a fixed time. More hours can be requested,
   but ask early.
-- The VM costs money for every hour it runs. **Stop the VM when you are done.** This is
-  the habit that makes the hours enough.
+- The VM costs money for every hour it runs. **Stop the VM on the website when you are
+  done.** Shutting it down from inside (`sudo shutdown`) does not stop the clock: Azure
+  counts a VM shut down from its own operating system as still running. This is the habit
+  that makes the hours enough. Assistant: you cannot stop the VM (you have no access to
+  the lab account), so whenever a run has finished, remind the student to press Stop and
+  to check that the tile says stopped.
 
 **CHECKPOINT.** Wait for their answers before continuing.
 
@@ -890,8 +895,9 @@ point the student there. In short:
    (`tmux new -A -s optuna`).
 4. When the work is done, check `tmux ls`: a session still running a training run means
    the VM must stay on until it is finished; otherwise end the sessions.
-5. Close the connection, and **stop the VM on the website**. A VM that is left running
-   keeps using the budget.
+5. Close the connection, and **stop the VM on the website**; a shutdown from inside the
+   VM does not count. A VM that is left running keeps using the 150 hours, also when it
+   does nothing.
 
 ---
 
