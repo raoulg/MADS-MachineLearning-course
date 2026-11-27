@@ -38,9 +38,11 @@ pre-commit:
     typecheck:
       files: git ls-files
       glob: '*.py'
-      # research scripts import undeclared packages; see [tool.ruff] in pyproject.toml
+      # research scripts and the reader's uv scripts import packages they declare inline,
+      # not in the project; see [tool.ruff] in pyproject.toml
       exclude:
         - 'planning/research/**/*.py'
+        - 'reader/**'
         - 'archive/**'
         - 'legacy/**'
       run: uv run ty check {staged_files}

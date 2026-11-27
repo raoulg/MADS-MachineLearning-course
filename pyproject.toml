@@ -86,7 +86,7 @@ testpaths = ["tests"]
 # Scouting scripts kept as evidence for how a research number was produced. They import
 # packages this project does not declare (sentence-transformers, nltk) and are deleted
 # once the lesson built on them has run.
-extend-exclude = ["planning/research", "legacy"]
+extend-exclude = ["planning/research", "legacy", "reader"]
 force-exclude = true
 
 [tool.ty.src]
