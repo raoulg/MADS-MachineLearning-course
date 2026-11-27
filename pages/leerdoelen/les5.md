@@ -24,9 +24,9 @@ achtergrond en belichting.
 views, `φ₁(x)` en `φ₂(x)`. Beide gaan door een encoder, en de loss vraagt dat hun vectoren
 gelijk zijn: de vector van de ene view is het doel voor de andere.
 
-5.4 Dat de encoder daardoor ongevoelig wordt voor wat `φ` verandert: `g(φ(x)) ≈ g(x)`.
-Verandert `φ` de kleur, dan staat kleur niet meer in de vector. Kies `φ` dus zo dat hij
-niets verandert wat jouw taak nodig heeft.
+5.4 Dat de encoder daardoor negeert wat `φ` weghaalt of verandert: `g(φ(x)) ≈ g(x)`.
+Haalt `φ` de kleur weg, dan groepeert de encoder op vorm en staat kleur niet meer in de
+vector. Kies `φ` dus zo dat hij niets weghaalt wat jouw taak nodig heeft.
 
 5.5 Wat representation collapse is: de encoder geeft elk item dezelfde vector. Dat is een
 triviaal antwoord op "geef twee views dezelfde vector", dus de loss is laag terwijl er

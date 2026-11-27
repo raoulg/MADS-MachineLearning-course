@@ -1396,35 +1396,53 @@ g += t(185, 124, "op dezelfde vector uit?", "c v", "middle")
 g += t(200, 212, "de vector van de ene view is het doel voor de andere", "c", "middle")
 PICTURES["5.3"] = ("Twee views van hetzelfde item", g)
 
-# 5.4 the same items in two spaces: what the augmentation changes no longer separates them
-g = l5_panel(20, 28, 170, 142) + l5_panel(210, 28, 170, 142)
-g += raw(105, 48, "φ verandert de vorm", "l", "middle")
-g += raw(295, 48, "φ verandert de kleur", "l", "middle")
-for x, y, sq, dark in (
-    (50, 92, False, True),
-    (72, 86, True, True),
-    (62, 110, True, True),
-    (84, 106, False, True),
-    (128, 104, False, False),
-    (150, 98, True, False),
-    (140, 126, True, False),
-    (162, 122, False, False),
-    (238, 96, False, True),
-    (260, 90, False, False),
-    (248, 116, False, False),
-    (270, 112, False, True),
-    (318, 108, True, False),
-    (340, 102, True, True),
-    (328, 130, True, True),
-    (350, 126, True, False),
+# 5.4 one dataset, one augmentation that removes colour, and the space the encoder then learns
+l5_items = (
+    (22, 30, False, True),
+    (52, 22, True, False),
+    (84, 34, False, False),
+    (30, 60, True, True),
+    (62, 56, False, True),
+    (90, 66, True, False),
+    (24, 88, True, False),
+    (64, 88, False, False),
+)
+l5_grouped = (
+    (22, 44),
+    (72, 44),
+    (42, 32),
+    (92, 34),
+    (28, 70),
+    (78, 68),
+    (98, 58),
+    (48, 58),
+)
+g = ""
+for x0, head in (
+    (14, "data: x"),
+    (144, "\u03c6(x): kleur weg"),
+    (274, "vectoren: g(x)"),
 ):
+    g += l5_panel(x0, 44, 112, 104) + raw(x0 + 56, 34, head, "l", "middle")
+g += arrow(128, 96, 142, 96, "v", 2) + arrow(258, 96, 272, 96)
+g += raw(135, 86, "\u03c6", "l v", "middle") + t(265, 86, "g", "l", "middle")
+for (x, y, sq, dark), (gx, gy) in zip(l5_items, l5_grouped, strict=True):
     fill = P if dark else BG
-    g += l5_square(x, y, fill) if sq else dot(x, y, 6, fill)
-g += t(105, 160, "vorm verdwijnt", "l v", "middle")
-g += t(295, 160, "kleur verdwijnt", "l v", "middle")
-g += raw(200, 194, "g(φ(x)) ≈ g(x)", "big", "middle")
-g += t(200, 216, "wat φ verandert, onderscheidt de encoder niet meer", "c", "middle")
-PICTURES["5.4"] = ("De encoder wordt ongevoelig voor φ", g)
+    for x0, px, py, fl, st in (
+        (14, x, y, fill, P),
+        (144, x, y, SOFT, MUT),
+        (274, gx, gy, fill, P),
+    ):
+        g += (
+            l5_square(x0 + px, 44 + py, fl, st)
+            if sq
+            else dot(x0 + px, 44 + py, 6, fl, st)
+        )
+g += t(14, 166, "vol of hol, rond of vierkant", "c")
+g += t(330, 166, "gegroepeerd op vorm", "l v", "middle")
+g += raw(200, 192, "g(\u03c6(x)) \u2248 g(x)", "big", "middle")
+g += t(200, 216, "de kleur staat niet meer in de vector", "c", "middle")
+PICTURES["5.4"] = ("Wat \u03c6 weghaalt, negeert de encoder", g)
 
 # 5.5 the same square with a one-point space in the corner: every route agrees, nothing is learned
 ONE = ""
