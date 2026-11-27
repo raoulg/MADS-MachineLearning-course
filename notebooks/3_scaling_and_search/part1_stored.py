@@ -5,7 +5,8 @@
 
 It reads the rows the notebook stored in `artefacts/lesson3/part1.json` and keeps E1 to E3
 and the trials of the search as it stands in `lesson3-notebook`, so run Part 1 in full
-first. Nothing is trained here.
+first. Every kept row says its cap (`per_class`) and its train rows (`n_train`); a row
+without them is left out and named. Nothing is trained here.
 """
 
 import json
@@ -27,7 +28,11 @@ def main() -> None:
     trials = {
         f"trial {t.number}" for t in StudyLog.load(NOTEBOOK).trials(TrialState.COMPLETE)
     }
-    kept = [r for r in rows.values() if r["experiment"] != "E4" or r["name"] in trials]
+    capped = [r for r in rows.values() if {"per_class", "n_train"} <= r.keys()]
+    capless = [r["name"] for r in rows.values() if r not in capped]
+    if capless:
+        print(f"left out, without per_class and n_train: {', '.join(capless)}")
+    kept = [r for r in capped if r["experiment"] != "E4" or r["name"] in trials]
     OUT.write_text(json.dumps(kept, indent=1) + "\n", encoding="utf-8")
     counts = {
         e: sum(r["experiment"] == e for r in kept) for e in ("E1", "E2", "E3", "E4")

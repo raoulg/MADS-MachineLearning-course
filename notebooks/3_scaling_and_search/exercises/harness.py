@@ -5,16 +5,20 @@ the winner rerun, the difference with the baseline in points) is
 
 The data is `pttrn-io/mix7-dinov2-small` (or `-base`, the axis `encoder`): every image of
 seven datasets as two DINOv2 vectors, the CLS token and the mean of the patch tokens,
-with one label out of 321 classes. A run trains on a stratified `share` of the train
-rows of every class and is scored on a validation split cut from train: 10% of every
-class, the same rows for every run. Test is left alone: it is for the end of the course,
-not for choosing a design.
+with one label out of 321 classes. A run is scored on a validation split cut from train:
+10% of every class, the same rows for every run. It trains on at most `per_class` of the
+other rows of every class. Test is left alone: it is for the end of the course, not for
+choosing a design.
 
 The trainer axes, besides `lr`:
 
 - `encoder`: `dinov2-small` (384 numbers per vector) or `dinov2-base` (768);
-- `share`: the share of every class's train rows a run trains on, between 0 and 1; a
-  smaller share is a subset of a larger one;
+- `per_class`: a cap, the most train rows a run takes of every class, a whole number
+  from 1 to `PER_CLASS_ALL` (every row of the largest class, so every train row). A
+  class with fewer rows than the cap stays whole, so a smaller cap pulls the classes
+  towards equal sizes: at 80 a class of Food-101 has 80 of its 675 rows and a class of
+  DTD all of its 72. The rows under a smaller cap are a subset of those under a larger
+  one. Every run logs its cap, and `n_train`, the train rows that cap left it;
 - `drop_domain`: one domain left out of train and validation, or `"none"`; a run
   without a domain is scored on the other six, so its accuracy is read against another
   run's on those six domains, from the recall per class every run logs;
@@ -22,11 +26,11 @@ The trainer axes, besides `lr`:
   (`"grid"`), `(batch, 2, 16, 24)` for small and `(batch, 2, 24, 32)` for base; the
   design's kernel reads the grid.
 
-An epoch is a fixed number of optimizer steps, one pass over every train row, whatever
-the share: on a share of 10% an epoch passes over its rows ten times. So the epochs of
-two runs are the same steps. A run trains until its validation accuracy has not
-improved for `PATIENCE` epochs, or for `EPOCHS` epochs at most, and keeps the weights of
-its best epoch.
+An epoch is a fixed number of optimizer steps, one pass over every train row of the
+whole mix, whatever the cap: under a cap that leaves a tenth of the rows, an epoch
+passes over them ten times. So the epochs of two runs are the same steps. A run trains
+until its validation accuracy has not improved for `PATIENCE` epochs, or for `EPOCHS`
+epochs at most, and keeps the parameters of its best epoch.
 
 The notebook's helpers are at the end: `run` (one run, logged and stored), `table`,
 `front` and `plot_front` (the Pareto front of accuracy against FLOPs per image),
@@ -96,6 +100,8 @@ DOMAINS = [
     "bloodmnist",
 ]
 VALID_SHARE = 0.1  # of every class, cut from train once, with a fixed seed
+# The cap that keeps every train row: the train rows of the largest class of the mix.
+PER_CLASS_ALL = 2397
 
 # The values a string param can take, for the runs that are given their params (see
 # hpo.record.StudyLog).
@@ -113,7 +119,7 @@ CHOICES: dict[str, list[str]] = {
 LINEAR: Config = {
     "dataset": "mix7",
     "encoder": "dinov2-small",
-    "share": 1.0,
+    "per_class": PER_CLASS_ALL,
     "drop_domain": "none",
     "form": "flat",
     "input": "cls",
@@ -166,10 +172,10 @@ def classes() -> list[str]:
 
 @cache
 def order(encoder: str) -> tuple[np.ndarray, list[np.ndarray]]:
-    """The validation rows, and per class its train rows in the order a share takes
-    them: shuffled once with a fixed seed, so a share of 0.1 keeps the first tenth of
-    every class and is a subset of a share of 0.3. Both encoders hold the same images in
-    the same order, so they cut the same rows."""
+    """The validation rows, and per class its train rows in the order a cap takes them:
+    shuffled once with a fixed seed, so a cap of 80 keeps the first 80 of every class
+    and is a subset of a cap of 250. Both encoders hold the same images in the same
+    order, so they cut the same rows."""
     label = load(encoder).label
     rng = np.random.default_rng(0)
     valid, train = [], []
@@ -181,23 +187,46 @@ def order(encoder: str) -> tuple[np.ndarray, list[np.ndarray]]:
     return np.sort(np.concatenate(valid)), train
 
 
-def cut(
-    encoder: str, share: float, drop_domain: str = "none"
-) -> tuple[np.ndarray, np.ndarray]:
-    """The train rows of a run and the validation rows it is scored on: a stratified
-    `share` of every class, without the domain `drop_domain`."""
-    if not 0 < share <= 1:
-        raise ValueError(
-            f"share is a fraction of the train rows, in (0, 1], not {share}"
+def cap(config: Config) -> int:
+    """The `per_class` of a config: `PER_CLASS_ALL` when it names none. A config that
+    shrinks its data with `share` is refused: the harness has no such axis."""
+    if "share" in config:
+        raise KeyError(
+            "the harness has no axis 'share': a run shrinks its data with 'per_class', "
+            f"the most train rows of every class, from 1 to {PER_CLASS_ALL} (every row)"
         )
+    return check_cap(config.get("per_class", PER_CLASS_ALL))
+
+
+def check_cap(per_class: object) -> int:
+    """`per_class` as it stands, or a `ValueError` that says what a cap is."""
+    whole = isinstance(per_class, int | np.integer) and not isinstance(per_class, bool)
+    if not whole or not 1 <= int(per_class) <= PER_CLASS_ALL:
+        raise ValueError(
+            "per_class is the most train rows of every class, a whole number from 1 "
+            f"to {PER_CLASS_ALL} (every row), not {per_class!r}"
+        )
+    return int(per_class)
+
+
+def cut(
+    encoder: str, per_class: int = PER_CLASS_ALL, drop_domain: str = "none"
+) -> tuple[np.ndarray, np.ndarray]:
+    """The train rows of a run and the validation rows it is scored on: at most
+    `per_class` rows of every class, without the domain `drop_domain`."""
+    per_class = check_cap(per_class)
     if drop_domain != "none" and drop_domain not in DOMAINS:
         raise KeyError(
             f"drop_domain {drop_domain!r} is no domain of the mix: {DOMAINS}"
         )
-    valid, per_class = order(encoder)
-    train = np.sort(
-        np.concatenate([rows[: max(1, round(share * len(rows)))] for rows in per_class])
-    )
+    valid, by_class = order(encoder)
+    largest = max(len(rows) for rows in by_class)
+    if largest > PER_CLASS_ALL:
+        raise ValueError(
+            f"the largest class of {encoder!r} has {largest} train rows, more than "
+            f"PER_CLASS_ALL ({PER_CLASS_ALL}), which is to keep every row"
+        )
+    train = np.sort(np.concatenate([rows[:per_class] for rows in by_class]))
     if drop_domain != "none":
         domain = load(encoder).domain
         dropped = DOMAINS.index(drop_domain)
@@ -212,13 +241,16 @@ def fold(embed: Tensor) -> Tensor:
 
 
 def tensors(
-    encoder: str, share: float, drop_domain: str = "none", form: str = "flat"
+    encoder: str,
+    per_class: int = PER_CLASS_ALL,
+    drop_domain: str = "none",
+    form: str = "flat",
 ) -> tuple[TensorDataset, TensorDataset]:
     """The train and validation rows of a run as tensors, every number standardised with
     the mean and the spread of the train rows."""
     if form not in CHOICES["form"]:
         raise KeyError(f"form {form!r}: the loader gives {CHOICES['form']}")
-    train, valid = cut(encoder, share, drop_domain)
+    train, valid = cut(encoder, per_class, drop_domain)
     rows = load(encoder)
     mean = rows.embed[train].mean(0)
     std = rows.embed[train].std(0) + 1e-6
@@ -246,7 +278,7 @@ def loader(rows: TensorDataset, steps: int | None = None) -> DataLoader:
 @dataclass
 class Patience:
     """Stops a run once its validation accuracy has not improved for `patience` epochs,
-    and keeps the weights and the scores of its best epoch."""
+    and keeps the parameters and the scores of its best epoch."""
 
     model: nn.Module
     patience: int
@@ -272,7 +304,7 @@ class Patience:
         return self.waited >= self.patience
 
     def kept(self) -> Fit:
-        """The fit with the weights and the confusion of the kept epoch."""
+        """The fit with the parameters and the confusion of the kept epoch."""
         if self.state:
             self.model.load_state_dict(self.state)
         return self.fit.model_copy(update={"confusion": self.confusion})
@@ -303,7 +335,7 @@ class Lesson3:
     patience: int = PATIENCE
     # the keys of a search space the harness reads; every other key is the design's
     trainer: frozenset[str] = frozenset(
-        {"dataset", "encoder", "share", "drop_domain", "form", "epochs", "lr"}
+        {"dataset", "encoder", "per_class", "drop_domain", "form", "epochs", "lr"}
     )
     choices: Mapping[str, Sequence[str]] = field(default_factory=lambda: CHOICES)
     store: Store = field(default_factory=Store.default)
@@ -315,11 +347,9 @@ class Lesson3:
             )
         encoder = str(config.get("encoder", "dinov2-small"))
         form = str(config.get("form", "flat"))
+        per_class = cap(config)
         train, valid = tensors(
-            encoder,
-            float(config.get("share", 1.0)),
-            str(config.get("drop_domain", "none")),
-            form,
+            encoder, per_class, str(config.get("drop_domain", "none")), form
         )
         dim = int(load(encoder).embed.shape[-1])
         n_rows = sum(len(rows) for rows in order(encoder)[1])
@@ -334,6 +364,7 @@ class Lesson3:
                 "dim": dim,
                 "height": height,
                 "breadth": width,
+                "per_class": per_class,
                 "n_train": len(train),
                 "steps_per_epoch": steps,
             },
@@ -375,12 +406,15 @@ class Lesson3:
         )
 
     def params(self, config: Config, data: Data) -> dict[str, Param]:
-        """The params of a run: its choices, the budget, the size of its data."""
+        """The params of a run: its choices, the budget, and the size of its data, with
+        the cap `per_class` and the train rows it left (`n_train`) whatever the config
+        names."""
         return {"epochs": EPOCHS, **config, **data.dims}
 
 
 def kept_epoch(fit: Fit) -> int:
-    """The epoch whose weights a run kept, counted from 1: its best validation accuracy."""
+    """The epoch whose parameters a run kept, counted from 1: its best validation
+    accuracy."""
     return int(np.argmax(fit.curves.accuracy)) + 1
 
 
@@ -425,16 +459,29 @@ def store(rows: Sequence[dict]) -> None:
     results().write_text(json.dumps(kept), encoding="utf-8")
 
 
-def stored_rows(experiment: str, share: float | None = None) -> list[dict]:
+def stored_rows(experiment: str, per_class: int | None = None) -> list[dict]:
     """The rows of `experiment` in the stored full run of Part 1 (`part1_stored.json`,
-    written by `part1_stored.py`), each named with "(stored)"; only those of `share`
-    when it is given. They are read, not trained, and not logged."""
+    written by `part1_stored.py`), each named with "(stored)"; only those of the cap
+    `per_class` when it is given. They are read, not trained, and not logged. A stored
+    row that does not say its cap and its train rows is refused."""
     path = Path(__file__).parents[1] / "part1_stored.json"
-    rows = json.loads(path.read_text(encoding="utf-8"))
+    rows = [
+        r
+        for r in json.loads(path.read_text(encoding="utf-8"))
+        if r["experiment"] == experiment
+    ]
+    capless = [r["name"] for r in rows if not {"per_class", "n_train"} <= r.keys()]
+    if capless:
+        raise ValueError(
+            f"{path.name} holds runs of {experiment} without 'per_class' and "
+            f"'n_train' ({', '.join(capless)}): it was not written by a run of Part 1 "
+            "with this harness. Run Part 1 in full (QUICK = False), then "
+            "part1_stored.py"
+        )
     return [
         {**r, "name": f"{r['name']} (stored)"}
         for r in rows
-        if r["experiment"] == experiment and (share is None or r["share"] == share)
+        if per_class is None or r["per_class"] == per_class
     ]
 
 
@@ -468,7 +515,8 @@ def run(name: str, config: Config, role: Role, experiment: str, make: Make) -> d
         "epochs_run": len(fit.curves.accuracy),
         "minutes": seconds / 60,
         "curve": fit.curves.accuracy,
-        "share": config["share"],
+        "per_class": data.dims["per_class"],
+        "n_train": data.dims["n_train"],
         "width": config.get("width", 0),
     }
     store([row])
@@ -476,8 +524,11 @@ def run(name: str, config: Config, role: Role, experiment: str, make: Make) -> d
 
 
 def table(rows: Sequence[dict]) -> Styler:
-    """The runs side by side: accuracy, what one image costs, and how the run settled."""
+    """The runs side by side: the cap and the train rows it left, accuracy, what one
+    image costs, and how the run settled."""
     columns = [
+        "per_class",
+        "n_train",
         "accuracy",
         "flops",
         "latency_us",
@@ -491,6 +542,7 @@ def table(rows: Sequence[dict]) -> Styler:
         .set_index("name")[columns]
         .style.format(
             {
+                "n_train": "{:,.0f}",
                 "accuracy": "{:.3f}",
                 "flops": "{:,.0f}",
                 "latency_us": "{:.2f}",
@@ -664,6 +716,8 @@ def search(space: Space, n_trials: int, make: Make, experiment: str) -> list[dic
         {
             "name": f"trial {t.number}",
             "experiment": experiment,
+            "per_class": t.user_attrs["per_class"],
+            "n_train": t.user_attrs["n_train"],
             "accuracy": t.value,
             "flops": t.user_attrs["flops_per_image"],
             "latency_us": t.user_attrs["latency_us"],
@@ -682,5 +736,6 @@ def from_study(name: str) -> Param | Space:
     for node in ast.parse(source).body:
         if isinstance(node, ast.Assign) and ast.unparse(node.targets[0]) == name:
             names = {"Space": Space, "Choice": Choice, "Float": Float, "Int": Int}
-            return eval(ast.unparse(node.value), {**names, "EPOCHS": EPOCHS})
+            given = {"EPOCHS": EPOCHS, "PER_CLASS_ALL": PER_CLASS_ALL}
+            return eval(ast.unparse(node.value), {**names, **given})
     raise ValueError(f"study.py gives no value to {name}")

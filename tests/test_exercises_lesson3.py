@@ -2,6 +2,7 @@
 exercise folder, without the hub."""
 
 import importlib.util
+import json
 from pathlib import Path
 
 import numpy as np
@@ -129,41 +130,95 @@ def test_the_front_reads_the_score_a_study_maximises():
     assert [r["name"] for r in harness.front(rows)] == ["a", "c"]
 
 
-@pytest.fixture
-def mix(monkeypatch):
-    """A mix of 3 domains, 6 classes of 40 rows, as `harness.load` gives it."""
-    label = np.repeat(np.arange(6), 40)
+def fake_mix(monkeypatch, sizes: list[int]):
+    """A mix of 3 domains and 6 classes of `sizes` rows, as `harness.load` gives it."""
+    label = np.repeat(np.arange(6), sizes)
     rows = harness.Rows(
-        embed=np.random.default_rng(0).normal(size=(240, 2, 384)).astype(np.float32),
+        embed=np.random.default_rng(0)
+        .normal(size=(len(label), 2, 384))
+        .astype(np.float32),
         label=label,
         domain=label // 2,
     )
     monkeypatch.setattr(harness, "load", lambda encoder, split="train": rows)
     monkeypatch.setattr(harness, "DOMAINS", ["a", "b", "c"])
     harness.order.cache_clear()
-    yield rows
+    return rows
+
+
+@pytest.fixture
+def mix(monkeypatch):
+    """Six classes of 40 rows."""
+    yield fake_mix(monkeypatch, [40] * 6)
     harness.order.cache_clear()
 
 
-def test_a_share_is_stratified_nested_and_never_in_validation(mix):
-    small, valid = harness.cut("fake", 0.25)
-    large, valid_too = harness.cut("fake", 0.5)
+@pytest.fixture
+def uneven(monkeypatch):
+    """Classes of unequal size: 36, 36, 18, 18, 9 and 9 train rows after validation."""
+    yield fake_mix(monkeypatch, [40, 40, 20, 20, 10, 10])
+    harness.order.cache_clear()
+
+
+def test_a_cap_is_nested_and_never_in_validation(mix):
+    small, valid = harness.cut("fake", 9)
+    large, valid_too = harness.cut("fake", 18)
     assert np.array_equal(valid, valid_too)
     assert np.bincount(mix.label[valid]).tolist() == [4] * 6  # 10% of every class
-    assert np.bincount(mix.label[small]).tolist() == [9] * 6  # 25% of the other 36
+    assert np.bincount(mix.label[small]).tolist() == [9] * 6
     assert set(small) <= set(large)
     assert not set(large) & set(valid)
 
 
+def test_a_cap_cuts_the_large_classes_and_keeps_the_small_ones_whole(uneven):
+    capped, _ = harness.cut("fake", 12)
+    assert np.bincount(uneven.label[capped]).tolist() == [12, 12, 12, 12, 9, 9]
+    every, _ = harness.cut("fake")
+    assert np.bincount(uneven.label[every]).tolist() == [36, 36, 18, 18, 9, 9]
+    assert set(capped) <= set(every)
+
+
+@pytest.mark.parametrize("cap", [0, -3, 0.25, 1.0, True, "80", 10**6])
+def test_a_cap_that_is_no_count_of_rows_is_refused_by_name(mix, cap):
+    with pytest.raises(ValueError, match="per_class is the most train rows"):
+        harness.cut("fake", cap)
+
+
+def test_a_config_with_a_share_is_refused_by_name(mix):
+    with pytest.raises(KeyError, match="no axis 'share'"):
+        harness.cap({"share": 0.3})
+
+
+def test_every_run_logs_its_cap_and_its_train_rows(uneven, monkeypatch):
+    monkeypatch.setattr(harness, "classes", lambda: list("abcdef"))
+    whole = harness.HARNESS.data({})
+    capped = harness.HARNESS.data({"per_class": 12})
+    assert whole.dims["per_class"] == harness.PER_CLASS_ALL
+    assert (whole.dims["n_train"], capped.dims["n_train"]) == (126, 66)
+    assert whole.dims["steps_per_epoch"] == capped.dims["steps_per_epoch"]
+    params = harness.HARNESS.params({"lr": 1e-3}, capped)
+    assert (params["per_class"], params["n_train"]) == (12, 66)
+
+
+def test_a_stored_run_without_its_cap_is_refused(tmp_path, monkeypatch):
+    rows = [{"name": "w16 s0.1", "experiment": "E2", "share": 0.1}]
+    lesson = tmp_path / "lesson"
+    (lesson / "exercises").mkdir(parents=True)
+    (lesson / "part1_stored.json").write_text(json.dumps(rows), encoding="utf-8")
+    monkeypatch.setattr(harness, "__file__", str(lesson / "exercises" / "harness.py"))
+    with pytest.raises(ValueError, match="without 'per_class'"):
+        harness.stored_rows("E2")
+
+
 def test_a_dropped_domain_is_left_out_of_train_and_validation(mix):
-    train, valid = harness.cut("fake", 1.0, drop_domain="b")
+    train, valid = harness.cut("fake", drop_domain="b")
     assert 1 not in set(mix.domain[train]) | set(mix.domain[valid])
     with pytest.raises(KeyError, match="no domain"):
-        harness.cut("fake", 1.0, drop_domain="zz")
+        harness.cut("fake", drop_domain="zz")
 
 
 def test_the_loader_standardises_on_the_train_rows_and_folds_the_grid(mix):
-    train, valid = harness.tensors("fake", 1.0, form="grid")
+    train, valid = harness.tensors("fake", form="grid")
     assert train.tensors[0].shape[1:] == (2, 16, 24)
     flat = train.tensors[0].flatten(2)
     assert torch.allclose(flat.mean(0), torch.zeros(2, 384), atol=1e-5)

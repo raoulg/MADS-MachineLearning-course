@@ -24,7 +24,7 @@ import datasets
 import designs  # ty: ignore[import-not-found]  (a script's own folder is on sys.path)
 import optuna
 from designs import DESIGN  # ty: ignore[import-not-found]
-from harness import EPOCHS, HARNESS  # ty: ignore[import-not-found]
+from harness import EPOCHS, HARNESS, PER_CLASS_ALL  # ty: ignore[import-not-found]
 from huggingface_hub.utils import disable_progress_bars as hub_quiet
 from loguru import logger
 from torch import nn
@@ -51,12 +51,16 @@ EXPECTS = "say what you expect, and why"
 OBJECTIVE = "accuracy"
 
 # Which axes does your search space search, and over which ranges? The space below is
-# the starter space of Part 1 (E4): share, input, width, depth and dropout. Every option
-# of designs.py (@option) needs an axis here: search it with Choice([False, True]), or
+# the starter space of Part 1 (E4): per_class, input, width, depth and dropout.
+# `per_class` is a cap on the data: a run trains on at most that many images of every
+# class, and a class with fewer stays whole. PER_CLASS_ALL (2397, the largest class) is
+# every train row; fix the axis with "per_class": PER_CLASS_ALL, or to a smaller cap.
+# Every run logs its cap and the train rows it left (`n_train`). Every option of
+# designs.py (@option) needs an axis here: search it with Choice([False, True]), or
 # fix it to one value. An option you search needs its control of equal compute among the
 # trials (Part 2 of 05_exercise.ipynb): search `width` beside it over a range that holds
-# the control's width, and fix `share` and every axis your question does not study, so
-# that at equal FLOPs the control differs only in the option and the width that
+# the control's width, and fix `per_class` and every axis your question does not study,
+# so that at equal FLOPs the control differs only in the option and the width that
 # matches. With `moe` on, `width` is each expert's width. The kernel reads the grid:
 # with it, put "form": "grid". Which axes do the trials you can afford cover well enough
 # to read?
@@ -64,7 +68,7 @@ SPACE = Space(
     {
         "dataset": "mix7",
         "encoder": "dinov2-small",
-        "share": Float(0.1, 1.0, log=True),
+        "per_class": Int(20, PER_CLASS_ALL, log=True),
         "drop_domain": "none",
         "form": "flat",
         "input": Choice(["cls", "mean", "both"]),
