@@ -91,6 +91,7 @@ STUDY_SCRIPT = $(wildcard notebooks/$(or $(LESSON),1)_*/exercises/study.py)
 
 study:
 	@test -n "$(STUDY_SCRIPT)" || { echo "lesson $(or $(LESSON),1) has no exercises/study.py"; exit 2; }
+	uv run python -m hpo.exercise.ask $(STUDY_SCRIPT)
 	uv run $(STUDY_SCRIPT)
 
 # Your page of a lesson, from your own store: artefacts/study-page/lesson<N>/index.html,

@@ -247,13 +247,48 @@ class Exercise:
             },
             store=self.store,
         )
+        # The study's finished trials count toward its budget: run again and the search
+        # goes on where it stopped, with as many trials as MINUTES still holds.
+        finished = (optuna.trial.TrialState.COMPLETE, optuna.trial.TrialState.PRUNED)
+        before = 0 if self.store.testing else len(search.trials(*finished))
+        left = max(0, n_trials - before)
+        if before:
+            print(f"resume   : {before} of {n_trials} trials ran before; {left} left")
+        # the search gets the seconds the budget gave its trials, so a machine slower
+        # than measured stops on time instead of running every trial
+        seconds = left * budget.seconds_per_trial
         start = time.time()
-        search.optimize(self.trial(search), n_trials)
+        stopped = False
+        try:
+            if left:
+                search.optimize(self.trial(search), left, timeout=seconds)
+        except KeyboardInterrupt:
+            stopped = True
+            print(
+                "\nstopped  : you stopped the search; the winner is rerun from the "
+                "trials so far (Ctrl-C again stops it all)"
+            )
+        took = time.time() - start
+        ran = len(search.trials(*finished)) - before
         done = search.trials(optuna.trial.TrialState.COMPLETE)
+        if not done:
+            raise ValueError(
+                "search: no trial finished, so there is no winner to rerun; run make "
+                "study again to go on, or give the study more minutes"
+            )
+        print(f"{ran} trials in {took:.0f}s; {len(done)} finished in all")
+        if ran < left:
+            why = (
+                "before you stopped it"
+                if stopped
+                else f"in the time they were given (about {took / max(ran, 1):.0f}s a "
+                f"trial against {budget.seconds_per_trial:.0f}s measured)"
+            )
+            print(
+                f"time     : {ran} of {left} trials ran {why}; the trials are kept, "
+                f"and make study runs the {left - ran} left"
+            )
         table = pd.DataFrame([{self.objective: t.value, **t.params} for t in done])
-        print(
-            f"{n_trials} trials in {time.time() - start:.0f}s; {len(done)} finished in all"
-        )
         print(
             table.sort_values(self.objective, ascending=False)
             .head(6)

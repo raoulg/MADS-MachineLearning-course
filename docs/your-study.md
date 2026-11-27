@@ -136,6 +136,13 @@ space, the design, or the name of the study?
 make study LESSON=<N>
 ```
 
+`make study` first asks at the terminal for whatever `STUDY`, `IDEA` or `EXPECTS` still
+lacks, writes the answers into `study.py`, shows what will run and asks whether to start.
+The search stops when `MINUTES` are up, even when trials run slower than Part 1
+measured, and Ctrl-C stops it by hand; either way the winner is rerun from the trials so
+far, and the next `make study` runs the trials still left. Raise `MINUTES` to give it
+more.
+
 The script runs an Optuna study over the space and the design, then reruns the winner,
 the trial with the highest objective, as often as the baseline. It refuses a space that
 leaves out an option or holds an axis that neither the design nor the trainer knows, and

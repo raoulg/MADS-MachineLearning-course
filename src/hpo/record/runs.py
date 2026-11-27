@@ -476,9 +476,16 @@ class StudyLog:
         return trial.number
 
     def optimize(
-        self, objective: Callable[[optuna.Trial], float], n_trials: int
+        self,
+        objective: Callable[[optuna.Trial], float],
+        n_trials: int,
+        timeout: float | None = None,
     ) -> None:
-        self.study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
+        """Run up to `n_trials` trials; past `timeout` seconds no new trial starts, and
+        the one running finishes."""
+        self.study.optimize(
+            objective, n_trials=n_trials, timeout=timeout, show_progress_bar=True
+        )
 
     def trials(self, *states: TrialState) -> list[FrozenTrial]:
         """The trials in `states`, every trial without."""
