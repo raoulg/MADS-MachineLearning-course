@@ -27,15 +27,16 @@ loss is de negative log-likelihood (NLL). Daarmee neem je aan dat de fouten symm
 klokvormig verdeeld zijn. Een quantile head voorspelt een paar quantiles direct en doet
 die aanname niet.
 
-6.6 Wat kalibratie is: een interval van 90% hoort in 90% van de gevallen de waarheid te
-bevatten. Voor een classifier is het hetzelfde: van alle gevallen waar hij `p = 0.8` geeft,
-hoort 80% positief te zijn. Een model kan smalle intervallen geven en toch slecht
-gekalibreerd zijn.
+6.6 Wat kalibratie is: wat het model belooft komt uit, bij elk percentage. Een interval
+van 90% bevat in 90% van de gevallen de waarheid, een interval van 50% in 50%. Voor een
+classifier is het hetzelfde: van alle gevallen waar hij `p = 0.8` geeft, hoort 80% positief
+te zijn. Een model kan smalle intervallen geven en toch slecht gekalibreerd zijn.
 
-6.7 Wat conformal prediction doet: met een apart gehouden kalibratieset maak je per item
-een set van klassen die in 90% van de gevallen de juiste klasse bevat, zonder aanname
-over de verdeling. Een grote set betekent dat het model twijfelt. De garantie geldt
-gemiddeld, niet per item, en alleen zolang nieuwe data op de kalibratieset lijkt.
+6.7 Wat conformal prediction doet: je kiest een dekking, bijvoorbeeld 90%, en maakt met
+een apart gehouden kalibratieset per item een set van klassen die in dat deel van de
+gevallen de juiste klasse bevat, zonder aanname over de verdeling. Een grote set betekent
+dat het model twijfelt. De garantie geldt gemiddeld, niet per item, en alleen zolang
+nieuwe data op de kalibratieset lijkt.
 
 6.8 Dat je de drempel waarboven een classifier "positief" zegt zelf kiest. Kost een gemist
 geval meer dan een vals alarm, dan hoort de drempel lager dan 0.5 te liggen: meer recall,

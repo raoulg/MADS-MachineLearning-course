@@ -1502,8 +1502,9 @@ for y, lab, w in (
     g += path(f"M 70 112 L 92 {y}") + box(96, y - 15, 110, 30, lab, "p", PT)
     g += arrow(208, y, 228, y) + arrow(298, y, 314, y)
     g += f'<rect x="318" y="{y - 7}" width="{w}" height="14" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
-g += box(232, 35, 64, 154, "probe", "v", VT) + t(264, 150, "dezelfde", "c", "middle")
-g += t(200, 214, "dezelfde linear probe, drie encoders", "c", "middle")
+g += box(232, 35, 64, 154, "", "v", VT)
+g += t(264, 108, "linear", "l", "middle") + t(264, 126, "probe", "l", "middle")
+g += t(200, 214, "drie encoders, één linear probe, drie scores", "c", "middle")
 PICTURES["5.9"] = ("Encoders vergelijken met een linear probe", g)
 
 # 5.10 a table of trials: the lowest loss is the collapsed one, the probe picks another
@@ -1639,17 +1640,20 @@ for x, q in ((233, "q10"), (266, "q50"), (319, "q90")):
     g += line(f"M {x} 196 L {x} 140", V, 2.5) + t(x, 134, q, "n v", "middle")
 PICTURES["6.5"] = ("Gaussian head en quantile head", g)
 
-# 6.6 calibration plot below the diagonal, and narrow intervals that miss the truth
+# 6.6 asked against reached coverage at every level, and one level as an example
 g = line("M 44 36 L 44 166 L 174 166", MUT, 1) + line(
     "M 44 166 L 174 36", MUT, 1, "4 3"
 )
 g += t(44, 30, "gehaald", "c") + t(174, 30, "ideaal", "n", "end")
-g += line("M 161 166 L 161 88 M 44 88 L 161 88", RULE, 1, "3 3")
-g += line("M 44 166 Q 120 150 161 88", V, 2) + dot(161, 88, 5, VT, V)
-g += t(161, 180, "90 %", "n", "middle") + t(40, 92, "60 %", "n", "end")
-g += t(96, 180, "gevraagd", "c", "middle")
+g += line("M 44 166 Q 120 150 161 88", V, 2)
+for a, b in ((0.3, 0.115), (0.5, 0.2), (0.7, 0.33), (0.9, 0.6)):
+    x, y = 44 + a * 130, 166 - b * 130
+    g += line(f"M {x} 166 L {x} {y}", RULE, 1, "3 3") + dot(x, y, 4, VT, V)
+    g += t(x, 180, f"{round(a * 100)}", "n", "middle")
+g += line("M 44 88 L 161 88", RULE, 1, "3 3") + t(40, 92, "60", "n", "end")
+g += t(109, 196, "gevraagd (%)", "c", "middle")
 g += line("M 205 26 L 205 182", RULE, 1)
-g += t(300, 40, "90 %-intervallen", "l", "middle")
+g += t(300, 40, "voorbeeld: 90 %", "l", "middle")
 cs = [96, 104, 92, 100, 108, 98, 94, 102, 100, 96]
 for i, c in enumerate(cs):
     x = 233 + i * 15
@@ -1662,11 +1666,12 @@ for i, c in enumerate(cs):
         g += dot(x, c + (18 if i % 4 == 0 else -18), 4, VT, V)
     else:
         g += dot(x, c + (4 if i % 2 else -4), 3, PT, P)
-g += t(300, 150, "smal", "l p", "middle") + t(
-    300, 168, "dekt 6 van 10", "c v", "middle"
+g += t(300, 150, "10 intervallen van 90 %", "c", "middle")
+g += t(300, 168, "6 bevatten de waarheid", "c v", "middle")
+g += t(
+    200, 218, "onder de diagonaal: het model belooft meer dan het haalt", "c", "middle"
 )
-g += t(200, 208, "smalle intervallen, en toch slecht gekalibreerd", "c", "middle")
-PICTURES["6.6"] = ("Kalibratie: 90% hoort 90% te zijn", g)
+PICTURES["6.6"] = ("Kalibratie: gevraagd tegen gehaald", g)
 
 # 6.7 split conformal: a quantile of held-out scores sets a threshold, the set size varies
 scores = [
@@ -1695,7 +1700,7 @@ g = t(20, 64, "kalibratieset", "l p") + t(20, 82, "apart gehouden", "c")
 g += line("M 140 80 L 360 80", MUT, 1)
 g += "".join(dot(140 + sc * 220, 58 if i % 2 else 68, 4) for i, sc in enumerate(scores))
 g += line("M 342 44 L 342 84", V, 2.5) + t(342, 38, "q̂", "l v", "middle")
-g += t(334, 38, "90 % eronder", "c v", "end")
+g += t(334, 38, "bv. 90 % eronder", "c v", "end")
 g += t(250, 96, "score: 1 − p(juiste klasse)", "n", "middle")
 g += t(140, 118, "set = klassen met score onder q̂", "n")
 for y, lab, members, size in (
@@ -1704,7 +1709,9 @@ for y, lab, members, size in (
 ):
     g += t(20, y + 12, lab, "l") + row(140, y, 10, 16, {k: VT for k in members})
     g += t(310, y + 12, size, "m v")
-g += t(200, 200, "dekt 90 %, zolang test lijkt op kalibratie", "c", "middle")
+g += t(
+    200, 200, "haalt de gekozen dekking, zolang test lijkt op kalibratie", "c", "middle"
+)
 PICTURES["6.7"] = ("Conformal prediction: een set met een garantie", g)
 
 # 6.8 expected cost against threshold: the minimum lies far from 0.5
@@ -1870,7 +1877,6 @@ for y, left, cls, mid, right in rows73:
         + arrow(264, y + 14, 286, y + 14)
         + t(292, y + 19, right, "c")
     )
-g += t(200, 210, "controleer ook de beoordelaar", "c", "middle")
 PICTURES["7.3"] = ("De uitvoer van een LLM beoordelen", g)
 
 # 7.4 recall per class against a threshold sends each class to head or generalist
