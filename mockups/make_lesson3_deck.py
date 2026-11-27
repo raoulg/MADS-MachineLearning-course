@@ -373,13 +373,14 @@ def glyph(kind):
             )
         )
     else:
-        fr = [(30, 15), (110, 30), (180, 60), (230, 105)]
+        fr = [(40, 14), (115, 30), (180, 60), (232, 104)]
+        inside = ((48, 84), (92, 106), (124, 82), (152, 112), (76, 72))
+        outside = ((70, 44), (140, 52), (204, 112), (216, 96))
         g = (
-            rect(0, 60, 180, 70, "#86b9c9", op=0.22)
-            + "".join(
-                circ(x, y, 7, "#b8b0a5")
-                for x, y in ((40, 80), (90, 104), (120, 82), (150, 112), (70, 70))
-            )
+            rect(12, 60, 168, 62, "#86b9c9", op=0.22)
+            + line(12, 4, 12, 122, "#8a837a", 2)
+            + line(12, 122, 256, 122, "#8a837a", 2)
+            + "".join(circ(x, y, 6, "#b8b0a5") for x, y in inside + outside)
             + poly(fr, "#f2643c", 5)
             + "".join(circ(x, y, 8, "#f2643c") for x, y in fr)
         )
@@ -396,7 +397,7 @@ def cover():
   <div style="display:flex; flex-direction:column; gap:32px">
     <div style="width:280px; height:2px; background:#f2643c"></div>
     <h1 style="font-family:Outfit, Arial, sans-serif; font-size:132px; font-weight:500; line-height:0.98; letter-spacing:-4px; color:#f4f1ec">Scaling<br>and search</h1>
-    <p style="max-width:1000px; font-family:Outfit, Arial, sans-serif; font-size:40px; line-height:1.3; color:#b8b0a5">What did that capacity buy you?</p>
+    <p style="max-width:1000px; font-family:Outfit, Arial, sans-serif; font-size:40px; line-height:1.3; color:#b8b0a5">Working within the limits of compute, data and time</p>
   </div>
   <div class="foot" style="border-top-color:#2b2621"><p style="color:#b8b0a5">Lesson 3</p><p style="color:#b8b0a5">Hogeschool Utrecht</p></div>
 </section>
@@ -421,7 +422,7 @@ def agenda():
   <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>Agenda</p><p>four parts</p><p><a href="../leerdoelen/les3.html">all goals</a></p></div>
   <div class="body" style="gap:60px">
-    <h2 class="t">Today: what did that <span class="v">capacity</span> buy you?</h2>
+    <h2 class="t">Today: working within the limits of <span class="v">compute, data and time</span></h2>
     <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:44px">{cells}</div>
   </div>
   <p class="pn n"></p>
