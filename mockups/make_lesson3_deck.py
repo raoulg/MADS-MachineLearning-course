@@ -1196,10 +1196,22 @@ def lr_valley():
     def valley(cx, us, col, title):
         Y = lambda u: 440 - 380 * u * u
         X = lambda u: cx + 330 * u
-        g = txt(cx, 34, title, 30, INK, "middle", 500)
+        g = txt(cx, 22, title, 30, INK, "middle", 500)
         g += poly([(X(-1 + i / 30), Y(-1 + i / 30)) for i in range(61)], MUT, 4)
         for a, b in itertools.pairwise(us):
-            g += line(X(a), Y(a), X(b), Y(b), col, 4, marker="v" if col == V else "g")
+            # a hop: an arc over the valley that ends just short of the next dot
+            x1, y1, x2, y2 = X(a), Y(a), X(b), Y(b)
+            span = abs(x2 - x1)
+            qx, qy = (x1 + x2) / 2, min(y1, y2) - min(0.3 * span, 56) - 10
+            d = math.hypot(x2 - qx, y2 - qy)
+            ex, ey = x2 - 16 * (x2 - qx) / d, y2 - 16 * (y2 - qy) / d
+            head = (
+                f' marker-end="url(#m{"v" if col == V else "g"})"' if span > 40 else ""
+            )
+            g += (
+                f'<path d="M {x1:.1f} {y1:.1f} Q {qx:.1f} {qy:.1f} {ex:.1f} {ey:.1f}" '
+                f'fill="none" stroke="{col}" stroke-width="4"{head}/>'
+            )
         g += "".join(circ(X(u), Y(u), 10, col) for u in us)
         return g
 
