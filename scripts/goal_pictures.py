@@ -1146,21 +1146,32 @@ def l4_weights(y: float, ws: list[float]) -> str:
     return out
 
 
-g = l4_tokens + "".join(
-    cell(x0 + i * s, 46, s, SOFT, RULE, 1)
-    + t(x0 + i * s + s / 2, 63, "pad", "n", "middle")
-    for i in range(5, 8)
-)
-g += t(14, 127, "gewicht", "m") + l4_weights(110, l4_heads[0])
+def l4_mask(x: float, y: float, kept) -> str:
+    """A 5 x 5 matrix of attention weights: row i looks at column j where kept(i, j)."""
+    out = ""
+    for r in range(5):
+        for c in range(5):
+            cx, cy = x + c * 22, y + r * 22
+            if kept(r, c):
+                out += cell(cx, cy, 22, VT, V, 1.5)
+            else:
+                out += cell(cx, cy, 22, SOFT, RULE, 1) + t(
+                    cx + 11, cy + 15, "0", "n", "middle"
+                )
+    return out
+
+
+g = t(40, 38, "padding mask", "l v") + t(240, 38, "causal mask", "l v")
+g += l4_mask(40, 48, lambda r, c: c < 3) + l4_mask(240, 48, lambda r, c: c <= r)
 g += "".join(
-    cell(x0 + i * s, 110, s, SOFT, RULE, 1)
-    + t(x0 + i * s + s / 2, 128, "0", "m v", "middle")
-    for i in range(5, 8)
+    t(40 + c * 22 + 11, 172, lab, "n", "middle")
+    for c, lab in enumerate(["1", "2", "3", "pad", "pad"])
 )
-g += f'<rect x="{x0 + 5 * s - 3}" y="43" width="{3 * s + 6}" height="96" fill="none" stroke="{V}" stroke-width="2" stroke-dasharray="5 4"/>'
-g += t(x0 + 6.5 * s, 34, "mask", "l v", "middle")
-g += t(200, 190, "padding krijgt gewicht nul", "c", "middle")
-PICTURES["4.4"] = ("Mask: padding telt niet mee", g)
+g += "".join(t(240 + c * 22 + 11, 172, str(c + 1), "n", "middle") for c in range(5))
+g += t(95, 192, "encoder: leest alles", "c", "middle")
+g += t(295, 192, "decoder: alleen wat ervoor kwam", "c", "middle")
+g += t(200, 216, "gemaskeerde posities krijgen gewicht nul", "c", "middle")
+PICTURES["4.4"] = ("Mask: padding en causal", g)
 
 # 4.5 three heads weigh the same five tokens differently
 g = l4_tokens
@@ -1191,7 +1202,27 @@ for y, name, toks in (
 g += t(200, 205, "hoeveel tekst past, hangt af van de tokenizer", "c", "middle")
 PICTURES["4.6"] = ("Tokens en het context window", g)
 
-# 4.7 a long document cut into overlapping chunks becomes a (chunks, dim) matrix
+# 4.7 two texts compared apart (two vectors, cosine) or read together in one window
+g = t(14, 30, "apart: cosine distance", "l")
+for y, name in ((40, "tekst A"), (70, "tekst B")):
+    g += box(14, y, 70, 22, name, "g", BG, "c") + arrow(86, y + 11, 104, y + 11)
+    g += box(108, y, 70, 22, "encoder", "p", PT, "c") + arrow(180, y + 11, 198, y + 11)
+    g += row(202, y + 4, 4, 14, {i: PT for i in range(4)})
+g += arrow(262, 51, 288, 60, "v") + arrow(262, 81, 288, 72, "v")
+g += box(292, 52, 52, 26, "cos", "v", VT, "c")
+g += t(14, 114, "elke tekst één pass, daarna vergelijk je er zoveel als je wilt", "c")
+g += line("M 14 126 L 386 126", RULE, 1)
+g += t(14, 148, "samen: een reranker", "l v")
+g += box(14, 158, 124, 22, "tekst A | tekst B", "g", BG, "c") + arrow(
+    140, 169, 160, 169
+)
+g += box(164, 158, 70, 22, "encoder", "p", PT, "c") + arrow(236, 169, 256, 169)
+g += box(260, 158, 60, 22, "score", "v", VT, "c")
+g += t(14, 200, "attention over beide teksten, één pass per paar", "c")
+g += t(200, 222, "samen is nauwkeuriger, apart is goedkoper", "c", "middle")
+PICTURES["4.7"] = ("Twee teksten: apart of samen lezen", g)
+
+# 4.8 a long document cut into overlapping chunks becomes a (chunks, dim) matrix
 l4_starts = [14, 85, 156, 227, 298]
 g = t(14, 34, "document, 2400 tokens", "m")
 g += f'<rect x="14" y="44" width="372" height="14" fill="{PT}" stroke="{P}" stroke-width="1.5"/>'
@@ -1209,9 +1240,9 @@ g += t(14, 155, "(5, 512)", "m") + arrow(80, 150, 108, 150)
 g += box(112, 136, 92, 28, "encoder", "p", PT) + arrow(206, 150, 234, 150)
 g += grid(240, 128, 5, 8, 9) + t(320, 155, "(5, dim)", "m")
 g += t(200, 205, "kleinere chunks of meer overlap: meer rekentijd", "c", "middle")
-PICTURES["4.7"] = ("Een lang document wordt (chunks, dim)", g)
+PICTURES["4.8"] = ("Een lang document wordt (chunks, dim)", g)
 
-# 4.8 padding rows at zero pull a plain mean towards the origin; a masked mean does not
+# 4.9 padding rows at zero pull a plain mean towards the origin; a masked mean does not
 g = t(24, 40, "kort document", "c")
 for r in range(5):
     y = 50 + r * 16
@@ -1229,33 +1260,8 @@ g += dot(290, 60) + t(299, 57, "1", "n") + dot(350, 110) + t(359, 107, "2", "n")
 g += dot(254, 140.8, 6, BG, V) + t(264, 146, "gewoon gemiddelde", "c")
 g += dot(320, 85, 6, VT, V) + t(330, 92, "masked", "l v")
 g += t(200, 212, "padding trekt het gemiddelde naar de oorsprong", "c", "middle")
-PICTURES["4.8"] = ("Padding verstoort een gewoon gemiddelde", g)
+PICTURES["4.9"] = ("Padding verstoort een gewoon gemiddelde", g)
 
-
-# 4.9 two streams as circles: only the part the embedding lacks adds anything
-def l4_crescent(xa: float, xb: float, y: float, r: float) -> str:
-    xm = (xa + xb) / 2
-    h = (r * r - ((xb - xa) / 2) ** 2) ** 0.5
-    return f'<path d="M {xm} {y - h:.1f} A {r} {r} 0 1 1 {xm} {y + h:.1f} A {r} {r} 0 0 0 {xm} {y - h:.1f} Z" fill="{VT}"/>'
-
-
-g = ""
-for xa, xb in ((80, 110), (255, 335)):
-    g += f'<circle cx="{xa}" cy="105" r="46" fill="{PT}"/>' + l4_crescent(
-        xa, xb, 105, 46
-    )
-    g += "".join(
-        f'<circle cx="{x}" cy="105" r="46" fill="none" stroke="{P}" stroke-width="1.5"/>'
-        for x in (xa, xb)
-    )
-g += t(56, 48, "embedding", "c", "middle") + t(140, 48, "feature", "c", "middle")
-g += t(250, 48, "embedding", "c", "middle") + t(340, 48, "feature", "c", "middle")
-g += t(345, 110, "nieuw", "l v", "middle") + line("M 190 40 L 190 160", RULE, 1)
-g += t(95, 180, "overlap: geen winst", "l", "middle") + t(
-    295, 180, "complementair: winst", "l v", "middle"
-)
-g += t(200, 210, "zonder nieuwe informatie voegt een stroom niets toe", "c", "middle")
-PICTURES["4.9"] = ("Een tweede stroom helpt met nieuwe informatie", g)
 
 # 4.10 the pipeline from document to one vector, with the shape after every step
 g = ""

@@ -27,8 +27,10 @@ vector.
 gewicht naar elke andere, dus rekenwerk en geheugen groeien met het kwadraat van de
 lengte. Het aantal parameters hangt niet van de lengte af.
 
-4.4 Wat een mask doet: posities die niet mogen meetellen, zoals padding, krijgen gewicht
-nul.
+4.4 Wat een mask doet: posities die niet mogen meetellen krijgen gewicht nul. Een padding
+mask zet de padding op nul. Een causal mask laat elke positie alleen de posities ervoor
+zien. Dat is het verschil tussen een encoder, die de hele tekst in één keer leest, en een
+decoder, die steeds het volgende token voorspelt.
 
 4.5 Wat multi-head attention is: meerdere gewogen sommen naast elkaar, elk met eigen
 parameters, zodat elke head op iets anders kan letten.
@@ -37,17 +39,21 @@ parameters, zodat elke head op iets anders kan letten.
 woorden en letters in zit. Het context window is een maximum aantal tokens; hoeveel tekst
 daarin past hangt af van de tokenizer.
 
-4.7 Wat je doet als een document niet in het context window past: chunken en elke chunk
-embedden. Dat geeft per document een matrix `(chunks, dim)`. Kleinere chunks of meer
-overlap geven meer chunks, en dus meer rekentijd.
+4.7 Dat je twee teksten op twee manieren kunt vergelijken. Je kunt ze apart embedden en
+de cosine distance nemen: elke tekst gaat één keer door de encoder, en daarna vergelijk je
+er zoveel als je wilt. Of je leest ze samen in één context window, zodat attention over
+beide teksten loopt (een reranker). Dat is nauwkeuriger, maar elk paar kost een eigen pass
+door het model.
 
-4.8 Waarom padding de aggregatie verstoort: documenten hebben een verschillend aantal
+4.8 Wat je doet als een document niet in het context window past: chunken en elke chunk
+embedden. Dat geeft per document een matrix `(chunks, dim)`. Kleinere chunks of meer
+overlap geven meer chunks, en dus meer rekentijd. Ook een groter context window maakt
+chunken niet overbodig, want attention kost kwadratisch in de lengte (4.3).
+
+4.9 Waarom padding de aggregatie verstoort: documenten hebben een verschillend aantal
 chunks, dus in een batch vul je korte documenten aan met nulvectoren. Een gewoon
 gemiddelde telt die nullen mee en trekt korte documenten naar de oorsprong; een masked
 mean middelt alleen over de echte chunks.
-
-4.9 Dat een tweede stroom, zoals een zelf ontworpen feature naast een geleerde embedding,
-alleen iets toevoegt als hij informatie draagt die de eerste stroom niet heeft.
 
 ## De student kan
 
@@ -55,8 +61,9 @@ alleen iets toevoegt als hij informatie draagt die de eerste stroom niet heeft.
 aggregatie terugbrengen tot één vector per document, met chunkgrootte, overlap en
 aggregatie als assen van een search.
 
-4.11 Twee stromen fuseren en hetzelfde model ook zonder elk van de stromen draaien, om te
-zien wat elke stroom bijdraagt.
+4.11 Twee stromen fuseren, zoals een zelf ontworpen feature naast een geleerde embedding,
+en hetzelfde model ook zonder elk van de stromen draaien. Een tweede stroom voegt alleen
+iets toe als hij informatie draagt die de eerste stroom niet heeft.
 
 4.12 Als klas een ontwerp maken voor de SCOTUS-uitspraken: lange documenten met weinig
 voorbeelden per klasse, met attention op de plek waar het iets oplevert.
@@ -65,10 +72,10 @@ voorbeelden per klasse, met attention op de plek waar het iets oplevert.
 
 | leerdoel | onderwerp | notebook |
 |---|---|---|
-| 4.1, 4.2, 4.3, 4.4, 4.5 | attention, positional encoding, masking, multi-head | `01_attention` |
-| 4.6 | tokens en het context window | `02_tokenization` |
-| 4.7, 4.8, 4.10 | lange documenten, padding, masked aggregatie, de search | `03_long_documents` |
-| 4.9, 4.11 | fusie, en het model zonder één stroom | `04_composition` |
+| 4.1, 4.2, 4.3, 4.4, 4.5 | attention, positional encoding, padding en causal mask, multi-head | `01_attention` |
+| 4.6, 4.7 | tokens, het context window, twee teksten apart of samen | `02_tokenization` |
+| 4.8, 4.9, 4.10 | lange documenten, padding, masked aggregatie, de search | `03_long_documents` |
+| 4.11 | fusie, en het model zonder één stroom | `04_composition` |
 | 4.12 | de klasopdracht | les |
 
 Publiceren naar de klas en voortbouwen op het werk van anderen (1.15, 2.12) geldt in elke
