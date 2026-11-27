@@ -793,12 +793,17 @@ def highway_to_moe():
 def moe_at_scale():
     per_b = 13.0  # pixels per billion parameters, the same in both panels
 
-    def bars(x, y, stored, used):
+    def bars(x, y, stored, used, cols, rows):
         s = txt(x, y + 30, "stored", 28, MUT) + rect(
             x + 110, y, stored * per_b, 40, GREYT, GREY, 2
         )
         s += txt(x + 124 + stored * per_b, y + 30, f"{stored}B", 30, INK, weight=600)
-        s += txt(x, y + 86, "used", 28, V) + rect(x + 110, y + 56, used * per_b, 40, V)
+        # the used bar keeps its area and is cut into one block per expert that runs
+        w, h = used * per_b / cols, 40 / rows
+        s += txt(x, y + 86, "used", 28, V)
+        for r in range(rows):
+            for c in range(cols):
+                s += rect(x + 110 + c * w, y + 56 + r * h, w, h, V, BG, 2)
         s += txt(
             x + 124 + used * per_b, y + 86, f"{used}B per token", 30, V, weight=600
         )
@@ -813,7 +818,7 @@ def moe_at_scale():
         a += rect(
             x0 + i * 86, 120, 70, 150, V if on else GREYT, V if on else GREY, 2, rx=4
         )
-    a += bars(x0, 330, 47, 13)
+    a += bars(x0, 330, 47, 13, 2, 1)
 
     # Qwen: 256 experts, 8 routed per token
     x1 = 900
@@ -832,7 +837,7 @@ def moe_at_scale():
                 V if on else GREY,
                 1,
             )
-    b += bars(x1, 330, 35, 3)
+    b += bars(x1, 330, 35, 3, 2, 4)
     b += txt(x1, 470, "the name says it: 35B stored, 3B active", 28, MUT)
     return slide(
         "moe-at-scale",
