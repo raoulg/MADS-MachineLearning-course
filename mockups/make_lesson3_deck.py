@@ -634,19 +634,11 @@ def compute_area():
     s += txt(x0 + 280 * sx - 24, y0 - 300 * sy / 2 + 12, "Gopher", 34, P, "end", 600)
     b = rect(x0, y0 - 1400 * sy, 70 * sx, 1400 * sy, VT, V, 4, op=0.75)
     b += txt(x0 + 70 * sx + 24, y0 - 1400 * sy + 44, "Chinchilla", 34, V, weight=600)
-    b += txt(
-        x0 + 70 * sx + 24,
-        y0 - 1400 * sy + 88,
-        "the same area: 5.76 × 10²³ FLOPs",
-        30,
-        V,
-        weight=500,
-    )
     return slide(
         "compute-area",
         1,
         ["3.3"],
-        'The 70B model used the <span class="v">same compute</span> as the 280B model',
+        'Both models used <span class="v">5.76 × 10²³ FLOPs</span>',
         s + build(b),
         "",
         "Rae et al. (2021), Gopher · Hoffmann et al. (2022), Chinchilla; FLOPs of Gopher's training: their Table 3.",
@@ -970,9 +962,9 @@ def trials():
         (0.55, 0.44), (0.48, 0.42), (0.585, 0.52), (0.43, 0.48), (0.51, 0.55),
     ]  # fmt: skip
     parents = [first[2], first[3]]
-    gen2 = [(0.3, 0.5), (0.36, 0.78), (0.455, 0.52), (0.575, 0.6), (0.7, 0.3)]
+    gen2 = [(0.3, 0.5), (0.36, 0.78), (0.42, 0.44), (0.575, 0.6), (0.77, 0.22)]
     par2 = [gen2[2], gen2[3]]
-    gen3 = [(0.49, 0.36), (0.42, 0.42), (0.5, 0.6), (0.545, 0.47), (0.53, 0.7)]
+    gen3 = [(0.52, 0.39), (0.46, 0.33), (0.5, 0.6), (0.545, 0.47), (0.53, 0.7)]
     near = lambda ps: [(u - 0.08, v + 0.08) for u, v in ps]
     tpe, gen2, gen3 = near(tpe), near(gen2), near(gen3)
     par2 = [gen2[2], gen2[3]]
