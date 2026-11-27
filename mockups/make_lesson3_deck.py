@@ -498,7 +498,7 @@ def law_curves():
         ["3.2", "3.10"],
         'Our own runs: more images, a <span class="v">lower test loss</span>',
         s + g,
-        "One model, five amounts of data: every run ends below the one before it. The dot is the step each run is read at.",
+        "One model, five amounts of data: every run ends below the one before it. The dot marks where a run's validation loss was lowest.",
         "Food-101, a linear head on a frozen encoder · notebook 3.1.3",
         h=570,
     )
@@ -535,8 +535,24 @@ def grow_together():
     b = frame(1, 1, mixc(GREYT, BG, 0.3), "stops improving", MUT)
     b += curve(1, 1, fall(0.95, 0.46, 9), GREY, 3) + curve(1, 1, fall(0.96, 0.47, 9), P)
     c = frame(1, 0, mixc(PT, BG, 0.4), "every step lies lower", P)
+    x, y = cell(1, 0)
     for i, col in enumerate(OK[1:]):
-        c += curve(1, 0, fall(0.96, 0.42 - 0.11 * i, 4.5), col)
+        u0, u1 = 0.1 * i, 0.52 + 0.16 * i
+        top, floor = 0.95 - 0.1 * i, 0.62 - 0.15 * i
+        c += poly(
+            [
+                (
+                    x + 30 + (cw - 60) * u,
+                    y
+                    + ch
+                    - 24
+                    - (ch - 70) * (floor + (top - floor) * math.exp(-6 * (u - u0))),
+                )
+                for u in [u0 + (u1 - u0) * j / 40 for j in range(41)]
+            ],
+            col,
+            5,
+        )
     lab = txt(x0 - 30, y0 + ch / 2 + 10, "more parameters", 30, INK, "end", 500) + txt(
         x0 - 30, y0 + ch + gy + ch / 2 + 10, "few parameters", 30, INK, "end", 500
     )
