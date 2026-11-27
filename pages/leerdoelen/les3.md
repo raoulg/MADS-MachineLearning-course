@@ -60,8 +60,8 @@ zeggen met een afvalrace, die hele trials stopt.
 
 3.9 Wat een Pareto front is: de modellen waarvan geen ander model op alle gekozen maten
 minstens even goed is en op één beter. Kan een Pareto front lezen over score, aantal
-gewichten en snelheid, en uitleggen waarom "de beste trial" zonder tweede maat een
-onvolledige vraag is.
+gewichten en FLOPs per image, en uitleggen waarom "de beste trial" zonder tweede maat
+een onvolledige vraag is.
 
 ## De student kan
 
