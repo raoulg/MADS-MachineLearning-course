@@ -425,6 +425,19 @@ def store(rows: Sequence[dict]) -> None:
     results().write_text(json.dumps(kept), encoding="utf-8")
 
 
+def stored_rows(experiment: str, share: float | None = None) -> list[dict]:
+    """The rows of `experiment` in the stored full run of Part 1 (`part1_stored.json`,
+    written by `part1_stored.py`), each named with "(stored)"; only those of `share`
+    when it is given. They are read, not trained, and not logged."""
+    path = Path(__file__).parents[1] / "part1_stored.json"
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    return [
+        {**r, "name": f"{r['name']} (stored)"}
+        for r in rows
+        if r["experiment"] == experiment and (share is None or r["share"] == share)
+    ]
+
+
 def run(name: str, config: Config, role: Role, experiment: str, make: Make) -> dict:
     """One run of `config` from `SEED`: trained until it settles, its accuracy, FLOPs and
     latency measured, logged to `lesson3-notebook-runs` and stored under `name`."""
