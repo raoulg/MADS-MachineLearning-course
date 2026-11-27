@@ -635,7 +635,12 @@ def compute_area():
     b = rect(x0, y0 - 1400 * sy, 70 * sx, 1400 * sy, VT, V, 4, op=0.75)
     b += txt(x0 + 70 * sx + 24, y0 - 1400 * sy + 44, "Chinchilla", 34, V, weight=600)
     b += txt(
-        x0 + 70 * sx + 24, y0 - 1400 * sy + 88, "about the same area", 30, V, weight=500
+        x0 + 70 * sx + 24,
+        y0 - 1400 * sy + 88,
+        "the same area: 5.76 × 10²³ FLOPs",
+        30,
+        V,
+        weight=500,
     )
     return slide(
         "compute-area",
@@ -644,7 +649,7 @@ def compute_area():
         'The 70B model used the <span class="v">same compute</span> as the 280B model',
         s + build(b),
         "",
-        "Rae et al. (2021), Gopher · Hoffmann et al. (2022), Chinchilla.",
+        "Rae et al. (2021), Gopher · Hoffmann et al. (2022), Chinchilla; FLOPs of Gopher's training: their Table 3.",
         h=590,
     )
 
@@ -703,16 +708,17 @@ def highway_g():
         s = txt(x0, 40, title, 30, INK, weight=500)
         s += vec(x0, cy, P) + txt(x0 + 83, cy + 62, "x", 28, INK, "middle", 600)
         s += line(x0 + 176, cy - 10, x0 + 236, top, MUT, 2.5, marker="g")
-        s += line(x0 + 176, cy + 10, x0 + 236, bot, MUT, 2.5, marker="g")
+        s += poly([(x0 + 176, cy + 10), (x0 + 236, bot), (x0 + 424, bot)], MUT, 2.5)
+        s += line(x0 + 420, bot, x0 + 436, bot, MUT, 2.5, marker="g")
+        s += txt(x0 + 330, bot - 16, "skip", 26, P, "middle", 600)
         s += opbox(x0 + 246, top, "block")
         s += line(x0 + 400, top, x0 + 436, top, MUT, 2.5, marker="g")
         s += vec(x0 + 446, top, V, g)
-        s += txt(x0 + 531, top - 44, f"× g = {g}", 26, V, "middle", mono=True)
+        s += txt(x0 + 531, top - 44, f"⊗ g = {g}", 26, V, "middle", mono=True)
         s += vec(x0 + 446, bot, P, 1 - g)
         s += txt(
-            x0 + 531, bot + 62, f"× (1 − g) = {1 - g:.1f}", 26, P, "middle", mono=True
+            x0 + 531, bot + 62, f"⊗ (1 − g) = {1 - g:.1f}", 26, P, "middle", mono=True
         )
-        s += txt(x0 + 320, bot + 10, "skip", 26, P, "middle", 600)
         s += line(x0 + 622, top, x0 + 660, cy - 14, MUT, 2.5, marker="g")
         s += line(x0 + 622, bot, x0 + 660, cy + 14, MUT, 2.5, marker="g")
         s += circ(x0 + 684, cy, 22, BG, MUT, 2.5) + txt(
@@ -736,52 +742,47 @@ def highway_g():
 
 def highway_to_moe():
     ys = (90, 200, 310, 420)
+    cols = [P, V, mixc(V, P, 0.2), mixc(P, V, 0.2)]
+
+    def blend(weights):
+        rgb = [[int(c[i : i + 2], 16) for i in (1, 3, 5)] for c in cols]
+        return "#" + "".join(
+            f"{round(sum(w * c[k] for w, c in zip(weights, rgb, strict=True))):02x}"
+            for k in range(3)
+        )
 
     def panel(x0, weights, title, sparse):
         cy = 255
         s = txt(x0, 30, title, 30, INK, weight=500)
         s += vec(x0, cy, P) + txt(x0 + 83, cy + 62, "x", 28, INK, "middle", 600)
         top = max(range(4), key=lambda i: weights[i])
-        for i, (y, w) in enumerate(zip(ys, weights, strict=True)):
-            runs = not sparse or i == top
-            wt = (1.0 if i == top else 0.0) if sparse else w
-            s += line(
-                x0 + 176,
-                cy,
-                x0 + 236,
-                y,
-                MUT if runs else RULE,
-                2.5,
-                marker="g" if runs else "",
-            )
-            s += opbox(x0 + 246, y, f"expert {i + 1}", on=runs)
+        used = [float(i == top) for i in range(4)] if sparse else weights
+        # the router is the fork: it gives every route its weight
+        s += line(x0 + 172, cy, x0 + 190, cy, MUT, 2.5, marker="g")
+        for i, y in enumerate(ys):
+            runs = used[i] > 0
             if runs:
-                s += line(x0 + 400, y, x0 + 436, y, MUT, 2.5, marker="g")
-                s += vec(x0 + 446, y, V, wt)
-                s += line(
-                    x0 + 622, y, x0 + 662, cy + (y - cy) * 0.12, MUT, 2.5, marker="g"
-                )
+                s += poly([(x0 + 300, cy), (x0 + 346, y)], cols[i], 2 + 9 * used[i])
             else:
-                s += vec(x0 + 446, y, BG, 0, dash=True)
-            s += txt(
-                x0 + 531,
-                y - 34,
-                f"× {wt:g}" if runs else "not run",
-                24,
-                V if runs else GREY,
-                "middle",
-                mono=True,
-            )
-        s += circ(x0 + 688, cy, 22, BG, MUT, 2.5) + txt(
-            x0 + 688, cy + 11, "+", 32, MUT, "middle", 600
+                s += poly([(x0 + 300, cy), (x0 + 346, y)], RULE, 2.5, "6 6")
+            s += opbox(x0 + 350, y, f"expert {i + 1}", w=124, on=runs)
+            if not runs:
+                s += vec(x0 + 492, y, BG, 0, cw=28, dash=True)
+                s += txt(x0 + 562, y - 34, "not run", 24, GREY, "middle", mono=True)
+                continue
+            s += line(x0 + 474, y, x0 + 486, y, MUT, 2.5, marker="g")
+            s += vec(x0 + 492, y, cols[i], min(1.0, 0.25 + 1.5 * used[i]), cw=28)
+            s += txt(x0 + 562, y - 34, f"{used[i]:g}", 24, cols[i], "middle", mono=True)
+            s += line(x0 + 636, y, x0 + 662, cy + (y - cy) * 0.12, MUT, 2.5, marker="g")
+        s += rect(x0 + 196, cy - 34, 104, 68, BG, INK, 3) + txt(
+            x0 + 248, cy + 9, "router", 26, INK, "middle", 600
         )
-        s += vec(x0 + 724, cy, V, n=3) + txt(
-            x0 + 773, cy + 62, "y", 28, INK, "middle", 600
+        s += circ(x0 + 686, cy, 22, BG, MUT, 2.5) + txt(
+            x0 + 686, cy + 11, "+", 32, MUT, "middle", 600
         )
-        s += rect(x0 + 10, 400, 150, 54, PT, P, 2.5) + txt(
-            x0 + 85, 436, "router", 26, P, "middle", 600
+        s += vec(x0 + 716, cy, blend(used), n=3, cw=28) + txt(
+            x0 + 758, cy + 62, "y", 28, INK, "middle", 600
         )
-        s += line(x0 + 85, cy + 30, x0 + 85, 400, P, 2, "5 5")
         return s
 
     w = [0.15, 0.45, 0.30, 0.10]
@@ -790,21 +791,24 @@ def highway_to_moe():
         2,
         ["3.4", "3.5"],
         'A mixture of experts: a highway with <span class="v">more routes</span>',
-        panel(40, w, "every expert, weighed", False)
-        + build(panel(900, w, "sparse, top-1: only the highest weight runs", True)),
-        "A router gives every expert a weight for this input, and the weights sum to 1. Notebook 3.2 uses the sparse form: 8 experts, of which one runs per image.",
+        panel(20, w, "every expert, weighed", False)
+        + build(panel(880, w, "sparse, top-1: only the highest weight runs", True)),
+        "The router reads x and gives every route a weight; the weights sum to 1. Notebook 3.2 uses the sparse form: 8 experts, of which one runs per image.",
         h=490,
     )
 
 
 def moe_split():
     cw, ch = 72, 56
-    even, neutral = 1 / 8, "#ebe6de"
+    even, band, neutral = 1 / 8, 0.05, "#e4ded5"
 
     def colour(v):
-        if v <= even:
-            return mixc(neutral, P, ((even - v) / even) * 0.75)
-        return mixc(neutral, V, ((v - even) / (1 - even)) ** 0.55)
+        lo, hi = even - band, even + band
+        if v < lo:
+            return mixc(neutral, P, 0.25 + 0.6 * (lo - v) / lo)
+        if v > hi:
+            return mixc(neutral, V, 0.25 + 0.75 * ((v - hi) / (1 - hi)) ** 0.6)
+        return neutral
 
     def grid(x0, which, title):
         g = txt(x0, 34, title, 30, INK, weight=500)
@@ -828,13 +832,13 @@ def moe_split():
 
     lx, ly, lw = 560, 530, 600
     leg = "".join(
-        rect(lx + lw * i / 60, ly, lw / 60 + 1, 24, colour((i / 59) ** 2))
-        for i in range(60)
+        rect(lx + lw * i / 120, ly, lw / 120 + 1, 24, colour(i / 119))
+        for i in range(120)
     )
-    pos = lambda v: lx + lw * (v**0.5)
+    pos = lambda v: lx + lw * v
     for v, lab in (
         (0, "0%"),
-        (even, "12.5%: an even share"),
+        (even, "12.5%"),
         (0.5, "50%"),
         (1, "100%"),
     ):
@@ -844,9 +848,10 @@ def moe_split():
             lab,
             24,
             MUT,
-            "middle" if 0 < v < 1 else ("start" if v == 0 else "end"),
+            "end" if v in (0, 1) else "middle",
         )
     leg += txt(lx - 20, ly + 20, "share of a kind's images", 24, MUT, "end")
+    leg += txt(pos(even - band), ly - 12, "an even share, ± 5%", 24, MUT)
     return slide(
         "moe-split",
         2,
