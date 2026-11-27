@@ -1217,7 +1217,10 @@ def lr_valley():
         return g
 
     a = valley(
-        430, [0.92, -0.88, 0.84, -0.8, 0.77], MUT, "the same learning rate every step"
+        430,
+        [0.86, -0.8, 0.92, -0.72, 0.8, -0.9, 0.74, -0.84],
+        MUT,
+        "the same learning rate every step",
     )
     b = valley(
         1290,
