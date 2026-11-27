@@ -1,0 +1,113 @@
+/* The frame of a lesson deck: stage, slide types, type scale, build steps, crumbs and
+   the links back to the course pages. A deck adds its own pictures' styles inline. */
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:block;src:url(../fonts/JetBrainsMono-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:400;font-display:block;src:url(../fonts/Outfit-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-style:normal;font-weight:500;font-display:block;src:url(../fonts/Outfit-500.woff2) format('woff2')}
+:root{color-scheme:dark}
+html,body{margin:0;background:#141210}
+body{font-family:Outfit,Arial,sans-serif}
+.deck>section{position:relative;width:1920px;height:1080px;overflow:hidden}
+.deck section,.deck section *{box-sizing:border-box;margin:0}
+.deck h1{font-size:96px;font-weight:600;line-height:1.1}
+.deck h2{font-size:64px;font-weight:600;line-height:1.15}
+.deck p{font-size:32px;line-height:1.4}
+.deck img{display:block;flex-shrink:0}
+.deck aside{display:none}
+.deck table{border-collapse:collapse;width:100%}
+.deck th,.deck td{padding:.35em .6em;border-bottom:1px solid #cfc7bb;vertical-align:top;text-align:left}
+html.js,html.js body{height:100%;overflow:hidden}
+html.js #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(var(--scale,1))}
+html.js .deck>section{position:absolute;left:0;top:0;display:none!important}
+html.js .deck>section.active{display:flex!important}
+#notes,#hint{display:none}
+html.js #hint{display:block;position:fixed;right:16px;bottom:12px;font:13px/1.4 Outfit,Arial,sans-serif;color:#9397ab;background:rgba(14,15,24,.85);padding:6px 12px;border-radius:6px;transition:opacity .6s}
+html.js #hint.gone{opacity:0}
+html.js .deck [data-build-in]{opacity:0;transition:opacity .5s}
+html.js .deck [data-build-in].built{opacity:1}
+html.js body.show-notes #notes{display:block;position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;background:rgba(14,15,24,.94);color:#cfd3e5;border-top:1px solid #3f424d;padding:14px 24px 18px;font:17px/1.5 Outfit,Arial,sans-serif}
+#notes .count{font:13px/1.4 'JetBrains Mono',monospace;color:#9184d9;letter-spacing:.08em;margin-bottom:6px}
+@media print{
+  @page{size:1920px 1080px;margin:0}
+  html.js,html.js body{height:auto;overflow:visible}
+  html.js #stage{position:static;transform:none;width:auto;height:auto}
+  html.js .deck>section{position:relative;display:flex!important;break-after:page}
+  html.js #hint,html.js body.show-notes #notes{display:none}
+  html.js .deck [data-build-in]{opacity:1}
+}
+#crumbs{display:none}
+html.js #crumbs{display:flex;position:fixed;bottom:8px;left:50%;transform:translateX(-50%);gap:2px;z-index:5;font:12px/1.3 'JetBrains Mono',monospace;background:#141210;padding:3px;border:1px solid #2b2621}
+#crumbs a{color:#b8b0a5;padding:5px 10px;text-decoration:none;letter-spacing:.04em;white-space:nowrap}
+#crumbs a:hover{color:#f4f1ec}
+#crumbs a.here{color:#f2643c}
+@media print{html.js #crumbs{display:none}}
+
+/* the slide kinds of the MADS-DAV decks, as classes */
+.deck section.ink{background:#141210;color:#f4f1ec}
+.deck section.paper{background:#f4f1ec;color:#111111}
+.deck section.std{display:flex;flex-direction:column;padding:128px 100px 56px}
+.deck section.mid{display:flex;flex-direction:column;justify-content:center;padding:128px 100px 56px}
+.strip{position:absolute;left:0;top:0;width:1920px;height:105px;object-fit:contain}
+.mono{font-family:'JetBrains Mono',monospace}
+.kick{display:flex;flex-direction:row;gap:36px}
+.kick p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:3.8px;text-transform:uppercase}
+.paper .kick p:first-child{color:#1d5a73}
+.paper .kick p+p{color:#5a544d}
+.ink .kick p{color:#86b9c9}
+.body{display:flex;flex-direction:column;gap:36px;flex:1;padding:16px 0}
+.deck h2.t{font-family:Outfit,Arial,sans-serif;font-size:62px;font-weight:500;line-height:1.08;letter-spacing:-1.2px;color:#111111}
+.deck h2.claim{max-width:1560px;font-family:Outfit,Arial,sans-serif;font-size:84px;font-weight:500;line-height:1.05;letter-spacing:-2.1px;color:#f4f1ec}
+.v{color:#c43a14}
+.ink .v{color:#f2643c}
+.pe{color:#1d5a73}
+.ink .pe{color:#86b9c9}
+.deck p.s{font-family:Outfit,Arial,sans-serif;font-size:26px;line-height:1.4;color:#111111}
+.deck p.m{font-family:Outfit,Arial,sans-serif;font-size:30px;line-height:1.4;color:#5a544d}
+.row{display:flex;flex-direction:row;gap:64px;align-items:center;flex:1}
+.col{display:flex;flex-direction:column;gap:26px;flex:1}
+.center{display:flex;flex-direction:row;justify-content:center}
+.fill{display:flex;flex-direction:column;gap:28px;justify-content:center;flex:1}
+.g3{display:grid;gap:48px;grid-template-columns:1fr 1fr 1fr}
+.g2{display:grid;gap:64px;grid-template-columns:1fr 1fr}
+.foot{display:flex;flex-direction:row;justify-content:space-between;padding:22px 0 0;border-top:1px solid #e2dcd3}
+.foot p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
+.deck p.pn{position:absolute;right:100px;bottom:56px;width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
+.deck .ink p.pn{color:#b8b0a5}
+.cards{display:grid;gap:36px;grid-template-columns:1fr 1fr 1fr}
+.card{display:flex;flex-direction:column;gap:14px;padding:28px 32px;border:1px solid #5a5148}
+.card .ck{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#86b9c9}
+.deck .card p.s{color:#f4f1ec}
+.box{display:flex;flex-direction:column;gap:12px;padding:26px 28px;border:1px solid #cfc7bb}
+.box.on{border:2px solid #c43a14}
+.box.pet{border:2px solid #1d5a73}
+.deck p.ck2{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#1d5a73}
+.deck .box.on p.ck2{color:#c43a14}
+.top{display:flex;flex-direction:column;gap:14px;padding:22px 0 0;border-top:1px solid #cfc7bb}
+.top.first{border-top-color:#1d5a73}
+.chip{display:flex;flex-direction:row;gap:14px;align-items:center;padding:8px 16px;border:1px solid #cfc7bb;align-self:flex-start}
+.chip .lab{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d}
+.chip .code{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73}
+pre.code{font-family:'JetBrains Mono',monospace;font-size:25px;line-height:1.5;color:#111111;padding:24px 32px;border:1px solid #cfc7bb;background:#ebe6de;white-space:pre;margin:0}
+pre.code .c{color:#5a544d}
+pre.code .k{color:#1d5a73}
+pre.code .r{color:#c43a14}
+.callout{display:flex;flex-direction:column;gap:12px;padding:24px 32px;border-left:4px solid #c43a14;background:#ebe6de}
+.deck p.arrow{font-family:Outfit,Arial,sans-serif;font-size:48px;line-height:1;color:#5a544d}
+.again{display:grid;gap:80px;align-items:center;grid-template-columns:1fr 1fr}
+.deck .again p.big{font-family:Outfit,Arial,sans-serif;font-size:56px;font-weight:500;line-height:1.2;letter-spacing:-0.8px;color:#111111}
+.deck table.tab{font-family:Outfit,Arial,sans-serif;font-size:27px;color:#111111}
+.deck table.tab th{white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:400;color:#1d5a73}
+.deck table.tab td.mono{font-family:'JetBrains Mono',monospace;font-size:24px}
+.deck p.credit{font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1.3;color:#5a544d}
+.shape{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73;padding:14px 18px;border:2px solid #1d5a73;white-space:nowrap}
+.op{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#111111;padding:14px 18px;border:1px solid #cfc7bb;white-space:nowrap}
+.op.on{border:2px solid #c43a14;color:#c43a14}
+.to{font-family:Outfit,Arial,sans-serif;font-size:36px;line-height:1;color:#5a544d}
+.arch{display:flex;flex-direction:row;gap:18px;align-items:center}
+.deck p.archlab{font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d;width:250px}
+#site-links{position:fixed;right:10px;top:10px;z-index:6;display:flex;gap:2px;font:12px/1.3 'JetBrains Mono',monospace;letter-spacing:.04em}
+#site-links a{color:#b8b0a5;background:#141210;border:1px solid #2b2621;padding:5px 10px;text-decoration:none}
+#site-links a:hover{color:#f4f1ec}
+#site-links a:focus-visible{outline:2px solid #f2643c;outline-offset:2px}
+@media print{#site-links{display:none}}
+:root:fullscreen #site-links{display:none}
+@media (display-mode:fullscreen){#site-links{display:none}}
