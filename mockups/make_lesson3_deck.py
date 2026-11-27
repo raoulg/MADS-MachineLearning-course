@@ -156,7 +156,7 @@ def divider(sid, part, crumb, claim, cards):
 
 def taken(path, sid, part, goals, title=None, mk=""):
     """A section of an approved mockup, with this deck's strip and kick."""
-    src = (HERE / path).read_text()
+    src = (HERE / path).read_text(encoding="utf-8")
     found = re.search(rf'<section id="{sid}".*?</section>', src, re.DOTALL)
     if found is None:
         raise ValueError(f"{path} holds no section {sid}")
@@ -233,7 +233,7 @@ def law_price():
 
 # ---------------------------------------------------------------- part 2
 def family():
-    src = (DECKS / "les2.html").read_text()
+    src = (DECKS / "les2.html").read_text(encoding="utf-8")
     found = re.search(r'<section id="family".*?</section>', src, re.DOTALL)
     if found is None:
         raise ValueError("the lesson 2 deck holds no section family")
@@ -317,7 +317,7 @@ def vtxt(x, y, s, size=26, fill=MUT):
 
 # ---------------------------------------------------------------- the measured curves
 def scaling_runs():
-    rows = json.loads((RESULTS / "food_scaling.json").read_text())
+    rows = json.loads((RESULTS / "food_scaling.json").read_text(encoding="utf-8"))
     return [r for r in rows if r["width"] == 0]
 
 
@@ -1322,27 +1322,28 @@ def pareto_front():
 
 
 # ---------------------------------------------------------------- your study
+# per domain: train images after the validation cut, classes, the median images per class,
+# and the images a run keeps at per_class = 250 (exercises/harness.py)
 MIX = [
-    ("dishes", "Food-101", 75750, 101),
-    ("traffic signs", "GTSRB", 26640, 43),
-    ("satellite tiles", "EuroSAT", 21600, 10),
-    ("galaxies", "Galaxy10", 15962, 10),
-    ("blood cells", "BloodMNIST", 13671, 8),
-    ("flowers", "Oxford Flowers", 7169, 102),
-    ("textures", "DTD", 3760, 47),
+    ("dishes", "Food-101", 68175, 101, 675, 25250),
+    ("traffic signs", "GTSRB", 23976, 43, 378, 9700),
+    ("satellite tiles", "EuroSAT", 19440, 10, 1973, 2500),
+    ("galaxies", "Galaxy10", 14363, 10, 1513, 2500),
+    ("blood cells", "BloodMNIST", 12304, 8, 1403, 2000),
+    ("flowers", "Oxford Flowers", 6448, 102, 50, 6448),
+    ("textures", "DTD", 3384, 47, 72, 3384),
 ]
 
 
 def mix7():
-    share = 0.25
     s = txt(480, 30, "training images", 26, MUT)
     s += txt(1450, 30, "classes", 26, MUT, "end") + txt(
         1700, 30, "images per class", 26, MUT, "end"
     )
     cut = ""
-    for i, (kind, name, n, k) in enumerate(MIX):
+    for i, (kind, name, n, k, per, kept) in enumerate(MIX):
         y = 50 + i * 62
-        wd = 720 * n / 75750
+        wd = 720 * n / MIX[0][2]
         s += txt(450, y + 30, kind, 32, INK, "end", 500) + txt(
             200, y + 30, name, 24, MUT, "end"
         )
@@ -1350,12 +1351,12 @@ def mix7():
             480 + wd + 16, y + 31, f"{n:,}", 28, P, weight=600
         )
         s += txt(1450, y + 31, str(k), 30, MUT, "end", 500)
-        s += txt(1700, y + 31, f"{round(n / k):,}", 30, V, "end", 600)
-        cut += rect(480, y, wd * share, 42, P)
+        s += txt(1700, y + 31, f"{per:,}", 30, V, "end", 600)
+        cut += rect(480, y, wd * kept / n, 42, P)
     cut += txt(
         480,
         50 + 7 * 62 + 24,
-        "share = 0.25: the same quarter of every class",
+        "per_class = 250: at most 250 images of every class, 51,782 of 148,090",
         28,
         P,
         weight=600,
@@ -1366,11 +1367,56 @@ def mix7():
             "mix7",
             5,
             ["3.12"],
-            'The data: seven kinds of image, <span class="v">70 to 2,160</span> per class',
+            'The data: seven kinds of image, <span class="v">50 to 2,000</span> per class',
             s + build(cut),
-            "A smaller <code>share</code> takes the same fraction of every class, so a smaller run still holds all seven kinds and all 321 classes.",
+            "A lower <code>per_class</code> cuts the large classes first; textures and flowers stay whole until it drops below their size. Every run logs its <code>per_class</code> and the images it trained on.",
+            "Train images after the validation split; images per class is the median · exercise 3.5",
             h=520,
         ).split(">", 1)[1]
+    )
+
+
+def your_budget():
+    side, y0 = 290, 180
+    s = txt(860, 50, "hardware × time", 36, INK, "end", 500)
+    s += txt(880, 50, "=", 36, MUT, "middle")
+    s += txt(900, 50, "runs × parameters × data", 36, V, weight=600)
+    s += txt(860, 92, "what you have", 24, MUT, "end") + txt(
+        900, 92, "how you spend it", 24, MUT
+    )
+
+    def spend(x0, n, head, sub):
+        tile = side / n
+        g = txt(x0 + side / 2, y0 - 16, head, 30, INK, "middle", 500)
+        g += "".join(
+            rect(x0 + i * tile + 3, y0 + j * tile + 3, tile - 6, tile - 6, P)
+            for i in range(n)
+            for j in range(n)
+        )
+        g += rect(x0, y0, side, side, "none", MUT, 2.5)
+        g += txt(x0 + side / 2, y0 + side + 40, sub[0], 26, MUT, "middle")
+        g += txt(x0 + side / 2, y0 + side + 74, sub[1], 26, MUT, "middle")
+        return g
+
+    a = spend(
+        240, 2, "4 large runs", ("more parameters and data per run", "little search")
+    )
+    b = spend(710, 4, "16 runs", ("", ""))
+    c = spend(
+        1180,
+        8,
+        "64 small runs",
+        ("a small model or little data per run", "much search"),
+    )
+    return slide(
+        "your-budget",
+        5,
+        ["3.11", "3.12"],
+        'One budget, <span class="v">your choice</span> how to spend it',
+        s + a + build(b) + build(c),
+        "Your hardware and the time you give it fix the area. A run costs about its parameters times the images it sees, so more runs means smaller runs.",
+        mk="schematic",
+        h=580,
     )
 
 
@@ -1516,12 +1562,12 @@ def deck():
         ],
     )
     out += taken("lesson3-tradeoffs.html", "pareto-beaten", 4, ["3.9"]) + pareto_front()
-    out += mix7() + your_front()
+    out += mix7() + your_budget() + your_front()
     return out
 
 
 def main():
-    src = (DECKS / "les2.html").read_text()
+    src = (DECKS / "les2.html").read_text(encoding="utf-8")
     head = (
         src[: src.index("<section")]
         .replace("Lesson 2 · Kernels, state and gates", "Lesson 3 · Scaling and search")
@@ -1536,7 +1582,7 @@ def main():
     cut = tail.index("<script>(function(){\n  // instruments")
     tail = tail[:cut] + "</body>\n</html>\n"
     body = deck()
-    (DECKS / "les3.html").write_text(head + body + tail)
+    (DECKS / "les3.html").write_text(head + body + tail, encoding="utf-8")
     print(body.count("<section"), "slides")
 
 
