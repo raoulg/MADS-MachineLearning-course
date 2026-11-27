@@ -22,8 +22,9 @@ protocol below.
 > A lab VM is **optional**. Most students are better off on their own machine, which is
 > usually faster than the VM. A VM is worth requesting when the laptop cannot run the
 > course: it is managed by the student's organisation and does not allow installing the
-> tools, it is an Intel Mac or a Windows on ARM machine (see §2), or it is old or short on
-> memory. The lab guide covers requesting the VM and setting it up (keys, SSH,
+> tools, it is an Intel Mac or a Windows on ARM machine (see §2), it is old or short on
+> memory, or it is built for battery life and trains too slowly (the exercise notebooks
+> measure it; see `docs/setup/train-over-ssh.md`). The lab guide covers requesting the VM and setting it up (keys, SSH,
 > Remote-SSH):
 >
 > ```

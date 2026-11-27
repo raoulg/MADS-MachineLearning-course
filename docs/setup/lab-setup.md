@@ -119,12 +119,13 @@ time. Confusing local and remote is the single most common way this setup goes w
 
 ### The course runs on a laptop
 
-The course is built to run on a laptop CPU: every graded notebook runs on the weakest
-hardware a student is likely to have. A VM is **optional**, and most students are better off on their own machine,
+The course is built to run on a laptop CPU. A VM is **optional**, and most students are better off on their own machine,
 which is usually faster than the VM. A VM is worth requesting when the laptop cannot run
 the course: it is managed by the student's organisation and does not allow installing the
-tools, it is an Intel Mac or a Windows on ARM machine, or it is old or short on memory. It
-can also take a long training run that should not tie up the laptop. A student who is
+tools, it is an Intel Mac or a Windows on ARM machine, it is old or short on memory, or it
+is built for battery life and trains too slowly: the exercise notebooks of lessons 2 and 3
+print how long Part 1 takes on the machine, and turn `QUICK` on when it is slow. It can
+also take a long training run that should not tie up the laptop. A student who is
 fine on their laptop skips this document entirely.
 
 Ask the student: *do you want a VM, and if so, have you been told one is ready for you?*
@@ -875,6 +876,11 @@ tmux) → close the connection → **stop the VM on the website**.
 ---
 
 ## 2. After setup: the daily routine
+
+The routine for training on the VM, Part 1 of an exercise notebook and `make study` in
+tmux and `make share` from the VM, is in
+<https://github.com/raoulg/MADS-MachineLearning-course/blob/master/docs/setup/train-over-ssh.md>;
+point the student there. In short:
 
 1. Start the VM at https://labs.azure.com/virtualmachines (toggle to Running) and wait for
    the tile to say it is running.

@@ -95,7 +95,7 @@ https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs
 ```
 
 ## VM (optional)
-Most of you are better off on your own machine, which is usually faster than a VM. A VM is worth requesting when your laptop cannot run the course, for instance because it is managed by your organisation and does not let you install the tools. The lab guide covers requesting a VM and setting it up. Only if you already received a VM invitation by e-mail, do this guide first:
+Most of you are better off on your own machine, which is usually faster than a VM. A VM is worth requesting when your laptop cannot run the course, for instance because it is managed by your organisation and does not let you install the tools, or because it is built for battery life rather than compute (a chip whose name ends in U) and trains too slowly: the exercise notebooks measure that for you, see [`docs/setup/train-over-ssh.md`](docs/setup/train-over-ssh.md). The lab guide covers requesting a VM and setting it up. Only if you already received a VM invitation by e-mail, do this guide first:
 
 ```
 https://raw.githubusercontent.com/raoulg/MADS-MachineLearning-course/master/docs/setup/lab-setup.md
