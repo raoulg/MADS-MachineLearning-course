@@ -95,17 +95,32 @@ uv run notebooks/3_scaling_and_search/exercises/designs.py         # lesson 3
 
 ## 3. Baseline
 
-**Ask:** how far apart do two runs of the same linear model land, and what does one trial
-cost here? The student reads both from Part 1 of the exercise notebook.
+**Ask:** what does one trial cost here, and do they have an idea of how certain one result
+is? The student reads the cost from Part 1 of the exercise notebook.
+
+Training is partly stochastic: the same model from another seed lands a little elsewhere,
+most of all after a short run on little data. When a run is cheap within their budget,
+they can run it again and see how far apart the two land. A result also becomes more
+certain with more epochs and with more data: both let a model converge to an accuracy
+within a narrower band than a short run on little data. The point is that they know how
+far to trust a number, not that they always run twice.
 
 There is no command of its own: `study.py` measures the baseline before every search, in
-step 5. A difference inside that spread is not a difference.
+step 5.
 
 ## 4. Budget and space
 
 **Ask, before any code:** what is the study called? What does it investigate, in a few
 words of their own, and which idea does it build on? What do they expect, and why? Which
-metric does the search maximise? Which axes, over which ranges? How many minutes?
+metric does the search maximise? Which axes, over which ranges? How many minutes, and
+what do those minutes buy on their machine?
+
+A study fits its budget. One student has more hours, another a faster machine, and
+together those set how many trials, how much data and how long a run they can afford:
+`make study` turns `MINUTES` into trials at what a trial of Part 1 cost on their machine.
+Ask what they trade to stay within it: fewer axes, a smaller share of the data, a narrower
+range, fewer experiments. Which axes do the trials they can afford cover well enough to
+read?
 
 The answers become the six settings at the top of `study.py`: `STUDY`, `IDEA`
 (`Idea.of(..., builds_on=...)`), `EXPECTS`, `OBJECTIVE`, `SPACE` and `MINUTES`. Every
@@ -121,16 +136,26 @@ space, the design, or the name of the study?
 make study LESSON=<N>
 ```
 
-The script runs an Optuna study over the space and the design, then reruns the winner as
-often as the baseline. It refuses a space that leaves out an option or holds an axis that
-neither the design nor the trainer knows, and a study that already holds trials of
-another space. Put a refusal to the student; do not quietly widen the space.
+The script runs an Optuna study over the space and the design, then reruns the winner,
+the trial with the highest objective, as often as the baseline. It refuses a space that
+leaves out an option or holds an axis that neither the design nor the trainer knows, and
+a study that already holds trials of another space. Put a refusal to the student; do not quietly widen the space.
 
 ## 6. Read
 
 **Ask:** what did each axis do to the objective and to `train_seconds`? How far is the
-winner from the baseline, in points, beside the spread between the repeats of each? What
-does that say about what they wrote in `EXPECTS`?
+winner from the baseline, in points, and how far do they trust that difference, after
+step 3? What does it cost against the runs below it? What does that say about what they
+wrote in `EXPECTS`?
+
+The highest score is interesting, but accuracy is not the only axis a model is judged on.
+Set the runs against what they cost (`train_seconds`, the parameters, and in lesson 3 the
+FLOPs per image): the runs that no other run beats on both lie on the Pareto front, and
+along it the extra compute of the most accurate run is sometimes not worth what it adds.
+
+Read the losers too: which trials scored low, and what do they share? A run that failed
+where the student expected it to work is often the part of the study they learn most
+from.
 
 ```bash
 make optuna-dashboard
@@ -194,10 +219,10 @@ interview them about the handed-out study.
 
 When the student cannot explain a part of the page, name that part and send them back to
 the step it belongs to: the blocks of the architecture and the Design tab to step 1, the
-shapes to step 2, the spread of the baseline to step 3, the axes and ranges and a study's
-idea and expectation in the line of ideas to step 4, a refusal or a missing trial to
-step 5, the winner against the baseline in points to step 6, and what a study builds on
-to step 9. The interview goes on once they can say it. A starred view is the student's own question to
+shapes to step 2, how far a number can be trusted to step 3, the budget, the axes and
+ranges and a study's idea and expectation in the line of ideas to step 4, a refusal or a
+missing trial to step 5, the winner against the baseline and against its cost to step 6,
+and what a study builds on to step 9. The interview goes on once they can say it. A starred view is the student's own question to
 the trials: ask what they see in it, and do not star views for them.
 
 Write `exercises/page.toml` once, after the last question, in the student's own words:

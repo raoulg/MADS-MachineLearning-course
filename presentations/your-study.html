@@ -169,28 +169,28 @@ svg marker.g path{fill:var(--course-green)}
 </li>
 <li class="step p2" id="step-3">
   <h3><span>3</span>Baseline</h3>
-  <p>A linear model, repeated, so you know its spread between runs. <code>study.py</code> measures it before the search, on the data your search is scored on. A difference smaller than that spread is not a difference.</p>
-  <p class="decide"><strong>You decide</strong> nothing yet: you read how far apart two runs of the same model land, and what one trial costs on your machine.</p>
+  <p>A linear model, the number your design is read against. <code>study.py</code> measures it before the search, on the data your search is scored on. Training is partly stochastic: another seed lands a little elsewhere, most of all after a short run on little data. More epochs and more data narrow that band; a cheap run you can simply run again.</p>
+  <p class="decide"><strong>You decide</strong> nothing yet: you read what one trial costs on your machine, and ask yourself how far you trust one result.</p>
   <div class="where">study.py · Part 1 of the exercise notebook</div>
   <div class="goals">goal <a href="leerdoelen/les1.html#g1-13">1.13</a></div>
 </li>
 <li class="step p2" id="step-4">
   <h3><span>4</span>Budget and space</h3>
-  <p>Your minutes on your machine become trials. Choose the axes those trials can cover; every option of the design is an axis, searched or fixed. Say in <code>EXPECTS</code> what you expect, and why, before you run.</p>
+  <p>Your minutes on your machine become trials. Your time and your hardware set how many experiments you can afford, so fit your study to them: fewer axes, a smaller share of the data or a narrower range when the budget is small. Choose the axes those trials can cover; every option of the design is an axis, searched or fixed. Say in <code>EXPECTS</code> what you expect, and why, before you run.</p>
   <p class="decide"><strong>You decide</strong> the name of the study, the idea in your own words and what it builds on, what you expect and why, the metric the search maximises, the axes and their ranges, and the minutes you spend.</p>
   <div class="where">study.py: STUDY · IDEA · EXPECTS · OBJECTIVE · SPACE · MINUTES</div>
   <div class="goals">goal <a href="leerdoelen/les1.html#g1-14">1.14</a></div>
 </li>
 <li class="step p2" id="step-5">
   <h3><span>5</span>Search</h3>
-  <p>An Optuna study over your space and your design, then the winner rerun as often as the baseline. The script refuses a space that leaves out an option or holds an axis that neither the design nor the trainer knows, and a study that already holds trials of another space.</p>
+  <p>An Optuna study over your space and your design, then the winner, the trial with the highest objective, rerun as often as the baseline. The script refuses a space that leaves out an option or holds an axis that neither the design nor the trainer knows, and a study that already holds trials of another space.</p>
   <p class="decide"><strong>You decide</strong> what to change when the script refuses: the space, the design, or the name of the study.</p>
   <div class="where">study.py · your Optuna store</div>
   <div class="goals">goal <a href="leerdoelen/les1.html#g1-14">1.14</a></div>
 </li>
 <li class="step p2" id="step-6">
   <h3><span>6</span>Read</h3>
-  <p>Per axis: what each did to your objective and to <code>train_seconds</code>. Every run logs more than the objective, for a question you ask later. The winner against the baseline in points, each beside the spread between its repeats.</p>
+  <p>Per axis: what each did to your objective and to <code>train_seconds</code>. Every run logs more than the objective, for a question you ask later. The winner against the baseline in points, and what it costs: accuracy is one axis, compute the other. The runs no other run beats on both lie on the Pareto front, and the extra compute of the most accurate run is sometimes not worth its gain. Read the losers too: a run that failed where you expected it to work is often what you learn most from.</p>
   <p class="decide"><strong>You decide</strong> what the study says about your idea, set against what you wrote in <code>EXPECTS</code>.</p>
   <div class="where">OBJECTIVE · train_seconds · the Optuna dashboard</div>
   <div class="goals">goal <a href="leerdoelen/les1.html#g1-10">1.10</a></div>
