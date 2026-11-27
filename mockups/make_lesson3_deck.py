@@ -1151,25 +1151,42 @@ def slow_starter():
         lambda e: base + (top - base) * (1 - math.exp(-e / tau))
     )
     rnd = random.Random(8)
-    for _ in range(16):
-        f = rise(rnd.uniform(0.3, 0.62), rnd.uniform(0.8, 2.5))
-        s += poly([(X(e), Y(f(e))) for e in range(1, 21)], GREY, 2, op=0.45)
-    kept, slow = rise(0.7, 0.9), rise(0.95, 6.5, 0.02)
-    s += poly([(X(e), Y(kept(e))) for e in range(1, 21)], P, 6)
-    b = poly([(X(e), Y(slow(e))) for e in range(1, 21)], V, 6, "14 9")
-    x, y = X(1), Y(slow(1))
-    b += (
-        circ(x, y, 22, BG, V, 4)
-        + line(x - 10, y - 10, x + 10, y + 10, V, 5)
-        + line(x - 10, y + 10, x + 10, y - 10, V, 5)
+    slow = rise(0.95, 6.5, 0.02)
+    others = [rise(0.18 + 0.54 * i / 14, rnd.uniform(0.9, 1.6)) for i in range(15)]
+    # successive halving: the lower half stops at epoch 3, half of the rest at epoch 9
+    alive, end = [*others, slow], {}
+    for rung in (3, 9):
+        alive.sort(key=lambda f: f(rung))
+        for f in alive[: len(alive) // 2]:
+            end[f] = rung
+        alive = alive[len(alive) // 2 :]
+    cross = lambda x, y, c, r=7, wd=3: (
+        line(x - r, y - r, x + r, y + r, c, wd)
+        + line(x - r, y + r, x + r, y - r, c, wd)
     )
+    for rung in (3, 9):
+        s += line(X(rung), y0, X(rung), y0 - h, RULE, 2.5, "8 8")
+    best = max(others, key=lambda f: f(20))
+    for f in others:
+        last = end.get(f, 20)
+        col, wd = (P, 6) if f is best else (GREY, 2.5)
+        s += poly([(X(e), Y(f(e))) for e in range(1, last + 1)], col, wd)
+        if last < 20:
+            s += cross(X(last), Y(f(last)), MUT)
+    s += poly([(X(e), Y(slow(e))) for e in range(1, 21)], GREY, 3, "10 8")
+    stop = end[slow]
+    b = poly([(X(e), Y(slow(e))) for e in range(1, stop + 1)], V, 6)
+    b += circ(X(stop), Y(slow(stop)), 22, BG, V, 4) + cross(
+        X(stop), Y(slow(stop)), V, 10, 5
+    )
+    b += poly([(X(e), Y(slow(e))) for e in range(stop, 21)], V, 4, "10 8")
     return slide(
         "slow-starter",
         3,
         ["3.7"],
         'The pitfall: a <span class="v">slow starter</span> is stopped',
         s + build(b),
-        "Halving ranks trials by how far they get in the first epochs. A trial that starts slowly is stopped at the first rung, however high it would have ended.",
+        "Halving stops the lower half at epoch 3 and half of the rest at epoch 9. A trial that starts slowly is stopped at epoch 3, however high it would have ended.",
         mk="schematic",
         h=570,
     )
