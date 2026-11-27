@@ -1671,7 +1671,7 @@ g += t(300, 168, "6 bevatten de waarheid", "c v", "middle")
 g += t(
     200, 218, "onder de diagonaal: het model belooft meer dan het haalt", "c", "middle"
 )
-PICTURES["6.6"] = ("Kalibratie: gevraagd tegen gehaald", g)
+PICTURES["6.6"] = ("Kalibratie van onzekerheid", g)
 
 # 6.7 split conformal: a quantile of held-out scores sets a threshold, the set size varies
 scores = [
