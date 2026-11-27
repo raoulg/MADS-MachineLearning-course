@@ -1247,7 +1247,7 @@ def schedule_or_race():
     s = txt(
         x0,
         34,
-        "a scheduler: one training, the learning rate changes",
+        "a learning rate scheduler: inside one training",
         30,
         INK,
         weight=500,
@@ -1273,7 +1273,7 @@ def schedule_or_race():
     s += txt(X(0.47), Y(0.66), "cosine", 26, V, weight=600)
     rx = 1040
     RX = lambda e: rx + 560 * (e - 1) / 19
-    b = txt(rx, 34, "a race: whole trials stop", 30, INK, weight=500)
+    b = txt(rx, 34, "a trial scheduler (ASHA): stops whole trials", 30, INK, weight=500)
     b += line(rx, y0, rx + 590, y0, MUT, 2.5, marker="g") + line(
         rx, y0, rx, y0 - h - 20, MUT, 2.5, marker="g"
     )
@@ -1295,9 +1295,9 @@ def schedule_or_race():
         "schedule-or-race",
         3,
         ["3.8"],
-        'A scheduler and a race are <span class="v">two different things</span>',
+        'Don’t confuse the <span class="v">two schedulers</span>',
         s + build(b),
-        "A scheduler lowers the learning rate inside one training. A race such as halving compares trials and stops whole ones.",
+        "A learning rate scheduler lowers the learning rate inside one training. A trial scheduler such as ASHA, which Optuna calls a pruner, compares trials and stops whole ones.",
         mk="schematic",
         h=480,
     )
