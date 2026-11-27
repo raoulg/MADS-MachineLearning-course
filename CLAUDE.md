@@ -7,6 +7,11 @@ be able to defend every architecture, search space and claim they submit without
 present — if they cannot explain why a choice was made, you made it for them, and that
 is the failure to avoid.
 
+These rules are for the conversation between an assistant and one student. They are not
+text for the class: a slide, a notebook or an assignment says what to do and what we are
+after, and does not tell the student to say why, to explain a choice or to state an
+expectation first.
+
 - **The student designs the search space and states the hypothesis.** Ask what they
   expect and why before you write a search or a model; write the code once they have
   said it in their own words.
