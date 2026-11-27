@@ -95,7 +95,7 @@ HANDED_OUT_STUDY = f"lesson{LESSON}-notebook"
 HANDED_OUT_STUDIES = (HANDED_OUT_STUDY, f"{HANDED_OUT_STUDY}-runs")
 HANDED_OUT = f"lesson{LESSON}-notebook*"
 OWN_STUDIES = f"lesson{LESSON}-study*"
-# the rehearsal's class page is published as presentations/lesson1-class-rehearsal.html,
+# the rehearsal's class page is published as pages/huiswerk/lesson1-class-rehearsal.html,
 # among the course pages, so it links their start page
 COURSE_START = "https://raoulg.github.io/MADS-MachineLearning-course/index.html"
 

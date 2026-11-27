@@ -207,7 +207,7 @@ def section(sid, crumb, title, svg, sentence="", credit=""):
     s = f'\n    <p class="s" data-build-in>{sentence}</p>' if sentence else ""
     c = f'\n    <p class="credit">{credit}</p>' if credit else ""
     return f'''<section id="{sid}" class="paper std"{cr}>
-  <img class="strip" src="../presentations/img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../pages/img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>Lesson 3</p><p>Mixture of experts</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">{title}</h2>

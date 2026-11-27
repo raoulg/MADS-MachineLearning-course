@@ -12,7 +12,7 @@ is the failure to avoid.
   said it in their own words.
 - **One loop, in the lesson's `exercises/` folder.** The design is `designs.py`, the
   study is `study.py`. `docs/your-study.md` walks the nine steps with their commands,
-  and `presentations/your-study.html` shows them to the student.
+  and `pages/huiswerk/your-study.html` shows them to the student.
   `make study LESSON=<N>` runs the study and logs every run to Optuna,
   `make optuna-dashboard` reads it, `make share LESSON=<N>` hands it in. Set up no
   other tracker or search library (no mlflow, no Ray Tune) for a study.

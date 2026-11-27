@@ -22,13 +22,11 @@ from typing import Any
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
-DEST = ROOT / "presentations/img/lesson2"
+DEST = ROOT / "pages/img/lesson2"
 DATA = DEST / "lesson2-evidence.json"
 DEST.mkdir(parents=True, exist_ok=True)
 P, V, I, M, R, BG = "#1d5a73", "#c43a14", "#111111", "#5a544d", "#cfc7bb", "#f4f1ec"
-font = base64.b64encode(
-    (ROOT / "presentations/fonts/Outfit-400.woff2").read_bytes()
-).decode()
+font = base64.b64encode((ROOT / "pages/fonts/Outfit-400.woff2").read_bytes()).decode()
 
 
 def text(x, y, s, size=28, c=I, anchor="start"):

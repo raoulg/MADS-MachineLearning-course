@@ -12,7 +12,7 @@ is the failure to avoid.
   said it in their own words.
 - **One loop, in the lesson's `exercises/` folder.** The design is `designs.py`, the
   study is `study.py`. `docs/your-study.md` walks the nine steps with their commands,
-  and `presentations/your-study.html` shows them to the student.
+  and `pages/huiswerk/your-study.html` shows them to the student.
   `make study LESSON=<N>` runs the study and logs every run to Optuna,
   `make optuna-dashboard` reads it, `make share LESSON=<N>` hands it in. Set up no
   other tracker or search library (no mlflow, no Ray Tune) for a study.
@@ -93,14 +93,19 @@ change, that change ships as a release first.
 
 ## Publishing new presentation links
 
-GitHub Pages publishes `presentations/` after a push to `master`. When a commit links
-to a new presentation URL, verify that its local file exists under `presentations/`.
+GitHub Pages publishes `pages/` after a push to `master`. Its root holds the start page,
+the notation card and the DAV recap; `presentaties/les<N>.html` are the decks,
+`leerdoelen/les<N>.html` the learning goals and `huiswerk/` the methodology of a study and
+the class example. What pages share is in `assets/`: `course-ui.css` and `course-bar.{css,js}`
+for a page, `deck.{css,js}` for a deck; `fonts/` and `img/` sit beside it. The root also
+holds one small page per address a page has moved away from, which sends the reader on. When a commit links
+to a new presentation URL, verify that its local file exists under `pages/`.
 The pre-commit `lychee` check sees a 404 until the Pages deployment; use
 `LEFTHOOK_EXCLUDE=lychee` for that commit and check the published URL afterward.
 
 A mockup or a preview of slides is not a presentation: it goes in `mockups/` at the
-root of the repository, which git ignores, and links to `../presentations/img/` and
-`../presentations/fonts/`. A page moves into `presentations/` once Raoul has approved it
+root of the repository, which git ignores, and links to `../pages/img/` and
+`../pages/fonts/`. A page moves into `pages/` once Raoul has approved it
 as part of a lesson deck.
 
 ## uv cache in the workspace sandbox

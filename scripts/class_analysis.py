@@ -2891,7 +2891,7 @@ SCRIPT = r"""
 def font_faces() -> str:
     """The course's faces, inside the page so it opens from disk as the course pages
     look; nothing when the font files are not there."""
-    fonts = COURSE_ROOT / "presentations" / "fonts"
+    fonts = COURSE_ROOT / "pages" / "fonts"
     out = []
     for family, weight, file in (("Outfit", 400, "Outfit-400.woff2"),
                                  ("Outfit", 500, "Outfit-500.woff2"),

@@ -373,13 +373,13 @@ def test_the_teachers_class_page_links_the_course_start_page(tmp_path):
     assert command[command.index("--out") + 1] == str(page)
     start = command[command.index("--course-link") + 1]
     assert start == rehearsal.COURSE_START
-    assert (ROOT / "presentations" / start.rsplit("/", 1)[-1]).exists()
+    assert (ROOT / "pages" / start.rsplit("/", 1)[-1]).exists()
 
 
 def test_the_published_rehearsal_page_holds_the_start_link_once():
     from class_analysis import course_link  # ty: ignore[import-not-found]
 
-    page = (ROOT / "presentations" / "lesson1-class-rehearsal.html").read_text(
+    page = (ROOT / "pages" / "huiswerk" / "lesson1-class-rehearsal.html").read_text(
         encoding="utf-8"
     )
     # The link itself, not its style: the colours follow the class page's palette.

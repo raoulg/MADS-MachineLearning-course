@@ -850,7 +850,7 @@ pre-commit:
       run: >-
         R=$(pwd -W); R=${R// /%20};
         lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --max-cache-age 7d
-        --remap '^https://raoulg\.github\.io/MADS-MachineLearning-course/([^#]*)(#.*)?$ file:///'"$R"'/presentations/\$1'
+        --remap '^https://raoulg\.github\.io/MADS-MachineLearning-course/([^#]*)(#.*)?$ file:///'"$R"'/pages/\$1'
 ```
 
 Keep it in step with the `lychee` command in `.lefthook.yml`; the override replaces it.

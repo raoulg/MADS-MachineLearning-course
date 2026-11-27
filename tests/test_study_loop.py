@@ -21,12 +21,20 @@ def plotting():
 
 
 @pytest.mark.parametrize(
-    "page", ["your-study.html", "lesson1-your-study.html", "lesson2-your-study.html"]
+    "page",
+    [
+        "huiswerk/your-study.html",
+        "your-study.html",
+        "lesson1-your-study.html",
+        "lesson2-your-study.html",
+    ],
 )
 def test_every_address_of_the_page_draws_the_nine_steps(plotting, page: str) -> None:
     figure = plotting.study_loop(page).data
     for step in range(1, 10):
-        assert f'href="{plotting.PAGES_URL}your-study.html#step-{step}"' in figure
+        assert (
+            f'href="{plotting.PAGES_URL}huiswerk/your-study.html#step-{step}"' in figure
+        )
 
 
 def test_a_page_without_a_loop_is_refused(plotting) -> None:
@@ -34,7 +42,7 @@ def test_a_page_without_a_loop_is_refused(plotting) -> None:
         plotting.study_loop("notatie.html")
 
 
-PAGE = LESSON.parents[1] / "presentations/your-study.html"
+PAGE = LESSON.parents[1] / "pages/huiswerk/your-study.html"
 STEPS = [
     "Design",
     "Build",

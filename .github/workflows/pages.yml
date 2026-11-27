@@ -1,13 +1,13 @@
 name: pages
 
-# Publishes presentations/ to GitHub Pages:
+# Publishes pages/ to GitHub Pages:
 # https://raoulg.github.io/MADS-MachineLearning-course/<file>.html
 
 on:
   push:
     branches: [master]
     paths:
-      - "presentations/**"
+      - "pages/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -33,7 +33,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v5
         with:
-          path: presentations
+          path: pages
 
       - id: deployment
         uses: actions/deploy-pages@v5

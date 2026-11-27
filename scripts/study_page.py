@@ -111,7 +111,7 @@ from run_submission import (
 from hpo.record import Store
 
 COURSE_ROOT = Path(__file__).resolve().parents[1]
-PRESENTATIONS = COURSE_ROOT / "presentations"
+PAGES = COURSE_ROOT / "pages"
 ATLAS_COMMANDS = ("atlas-code-nightly", "atlas-code")
 ATLAS_SETUP = "docs/setup/tooling-setup.md, milestone M7 (Atlas)"
 
@@ -2172,7 +2172,7 @@ def font_faces() -> str:
         ("Outfit", 500, "Outfit-500.woff2"),
         ("JetBrains Mono", 400, "JetBrainsMono-400.woff2"),
     ):
-        path = PRESENTATIONS / "fonts" / name
+        path = PAGES / "fonts" / name
         if path.exists():
             data = base64.b64encode(path.read_bytes()).decode()
             faces.append(
@@ -2183,8 +2183,8 @@ def font_faces() -> str:
 
 
 def course_tokens() -> str:
-    """The colour tokens of `presentations/course-ui.css`, light and dark."""
-    css = (PRESENTATIONS / "course-ui.css").read_text(encoding="utf-8")
+    """The colour tokens of `pages/assets/course-ui.css`, light and dark."""
+    css = (PAGES / "assets" / "course-ui.css").read_text(encoding="utf-8")
     head, sep, _ = css.partition("\nhtml{")
     return head if sep else css
 

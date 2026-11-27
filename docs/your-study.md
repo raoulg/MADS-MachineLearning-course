@@ -4,8 +4,8 @@ A student pointed you here to walk the loop of a study with them: one idea, a de
 can test it, a search, and a result the class can build on. The loop has nine steps and
 is the same in every lesson; it lives in the lesson's `exercises/` folder. The student
 reads the same steps, with what each is for, on
-[Your study, as a loop](https://raoulg.github.io/MADS-MachineLearning-course/your-study.html)
-(`presentations/your-study.html`); what a lesson brings to it (its data, its baseline, its
+[Your study, as a loop](https://raoulg.github.io/MADS-MachineLearning-course/huiswerk/your-study.html)
+(`pages/huiswerk/your-study.html`); what a lesson brings to it (its data, its baseline, its
 exercise notebook, its harness) stands there under "Per lesson", `#lesson-1`,
 `#lesson-2` and `#lesson-3`. Run every command from the root of the course repository (the directory with
 `pyproject.toml` and `Makefile`).
@@ -274,5 +274,5 @@ make dashboard LESSON=<N>
 The class page shows the class's ideas with their names (`blissful-bee-18`). The name the
 student picks goes in `builds_on`, and a new idea is a new `STUDY`: back to step 1. The
 student defends the new design without you. The page of a class rehearsal,
-`presentations/lesson1-class-rehearsal.html`, shows what a class page looks like after
+`pages/huiswerk/lesson1-class-rehearsal.html`, shows what a class page looks like after
 three rounds.

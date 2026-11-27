@@ -80,7 +80,7 @@ optuna-dashboard:
 	uv run optuna-dashboard sqlite:///$(OPTUNA_DIR)/studies.db \
 		--artifact-dir $(OPTUNA_DIR)/artifacts --port $(OPTUNA_PORT) $(ARGS)
 
-# Your study over a design of your own: presentations/your-study.html, and
+# Your study over a design of your own: pages/huiswerk/your-study.html, and
 # docs/your-study.md for an assistant. Part 1 of the lesson's exercise notebook runs
 # first; it measures what one trial costs here.
 #

@@ -19,14 +19,14 @@ from PIL import Image
 from playwright.sync_api import Page, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
-DECKS = ROOT / "presentations"
+DECKS = ROOT / "pages" / "presentaties"
 OUT = Path(__file__).resolve().parent / "img"
 
 # Slide ids per deck; the figure is saved as img/<lesson>/<id>.png.
 SLIDES = {
-    "lesson1": ("lesson1-tensors.html", ["supervised", "choices"]),
+    "lesson1": ("les1.html", ["supervised", "choices"]),
     "lesson2": (
-        "lesson2-kernels_states_gates.html",
+        "les2.html",
         [
             "map",
             "beatfold",

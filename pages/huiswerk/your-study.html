@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MADS-ML · Your study</title>
 <meta name="description" content="The exercise folder of every lesson: the loop from a design of your own to an idea the class builds on, step by step, and what each lesson brings to it.">
-<link rel="stylesheet" href="course-ui.css">
-<link rel="stylesheet" href="course-bar.css">
+<link rel="stylesheet" href="../assets/course-ui.css">
+<link rel="stylesheet" href="../assets/course-bar.css">
 <style>
-@font-face{font-family:'Outfit';font-weight:400;font-display:swap;src:url(fonts/Outfit-400.woff2) format('woff2')}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font-family:Outfit,Arial,sans-serif;font-size:17px;line-height:1.45}
@@ -70,6 +69,8 @@ svg marker.g path{fill:var(--course-green)}
 .lesson:target{outline:2px solid var(--course-orange)}
 .lesson h3{font-size:21px;font-weight:500;line-height:1.2;margin:0 0 12px}
 .lesson h3 span{font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--course-muted);margin-right:8px}
+.lesson.soon{border-left-color:var(--course-rule)}
+.lesson.soon p{margin:0;font-size:15.5px;color:var(--course-muted)}
 .lesson dl{display:grid;gap:8px 18px;grid-template-columns:1fr;margin:0;font-size:15.5px}
 @media(min-width:560px){.lesson dl{grid-template-columns:max-content 1fr}}
 .lesson dt{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--course-blue);padding-top:2px}
@@ -91,7 +92,7 @@ svg marker.g path{fill:var(--course-green)}
 </style>
 </head>
 <body>
-<div data-course-bar="exercise"></div><script src="course-bar.js"></script>
+<div data-course-bar="exercise" data-base="../"></div><script src="../assets/course-bar.js"></script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker>
 <marker id="ahg" class="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker>
@@ -158,42 +159,42 @@ svg marker.g path{fill:var(--course-green)}
   <p>Sketch the blocks as typed stages: a <code>Config</code> with the choices, one method per stage, and a <code>forward</code> that calls them in order. Read the shape on every arrow in atlas before you train anything. A block the search may leave out is a choice, not a second model. Your first design builds on the exercise as handed out: <code>IDEA</code> names that idea in <code>builds_on</code>.</p>
   <p class="decide"><strong>You decide</strong> which blocks the model has, in which order, what shape each takes and gives, and which of them the search may leave out.</p>
   <div class="where">designs.py · Config</div>
-  <div class="goals">goals <a href="leerdoelen/les1.html#g1-12">1.12</a><a href="leerdoelen/les2.html#g2-7">2.7</a><a href="leerdoelen/les2.html#g2-10">2.10</a></div>
+  <div class="goals">goals <a href="../leerdoelen/les1.html#g1-12">1.12</a><a href="../leerdoelen/les2.html#g2-7">2.7</a><a href="../leerdoelen/les2.html#g2-10">2.10</a></div>
 </li>
 <li class="step p1" id="step-2">
   <h3><span>2</span>Build</h3>
   <p>Fill the stages in. An optional stage carries <code>@option("&lt;axis&gt;")</code>, has a field in <code>Config</code>, and runs under <code>if self.config.&lt;axis&gt;:</code> in <code>forward</code>. The file ends in <code>DESIGN = Design(...)</code>, and its last line, <code>DESIGN.show(example, ...)</code>, builds every combination of the options and prints the shape after every stage.</p>
   <p class="decide"><strong>You decide</strong> the name of each optional stage's axis, and whether the shapes <code>DESIGN.show</code> prints are the ones your sketch promised.</p>
   <div class="where">designs.py · @option · DESIGN</div>
-  <div class="goals">goal <a href="leerdoelen/les2.html#g2-10">2.10</a></div>
+  <div class="goals">goal <a href="../leerdoelen/les2.html#g2-10">2.10</a></div>
 </li>
 <li class="step p2" id="step-3">
   <h3><span>3</span>Baseline</h3>
   <p>A linear model, the number your design is read against. <code>study.py</code> measures it before the search, on the data your search is scored on. Training is partly stochastic: another seed lands a little elsewhere, most of all after a short run on little data. More epochs and more data narrow that band; a cheap run you can simply run again.</p>
   <p class="decide"><strong>You decide</strong> nothing yet: you read what one trial costs on your machine, and ask yourself how far you trust one result.</p>
   <div class="where">study.py · Part 1 of the exercise notebook</div>
-  <div class="goals">goal <a href="leerdoelen/les1.html#g1-13">1.13</a></div>
+  <div class="goals">goal <a href="../leerdoelen/les1.html#g1-13">1.13</a></div>
 </li>
 <li class="step p2" id="step-4">
   <h3><span>4</span>Budget and space</h3>
   <p>Your minutes on your machine become trials. Your time and your hardware set how many experiments you can afford, so fit your study to them: fewer axes, a smaller share of the data or a narrower range when the budget is small. Choose the axes those trials can cover; every option of the design is an axis, searched or fixed. Say in <code>EXPECTS</code> what you expect, and why, before you run.</p>
   <p class="decide"><strong>You decide</strong> the name of the study, the idea in your own words and what it builds on, what you expect and why, the metric the search maximises, the axes and their ranges, and the minutes you spend.</p>
   <div class="where">study.py: STUDY · IDEA · EXPECTS · OBJECTIVE · SPACE · MINUTES</div>
-  <div class="goals">goal <a href="leerdoelen/les1.html#g1-14">1.14</a></div>
+  <div class="goals">goal <a href="../leerdoelen/les1.html#g1-14">1.14</a></div>
 </li>
 <li class="step p2" id="step-5">
   <h3><span>5</span>Search</h3>
   <p>An Optuna study over your space and your design, then the winner, the trial with the highest objective, rerun as often as the baseline. The script refuses a space that leaves out an option or holds an axis that neither the design nor the trainer knows, and a study that already holds trials of another space.</p>
   <p class="decide"><strong>You decide</strong> what to change when the script refuses: the space, the design, or the name of the study.</p>
   <div class="where">study.py · your Optuna store</div>
-  <div class="goals">goal <a href="leerdoelen/les1.html#g1-14">1.14</a></div>
+  <div class="goals">goal <a href="../leerdoelen/les1.html#g1-14">1.14</a></div>
 </li>
 <li class="step p2" id="step-6">
   <h3><span>6</span>Read</h3>
   <p>Per axis: what each did to your objective and to <code>train_seconds</code>. Every run logs more than the objective, for a question you ask later. The winner against the baseline in points, and what it costs: accuracy is one axis, compute the other. The runs no other run beats on both lie on the Pareto front, and the extra compute of the most accurate run is sometimes not worth its gain. Read the losers too: a run that failed where you expected it to work is often what you learn most from.</p>
   <p class="decide"><strong>You decide</strong> what the study says about your idea, set against what you wrote in <code>EXPECTS</code>.</p>
   <div class="where">OBJECTIVE · train_seconds · the Optuna dashboard</div>
-  <div class="goals">goal <a href="leerdoelen/les1.html#g1-10">1.10</a></div>
+  <div class="goals">goal <a href="../leerdoelen/les1.html#g1-10">1.10</a></div>
 </li>
 <li class="step p2" id="step-7">
   <h3><span>7</span>Explain</h3>
@@ -201,21 +202,21 @@ svg marker.g path{fill:var(--course-green)}
   <p>The page is a starting point, not a form. Want to see your runs another way? Build your own, better dashboard with Claude, from <code>scripts/study_page.py</code> or from scratch, on the same store. Keep every score next to its baseline, and no axis that mixes two datasets.</p>
   <p class="decide"><strong>You decide</strong> the three sentences that say what you did, and whether a picture carries them. The test: can you explain your page in three sentences, without looking?</p>
   <div class="where">make page · exercises/page.toml: message · picture · surprised · next</div>
-  <div class="goals">goals <a href="leerdoelen/les1.html#g1-10">1.10</a><a href="leerdoelen/les2.html#g2-11">2.11</a></div>
+  <div class="goals">goals <a href="../leerdoelen/les1.html#g1-10">1.10</a><a href="../leerdoelen/les2.html#g2-11">2.11</a></div>
 </li>
 <li class="step p3" id="step-8">
   <h3><span>8</span>Share</h3>
   <p>Your runs and your design script go to the class. Every run of the study carries <code>designs.py</code>, so the class sees the architecture next to the numbers. Handing in follows <a href="https://github.com/raoulg/MADS-MachineLearning-course/blob/master/docs/submit-runs.md"><code>docs/submit-runs.md</code></a>.</p>
   <p class="decide"><strong>You decide</strong> whether the list of runs that will be handed in is the one you mean to hand in.</p>
   <div class="where">your runs · designs.py · docs/submit-runs.md</div>
-  <div class="goals">goals <a href="leerdoelen/les1.html#g1-15">1.15</a><a href="leerdoelen/les2.html#g2-12">2.12</a></div>
+  <div class="goals">goals <a href="../leerdoelen/les1.html#g1-15">1.15</a><a href="../leerdoelen/les2.html#g2-12">2.12</a></div>
 </li>
 <li class="step p3" id="step-9">
   <h3><span>9</span>Build on</h3>
   <p>Pick an idea of the class as the parent of your next one: its name (<code>blissful-bee-18</code>) goes in <code>builds_on</code>. A new idea is a new <code>STUDY</code>, and you defend its design without your agent. <a href="lesson1-class-rehearsal.html">The page of a rehearsal</a> is an example of a class page: what it looks like after three rounds, four made-up students, six ideas, each arrow the gain of an idea over the one it builds on.</p>
   <p class="decide"><strong>You decide</strong> which idea of the class your next one builds on, and what you expect it to add.</p>
   <div class="where">builds_on · STUDY · the class page</div>
-  <div class="goals">goals <a href="leerdoelen/les1.html#g1-15">1.15</a><a href="leerdoelen/les2.html#g2-11">2.11</a><a href="leerdoelen/les2.html#g2-12">2.12</a></div>
+  <div class="goals">goals <a href="../leerdoelen/les1.html#g1-15">1.15</a><a href="../leerdoelen/les2.html#g2-11">2.11</a><a href="../leerdoelen/les2.html#g2-12">2.12</a></div>
 </li>
 </ol>
 
@@ -259,15 +260,15 @@ svg marker.g path{fill:var(--course-green)}
     <dt>harness</dt><dd>What lesson 1 gives the study: the caches, the trainer, the linear baseline and the params a run logs. <code>study.py</code> runs <code>hpo.exercise.study.Exercise</code>.</dd>
     <dt>class page</dt><dd><a href="lesson1-class-rehearsal.html">The page of a rehearsal</a> shows the class page of lesson 1 after three rounds.</dd>
     <dt>goals</dt><dd><ol>
-      <li>Design <a href="leerdoelen/les1.html#g1-12">1.12</a><a href="leerdoelen/les2.html#g2-10">2.10</a></li>
-      <li>Build <a href="leerdoelen/les2.html#g2-10">2.10</a></li>
-      <li>Baseline <a href="leerdoelen/les1.html#g1-13">1.13</a></li>
-      <li>Budget and space <a href="leerdoelen/les1.html#g1-14">1.14</a></li>
-      <li>Search <a href="leerdoelen/les1.html#g1-14">1.14</a></li>
-      <li>Read <a href="leerdoelen/les1.html#g1-10">1.10</a></li>
-      <li>Explain <a href="leerdoelen/les1.html#g1-10">1.10</a></li>
-      <li>Share <a href="leerdoelen/les1.html#g1-15">1.15</a><a href="leerdoelen/les2.html#g2-12">2.12</a></li>
-      <li>Build on <a href="leerdoelen/les1.html#g1-15">1.15</a><a href="leerdoelen/les2.html#g2-11">2.11</a><a href="leerdoelen/les2.html#g2-12">2.12</a></li>
+      <li>Design <a href="../leerdoelen/les1.html#g1-12">1.12</a><a href="../leerdoelen/les2.html#g2-10">2.10</a></li>
+      <li>Build <a href="../leerdoelen/les2.html#g2-10">2.10</a></li>
+      <li>Baseline <a href="../leerdoelen/les1.html#g1-13">1.13</a></li>
+      <li>Budget and space <a href="../leerdoelen/les1.html#g1-14">1.14</a></li>
+      <li>Search <a href="../leerdoelen/les1.html#g1-14">1.14</a></li>
+      <li>Read <a href="../leerdoelen/les1.html#g1-10">1.10</a></li>
+      <li>Explain <a href="../leerdoelen/les1.html#g1-10">1.10</a></li>
+      <li>Share <a href="../leerdoelen/les1.html#g1-15">1.15</a><a href="../leerdoelen/les2.html#g2-12">2.12</a></li>
+      <li>Build on <a href="../leerdoelen/les1.html#g1-15">1.15</a><a href="../leerdoelen/les2.html#g2-11">2.11</a><a href="../leerdoelen/les2.html#g2-12">2.12</a></li>
     </ol></dd>
   </dl>
 </section>
@@ -299,15 +300,15 @@ svg marker.g path{fill:var(--course-green)}
     <dt>metrics</dt><dd>Every run logs its whole confusion matrix, so accuracy and the recall of S are there next to the macro recall the search maximised, for a question you ask later.</dd>
     <dt>harness</dt><dd>What lesson 2 gives the study: the heartbeats split by patient, the trainer with its class weights, the linear baseline and the params a run logs. <code>study.py</code> runs <code>hpo.exercise.Exercise</code>.</dd>
     <dt>goals</dt><dd><ol>
-      <li>Design <a href="leerdoelen/les2.html#g2-7">2.7</a><a href="leerdoelen/les2.html#g2-10">2.10</a></li>
-      <li>Build <a href="leerdoelen/les2.html#g2-10">2.10</a></li>
-      <li>Baseline <a href="leerdoelen/les1.html#g1-13">1.13</a></li>
-      <li>Budget and space <a href="leerdoelen/les1.html#g1-14">1.14</a></li>
-      <li>Search <a href="leerdoelen/les1.html#g1-14">1.14</a></li>
-      <li>Read <a href="leerdoelen/les1.html#g1-10">1.10</a></li>
-      <li>Explain <a href="leerdoelen/les2.html#g2-11">2.11</a></li>
-      <li>Share <a href="leerdoelen/les2.html#g2-12">2.12</a></li>
-      <li>Build on <a href="leerdoelen/les2.html#g2-11">2.11</a><a href="leerdoelen/les2.html#g2-12">2.12</a></li>
+      <li>Design <a href="../leerdoelen/les2.html#g2-7">2.7</a><a href="../leerdoelen/les2.html#g2-10">2.10</a></li>
+      <li>Build <a href="../leerdoelen/les2.html#g2-10">2.10</a></li>
+      <li>Baseline <a href="../leerdoelen/les1.html#g1-13">1.13</a></li>
+      <li>Budget and space <a href="../leerdoelen/les1.html#g1-14">1.14</a></li>
+      <li>Search <a href="../leerdoelen/les1.html#g1-14">1.14</a></li>
+      <li>Read <a href="../leerdoelen/les1.html#g1-10">1.10</a></li>
+      <li>Explain <a href="../leerdoelen/les2.html#g2-11">2.11</a></li>
+      <li>Share <a href="../leerdoelen/les2.html#g2-12">2.12</a></li>
+      <li>Build on <a href="../leerdoelen/les2.html#g2-11">2.11</a><a href="../leerdoelen/les2.html#g2-12">2.12</a></li>
     </ol></dd>
   </dl>
 </section>
@@ -339,17 +340,33 @@ svg marker.g path{fill:var(--course-green)}
     <dt>metrics</dt><dd>Every run logs its accuracy, its whole confusion matrix, its parameters, and its compute: FLOPs per image and the measured latency per image, so your runs and the class's lie on one front of accuracy against compute.</dd>
     <dt>harness</dt><dd>What lesson 3 gives the study: the image mix with <code>share</code>, <code>drop_domain</code>, <code>encoder</code> and <code>form</code>, the trainer that keeps the best epoch, the linear baseline and the params a run logs. <code>study.py</code> runs <code>hpo.exercise.Exercise</code>.</dd>
     <dt>goals</dt><dd><ol>
-      <li>Design <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
-      <li>Build <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
-      <li>Baseline <a href="leerdoelen/les1.html#g1-13">1.13</a></li>
-      <li>Budget and space <a href="leerdoelen/les3.html#g3-11">3.11</a></li>
-      <li>Search <a href="leerdoelen/les3.html#g3-11">3.11</a></li>
-      <li>Read <a href="leerdoelen/les3.html#g3-10">3.10</a><a href="leerdoelen/les3.html#g3-12">3.12</a></li>
-      <li>Explain <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
-      <li>Share <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
-      <li>Build on <a href="leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Design <a href="../leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Build <a href="../leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Baseline <a href="../leerdoelen/les1.html#g1-13">1.13</a></li>
+      <li>Budget and space <a href="../leerdoelen/les3.html#g3-11">3.11</a></li>
+      <li>Search <a href="../leerdoelen/les3.html#g3-11">3.11</a></li>
+      <li>Read <a href="../leerdoelen/les3.html#g3-10">3.10</a><a href="../leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Explain <a href="../leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Share <a href="../leerdoelen/les3.html#g3-12">3.12</a></li>
+      <li>Build on <a href="../leerdoelen/les3.html#g3-12">3.12</a></li>
     </ol></dd>
   </dl>
+</section>
+<section class="lesson soon" id="lesson-4">
+  <h3><span>4</span>Language</h3>
+  <p>What this lesson brings to the loop, its data, its baseline and what you bring to the next lesson, is not published yet. The loop above stays the same.</p>
+</section>
+<section class="lesson soon" id="lesson-5">
+  <h3><span>5</span>Self-supervised learning</h3>
+  <p>What this lesson brings to the loop, its data, its baseline and what you bring to the next lesson, is not published yet. The loop above stays the same.</p>
+</section>
+<section class="lesson soon" id="lesson-6">
+  <h3><span>6</span>Uncertainty</h3>
+  <p>What this lesson brings to the loop, its data, its baseline and what you bring to the next lesson, is not published yet. The loop above stays the same.</p>
+</section>
+<section class="lesson soon" id="lesson-7">
+  <h3><span>7</span>Generalists and memory</h3>
+  <p>What this lesson brings to the loop, its data, its baseline and what you bring to the next lesson, is not published yet. The loop above stays the same.</p>
 </section>
 </div>
 </main>

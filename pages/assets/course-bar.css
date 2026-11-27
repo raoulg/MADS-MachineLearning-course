@@ -1,5 +1,5 @@
-@font-face{font-family:'Outfit';font-weight:500;font-display:swap;src:url(fonts/Outfit-500.woff2) format('woff2')}
-@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}
+@font-face{font-family:'Outfit';font-weight:500;font-display:swap;src:url(../fonts/Outfit-500.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(../fonts/JetBrainsMono-400.woff2) format('woff2')}
 :root{
   --bar-paper:#f2f3ef;--bar-ink:#15181c;--bar-muted:#67716c;--bar-rule:#d6d9d1;
   --bar-accent:#1c6b48;--bar-raised:#e8eae3;--bar-hot:#b4531f;--course-bar-height:52px;

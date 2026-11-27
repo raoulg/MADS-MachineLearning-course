@@ -5,105 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MADS-ML · Lesson 1 · Tensors and the cache</title>
 <meta name="description" content="Lesson 1 of MADS-ML: reusing a model somebody else trained, what a tensor is, why a network needs a nonlinearity, how it learns, and how to search architectures.">
+<link rel="stylesheet" href="../assets/deck.css">
 <style>
-@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:block;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}
-@font-face{font-family:'Outfit';font-style:normal;font-weight:400;font-display:block;src:url(fonts/Outfit-400.woff2) format('woff2')}
-@font-face{font-family:'Outfit';font-style:normal;font-weight:500;font-display:block;src:url(fonts/Outfit-500.woff2) format('woff2')}
-:root{color-scheme:dark}
-html,body{margin:0;background:#141210}
-body{font-family:Outfit,Arial,sans-serif}
-.deck>section{position:relative;width:1920px;height:1080px;overflow:hidden}
-.deck section,.deck section *{box-sizing:border-box;margin:0}
-.deck h1{font-size:96px;font-weight:600;line-height:1.1}
-.deck h2{font-size:64px;font-weight:600;line-height:1.15}
-.deck p{font-size:32px;line-height:1.4}
-.deck img{display:block;flex-shrink:0}
-.deck aside{display:none}
-.deck table{border-collapse:collapse;width:100%}
-.deck th,.deck td{padding:.35em .6em;border-bottom:1px solid #cfc7bb;vertical-align:top;text-align:left}
-html.js,html.js body{height:100%;overflow:hidden}
-html.js #stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform:translate(-50%,-50%) scale(var(--scale,1))}
-html.js .deck>section{position:absolute;left:0;top:0;display:none!important}
-html.js .deck>section.active{display:flex!important}
-#notes,#hint{display:none}
-html.js #hint{display:block;position:fixed;right:16px;bottom:12px;font:13px/1.4 Outfit,Arial,sans-serif;color:#9397ab;background:rgba(14,15,24,.85);padding:6px 12px;border-radius:6px;transition:opacity .6s}
-html.js #hint.gone{opacity:0}
-html.js .deck [data-build-in]{opacity:0;transition:opacity .5s}
-html.js .deck [data-build-in].built{opacity:1}
-html.js body.show-notes #notes{display:block;position:fixed;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;background:rgba(14,15,24,.94);color:#cfd3e5;border-top:1px solid #3f424d;padding:14px 24px 18px;font:17px/1.5 Outfit,Arial,sans-serif}
-#notes .count{font:13px/1.4 'JetBrains Mono',monospace;color:#9184d9;letter-spacing:.08em;margin-bottom:6px}
-@media print{
-  @page{size:1920px 1080px;margin:0}
-  html.js,html.js body{height:auto;overflow:visible}
-  html.js #stage{position:static;transform:none;width:auto;height:auto}
-  html.js .deck>section{position:relative;display:flex!important;break-after:page}
-  html.js #hint,html.js body.show-notes #notes{display:none}
-  html.js .deck [data-build-in]{opacity:1}
-}
-#crumbs{display:none}
-html.js #crumbs{display:flex;position:fixed;bottom:8px;left:50%;transform:translateX(-50%);gap:2px;z-index:5;font:12px/1.3 'JetBrains Mono',monospace;background:#141210;padding:3px;border:1px solid #2b2621}
-#crumbs a{color:#b8b0a5;padding:5px 10px;text-decoration:none;letter-spacing:.04em;white-space:nowrap}
-#crumbs a:hover{color:#f4f1ec}
-#crumbs a.here{color:#f2643c}
-@media print{html.js #crumbs{display:none}}
-
-/* the slide kinds of the MADS-DAV decks, as classes */
-.deck section.ink{background:#141210;color:#f4f1ec}
-.deck section.paper{background:#f4f1ec;color:#111111}
-.deck section.std{display:flex;flex-direction:column;padding:128px 100px 56px}
-.deck section.mid{display:flex;flex-direction:column;justify-content:center;padding:128px 100px 56px}
-.strip{position:absolute;left:0;top:0;width:1920px;height:105px;object-fit:contain}
-.mono{font-family:'JetBrains Mono',monospace}
-.kick{display:flex;flex-direction:row;gap:36px}
-.kick p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:3.8px;text-transform:uppercase}
-.paper .kick p:first-child{color:#1d5a73}
-.paper .kick p+p{color:#5a544d}
-.ink .kick p{color:#86b9c9}
-.body{display:flex;flex-direction:column;gap:36px;flex:1;padding:16px 0}
-.deck h2.t{font-family:Outfit,Arial,sans-serif;font-size:62px;font-weight:500;line-height:1.08;letter-spacing:-1.2px;color:#111111}
-.deck h2.claim{max-width:1560px;font-family:Outfit,Arial,sans-serif;font-size:84px;font-weight:500;line-height:1.05;letter-spacing:-2.1px;color:#f4f1ec}
-.v{color:#c43a14}
-.ink .v{color:#f2643c}
-.pe{color:#1d5a73}
-.ink .pe{color:#86b9c9}
-.deck p.s{font-family:Outfit,Arial,sans-serif;font-size:26px;line-height:1.4;color:#111111}
-.deck p.m{font-family:Outfit,Arial,sans-serif;font-size:30px;line-height:1.4;color:#5a544d}
-.row{display:flex;flex-direction:row;gap:64px;align-items:center;flex:1}
-.col{display:flex;flex-direction:column;gap:26px;flex:1}
-.center{display:flex;flex-direction:row;justify-content:center}
-.fill{display:flex;flex-direction:column;gap:28px;justify-content:center;flex:1}
-.g3{display:grid;gap:48px;grid-template-columns:1fr 1fr 1fr}
-.g2{display:grid;gap:64px;grid-template-columns:1fr 1fr}
-.foot{display:flex;flex-direction:row;justify-content:space-between;padding:22px 0 0;border-top:1px solid #e2dcd3}
-.foot p{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
-.deck p.pn{position:absolute;right:100px;bottom:56px;width:160px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#5a544d}
-.deck .ink p.pn{color:#b8b0a5}
-.cards{display:grid;gap:36px;grid-template-columns:1fr 1fr 1fr}
-.card{display:flex;flex-direction:column;gap:14px;padding:28px 32px;border:1px solid #5a5148}
-.card .ck{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#86b9c9}
-.deck .card p.s{color:#f4f1ec}
-.box{display:flex;flex-direction:column;gap:12px;padding:26px 28px;border:1px solid #cfc7bb}
-.box.on{border:2px solid #c43a14}
-.box.pet{border:2px solid #1d5a73}
-.deck p.ck2{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#1d5a73}
-.deck .box.on p.ck2{color:#c43a14}
-.top{display:flex;flex-direction:column;gap:14px;padding:22px 0 0;border-top:1px solid #cfc7bb}
-.top.first{border-top-color:#1d5a73}
-.chip{display:flex;flex-direction:row;gap:14px;align-items:center;padding:8px 16px;border:1px solid #cfc7bb;align-self:flex-start}
-.chip .lab{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d}
-.chip .code{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73}
-pre.code{font-family:'JetBrains Mono',monospace;font-size:25px;line-height:1.5;color:#111111;padding:24px 32px;border:1px solid #cfc7bb;background:#ebe6de;white-space:pre;margin:0}
-pre.code .c{color:#5a544d}
-pre.code .k{color:#1d5a73}
-pre.code .r{color:#c43a14}
-.callout{display:flex;flex-direction:column;gap:12px;padding:24px 32px;border-left:4px solid #c43a14;background:#ebe6de}
-.deck p.arrow{font-family:Outfit,Arial,sans-serif;font-size:48px;line-height:1;color:#5a544d}
-.again{display:grid;gap:80px;align-items:center;grid-template-columns:1fr 1fr}
-.deck .again p.big{font-family:Outfit,Arial,sans-serif;font-size:56px;font-weight:500;line-height:1.2;letter-spacing:-0.8px;color:#111111}
-.deck table.tab{font-family:Outfit,Arial,sans-serif;font-size:27px;color:#111111}
-.deck table.tab th{white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:400;color:#1d5a73}
-.deck table.tab td.mono{font-family:'JetBrains Mono',monospace;font-size:24px}
-.deck p.credit{font-family:'JetBrains Mono',monospace;font-size:18px;line-height:1.3;color:#5a544d}
 .kick a{color:inherit;text-decoration:none;border-bottom:2px solid currentColor}
 .kick a+a{margin-left:14px}
 .step{display:grid;grid-template-columns:56px 1fr;gap:18px;align-items:baseline}
@@ -112,24 +15,18 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 .xf{display:flex;flex-direction:row;gap:28px;align-items:center;justify-content:center}
 .deck p.xr{font-family:'JetBrains Mono',monospace;font-size:28px;line-height:1.2;letter-spacing:2px;color:#c43a14;margin-right:12px}
 .deck p.xm{font-family:Outfit,Arial,sans-serif;font-size:36px;line-height:1.2;color:#111111;margin-left:24px}
-.shape{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#1d5a73;padding:14px 18px;border:2px solid #1d5a73;white-space:nowrap}
-.op{font-family:'JetBrains Mono',monospace;font-size:24px;line-height:1.2;color:#111111;padding:14px 18px;border:1px solid #cfc7bb;white-space:nowrap}
-.op.on{border:2px solid #c43a14;color:#c43a14}
-.to{font-family:Outfit,Arial,sans-serif;font-size:36px;line-height:1;color:#5a544d}
-.arch{display:flex;flex-direction:row;gap:18px;align-items:center}
-.deck p.archlab{font-family:'JetBrains Mono',monospace;font-size:24px;letter-spacing:2.9px;text-transform:uppercase;color:#5a544d;width:250px}
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false}],throwOnError:false})"></script>
 </head>
-<body>
+<body data-lesson="1">
 <div id="stage"><div class="deck">
 
 <!-- ============================================================ cover -->
 <section id="cover" class="ink" style="display:flex; flex-direction:column; padding:236px 100px 56px">
-  <img src="img/lesson1/band_title_ink.png" alt="pttrn logo in a Rule 30 band" style="position:absolute; left:0; top:0; width:1920px; height:201px; object-fit:contain">
-  <img src="img/lesson1/cover_cat.png" alt="A photo of a tabby cat on a dark ground, with three copies stacked behind it: only its red values, only its green values, only its blue values" style="position:absolute; top:250px; right:120px; width:640px; height:461px; object-fit:contain">
+  <img src="../img/lesson1/band_title_ink.png" alt="pttrn logo in a Rule 30 band" style="position:absolute; left:0; top:0; width:1920px; height:201px; object-fit:contain">
+  <img src="../img/lesson1/cover_cat.png" alt="A photo of a tabby cat on a dark ground, with three copies stacked behind it: only its red values, only its green values, only its blue values" style="position:absolute; top:250px; right:120px; width:640px; height:461px; object-fit:contain">
   <div class="kick"><p style="color:#b8b0a5">MADS-ML</p><p style="color:#b8b0a5">Machine Learning</p></div>
   <div style="flex:1"></div>
   <div style="display:flex; flex-direction:column; gap:32px">
@@ -143,7 +40,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ agenda -->
 <section id="map" class="paper std" data-crumb="agenda">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>Agenda</p><p>six questions</p></div>
   <div style="display:flex; flex-direction:column; gap:44px; justify-content:center; flex:1">
     <h2 class="t">Six questions for today</h2>
@@ -162,7 +59,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ 01 -->
 <section id="p01" class="ink std" data-crumb="01 context">
-  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>▲ question 01</p></div>
   <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
     <h2 class="claim">Where does deep learning fit?</h2>
@@ -177,7 +74,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="wounds" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>narcissistic wounds</p></div>
   <div class="body">
     <h2 class="t">Five <span class="v">narcissistic wounds</span></h2>
@@ -198,7 +95,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="rsi" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>recursive self-improvement</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">Recursive self-improvement: a machine that helps build a <span class="v">better machine</span></h2>
@@ -239,11 +136,11 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="pond" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>growth that feeds itself</p></div>
   <div class="body" style="gap:24px">
     <h2 class="t">Growth that feeds itself: <span class="pe">which curve</span> is it?</h2>
-    <div class="center" style="flex:1; align-items:center"><img src="img/lesson1/pond.png" alt="The duckweed figure of MADS-DAV. Left, the share of a pond covered over days: an exponential curve, dashed vermilion, that keeps doubling and passes twice the pond on day 18, and a logistic curve, petrol, with the same start that flattens at the whole pond. Right, the pond on day 8, 14, 18 and 24, covered for 6, 34, 67 and 94 percent." style="width:1500px; height:574px; object-fit:contain"></div>
+    <div class="center" style="flex:1; align-items:center"><img src="../img/lesson1/pond.png" alt="The duckweed figure of MADS-DAV. Left, the share of a pond covered over days: an exponential curve, dashed vermilion, that keeps doubling and passes twice the pond on day 18, and a logistic curve, petrol, with the same start that flattens at the whole pond. Right, the pond on day 8, 14, 18 and 24, covered for 6, 34, 67 and 94 percent." style="width:1500px; height:574px; object-fit:contain"></div>
     <p class="m" style="color:#111111">At the start the two curves are the same curve; the duckweed stops only when the pond is full. What is the pond for a machine that improves itself?</p>
   </div>
   <div class="foot"><p>1 / where does deep learning fit?</p><p class="n"></p></div>
@@ -251,7 +148,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="ceiling" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>what could bend the curve</p></div>
   <div class="body" style="gap:24px">
     <h2 class="t">When does red turn blue? Look for what <span class="v">limits</span> it</h2>
@@ -301,19 +198,19 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="kinds" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>three kinds of learning</p></div>
   <div class="body">
     <h2 class="t">Three kinds of <span class="v">learning</span></h2>
     <div class="g3" style="flex:1; align-items:start; padding-top:12px">
       <div class="col" style="gap:20px">
         <p class="ck2">supervised · x and y</p>
-        <img src="img/lesson1/ml_supervised.png" alt="Photos of eight flower species as points on two axes, each species in its own colour; points of one colour lie together" style="width:520px; height:426px; object-fit:contain">
+        <img src="../img/lesson1/ml_supervised.png" alt="Photos of eight flower species as points on two axes, each species in its own colour; points of one colour lie together" style="width:520px; height:426px; object-fit:contain">
         <p class="s">Every example comes with its answer: a class (<span class="pe">classification</span>) or a number (<span class="pe">regression</span>).</p>
       </div>
       <div class="col" style="gap:20px">
         <p class="ck2">unsupervised · only x</p>
-        <img src="img/lesson1/ml_unsupervised.png" alt="The same points without colours, all grey" style="width:520px; height:426px; object-fit:contain">
+        <img src="../img/lesson1/ml_unsupervised.png" alt="The same points without colours, all grey" style="width:520px; height:426px; object-fit:contain">
         <p class="s">The same points without answers: find the structure in x itself.</p>
       </div>
       <div class="col" style="gap:20px">
@@ -339,7 +236,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="loops" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 1 — where does deep learning fit?</p><p>loop engineering</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">An agent's loop has the parts of <span class="v">reinforcement learning</span></h2>
@@ -385,7 +282,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="again01" class="paper mid">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 01 — where does deep learning fit?</p></div>
     <div class="again">
@@ -402,7 +299,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ 02 -->
 <section id="p02" class="ink std" data-crumb="02 cache">
-  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>▲ question 02</p></div>
   <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
     <h2 class="claim">Why use a model somebody else trained?</h2>
@@ -417,7 +314,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="pipeline" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>oxford flowers, 102 species</p></div>
   <div class="body">
     <h2 class="t">The encoder runs <span class="v">once</span>; the head trains on what it stored</h2>
@@ -439,11 +336,11 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="flowers" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>eight of the 102 species</p></div>
   <div class="body" style="gap:16px">
     <h2 class="t">An <span class="v">ordered</span> space, before anything is trained</h2>
-    <div class="center" style="flex:1; align-items:center"><img src="img/lesson1/flowers_pca.png" alt="The test photos of eight flower species on the first two PCA directions of their encoder vectors, one colour per species, each with one photo beside its group. Left: osteospermum, black-eyed susan and blanket flower, all daisy-shaped flowers with a disc and rays. Top right, overlapping: siam tulip, red ginger and water lily. Bottom right, overlapping: canna lily and azalea." style="width:1420px; height:632px; object-fit:contain"></div>
+    <div class="center" style="flex:1; align-items:center"><img src="../img/lesson1/flowers_pca.png" alt="The test photos of eight flower species on the first two PCA directions of their encoder vectors, one colour per species, each with one photo beside its group. Left: osteospermum, black-eyed susan and blanket flower, all daisy-shaped flowers with a disc and rays. Top right, overlapping: siam tulip, red ginger and water lily. Bottom right, overlapping: canna lily and azalea." style="width:1420px; height:632px; object-fit:contain"></div>
     <p class="m" style="color:#111111">Nothing was trained on these labels, yet photos of one species sit together, and the three daisy-shaped flowers lie on one side.</p>
   </div>
   <div class="foot"><p>2 / why use a model somebody else trained?</p><p class="n"></p></div>
@@ -451,7 +348,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="cosine" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>cosine similarity, from DAV</p></div>
   <div class="body">
     <h2 class="t">Similar means: pointing the <span class="v">same way</span></h2>
@@ -490,7 +387,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="knn" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>1,000 test photos × 4,000 training photos</p></div>
   <div class="body">
     <h2 class="t">Copy the label of the <span class="v">most similar</span> photo: 99.1%</h2>
@@ -509,16 +406,16 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="objective" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>flowers, satellites, textures</p></div>
   <div class="body">
     <h2 class="t">The encoder was never trained for <span class="v">your</span> labels</h2>
     <div class="fill">
       <table class="tab">
         <tr><th style="width:26%">dataset · dinov2-small</th><th style="width:24%">two samples</th><th style="width:10%; text-align:right">classes</th><th style="width:20%; text-align:right">nearest neighbour</th><th style="text-align:right">small network</th></tr>
-        <tr><td style="vertical-align:middle">Oxford Flowers</td><td><img src="img/lesson1/samples_flowers.png" alt="Two photos of flowers" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">102</td><td style="text-align:right; vertical-align:middle">99.1%</td><td style="text-align:right; vertical-align:middle">99.3%</td></tr>
-        <tr><td style="vertical-align:middle">EuroSAT, satellite tiles</td><td><img src="img/lesson1/samples_eurosat.png" alt="Two satellite tiles: farmland and houses" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">10</td><td style="text-align:right; vertical-align:middle">89.7%</td><td style="text-align:right; vertical-align:middle">95.0%</td></tr>
-        <tr><td style="vertical-align:middle">DTD, textures</td><td><img src="img/lesson1/samples_dtd.png" alt="Two textures: braided and cracked" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">47</td><td style="text-align:right; vertical-align:middle">77.0%</td><td style="text-align:right; vertical-align:middle">80.3%</td></tr>
+        <tr><td style="vertical-align:middle">Oxford Flowers</td><td><img src="../img/lesson1/samples_flowers.png" alt="Two photos of flowers" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">102</td><td style="text-align:right; vertical-align:middle">99.1%</td><td style="text-align:right; vertical-align:middle">99.3%</td></tr>
+        <tr><td style="vertical-align:middle">EuroSAT, satellite tiles</td><td><img src="../img/lesson1/samples_eurosat.png" alt="Two satellite tiles: farmland and houses" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">10</td><td style="text-align:right; vertical-align:middle">89.7%</td><td style="text-align:right; vertical-align:middle">95.0%</td></tr>
+        <tr><td style="vertical-align:middle">DTD, textures</td><td><img src="../img/lesson1/samples_dtd.png" alt="Two textures: braided and cracked" style="width:205px; height:100px; object-fit:cover"></td><td style="text-align:right; vertical-align:middle">47</td><td style="text-align:right; vertical-align:middle">77.0%</td><td style="text-align:right; vertical-align:middle">80.3%</td></tr>
       </table>
       <p class="m" style="color:#111111">DINOv2 learned to give two views of one photo similar vectors, and that order works for flowers, fields and fabrics. Textures leave the most room: that is where the search of question six runs.</p>
     </div>
@@ -528,12 +425,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="economics" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>eurosat, 8,000 tiles, measured</p></div>
   <div class="body">
     <h2 class="t">Train 100 heads: <span class="v">165 minutes</span> or two</h2>
     <div class="row" style="gap:72px">
-      <img src="img/lesson1/economics.png" alt="Minutes against the number of heads trained, up to 100. A grey line for the encoder in the loop rises straight to 165 minutes; a petrol line for encoding once stays flat near the bottom and ends at 1.8 minutes" style="width:960px; height:572px; object-fit:contain">
+      <img src="../img/lesson1/economics.png" alt="Minutes against the number of heads trained, up to 100. A grey line for the encoder in the loop rises straight to 165 minutes; a petrol line for encoding once stays flat near the bottom and ends at 1.8 minutes" style="width:960px; height:572px; object-fit:contain">
       <div class="col">
         <table class="tab" style="font-size:26px">
           <tr><th style="width:62%">measured</th><th style="text-align:right">seconds</th></tr>
@@ -550,7 +447,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="multiply" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>counting multiplications</p></div>
   <div class="body">
     <h2 class="t">A search repeats the <span class="v">head</span>, never the encoder</h2>
@@ -570,12 +467,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="encoders" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 2 — why use a model somebody else trained?</p><p>same rows, same head, three encoders</p></div>
   <div class="body">
     <h2 class="t">Which encoder? It moves the score by up to <span class="v">14 points</span></h2>
     <div class="row" style="gap:64px">
-      <img src="img/lesson1/encoders.png" alt="Accuracy of three encoders on three datasets with the same head, with one sample image under each dataset. Satellite tiles: 95.0, 93.8 and 92.6, a spread of 2.4 points. Flowers: 99.3 for dinov2-small, 90.8 for mobilenet and 90.3 for resnet, 9.1 points. Textures: 80.3 for dinov2-small and 65.9 for resnet-18, 14.4 points" style="width:980px; height:642px; object-fit:contain">
+      <img src="../img/lesson1/encoders.png" alt="Accuracy of three encoders on three datasets with the same head, with one sample image under each dataset. Satellite tiles: 95.0, 93.8 and 92.6, a spread of 2.4 points. Flowers: 99.3 for dinov2-small, 90.8 for mobilenet and 90.3 for resnet, 9.1 points. Textures: 80.3 for dinov2-small and 65.9 for resnet-18, 14.4 points" style="width:980px; height:642px; object-fit:contain">
       <div class="col">
         <table class="tab" style="font-size:25px">
           <tr><th style="width:40%">encoder</th><th>trained on</th></tr>
@@ -592,7 +489,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="again02" class="paper mid">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 02 — why use a model somebody else trained?</p></div>
     <div class="again">
@@ -610,7 +507,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ 03 -->
 <section id="p03" class="ink std" data-crumb="03 tensors">
-  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>▲ question 03</p></div>
   <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
     <h2 class="claim">What is a tensor?</h2>
@@ -625,13 +522,13 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="sentence" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>one sentence, all-MiniLM-L6-v2</p></div>
   <div class="body">
     <h2 class="t">A sentence becomes a <span class="v">vector</span>: 384 numbers</h2>
     <div class="fill" style="gap:44px">
       <p style="font-size:44px; font-weight:500; text-align:center">“The cat sleeps on the warm windowsill.”</p>
-      <img src="img/lesson1/sentence_vector.png" alt="A strip of 384 coloured cells from petrol for negative to vermilion for positive values: the vector of one sentence" style="width:1720px; height:172px; object-fit:contain">
+      <img src="../img/lesson1/sentence_vector.png" alt="A strip of 384 coloured cells from petrol for negative to vermilion for positive values: the vector of one sentence" style="width:1720px; height:172px; object-fit:contain">
       <p class="m" style="color:#111111; text-align:center">No single number means “cat”: the meaning is in the direction of the whole vector. A photo through DINOv2 gives the same kind of object, and from here on text and images take the same road.</p>
     </div>
   </div>
@@ -640,7 +537,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="ranks" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>rank 1 to rank 5</p></div>
   <div class="body">
     <h2 class="t">A line, a plane, a cube, a box of cubes, a box that <span class="v">changes</span></h2>
@@ -735,7 +632,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="ladder" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>text as a tensor</p></div>
   <div class="body" style="gap:16px">
     <h2 class="t">Chunks of one document, or a batch of documents?</h2>
@@ -784,7 +681,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="aggregate" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>aggregate</p></div>
   <div class="body">
     <h2 class="t">From chunks back to one vector: take the <span class="v">mean</span></h2>
@@ -888,13 +785,13 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="cat" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>chelsea the cat, 300 × 451 pixels</p></div>
   <div class="body">
     <h2 class="t">A photo is three planes: <span class="v">(C, H, W)</span></h2>
     <div class="xf"><p class="xr">3D</p><span class="shape">(3, H, W)</span><p class="xm">\( \mathbb{R}^{3\times H\times W} \)</p></div>
     <div class="fill" style="gap:44px">
-      <div class="center"><img src="img/lesson1/cat_channels.png" alt="The photo of a tabby cat, then three copies: one with only the red values, in red; one with only the green values, in green; one with only the blue values, in blue. The fur is bright in red and dark in blue" style="width:1720px; height:425px; object-fit:contain"></div>
+      <div class="center"><img src="../img/lesson1/cat_channels.png" alt="The photo of a tabby cat, then three copies: one with only the red values, in red; one with only the green values, in green; one with only the blue values, in blue. The fur is bright in red and dark in blue" style="width:1720px; height:425px; object-fit:contain"></div>
       <p class="m" style="color:#111111; text-align:center">A photo file loads as (H, W, 3); torch wants the channels first, (3, H, W). Each channel is a grid of 300 × 451 numbers, light where the photo has much of that colour.</p>
     </div>
   </div>
@@ -903,13 +800,13 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="images4d" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>six eurosat tiles</p></div>
   <div class="body">
     <h2 class="t">A batch of photos is <span class="v">4D</span>: (B, C, H, W)</h2>
     <div class="xf"><p class="xr">4D</p><span class="shape">(B, C, H, W)</span><p class="xm">\( \mathbb{R}^{B\times C\times H\times W} \)</p></div>
     <div class="fill" style="gap:44px">
-      <div class="center"><img src="img/lesson1/batch_images.png" alt="Six satellite tiles of 64 by 64 pixels in a row: forest, river, highway, residential, lake and annual crop land; on the right the same six drawn as a stack of cards" style="width:1560px; height:448px; object-fit:contain"></div>
+      <div class="center"><img src="../img/lesson1/batch_images.png" alt="Six satellite tiles of 64 by 64 pixels in a row: forest, river, highway, residential, lake and annual crop land; on the right the same six drawn as a stack of cards" style="width:1560px; height:448px; object-fit:contain"></div>
       <p class="m" style="color:#111111; text-align:center">One tile is (3, 64, 64); six stacked are (6, 3, 64, 64). The encoder takes such a batch and returns (B, 384): that step is the cache, seen from the shapes.</p>
     </div>
   </div>
@@ -918,12 +815,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="unitaxis" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>an axis of length 1</p></div>
   <div class="body">
     <h2 class="t">An axis of length 1 is <span class="v">free</span></h2>
     <div class="fill" style="gap:44px">
-      <div class="center"><img src="img/lesson1/unit_axis.png" alt="Top row: the cat in grey as a flat grid labelled (H, W); the same grey cat as a stack of one card, with a vermilion bracket of length 1 along the depth, labelled (1, H, W); the colour cat as a stack of three cards, red, green and blue, with a bracket of length 3. Bottom row: a grid of four chunk rows labelled (C, D); the same grid as one card with a vermilion bracket B = 1, labelled (1, C, D); four rows in four colours labelled (B, D); the same four rows as four separate cards of one row each, with a vermilion mark C = 1 and a bracket B = 4, labelled (B, 1, D)" style="width:1720px; height:470px; object-fit:contain"></div>
+      <div class="center"><img src="../img/lesson1/unit_axis.png" alt="Top row: the cat in grey as a flat grid labelled (H, W); the same grey cat as a stack of one card, with a vermilion bracket of length 1 along the depth, labelled (1, H, W); the colour cat as a stack of three cards, red, green and blue, with a bracket of length 3. Bottom row: a grid of four chunk rows labelled (C, D); the same grid as one card with a vermilion bracket B = 1, labelled (1, C, D); four rows in four colours labelled (B, D); the same four rows as four separate cards of one row each, with a vermilion mark C = 1 and a bracket B = 4, labelled (B, 1, D)" style="width:1720px; height:470px; object-fit:contain"></div>
       <p class="m" style="color:#111111; text-align:center">A grey photo is (H, W), or one plane: (1, H, W), the same numbers with one more index that can only be 0. <span class="mono" style="font-size:28px">unsqueeze</span> adds such an axis, <span class="mono" style="font-size:28px">squeeze</span> takes it away.</p>
     </div>
   </div>
@@ -932,12 +829,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="wantsrank" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 3 — what is a tensor?</p><p>a layer that wants a shape</p></div>
   <div class="body">
     <h2 class="t">How to turn sound into a <span class="v">4D tensor</span></h2>
     <div class="fill" style="gap:20px">
-      <div class="center"><img src="img/lesson1/audio_image.png" alt="Left, a sound as a wave of samples, shape (L,). Middle, its spectrogram, frequency against time, shape (F, T). An arrow labelled unsqueeze(0). Right, the same spectrogram with a vermilion frame: one channel, shape (1, F, T)" style="width:1720px; height:286px; object-fit:contain"></div>
+      <div class="center"><img src="../img/lesson1/audio_image.png" alt="Left, a sound as a wave of samples, shape (L,). Middle, its spectrogram, frequency against time, shape (F, T). An arrow labelled unsqueeze(0). Right, the same spectrogram with a vermilion frame: one channel, shape (1, F, T)" style="width:1720px; height:286px; object-fit:contain"></div>
       <div class="center"><svg aria-label="The same three steps as rank glyphs. A sound is a line of cells, (L), rank 1; a batch of sounds is (B, L), rank 2. A spectrogram is a plane, (F, T), rank 2; a batch is (B, F, T), rank 3. With an axis of length 1 it is a thin cube, (1, F, T), rank 3; a batch is (B, 1, F, T), rank 4, the shape an image layer wants." width="1720" height="250" viewBox="0 0 1720 250">
 <rect x="40" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><rect x="58" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><rect x="76" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><rect x="94" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><rect x="112" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><rect x="130" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><rect x="148" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/><rect x="166" y="100" width="18" height="18" fill="#d9e0e2" stroke="#1d5a73" stroke-width="1.5"/>
 <text x="112" y="200" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="24" fill="#c43a14">(L)</text><text x="112" y="232" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#5a544d">rank 1</text>
@@ -971,7 +868,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="again03" class="paper mid">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 03 — what is a tensor?</p></div>
     <div class="again">
@@ -989,7 +886,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ 04 -->
 <section id="p04" class="ink std" data-crumb="04 nonlinearity">
-  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>▲ question 04</p></div>
   <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
     <h2 class="claim">How can a network learn any function?</h2>
@@ -1004,12 +901,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="line" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 4 — how can a network learn any function?</p><p>a linear function</p></div>
   <div class="body">
     <h2 class="t">A linear function: <span class="v">y = wx + b</span></h2>
     <div class="row" style="gap:80px">
-      <img src="img/lesson1/line.png" alt="A straight line y = 0.8x + 1. A vermilion step shows the slope w = 0.8: up 0.8 for every step to the right. A brown dot on the vertical axis shows b = 1, the height at x = 0" style="width:860px; height:614px; object-fit:contain">
+      <img src="../img/lesson1/line.png" alt="A straight line y = 0.8x + 1. A vermilion step shows the slope w = 0.8: up 0.8 for every step to the right. A brown dot on the vertical axis shows b = 1, the height at x = 0" style="width:860px; height:614px; object-fit:contain">
       <div class="col" style="gap:30px">
         <p class="s" style="font-size:32px"><span class="v">w</span>, the weight, sets the slope; <span style="color:#8a6d3b">b</span>, the bias, sets the height.</p>
         <p class="s" style="font-size:32px">Training a linear function means finding w and b. Whatever they are, it draws a <span class="pe">straight line</span>.</p>
@@ -1022,12 +919,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="compose" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 4 — how can a network learn any function?</p><p>stacking lines</p></div>
   <div class="body">
     <h2 class="t">Two linear functions in a row are <span class="v">one line</span></h2>
     <div class="row" style="gap:80px">
-      <img src="img/lesson1/compose.png" alt="Three lines: f1(x) = 2x + 1 in light petrol, f2(u) = −0.5u + 3 dashed in brown, and their composition f2(f1(x)) = −x + 2.5 in vermilion, again a straight line" style="width:900px; height:562px; object-fit:contain">
+      <img src="../img/lesson1/compose.png" alt="Three lines: f1(x) = 2x + 1 in light petrol, f2(u) = −0.5u + 3 dashed in brown, and their composition f2(f1(x)) = −x + 2.5 in vermilion, again a straight line" style="width:900px; height:562px; object-fit:contain">
       <div class="col" style="gap:28px">
         <p style="font-size:34px; line-height:1.5">f₂(f₁(x)) = −0.5 · (2x + 1) + 3<br>= <span class="v">−1 x + 2.5</span></p>
         <p class="s" style="font-size:30px">Put one line into another and you get a new w and a new b: still a line. A hundred linear layers draw what <span class="v">one</span> draws.</p>
@@ -1040,12 +937,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 
 <section id="uat" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 4 — how can a network learn any function?</p><p>how a bend builds a curve</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">Clip each line at zero, add them up: a line with <span class="v">bends</span></h2>
     <div class="row" style="gap:64px; align-items:center">
-      <img src="img/lesson1/udl_fig3_3.png" alt="Figure 3.3 from Understanding Deep Learning: three straight lines in panels a to c; each clipped at zero by a ReLU in panels d to f; each weighted in panels g to i; and their sum in panel j, a line with three bends" style="width:620px; height:686px; object-fit:contain; background:#ffffff">
+      <img src="../img/lesson1/udl_fig3_3.png" alt="Figure 3.3 from Understanding Deep Learning: three straight lines in panels a to c; each clipped at zero by a ReLU in panels d to f; each weighted in panels g to i; and their sum in panel j, a line with three bends" style="width:620px; height:686px; object-fit:contain; background:#ffffff">
       <div class="col" style="gap:28px">
         <p class="s" style="font-size:30px; line-height:1.6"><span class="pe">a–c</span> three lines, w x + b.<br><span class="pe">d–f</span> ReLU, max(0, z), clips each at zero.<br><span class="pe">g–i</span> each times a weight.<br><span class="pe">j</span> the sum.</p>
         <p class="s" style="font-size:30px">Every hidden unit adds <span class="v">one bend</span>.</p>
@@ -1058,11 +955,11 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="units" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 4 — how can a network learn any function?</p><p>more units, more pieces</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">More units, more bends: enough bends draw <span class="v">any curve</span></h2>
-    <div class="center" style="flex:1; align-items:center"><img src="img/lesson1/relu_units.png" alt="Three columns for 5, 10 and 20 ReLU units. Top row: each unit's weighted hinge as a coloured line. Bottom row: their sum in vermilion against the dotted sine: with 5 units a rough zigzag, MSE 0.27; with 10 units close, MSE 0.041; with 20 units almost on top of the sine, MSE 0.003" style="width:1620px; height:582px; object-fit:contain"></div>
+    <div class="center" style="flex:1; align-items:center"><img src="../img/lesson1/relu_units.png" alt="Three columns for 5, 10 and 20 ReLU units. Top row: each unit's weighted hinge as a coloured line. Bottom row: their sum in vermilion against the dotted sine: with 5 units a rough zigzag, MSE 0.27; with 10 units close, MSE 0.041; with 20 units almost on top of the sine, MSE 0.003" style="width:1620px; height:582px; object-fit:contain"></div>
     <p class="m" style="color:#111111">This is the universal approximation theorem: one hidden layer with enough units comes as close as you want to any continuous function. It does not say how many units you need, or whether training finds them.</p>
   </div>
   <div class="foot"><p>4 / how can a network learn any function?</p><p class="n"></p></div>
@@ -1070,11 +967,11 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="activations" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 4 — how can a network learn any function?</p><p>four activation functions</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">Which <span class="v">activation</span>?</h2>
-    <div class="center" style="flex:1; align-items:center"><img src="img/lesson1/activations.png" alt="Four columns: ReLU, LeakyReLU, ELU and GELU. Top row: each function, solid, and its slope, dashed. Bottom row: the sine fit with that activation, all with an error around 0.02. ReLU, LeakyReLU and ELU in petrol, GELU in vermilion" style="width:1720px; height:582px; object-fit:contain"></div>
+    <div class="center" style="flex:1; align-items:center"><img src="../img/lesson1/activations.png" alt="Four columns: ReLU, LeakyReLU, ELU and GELU. Top row: each function, solid, and its slope, dashed. Bottom row: the sine fit with that activation, all with an error around 0.02. ReLU, LeakyReLU and ELU in petrol, GELU in vermilion" style="width:1720px; height:582px; object-fit:contain"></div>
     <p class="m" style="color:#111111">Each one bends the line, and with any of them the network draws the sine. The kinked ones draw straight pieces, the smooth ones curves.</p>
   </div>
   <div class="foot"><p>4 / how can a network learn any function?</p><p class="n"></p></div>
@@ -1082,7 +979,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="again04" class="paper mid">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 04 — how can a network learn any function?</p></div>
     <div class="again">
@@ -1099,7 +996,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ 05 -->
 <section id="p05" class="ink std" data-crumb="05 training">
-  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>▲ question 05</p></div>
   <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
     <h2 class="claim">How does a network learn?</h2>
@@ -1114,7 +1011,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="supervised" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 5 — how does a network learn?</p><p>supervised learning</p></div>
   <div class="body">
     <h2 class="t">Supervised learning: from a photo to its <span class="v">label</span></h2>
@@ -1158,7 +1055,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="parts" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 5 — how does a network learn?</p><p>the parts</p></div>
   <div class="body">
     <h2 class="t">The parts of deep learning, in <span class="pe">words</span> and in <span class="v">symbols</span></h2>
@@ -1180,12 +1077,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 
 <section id="optimizer" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 5 — how does a network learn?</p><p>a valley with two weights</p></div>
   <div class="body">
     <h2 class="t">The optimizer decides how to step <span class="v">downhill</span></h2>
     <div class="row" style="gap:64px">
-      <img src="img/lesson1/optimizer.png" alt="A long valley over two weights, steep along weight 2 and nearly flat along weight 1, minimum at the cross. From the same start, 40 steps each: grey SGD drops into the valley and then creeps along the floor, stopping halfway; brown SGD with momentum swings across the valley and speeds along it; vermilion Adam heads diagonally to the minimum, overshoots a little and turns back" style="width:1000px; height:564px; object-fit:contain">
+      <img src="../img/lesson1/optimizer.png" alt="A long valley over two weights, steep along weight 2 and nearly flat along weight 1, minimum at the cross. From the same start, 40 steps each: grey SGD drops into the valley and then creeps along the floor, stopping halfway; brown SGD with momentum swings across the valley and speeds along it; vermilion Adam heads diagonally to the minimum, overshoots a little and turns back" style="width:1000px; height:564px; object-fit:contain">
       <div class="col" style="gap:30px">
         <p style="font-size:40px">\(w \leftarrow w - \eta\, \dfrac{\partial \mathcal{L}}{\partial w}\)</p>
         <p class="s" style="font-size:30px">The loss is a signal: at every step it gives each weight a small tug at the wheel, downhill. The learning rate \(\eta\) says how hard.</p>
@@ -1198,7 +1095,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="lossmetric" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 5 — how does a network learn?</p><p>loss and metric</p></div>
   <div class="body">
     <h2 class="t">A loss to learn from, a <span class="v">metric</span> to report</h2>
@@ -1248,7 +1145,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="cycle" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 5 — how does a network learn?</p><p>the training cycle</p></div>
   <div class="body">
     <h2 class="t">The cycle: predict, measure, <span class="v">step</span>, repeat</h2>
@@ -1267,7 +1164,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
         <foreignObject x="980" y="105" width="420" height="90"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:48px">\(\mathcal{L}(y, \hat y)\)</div></foreignObject>
         <path d="M 160 44 C 190 100, 220 20, 250 70" transform="translate(923.5 -48) scale(1.3)" fill="none" stroke="#c43a14" stroke-width="2.2"/><text x="1190" y="-14" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="22" fill="#c43a14">how wrong</text>
         <path d="M1400,145 L1500,145 L1500,450 L720,450 L720,220" fill="none" stroke="#c43a14" stroke-width="3" marker-end="url(#cyr)"/>
-        <image href="img/lesson1/optimizer.png" x="340" y="412" width="310" height="178" preserveAspectRatio="xMidYMid meet"/>
+        <image href="../img/lesson1/optimizer.png" x="340" y="412" width="310" height="178" preserveAspectRatio="xMidYMid meet"/>
         <foreignObject x="720" y="462" width="560" height="130"><div style="font-family:Outfit,Arial,sans-serif;color:#111111;text-align:center;font-size:44px">\(w \leftarrow w - \eta\, \dfrac{\partial \mathcal{L}}{\partial w}\)</div></foreignObject>
         <text x="1290" y="520" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#c43a14">step every weight</text><text x="1290" y="552" font-family="Outfit, Arial, sans-serif" font-size="26" fill="#c43a14">downhill</text>
       </g></svg>
@@ -1279,12 +1176,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="curves" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 5 — how does a network learn?</p><p>learning curves, dtd</p></div>
   <div class="body">
     <h2 class="t">Watch two curves: <span class="pe">train</span> and <span class="v">valid</span></h2>
     <div class="fill" style="gap:36px">
-      <div class="center"><img src="img/lesson1/curve_kinds.png" alt="Three loss curves over 30 epochs, train in petrol and valid in vermilion. Left, still learning: both curves still falling at epoch 30. Middle: the valid curve stops improving after about epoch 15, marked with a red dot, early stopping. Right, overfitting: the train loss falls to almost zero while the valid loss turns up after epoch 3, where a second red dot marks the stop" style="width:1720px; height:506px; object-fit:contain"></div>
+      <div class="center"><img src="../img/lesson1/curve_kinds.png" alt="Three loss curves over 30 epochs, train in petrol and valid in vermilion. Left, still learning: both curves still falling at epoch 30. Middle: the valid curve stops improving after about epoch 15, marked with a red dot, early stopping. Right, overfitting: the train loss falls to almost zero while the valid loss turns up after epoch 3, where a second red dot marks the stop" style="width:1720px; height:506px; object-fit:contain"></div>
       <p class="m" style="color:#111111; text-align:center">The model learns from the train split; the valid split it never trains on. When train keeps falling and valid turns up, the model is memorising the training data: <span class="v">overfitting</span>. Keep the weights from where valid was lowest: early stopping.</p>
     </div>
   </div>
@@ -1293,7 +1190,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="again05" class="paper mid">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 05 — how does a network learn?</p></div>
     <div class="again">
@@ -1311,7 +1208,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ 06 -->
 <section id="p06" class="ink std" data-crumb="06 search">
-  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>▲ question 06</p></div>
   <div style="display:flex; flex-direction:column; gap:56px; justify-content:center; flex:1">
     <h2 class="claim">How do you search for a model?</h2>
@@ -1326,7 +1223,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="choices" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 6 — how do you search for a model?</p><p>a model is a set of choices</p></div>
   <div class="body">
     <h2 class="t">Building a model means making <span class="v">choices</span></h2>
@@ -1370,12 +1267,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="noise" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 6 — how do you search for a model?</p><p>noise on the input</p></div>
   <div class="body">
     <h2 class="t">Why add <span class="v">noise</span>? So the model cannot learn the exact points</h2>
     <div class="fill" style="gap:36px">
-      <div class="center"><img src="img/lesson1/noise.png" alt="Two panels with the same 28 points of two classes, petrol and vermilion, and the border a small network learned between them. Left, trained without noise: the border curls in a loop around a single point. Right, trained with noise of strength 0.5, the faint copies of every point drawn around it: the border is smoother and has no loop" style="width:1380px; height:550px; object-fit:contain"></div>
+      <div class="center"><img src="../img/lesson1/noise.png" alt="Two panels with the same 28 points of two classes, petrol and vermilion, and the border a small network learned between them. Left, trained without noise: the border curls in a loop around a single point. Right, trained with noise of strength 0.5, the faint copies of every point drawn around it: the border is smoother and has no loop" style="width:1380px; height:550px; object-fit:contain"></div>
       <p class="m" style="color:#111111; text-align:center">With noise of standard deviation σ every training step sees a slightly moved copy of each vector, so the model learns the region around a point instead of the point itself. It works against overfitting.</p>
     </div>
   </div>
@@ -1385,7 +1282,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <section id="archs" class="paper std">
   <style>#archs .op,#archs .shape{padding:12px 12px;font-size:22px} #archs .arch{gap:10px} #archs .to{font-size:30px} #archs .archlab{width:170px}</style>
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 6 — how do you search for a model?</p><p>what each option changes</p></div>
   <div class="body">
     <h2 class="t">0, 1 or 2 hidden layers: three models, with their <span class="v">shapes</span></h2>
@@ -1406,7 +1303,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="space" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 6 — how do you search for a model?</p><p>notebook 04, 24 trials</p></div>
   <div class="body">
     <h2 class="t">A search space; every trial picks <span class="v">one of each</span></h2>
@@ -1426,11 +1323,11 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="searchcurves" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 6 — how do you search for a model?</p><p>dtd, a wider search: 0 to 8 layers, 15 epochs</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">Look at the curves of the trials, not only the <span class="v">score</span></h2>
-    <div class="center" style="flex:1; align-items:center"><img src="img/lesson1/search_curves.png" alt="Eight trials, train loss in petrol and valid loss in vermilion over 15 epochs. Top row, the four best, accuracy 0.801 to 0.793: three overfit, with the valid loss turning up after a few epochs, one has flattened. Bottom row, the four worst, 0.774 to 0.753: three are still falling at epoch 15, among them eight residual blocks with a small learning rate, whose curves have barely started" style="width:1700px; height:594px; object-fit:contain"></div>
+    <div class="center" style="flex:1; align-items:center"><img src="../img/lesson1/search_curves.png" alt="Eight trials, train loss in petrol and valid loss in vermilion over 15 epochs. Top row, the four best, accuracy 0.801 to 0.793: three overfit, with the valid loss turning up after a few epochs, one has flattened. Bottom row, the four worst, 0.774 to 0.753: three are still falling at epoch 15, among them eight residual blocks with a small learning rate, whose curves have barely started" style="width:1700px; height:594px; object-fit:contain"></div>
     <p class="m" style="color:#111111">Some trials overfit after a few epochs; others had barely started when the 15 epochs ran out.</p>
   </div>
   <div class="foot"><p>6 / how do you search for a model?</p><p class="n"></p></div>
@@ -1438,12 +1335,12 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="longer" class="paper std">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div class="kick"><p>■ 6 — how do you search for a model?</p><p>the same heads, 100 epochs</p></div>
   <div class="body" style="gap:20px">
     <h2 class="t">Train longer and the ranking <span class="v">changes</span></h2>
     <div class="row" style="gap:56px">
-      <img src="img/lesson1/longer.png" alt="Valid accuracy over 100 epochs for ten heads, with a dashed line at epoch 15 where the search stopped. Three are highlighted. One hidden layer of 512 with GELU and learning rate 0.001 is best at epoch 15, 0.801, and stays at 0.801. Two hidden layers of 512 with ReLU and learning rate 0.00003 rise from 0.784 to 0.805 and pass it. Eight residual blocks of 128 with ReLU and learning rate 0.00003 rise from 0.763 to 0.790" style="width:1180px; height:581px; object-fit:contain">
+      <img src="../img/lesson1/longer.png" alt="Valid accuracy over 100 epochs for ten heads, with a dashed line at epoch 15 where the search stopped. Three are highlighted. One hidden layer of 512 with GELU and learning rate 0.001 is best at epoch 15, 0.801, and stays at 0.801. Two hidden layers of 512 with ReLU and learning rate 0.00003 rise from 0.784 to 0.805 and pass it. Eight residual blocks of 128 with ReLU and learning rate 0.00003 rise from 0.763 to 0.790" style="width:1180px; height:581px; object-fit:contain">
       <div class="col" style="gap:30px">
         <p class="s" style="font-size:30px">At epoch 15 the petrol head is 1.7 points behind the red one; at epoch 100 it is ahead.</p>
         <p class="s" style="font-size:30px">A small learning rate or a deep stack is slow, not bad. More epochs cost time: one axis read at a fixed budget cannot say which is <span class="v">better</span>.</p>
@@ -1455,8 +1352,8 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="class" class="paper std" data-crumb="class">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
-  <div class="kick"><p>■ 6 — how do you work as a class?</p><p>goal <a href="leerdoelen/les1.html#g1-15">1.15</a></p><p>notebook 05</p></div>
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <div class="kick"><p>■ 6 — how do you work as a class?</p><p>goal <a href="../leerdoelen/les1.html#g1-15">1.15</a></p><p>notebook 05</p></div>
   <div class="body" style="gap:26px">
     <h2 class="t">Publish, look, and <span class="v">build on a run by naming it</span></h2>
     <div class="row" style="gap:70px; align-items:flex-start">
@@ -1474,7 +1371,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 </section>
 
 <section id="again06" class="paper mid">
-  <img class="strip" src="img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_paper.png" alt="pttrn logo in a Rule 30 strip">
   <div style="display:flex; flex-direction:column; gap:48px">
     <div class="kick"><p>● 06 — how do you search for a model?</p></div>
     <div class="again">
@@ -1492,7 +1389,7 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 <!-- ============================================================ close -->
 <section id="close" class="ink mid" data-crumb="summary">
-  <img class="strip" src="img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
+  <img class="strip" src="../img/lesson1/band_strip_ink.png" alt="pttrn logo in a Rule 30 strip">
   <div style="width:280px; height:2px; background:#f2643c"></div>
   <div style="display:flex; flex-direction:column; gap:30px; padding:36px 0">
     <div style="display:grid; gap:40px; align-items:baseline; grid-template-columns:760px 1fr"><p style="font-size:34px; font-weight:500; line-height:1.2; color:#86b9c9">Where does deep learning <span class="v">fit</span>?</p><p style="font-size:34px; line-height:1.2; color:#f4f1ec">Machines learn from answers, from structure, or from a reward in a loop.</p></div>
@@ -1508,88 +1405,8 @@ code.c{font-family:'JetBrains Mono',monospace;font-size:22px;color:#1d5a73;backg
 
 </div></div>
 <nav id="crumbs"></nav>
-<style>#start-link{position:fixed;right:10px;top:10px;z-index:6;font:12px/1.3 'JetBrains Mono',monospace;color:#b8b0a5;background:#141210;border:1px solid #2b2621;padding:5px 10px;text-decoration:none;letter-spacing:.04em}#start-link:hover{color:#f4f1ec}#start-link:focus-visible{outline:2px solid #f2643c;outline-offset:2px}@media print{#start-link{display:none}}:root:fullscreen #start-link{display:none}@media (display-mode:fullscreen){#start-link{display:none}}</style>
-<a id="start-link" href="index.html" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter')event.stopPropagation()">← MADS-ML start</a>
 <div id="notes"><div class="count"></div><div class="text"></div></div>
 <div id="hint">← → or click to move · F full screen · N speaker notes</div>
-<script>(function(){
-  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
-  // slide numbers: "MADS-ML · N" in a footer, the bare number elsewhere
-  slides.forEach(function(s,k){
-    [].forEach.call(s.querySelectorAll('.n'),function(el){
-      el.textContent=(el.closest('.foot')&&!el.dataset.plain)?'MADS-ML · '+(k+1):String(k+1);
-    });
-  });
-  // breadcrumbs from the sections that start a part
-  var nav=document.getElementById('crumbs');
-  slides.forEach(function(s,k){
-    if(!s.dataset.crumb)return;
-    var a=document.createElement('a');a.href='#'+(k+1);a.textContent=s.dataset.crumb;a.dataset.from=k;nav.appendChild(a);
-  });
-})();</script>
-<script>(function(){
-  document.documentElement.classList.add('js');
-  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
-  var stage=document.getElementById('stage'), notes=document.getElementById('notes');
-  var i=0;
-  function fit(){stage.style.setProperty('--scale',Math.min(innerWidth/1920,innerHeight/1080));}
-  function builds(s){return [].slice.call(s.querySelectorAll('[data-build-in]'));}
-  function next(){var left=builds(slides[i]).filter(function(b){return !b.classList.contains('built');});if(left.length){left[0].classList.add('built');}else if(i<slides.length-1){show(i+1);}}
-  function show(n,back){
-    i=Math.max(0,Math.min(slides.length-1,n));
-    builds(slides[i]).forEach(function(b){b.classList.toggle('built',!!back);});
-    slides.forEach(function(s,k){s.classList.toggle('active',k===i);});
-    history.replaceState(null,'','#'+(i+1));
-    var a=slides[i].querySelector('aside');
-    notes.querySelector('.count').textContent='SLIDE '+(i+1)+' / '+slides.length;
-    notes.querySelector('.text').textContent=a?a.textContent:'';
-  }
-  addEventListener('keydown',function(e){
-    if(e.metaKey||e.ctrlKey||e.altKey)return;
-    var k=e.key;
-    if(['ArrowRight','ArrowDown','PageDown',' ','Enter'].indexOf(k)>=0){e.preventDefault();next();}
-    else if(['ArrowLeft','ArrowUp','PageUp','Backspace'].indexOf(k)>=0){e.preventDefault();show(i-1,true);}
-    else if(k==='Home'){show(0);}
-    else if(k==='End'){show(slides.length-1);}
-    else if(k==='n'||k==='N'){document.body.classList.toggle('show-notes');}
-    else if(k==='f'||k==='F'){
-      if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
-      else{document.exitFullscreen&&document.exitFullscreen();}
-    }
-  });
-  addEventListener('click',function(e){
-    if(e.target.closest('#notes,#crumbs'))return;
-    if(e.clientX<innerWidth/3){show(i-1,true);}else{next();}
-  });
-  var x0=null;
-  addEventListener('touchstart',function(e){x0=e.touches[0].clientX;},{passive:true});
-  addEventListener('touchend',function(e){
-    if(x0===null)return;
-    var dx=e.changedTouches[0].clientX-x0; x0=null;
-    if(Math.abs(dx)>50){if(dx<0){next();}else{show(i-1,true);}}
-  });
-  addEventListener('hashchange',function(){
-    var h=parseInt(location.hash.slice(1),10);
-    if(isFinite(h)&&h-1!==i)show(h-1);
-  });
-  addEventListener('resize',fit);
-  fit();
-  var h=parseInt(location.hash.slice(1),10);
-  show(isFinite(h)?h-1:0);
-  setTimeout(function(){document.getElementById('hint').classList.add('gone');},4000);
-})();</script>
-<script>(function(){
-  var slides=[].slice.call(document.querySelectorAll('.deck>section'));
-  var links=[].slice.call(document.querySelectorAll('#crumbs a'));
-  var starts=links.map(function(a){return +a.dataset.from;});
-  function mark(){
-    var i=slides.findIndex(function(s){return s.classList.contains('active');});
-    var here=null;
-    links.forEach(function(a,k){var end=k+1<starts.length?starts[k+1]:slides.length;if(starts[k]<=i&&i<end)here=a;});
-    links.forEach(function(a){a.classList.toggle('here',a===here);});
-  }
-  new MutationObserver(mark).observe(document.querySelector('.deck'),{attributes:true,subtree:true,attributeFilter:['class']});
-  mark();
-})();</script>
+<script src="../assets/deck.js"></script>
 </body>
 </html>

@@ -47,8 +47,8 @@ pre-commit:
         - 'legacy/**'
       run: uv run ty check {staged_files}
     lychee:
-      # The repository's own Pages links are checked against presentations/, which Pages
+      # The repository's own Pages links are checked against pages/, which Pages
       # publishes, so a page linked in the same commit that adds it passes.
       run: >-
         lychee . --suggest --max-concurrency 32 --cache --exclude toptal --format detailed --max-cache-age 7d
-        --remap "^https://raoulg\.github\.io/MADS-MachineLearning-course/([^#]*)(#.*)?$ file://$(pwd)/presentations/\$1"
+        --remap "^https://raoulg\.github\.io/MADS-MachineLearning-course/([^#]*)(#.*)?$ file://$(pwd)/pages/\$1"

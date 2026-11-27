@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="presentations/img/course-map.svg" width="100%" alt="The seven lessons of the course as one tensor passing through seven operations: representation and head, kernels state and gates, capacity, language, self-supervised learning, uncertainty, generalists and memory">
+  <img src="pages/img/course-map.svg" width="100%" alt="The seven lessons of the course as one tensor passing through seven operations: representation and head, kernels state and gates, capacity, language, self-supervised learning, uncertainty, generalists and memory">
 </p>
 
 <h1 align="center">MADS · Machine Learning</h1>
@@ -36,13 +36,13 @@ pdf and worth buying.
 
 | | lesson | notebooks | learning goals |
 |---|---|---|---|
-| 1 | Representation and head | [`1_representation_and_head`](notebooks/1_representation_and_head) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les1.html) · [text](presentations/leerdoelen/les1.md) |
-| 2 | Kernels, state and gates | [`2_kernels_state_and_gates`](notebooks/2_kernels_state_and_gates) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les2.html) · [text](presentations/leerdoelen/les2.md) |
-| 3 | What did that capacity buy you | [`3_scaling_and_search`](notebooks/3_scaling_and_search) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les3.html) · [text](presentations/leerdoelen/les3.md) |
-| 4 | Language | [`4_language`](notebooks/4_language) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les4.html) · [text](presentations/leerdoelen/les4.md) |
-| 5 | Self-supervised learning | [`5_unsupervised`](notebooks/5_unsupervised) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les5.html) · [text](presentations/leerdoelen/les5.md) |
-| 6 | Uncertainty | [`6_uncertainty`](notebooks/6_uncertainty) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les6.html) · [text](presentations/leerdoelen/les6.md) |
-| 7 | Generalists and memory | [`7_generalists_and_memory`](notebooks/7_generalists_and_memory) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les7.html) · [text](presentations/leerdoelen/les7.md) |
+| 1 | Representation and head | [`1_representation_and_head`](notebooks/1_representation_and_head) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les1.html) · [text](pages/leerdoelen/les1.md) |
+| 2 | Kernels, state and gates | [`2_kernels_state_and_gates`](notebooks/2_kernels_state_and_gates) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les2.html) · [text](pages/leerdoelen/les2.md) |
+| 3 | What did that capacity buy you | [`3_scaling_and_search`](notebooks/3_scaling_and_search) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les3.html) · [text](pages/leerdoelen/les3.md) |
+| 4 | Language | [`4_language`](notebooks/4_language) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les4.html) · [text](pages/leerdoelen/les4.md) |
+| 5 | Self-supervised learning | [`5_unsupervised`](notebooks/5_unsupervised) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les5.html) · [text](pages/leerdoelen/les5.md) |
+| 6 | Uncertainty | [`6_uncertainty`](notebooks/6_uncertainty) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les6.html) · [text](pages/leerdoelen/les6.md) |
+| 7 | Generalists and memory | [`7_generalists_and_memory`](notebooks/7_generalists_and_memory) | [in pictures](https://raoulg.github.io/MADS-MachineLearning-course/leerdoelen/les7.html) · [text](pages/leerdoelen/les7.md) |
 
 The learning goals are in Dutch, one picture per goal.
 
@@ -57,9 +57,9 @@ Handy to have open:
   course takes for granted from Data Analysis & Visualisation.
 - [Notation and formulas](https://raoulg.github.io/MADS-MachineLearning-course/notatie.html):
   a reference card for tensor shapes, composition, diagrams, gradients and the GRU.
-- [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/lesson1-tensors.html).
-- [Kernels, state and gates, the slides of lesson 2](https://raoulg.github.io/MADS-MachineLearning-course/lesson2-kernels_states_gates.html).
-- [Your study, step by step](https://raoulg.github.io/MADS-MachineLearning-course/your-study.html):
+- [Tensors, the slides of lesson 1](https://raoulg.github.io/MADS-MachineLearning-course/presentaties/les1.html).
+- [Kernels, state and gates, the slides of lesson 2](https://raoulg.github.io/MADS-MachineLearning-course/presentaties/les2.html).
+- [Your study, step by step](https://raoulg.github.io/MADS-MachineLearning-course/huiswerk/your-study.html):
   the loop from idea to published runs, the same in every lesson. Hand
   [`docs/your-study.md`](docs/your-study.md) to your assistant: the same steps with their
   commands.

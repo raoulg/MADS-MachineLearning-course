@@ -6,9 +6,6 @@
 <title>MADS-ML · Start</title>
 <meta name="description" content="The start page of MADS-ML: the course map, and per lesson the slides, the learning goals, your research and the notebooks.">
 <style>
-@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url(fonts/JetBrainsMono-400.woff2) format('woff2')}
-@font-face{font-family:'Outfit';font-weight:400;font-display:swap;src:url(fonts/Outfit-400.woff2) format('woff2')}
-@font-face{font-family:'Outfit';font-weight:500;font-display:swap;src:url(fonts/Outfit-500.woff2) format('woff2')}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font-family:Outfit,Arial,sans-serif;font-size:17px;line-height:1.45}
@@ -34,11 +31,11 @@ h2{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;letter-
 .more dd{margin:0;color:var(--course-muted)}
 @media(max-width:759px){.more dd{margin-bottom:6px}}
 </style>
-<link rel="stylesheet" href="course-ui.css">
-<link rel="stylesheet" href="course-bar.css">
+<link rel="stylesheet" href="assets/course-ui.css">
+<link rel="stylesheet" href="assets/course-bar.css">
 </head>
 <body>
-<div data-course-bar="start"></div><script src="course-bar.js"></script>
+<div data-course-bar="start"></div><script src="assets/course-bar.js"></script>
 <main id="top">
 <p class="kick">MADS-ML · Machine Learning</p>
 <h1>The course pages</h1>
@@ -51,54 +48,64 @@ h2{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;letter-
 <li class="lesson" id="lesson-1">
   <h3><span>1</span>Representation and head</h3>
   <ul>
-    <li class="slides"><a href="lesson1-tensors.html">Slides</a></li>
+    <li class="slides"><a href="presentaties/les1.html">Slides</a></li>
     <li><a href="leerdoelen/les1.html">Learning goals</a></li>
-    <li><a href="your-study.html#lesson-1">Your research</a></li>
-    <li><a href="lesson1-class-rehearsal.html">Class example</a></li>
+    <li><a href="huiswerk/your-study.html#lesson-1">Your research</a></li>
+    <li><a href="huiswerk/lesson1-class-rehearsal.html">Class example</a></li>
     <li><a href="https://github.com/raoulg/MADS-MachineLearning-course/tree/master/notebooks/1_representation_and_head">Notebooks</a></li>
   </ul>
 </li>
 <li class="lesson" id="lesson-2">
   <h3><span>2</span>Kernels, state and gates</h3>
   <ul>
-    <li class="slides"><a href="lesson2-kernels_states_gates.html">Slides</a></li>
+    <li class="slides"><a href="presentaties/les2.html">Slides</a></li>
     <li><a href="leerdoelen/les2.html">Learning goals</a></li>
-    <li><a href="your-study.html#lesson-2">Your research</a></li>
+    <li><a href="huiswerk/your-study.html#lesson-2">Your research</a></li>
     <li><a href="https://github.com/raoulg/MADS-MachineLearning-course/tree/master/notebooks/2_kernels_state_and_gates">Notebooks</a></li>
   </ul>
 </li>
 <li class="lesson" id="lesson-3">
   <h3><span>3</span>What did that capacity buy you</h3>
   <ul>
+    <li class="slides"><a href="presentaties/les3.html">Slides</a></li>
     <li><a href="leerdoelen/les3.html">Learning goals</a></li>
+    <li><a href="huiswerk/your-study.html#lesson-3">Your research</a></li>
     <li><a href="https://github.com/raoulg/MADS-MachineLearning-course/tree/master/notebooks/3_scaling_and_search">Notebooks</a></li>
   </ul>
 </li>
 <li class="lesson" id="lesson-4">
   <h3><span>4</span>Language</h3>
   <ul>
+    <li class="slides"><a href="presentaties/les4.html">Slides</a></li>
     <li><a href="leerdoelen/les4.html">Learning goals</a></li>
+    <li><a href="huiswerk/your-study.html#lesson-4">Your research</a></li>
     <li><a href="https://github.com/raoulg/MADS-MachineLearning-course/tree/master/notebooks/4_language">Notebooks</a></li>
   </ul>
 </li>
 <li class="lesson" id="lesson-5">
   <h3><span>5</span>Self-supervised learning</h3>
   <ul>
+    <li class="slides"><a href="presentaties/les5.html">Slides</a></li>
     <li><a href="leerdoelen/les5.html">Learning goals</a></li>
+    <li><a href="huiswerk/your-study.html#lesson-5">Your research</a></li>
     <li><a href="https://github.com/raoulg/MADS-MachineLearning-course/tree/master/notebooks/5_unsupervised">Notebooks</a></li>
   </ul>
 </li>
 <li class="lesson" id="lesson-6">
   <h3><span>6</span>Uncertainty</h3>
   <ul>
+    <li class="slides"><a href="presentaties/les6.html">Slides</a></li>
     <li><a href="leerdoelen/les6.html">Learning goals</a></li>
+    <li><a href="huiswerk/your-study.html#lesson-6">Your research</a></li>
     <li><a href="https://github.com/raoulg/MADS-MachineLearning-course/tree/master/notebooks/6_uncertainty">Notebooks</a></li>
   </ul>
 </li>
 <li class="lesson" id="lesson-7">
   <h3><span>7</span>Generalists and memory</h3>
   <ul>
+    <li class="slides"><a href="presentaties/les7.html">Slides</a></li>
     <li><a href="leerdoelen/les7.html">Learning goals</a></li>
+    <li><a href="huiswerk/your-study.html#lesson-7">Your research</a></li>
     <li><a href="https://github.com/raoulg/MADS-MachineLearning-course/tree/master/notebooks/7_generalists_and_memory">Notebooks</a></li>
   </ul>
 </li>
@@ -106,7 +113,7 @@ h2{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:400;letter-
 
 <h2 id="reference">For every lesson</h2>
 <dl class="more">
-  <dt><a href="your-study.html">Methodology</a></dt><dd>The loop of a study, from a design of your own to an idea the class builds on, the same in every lesson.</dd>
+  <dt><a href="huiswerk/your-study.html">Methodology</a></dt><dd>The loop of a study, from a design of your own to an idea the class builds on, the same in every lesson.</dd>
   <dt><a href="https://learn.pttrn.io">learn.pttrn.io</a></dt><dd>Tick off what you have done: what to read and watch per lesson, in the <code>Machine Learning</code> course.</dd>
   <dt><a href="dav-recap.html">DAV recap</a></dt><dd>What this course takes for granted from Data Analysis &amp; Visualisation.</dd>
   <dt><a href="notatie.html">Notation</a></dt><dd>A reference card for tensor shapes, composition, diagrams, gradients and the GRU.</dd>
