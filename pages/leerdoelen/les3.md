@@ -99,6 +99,3 @@ data per run. Kan een Pareto front gebruiken om die keuzes te maken.
 
 Train, validatie en test (1.9) en de spreiding tussen runs (1.10) zijn voorkennis uit les
 1: elke vergelijking in deze les kiest op validatie en rapporteert op test.
-
-Optioneel: `8_extras/swarms` laat zoeken met een zwerm zien, voor problemen zonder
-bruikbare gradient.
